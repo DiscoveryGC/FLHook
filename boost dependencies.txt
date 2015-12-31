@@ -1,0 +1,11 @@
+In order to severely reduce the amount of programming required for simple tasks, we have started using the Boost library.
+The version compatible with FLHook is the MSVC 14.0 32 BITS. (64 Bits will not work).
+
+The latest version in use is: http://skylink.dl.sourceforge.net/project/boost/boost-binaries/1.59.0/boost_1_59_0-msvc-14.0-32.exe
+
+In order to streamline the boost dependency in the project management, the arbitrary path for Boost is relative to the solution.
+
+Ex: C:\flhook_2015\boost
+Or even: D:\kittens\flhook_apples\boost
+
+For this purpose it has been excluded from git as it's too heavy. It's up to you to install it properly.

@@ -1,0 +1,22 @@
+(const wchar_t*)Players.GetActiveCharacterName(iClientID)
+
+for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+
+for (list<EquipDesc>::iterator i = edl.equip.begin(); i != edl.equip.end(); i++)
+for (list<EquipDesc>::iterator item = edl.equip.begin(); item != edl.equip.end(); item++)
+
+
+for (EquipDescListItem *item = gi->edl.pFirst->next;
+				item != gi->edl.pFirst; item = item->next)
+
+for (list<EquipDesc>::iterator item = gi->edl.equip.begin(); item != gi->edl.equip.end(); item++)
+
+
+cship->equip_manager.Traverse(tr);
+==>
+
+CEquipManager* eqmanager = (CEquipManager*)((char*)cship + 0xE4);
+		CEquipTraverser tr(-1);
+		CEquip *equip = eqmanager->Traverse(tr);
+    
+equip = eqmanager->Traverse(tr);

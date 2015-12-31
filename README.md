@@ -15,6 +15,15 @@ Our current starport revision is #267.
 Please note there's some pretty bad code here and there. I didn't have time to refactor my old contributions as I became more skilled over time.
 If you come across it and want to refactor it, you're very much welcome.
 
+How to use
+-------
+
+Open the solution in trunk/project-vc14/FLHook.sln
+Do not use the solution in DEBUG configuration. Always use RELEASE.
+
+Your compiled plugins are in trunk/bin-vc14/flhook_plugins.
+Sometimes it also like to not copy over the new dll from the plugin's folder into bin-vc14/flhook_plugins for mysterious reasons.
+
 License
 -------
 

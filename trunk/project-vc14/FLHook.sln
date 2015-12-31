@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FLHook", "FLHook.vcxproj", "{FE6EB3C9-DA22-4492-AEC3-068C9553A623}"
 EndProject
@@ -19,8 +19,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiningControl Plugin", "..\plugins\minecontrol_plugin\MineControl Plugin.vc14.vcxproj", "{367D5EDC-F360-49E0-B652-587B9E22CF6C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Player Control", "..\plugins\playercntl_plugin\src\Player Control Plugin.vc14.vcxproj", "{9E084A9E-A8B9-4F64-8048-F3357839683E}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DSAceSrv Plugin", "..\plugins\dsacesrv_discovery\dsace_plugin.vcxproj", "{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JSONBuddy", "..\plugins\JSONBuddy\JSONBuddy.vcxproj", "{097BFFBB-2BBE-4E16-B2FB-3ED8E90ECBD7}"
 EndProject
@@ -95,12 +93,6 @@ Global
 		{9E084A9E-A8B9-4F64-8048-F3357839683E}.Release|Win32.Build.0 = Release|Win32
 		{9E084A9E-A8B9-4F64-8048-F3357839683E}.ReleaseVersion|Win32.ActiveCfg = Release|Win32
 		{9E084A9E-A8B9-4F64-8048-F3357839683E}.ReleaseVersion|Win32.Build.0 = Release|Win32
-		{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}.Debug|Win32.ActiveCfg = Debug|Win32
-		{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}.Debug|Win32.Build.0 = Debug|Win32
-		{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}.Release|Win32.ActiveCfg = Release|Win32
-		{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}.Release|Win32.Build.0 = Release|Win32
-		{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}.ReleaseVersion|Win32.ActiveCfg = Release|Win32
-		{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}.ReleaseVersion|Win32.Build.0 = Release|Win32
 		{097BFFBB-2BBE-4E16-B2FB-3ED8E90ECBD7}.Debug|Win32.ActiveCfg = Debug|Win32
 		{097BFFBB-2BBE-4E16-B2FB-3ED8E90ECBD7}.Debug|Win32.Build.0 = Debug|Win32
 		{097BFFBB-2BBE-4E16-B2FB-3ED8E90ECBD7}.Release|Win32.ActiveCfg = Release|Win32

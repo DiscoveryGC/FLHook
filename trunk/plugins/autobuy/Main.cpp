@@ -568,7 +568,9 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 			}
 			else if (eq_type == ET_GUN)
 			{
+				/*
 				if (mapAutobuyPlayerInfo[iClientID].bAutobuyMunition)
+				{
 
 					if (mapStackableItems.find(eq->get_id()) != mapStackableItems.end())
 					{
@@ -578,7 +580,12 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 					else
 					{
 						ADD_EQUIP_TO_CART(L"Munitions")
-					}					
+					}
+				}*/
+
+				if (mapAutobuyPlayerInfo[iClientID].bAutobuyMunition)
+						ADD_EQUIP_TO_CART(L"Munitions")
+		
 			}
 
 			//FLHook handling

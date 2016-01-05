@@ -89,9 +89,9 @@ wstring ToMoneyStr(int iCash)
 	wchar_t wszBuf[32];
 	
 	if(iMillions)
-		swprintf(wszBuf, L"%d.%.3d.%.3d", iMillions, iThousands, iRest);
+		swprintf(wszBuf, L"%d.%.3d.%.3d", iMillions, abs(iThousands), abs(iRest));
 	else if(iThousands)
-		swprintf(wszBuf, L"%d.%.3d", iThousands, iRest);
+		swprintf(wszBuf, L"%d.%.3d", iThousands, abs(iRest));
 	else
 		swprintf(wszBuf, L"%d", iRest);
 

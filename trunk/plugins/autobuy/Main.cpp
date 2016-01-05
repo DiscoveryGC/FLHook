@@ -244,7 +244,7 @@ void LoadSettings()
 struct AUTOBUY_CARTITEM
 {
 	uint iArchID;
-	uint iCount;
+	int iCount;
 	wstring wscDescription;
 };
 
@@ -685,7 +685,7 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 
 			if ((*it4).iCount != 0)
 			{
-				PrintUserCmdText(iClientID, L"Auto-Buy(%s): Bought %u unit(s), cost: %s$", (*it4).wscDescription.c_str(), (*it4).iCount, ToMoneyStr(iCost).c_str());
+				PrintUserCmdText(iClientID, L"Auto-Buy(%s): Bought %d unit(s), cost: %s$", (*it4).wscDescription.c_str(), (*it4).iCount, ToMoneyStr(iCost).c_str());
 			}
 		}
 	}

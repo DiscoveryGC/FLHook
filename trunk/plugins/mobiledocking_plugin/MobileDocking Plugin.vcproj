@@ -117,8 +117,8 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				CommandLine="copy $(OutDir)\$(TargetName).dll ..\..\bin\flhook_plugins\&#x0D;&#x0A;copy $(OutDir)\$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins&#x0D;&#x0A;"
-				Outputs="..\..\bin\flhook_plugins\$(TargetName).dll;C:\Discovery\FreelancerSDK\EXE\flhook_plugins\$(TargetName).dll"
+				CommandLine="copy $(OutDir)\$(TargetName).dll ..\..\bin-vc9\flhook_plugins\$(TargetName).dll"
+				Outputs="..\..\bin-vc9\flhook_plugins\$(TargetName).dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"

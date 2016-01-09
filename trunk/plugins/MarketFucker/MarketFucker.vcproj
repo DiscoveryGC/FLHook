@@ -95,8 +95,8 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				CommandLine="copy $(OutDir)\$(TargetName).dll  ..\..\..\builds\flhook_plugins\&#x0D;&#x0A;"
-				Outputs="..\bin\$(TargetName).dll"
+				CommandLine="copy $(OutDir)\$(TargetName).dll ..\..\bin-vc9\flhook_plugins\$(TargetName).dll"
+				Outputs="..\..\bin-vc9\flhook_plugins\$(TargetName).dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -111,7 +111,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\flhookplugin_sdk\;&quot;C:\Program Files\boost\boost_1_55_0&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)..\plugins\flhookplugin_sdk\headers\&quot;"
 				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;"
 				ExceptionHandling="2"
 				RuntimeLibrary="2"

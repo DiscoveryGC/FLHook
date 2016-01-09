@@ -451,19 +451,19 @@ EXPORT void LoadSettings()
 					}
 
 					//
-					float fRechargeRate = 1000;
-					//float fRechargeRate = (float)atof(GetTrimParam(scLine, 3).c_str());
-					//if (fRechargeRate <= 0.0f)
-					//{
-					//	fRechargeRate = 50000;					
-					//}
+					//float fRechargeRate = 1000;
+					float fRechargeRate = (float)atof(GetTrimParam(scLine, 3).c_str());
+					if (fRechargeRate <= 0.0f)
+					{
+						fRechargeRate = 50000;					
+					}
 
-					float fMaxReserve = 100000;
-					//float fMaxReserve = (float)atof(GetTrimParam(scLine, 4).c_str());
-					//if (fMaxReserve <= 0.0f)
-					//{
-					//	fMaxReserve = 100000;					
-					//}
+					//float fMaxReserve = 100000;
+					float fMaxReserve = (float)atof(GetTrimParam(scLine, 4).c_str());
+					if (fMaxReserve <= 0.0f)
+					{
+						fMaxReserve = 100000;					
+					}
 
 					uint iZoneID = CreateID(scZone.c_str());
 					set_mapZoneBonus[iZoneID].scZone = scZone;

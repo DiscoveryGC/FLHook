@@ -117,8 +117,8 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				CommandLine="copy $(OutDir)\$(TargetName).dll ..\..\bin\flhook_plugins\$(TargetName).dll&#x0D;&#x0A;copy $(OutDir)\$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins\$(TargetName).dll&#x0D;&#x0A;"
-				Outputs="..\..\bin\flhook_plugins\$(TargetName).dll;C:\Discovery\FreelancerSDK\EXE\flhook_plugins\$(TargetName).dll"
+				CommandLine="copy $(OutDir)\$(TargetName).dll ..\..\bin-vc9\flhook_plugins\$(TargetName).dll&#x0D;&#x0A;"
+				Outputs="..\..\bin-vc9\flhook_plugins\$(TargetName).dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -135,7 +135,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)..\plugins\flhookplugin_sdk\headers\&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)..\plugins\flhookplugin_sdk\headers\&quot;;&quot;$(SolutionDir)..\..\boost&quot;"
 				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;"
 				ExceptionHandling="2"
 				RuntimeLibrary="2"
@@ -158,6 +158,7 @@
 				AdditionalDependencies="..\hookext_plugin\Release\ahookext.lib"
 				OutputFile="$(OutDir)/base.dll"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="$(SolutionDir)..\..\boost\lib32-msvc-9.0;"
 				GenerateDebugInformation="true"
 				AssemblyDebug="1"
 				SubSystem="2"
@@ -217,7 +218,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ExportData.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\FactoryModule.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Jumper.cpp"
 				>
 			</File>
 			<File
@@ -242,6 +251,10 @@
 			</File>
 			<File
 				RelativePath=".\ShieldModule.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SiegeGun.cpp"
 				>
 			</File>
 			<File

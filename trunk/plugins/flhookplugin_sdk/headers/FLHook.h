@@ -354,8 +354,8 @@ typedef struct _DPN_CONNECTION_INFO{
     DWORD   dwPacketsSentNonGuaranteed;
     DWORD   dwBytesRetried;
     DWORD   dwPacketsRetried;
-    DWORD   dwBytesDropped;   
-    DWORD   dwPacketsDropped; 
+    DWORD   dwBytesDropped;
+    DWORD   dwPacketsDropped;
     DWORD   dwMessagesTransmittedHighPriority;
     DWORD   dwMessagesTimedOutHighPriority;
     DWORD   dwMessagesTransmittedNormalPriority;
@@ -715,7 +715,7 @@ public:
 
 
 // namespaces
-namespace HkIServerImpl 
+namespace HkIServerImpl
 {
 	IMPORT extern bool g_bInSubmitChat;
 	IMPORT extern uint g_iTextLen;

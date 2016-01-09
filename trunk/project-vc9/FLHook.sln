@@ -48,6 +48,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NPC Plugin", "..\plugins\np
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Event Plugin", "..\plugins\event\Event.vcproj", "{74985EDD-171B-4B7B-A400-E19F1509BAFA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DSAceSrv Plugin", "..\plugins\dsacesrv_discovery\dsace_plugin.vcproj", "{582F66F4-C7BE-4615-9D79-7CB4229BD8F2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Player Control", "..\plugins\playercntl_plugin\Player Control Plugin.vcproj", "{9E084A9E-A8B9-4F64-8048-F3357839683E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -139,6 +143,18 @@ Global
 		{74985EDD-171B-4B7B-A400-E19F1509BAFA}.Release|Win32.Build.0 = Release|Win32
 		{74985EDD-171B-4B7B-A400-E19F1509BAFA}.ReleaseVersion|Win32.ActiveCfg = Release|Win32
 		{74985EDD-171B-4B7B-A400-E19F1509BAFA}.ReleaseVersion|Win32.Build.0 = Release|Win32
+		{582F66F4-C7BE-4615-9D79-7CB4229BD8F2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{582F66F4-C7BE-4615-9D79-7CB4229BD8F2}.Debug|Win32.Build.0 = Debug|Win32
+		{582F66F4-C7BE-4615-9D79-7CB4229BD8F2}.Release|Win32.ActiveCfg = Release|Win32
+		{582F66F4-C7BE-4615-9D79-7CB4229BD8F2}.Release|Win32.Build.0 = Release|Win32
+		{582F66F4-C7BE-4615-9D79-7CB4229BD8F2}.ReleaseVersion|Win32.ActiveCfg = Release|Win32
+		{582F66F4-C7BE-4615-9D79-7CB4229BD8F2}.ReleaseVersion|Win32.Build.0 = Release|Win32
+		{9E084A9E-A8B9-4F64-8048-F3357839683E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9E084A9E-A8B9-4F64-8048-F3357839683E}.Debug|Win32.Build.0 = Debug|Win32
+		{9E084A9E-A8B9-4F64-8048-F3357839683E}.Release|Win32.ActiveCfg = Release|Win32
+		{9E084A9E-A8B9-4F64-8048-F3357839683E}.Release|Win32.Build.0 = Release|Win32
+		{9E084A9E-A8B9-4F64-8048-F3357839683E}.ReleaseVersion|Win32.ActiveCfg = Release|Win32
+		{9E084A9E-A8B9-4F64-8048-F3357839683E}.ReleaseVersion|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

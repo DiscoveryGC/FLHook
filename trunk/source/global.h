@@ -20,7 +20,14 @@
 using namespace std;
 
 // defines
-#define VERSION L"3.0.0 plugin"
+#if _MSC_VER == 1500
+#define VERSION L"3.0.0-vc9 plugin"
+#elif _MSC_VER == 1900
+#define VERSION L"3.0.0-vc14 plugin"
+#else
+#define VERSION L"3.0.0-UNKNOWN plugin"
+#endif
+
 
 #define TIME_UPDATE 50
 #define IMPORT __declspec(dllimport)

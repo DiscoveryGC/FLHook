@@ -515,15 +515,13 @@ bool CoreModule::Timer(uint time)
 						base->RemoveMarketGood(set_base_crew_type, (crew_to_feed >= 10) ? 10 : crew_to_feed);
 					}
 				}
-
-				// Save the new base health
-				float rhealth = base->base_health / base->max_base_health;
-				pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-				if (set_plugin_debug>1)
-					ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
-
 			}
 
+			// Save the new base health
+			float rhealth = base->base_health / base->max_base_health;
+			pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+			if (set_plugin_debug>1)
+				ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
 
 		}
 		//else we do not change health, but we still need to send an update to fix the undockable problem. The base either has no logic or is invulnerable, so processing changes is useless.

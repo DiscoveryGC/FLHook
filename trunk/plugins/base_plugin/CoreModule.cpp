@@ -390,7 +390,7 @@ void CoreModule::SaveState(FILE *file)
 
 void CoreModule::RepairDamage(float max_base_health)
 {
-	// We have to add this because of people always attempting to abuse the system
+	// We have to add this because of little faggots
 	// Check for Oxygen and Water
 	int checkoxygenwater = 0;
 	for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
@@ -401,7 +401,7 @@ void CoreModule::RepairDamage(float max_base_health)
 		if (ow_available >= 250)
 		{
 			//HkMsgU(L"oxywater");
-			checkoxygenwater = checkoxygenwater + 1;
+			checkoxygenwater += 1;
 		}
 	}
 	// Check for Food
@@ -413,7 +413,7 @@ void CoreModule::RepairDamage(float max_base_health)
 		if (food_available >= 250)
 		{
 			//HkMsgU(L"food");
-			checkfood = checkfood + 1;
+			checkfood += 1;
 		}
 	}
 
@@ -453,7 +453,7 @@ bool CoreModule::Timer(uint time)
 
 			pub::SpaceObj::GetHealth(space_obj, base->base_health, base->max_base_health);
 
-			if (!dont_rust || !set_holiday_mode)
+			if (!dont_rust)
 			{
 				// Reduce hitpoints to reflect wear and tear. This will eventually
 				// destroy the base unless it is able to repair itself.
@@ -471,7 +471,7 @@ bool CoreModule::Timer(uint time)
 			else if (base->base_health <= 0)
 				base->base_health = 0;
 
-			if (!dont_eat || !set_holiday_mode)
+			if (!dont_eat)
 			{
 				// Humans use commodity_oxygen, commodity_water. Consume these for
 				// the crew or kill 10 crew off and repeat this every 12 hours.
@@ -515,14 +515,14 @@ bool CoreModule::Timer(uint time)
 						base->RemoveMarketGood(set_base_crew_type, (crew_to_feed >= 10) ? 10 : crew_to_feed);
 					}
 				}
+
+				// Save the new base health
+				float rhealth = base->base_health / base->max_base_health;
+				pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+				if (set_plugin_debug>1)
+					ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
+
 			}
-
-			// Save the new base health
-			float rhealth = base->base_health / base->max_base_health;
-			pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-			if (set_plugin_debug>1)
-				ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
-
 		}
 		//else we do not change health, but we still need to send an update to fix the undockable problem. The base either has no logic or is invulnerable, so processing changes is useless.
 		else

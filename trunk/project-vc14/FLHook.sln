@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FLHook", "FLHook.vcxproj", "{FE6EB3C9-DA22-4492-AEC3-068C9553A623}"
 EndProject
@@ -35,6 +35,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DSAceSrv Plugin", "..\plugins\dsacesrv_discovery\dsace_plugin.vcxproj", "{209E8482-B6B8-4CF8-B117-B93BE1B9E72D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "template", "..\plugins\__PLUGIN_TEMPLATE\Template.vcxproj", "{E7008BA7-4F75-4AF7-B25C-3A9A3287A88F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CommodityLimit", "..\plugins\commoditylimit\CommodityLimit.vcxproj", "{E7DFB061-5E6A-47DC-94C5-CCB169EA410A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -145,6 +147,12 @@ Global
 		{E7008BA7-4F75-4AF7-B25C-3A9A3287A88F}.Release|Win32.Build.0 = Release|Win32
 		{E7008BA7-4F75-4AF7-B25C-3A9A3287A88F}.ReleaseVersion|Win32.ActiveCfg = Release|Win32
 		{E7008BA7-4F75-4AF7-B25C-3A9A3287A88F}.ReleaseVersion|Win32.Build.0 = Release|Win32
+		{E7DFB061-5E6A-47DC-94C5-CCB169EA410A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E7DFB061-5E6A-47DC-94C5-CCB169EA410A}.Debug|Win32.Build.0 = Debug|Win32
+		{E7DFB061-5E6A-47DC-94C5-CCB169EA410A}.Release|Win32.ActiveCfg = Release|Win32
+		{E7DFB061-5E6A-47DC-94C5-CCB169EA410A}.Release|Win32.Build.0 = Release|Win32
+		{E7DFB061-5E6A-47DC-94C5-CCB169EA410A}.ReleaseVersion|Win32.ActiveCfg = Release|Win32
+		{E7DFB061-5E6A-47DC-94C5-CCB169EA410A}.ReleaseVersion|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

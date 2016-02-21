@@ -390,7 +390,7 @@ void CoreModule::SaveState(FILE *file)
 
 void CoreModule::RepairDamage(float max_base_health)
 {
-	// We have to add this because of little faggots
+	// We have to add this because of bug abusers
 	// Check for Oxygen and Water
 	int checkoxygenwater = 0;
 	for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();

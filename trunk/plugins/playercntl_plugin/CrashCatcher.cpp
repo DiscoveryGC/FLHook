@@ -13,7 +13,7 @@
 #include <plugin.h>
 #include "Main.h"
 #include "CrashCatcher.h"
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 
 static bool bPatchInstalled = false;
 static FARPROC fpOldTimingSeconds = 0;

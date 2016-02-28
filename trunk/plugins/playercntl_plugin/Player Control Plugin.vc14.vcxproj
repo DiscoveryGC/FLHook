@@ -33,6 +33,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
+  <ImportGroup Label="Shared">
+    <Import Project="..\PluginUtilities\PluginUtilities.vcxitems" Label="Shared" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
@@ -55,7 +58,7 @@
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(SolutionDir)..\plugins\PluginUtilities;$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <TargetName>playercntl</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -140,7 +143,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\bin-vc14\flhook_plugins\
     <ClCompile Include="MiscCmds.cpp" />
     <ClCompile Include="PimpShip.cpp" />
     <ClCompile Include="PlayerInfo.cpp" />
-    <ClCompile Include="PluginUtilities.cpp" />
     <ClCompile Include="PurchaseRestrictions.cpp" />
     <ClCompile Include="Rename.cpp" />
     <ClCompile Include="RepFixer.cpp" />

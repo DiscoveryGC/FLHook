@@ -19,7 +19,7 @@
 #include <list>
 #include <set>
 
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "Main.h"
 
 namespace AntiJumpDisconnect

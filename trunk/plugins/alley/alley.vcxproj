@@ -30,6 +30,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
+  <ImportGroup Label="Shared">
+    <Import Project="..\PluginUtilities\PluginUtilities.vcxitems" Label="Shared" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -48,7 +51,7 @@
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)..\..\boost;$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)..\plugins\PluginUtilities;$(SolutionDir)..\..\boost;$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -102,13 +105,11 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\bin-vc14\flhook_plugins\
     <ClCompile Include="CustomPermissions.cpp" />
     <ClCompile Include="dockrestrict.cpp" />
     <ClCompile Include="PlayerRestrictions.cpp" />
-    <ClCompile Include="PluginUtilities.cpp" />
     <ClCompile Include="rep.cpp" />
     <ClCompile Include="shipclass_item.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PlayerRestrictions.h" />
-    <ClInclude Include="PluginUtilities.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\project-vc14\FLHook.vcxproj">

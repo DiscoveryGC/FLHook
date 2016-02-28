@@ -111,6 +111,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\bin-vc12\flhook_plugins\
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
       <ImportLibrary>$(OutDir)FLHook Example Plugin.lib</ImportLibrary>

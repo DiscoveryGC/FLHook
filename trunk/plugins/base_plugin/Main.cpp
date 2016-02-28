@@ -18,8 +18,7 @@
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
-#include "PluginUtilities.h"
-#include <math.h>
+#include <PluginUtilities.h>
 #include "Main.h"
 #include <sstream>
 #include "../hookext_plugin/hookext_exports.h"
@@ -141,6 +140,28 @@ void Logging(const char *szString, ...)
 		fflush(Logfile);
 		fclose(Logfile);
 	}
+}
+
+// These logging functions need consolidating.
+void BaseLogging(const char *szString, ...)
+{
+        char szBufString[1024];
+        va_list marker;
+        va_start(marker, szString);
+        _vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
+
+        char szBuf[64];
+        time_t tNow = time(0);
+        struct tm *t = localtime(&tNow);
+        strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+
+        FILE *BaseLogfile = fopen("./flhook_logs/playerbase_events.log", "at");
+        if (BaseLogfile)
+        {
+                fprintf(BaseLogfile, "%s %s\n", szBuf, szBufString);
+                fflush(BaseLogfile);
+                fclose(BaseLogfile);
+        }
 }
 
 void LogCheater(uint client, const wstring &reason)

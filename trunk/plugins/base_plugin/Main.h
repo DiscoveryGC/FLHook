@@ -11,8 +11,8 @@
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
-#include "PluginUtilities.h"
-#include <math.h>
+#include <PluginUtilities.h>
+
 using namespace std;
 
 struct RECIPE
@@ -383,6 +383,8 @@ public:
 
 PlayerBase *GetPlayerBase(uint base);
 PlayerBase *GetPlayerBaseForClient(uint client);
+
+void BaseLogging(const char *szString, ...);
 
 void SaveBases();
 void DeleteBase(PlayerBase *base);

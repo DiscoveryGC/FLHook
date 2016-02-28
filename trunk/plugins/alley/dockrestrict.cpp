@@ -19,13 +19,12 @@
 #include <float.h>
 #include <FLHook.h>
 #include <plugin.h>
-#include <math.h>
 #include <list>
 #include <set>
 #include <sstream>
 #include <iostream>
 
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "PlayerRestrictions.h"
 
 

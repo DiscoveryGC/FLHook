@@ -11,8 +11,7 @@
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
-#include "PluginUtilities.h"
-#include <math.h>
+#include <PluginUtilities.h>
 
 
 

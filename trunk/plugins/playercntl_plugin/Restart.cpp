@@ -20,7 +20,7 @@
 #include <list>
 #include <set>
 
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "Main.h"
 
 #include "Shlwapi.h"

@@ -17,7 +17,7 @@
 #include <list>
 #include <set>
 
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "Main.h"
 
 #include <FLCoreServer.h>
@@ -29,33 +29,6 @@
 
 namespace Rename
 {
-	static void ini_write_wstring(FILE *file, const string &parmname, const wstring &in)
-	{
-		fprintf(file, "%s=", parmname.c_str()); 
-		for (int i = 0; i < (int)in.size(); i++)
-		{
-			UINT v1 = in[i] >> 8;
-			UINT v2 = in[i] & 0xFF;
-			fprintf(file, "%02x%02x", v1, v2); 
-		}
-		fprintf(file, "\n");
-	}
-
-
-	static void ini_get_wstring(INI_Reader &ini, wstring &wscValue)
-	{
-		string scValue = ini.get_value_string();
-		wscValue = L"";
-		long lHiByte;
-		long lLoByte;
-		while(sscanf(scValue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
-		{
-			scValue = scValue.substr(4);
-			wchar_t wChar = (wchar_t)((lHiByte << 8) | lLoByte);
-			wscValue.append(1, wChar);
-		}
-	}
-
 	// Cost of the rename in credits
 	int set_iMoveCost = 0;
 

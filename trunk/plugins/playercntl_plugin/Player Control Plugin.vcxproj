@@ -54,7 +54,7 @@
     <IntDir>Release\</IntDir>
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(SolutionDir)..\plugins\PluginUtilities;$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <TargetName>playercntl</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -139,7 +139,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\bin-vc12\flhook_plugins\
     <ClCompile Include="MiscCmds.cpp" />
     <ClCompile Include="PimpShip.cpp" />
     <ClCompile Include="PlayerInfo.cpp" />
-    <ClCompile Include="PluginUtilities.cpp" />
     <ClCompile Include="PurchaseRestrictions.cpp" />
     <ClCompile Include="Rename.cpp" />
     <ClCompile Include="RepFixer.cpp" />

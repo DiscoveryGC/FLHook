@@ -21,7 +21,7 @@
 #include <set>
 
 #include "Main.h"
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 
 namespace StartupCache
 {

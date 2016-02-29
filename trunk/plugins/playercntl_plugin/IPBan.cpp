@@ -18,7 +18,7 @@
 #include <set>
 
 #include "Main.h"
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "wildcards.h"
 
 namespace IPBans

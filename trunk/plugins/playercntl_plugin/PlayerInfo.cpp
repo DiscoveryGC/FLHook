@@ -17,7 +17,7 @@
 
 #include <FLHook.h>
 #include <plugin.h>
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 
 enum MissionMessageType
 {
@@ -32,7 +32,7 @@ enum MissionMessageType
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
-//#include "PluginUtilities.h"
+//#include <PluginUtilities.h>
 #include "Main.h"
 
 namespace PlayerInfo

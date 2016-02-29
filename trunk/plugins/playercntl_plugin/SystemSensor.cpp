@@ -21,7 +21,7 @@
 #include <set>
 #include <algorithm>
 
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "Main.h"
 
 #include "Shlwapi.h"

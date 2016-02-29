@@ -11,11 +11,11 @@
 #include <time.h>
 #include <FLHook.h>
 #include <plugin.h>
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include <math.h>
 #include <list>
 
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "Mail.h"
 
 bool extern set_bLocalTime;

@@ -50,9 +50,6 @@
     <ClCompile Include="PlayerInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PluginUtilities.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PurchaseRestrictions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

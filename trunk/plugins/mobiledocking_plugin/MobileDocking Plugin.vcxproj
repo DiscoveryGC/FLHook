@@ -31,6 +31,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
+  <ImportGroup Label="Shared">
+    <Import Project="..\PluginUtilities\PluginUtilities.vcxitems" Label="Shared" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
@@ -54,7 +57,7 @@
     <IntDir>Release\</IntDir>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(SolutionDir)..\plugins\PluginUtilities;$(SolutionDir)..\plugins\flhookplugin_sdk\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <TargetName>mobiledock</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -134,7 +137,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\bin-vc12\flhook_plugins\
   <ItemGroup>
     <ClCompile Include="ClientCommands.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="PluginUtilities.cpp" />
     <ClCompile Include="SaveFiles.cpp" />
   </ItemGroup>
   <ItemGroup>

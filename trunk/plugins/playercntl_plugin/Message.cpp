@@ -21,7 +21,7 @@
 #include <plugin.h>
 #include <FLCoreServer.h>
 #include <FLCoreCommon.h>
-#include "PluginUtilities.h"
+#include <PluginUtilities.h>
 #include "Mail.h"
 #include "ZoneUtilities.h"
 
@@ -33,6 +33,146 @@
 #include "Main.h"
 
 #include "../../hookext_plugin/hookext_exports.h"
+
+/// Local chat range
+float set_iLocalChatRangeUtl = 9999;
+
+/// Record people using /pm /r and /t
+/// TODO: Turn this into a generic logging function and move it to PluginUtilities
+FILE *PMLogfile = fopen("./flhook_logs/private_chats.log", "at");
+
+void PMLogging(const char *szString, ...)
+{
+	char szBufString[1024];
+	va_list marker;
+	va_start(marker, szString);
+	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+
+	char szBuf[64];
+	time_t tNow = time(0);
+	struct tm *t = localtime(&tNow);
+	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+	fprintf(PMLogfile, "%s %s\n", szBuf, szBufString);
+	fflush(PMLogfile);
+	fclose(PMLogfile);
+	PMLogfile = fopen("./flhook_logs/private_chats.log", "at");
+}
+
+/// Load the configuration
+void LoadSettingsUtl()
+{
+        // The path to the configuration file.
+        char szCurDir[MAX_PATH];
+        GetCurrentDirectory(sizeof(szCurDir), szCurDir);
+        string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\playercntl.cfg";
+
+        set_iLocalChatRangeUtl = IniGetF(scPluginCfgFile, "General", "LocalChatRange", 0);
+}
+
+/** Send a player to local system message */
+void SendLocalSystemChat(uint iFromClientID, const wstring &wscText)
+{
+        wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
+
+        // Get the player's current system and location in the system.
+        uint iSystemID;
+        pub::Player::GetSystem(iFromClientID, iSystemID);
+
+        uint iFromShip;
+        pub::Player::GetShip(iFromClientID, iFromShip);
+
+        Vector vFromShipLoc;
+        Matrix mFromShipDir;
+        pub::SpaceObj::GetLocation(iFromShip, vFromShipLoc, mFromShipDir);
+
+        // For all players in system...
+        struct PlayerData *pPD = 0;
+        while (pPD = Players.traverse_active(pPD))
+        {
+                // Get the this player's current system and location in the system.
+                uint iClientID = HkGetClientIdFromPD(pPD);
+                uint iClientSystemID = 0;
+                pub::Player::GetSystem(iClientID, iClientSystemID);
+                if (iSystemID != iClientSystemID)
+                        continue;
+
+                uint iShip;
+                pub::Player::GetShip(iClientID, iShip);
+
+                Vector vShipLoc;
+                Matrix mShipDir;
+                pub::SpaceObj::GetLocation(iShip, vShipLoc, mShipDir);
+
+                // Cheat in the distance calculation. Ignore the y-axis.
+                float fDistance = sqrt(pow(vShipLoc.x - vFromShipLoc.x, 2) + pow(vShipLoc.z - vFromShipLoc.z, 2));
+
+                //Is player within scanner range (15K) of the sending char.
+                if (fDistance>set_iLocalChatRangeUtl)
+                        continue;
+
+                // Send the message a player in this system.
+                FormatSendChat(iClientID, wscSender, wscText, L"FF8F40");
+        }
+}
+
+/** Send a player to player message */
+void SendPrivateChat(uint iFromClientID, uint iToClientID, const wstring &wscText)
+{
+        wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
+
+        if (set_bUserCmdIgnore)
+        {
+                foreach(ClientInfo[iToClientID].lstIgnore, IGNORE_INFO, it)
+                {
+                        if (HAS_FLAG(*it, L"p"))
+                                return;
+                }
+        }
+
+        // Send the message to both the sender and receiver.
+        FormatSendChat(iToClientID, wscSender, wscText, L"19BD3A");
+        FormatSendChat(iFromClientID, wscSender, wscText, L"19BD3A");
+        //Alleymarker02
+
+        wstring wscCharnameSender = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
+        wstring wscCharnameReceiver = (const wchar_t*)Players.GetActiveCharacterName(iToClientID);
+
+        wstring wscMsg = L"%sender->%receiver: %message";
+        wscMsg = ReplaceStr(wscMsg, L"%sender", wscCharnameSender.c_str());
+        wscMsg = ReplaceStr(wscMsg, L"%receiver", wscCharnameReceiver.c_str());
+        wscMsg = ReplaceStr(wscMsg, L"%message", wscText);
+        string scText = wstos(wscMsg);
+        //PMLogging("much strange");
+        //PrintUserCmdText(iFromClientID, L"content of msg: %s", stows(scText).c_str());
+        //PrintUserCmdText(iFromClientID, L"sender name: %s", wscCharnameSender.c_str());
+        //PrintUserCmdText(iFromClientID, L"receiver name: %s", wscCharnameReceiver.c_str());
+        PMLogging("%s", scText.c_str());
+
+}
+
+/** Send a player to system message */
+void SendSystemChat(uint iFromClientID, const wstring &wscText)
+{
+        wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
+
+        // Get the player's current system.
+        uint iSystemID;
+        pub::Player::GetSystem(iFromClientID, iSystemID);
+
+        // For all players in system...
+        struct PlayerData *pPD = 0;
+        while (pPD = Players.traverse_active(pPD))
+        {
+                uint iClientID = HkGetClientIdFromPD(pPD);
+                uint iClientSystemID = 0;
+                pub::Player::GetSystem(iClientID, iClientSystemID);
+                if (iSystemID == iClientSystemID)
+                {
+                        // Send the message a player in this system.
+                        FormatSendChat(iClientID, wscSender, wscText, L"E6C684");
+                }
+        }
+}
 
 namespace Message
 {
@@ -113,9 +253,6 @@ namespace Message
 
 	/** list of swear words */
 	static std::list<wstring> set_lstSwearWords;
-
-	/** A random macro to make things easier */
-#define HAS_FLAG(a, b) ((a).wscFlags.find(b) != -1)
 
 	/** Load the msgs for specified client ID into memory. */
 	static void LoadMsgs(uint iClientID)

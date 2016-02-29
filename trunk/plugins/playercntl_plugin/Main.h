@@ -11,6 +11,9 @@
 
 #include <FLHook.h>
 
+void AddExceptionInfoLog(LPEXCEPTION_POINTERS pep);
+#define LOG_EXCEPTION { AddLog("ERROR Exception in %s", __FUNCTION__); AddExceptionInfoLog(0); }
+
 int extern set_iPluginDebug;
 bool extern set_bEnablePimpShip;
 bool extern set_bEnableRenameMe;

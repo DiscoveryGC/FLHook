@@ -386,7 +386,7 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 
 void CheckforStackables(uint iClientID)
 {
-	map<uint, int> tempmap;
+	map<uint, uint> tempmap;
 
 	// player cargo
 	int iRemHoldSize;
@@ -405,7 +405,7 @@ void CheckforStackables(uint iClientID)
 	}
 
 	//now that we have identified the stackables, retrieve the current ammo count for stackables
-	for (map<uint, int>::iterator ita = tempmap.begin(); ita != tempmap.end(); ita++)
+	for (map<uint, uint>::iterator ita = tempmap.begin(); ita != tempmap.end(); ita++)
 	{
 		Archetype::Equipment *eq = Archetype::GetEquipment(ita->first);
 		uint ammo = ((Archetype::Launcher*)eq)->iProjectileArchID;

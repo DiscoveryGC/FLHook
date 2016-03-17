@@ -1937,7 +1937,7 @@ namespace HyperJump
 				IObjInspectImpl *obj = HkGetInspect(iClientID);
 				if (obj)
 				{
-					HkLightFuse((IObjRW*)obj, BeaconFuse, 0, BeaconTime, 0);
+					HkLightFuse((IObjRW*)obj, BeaconFuse, 0.0f, (float) BeaconTime, 0.0f);
 				}
 				
 				BEACON bc;

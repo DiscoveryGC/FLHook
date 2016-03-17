@@ -860,28 +860,17 @@ Vector MatrixToEuler(const Matrix& mat)
 	return vec;
 }
 
-// Convert an orientation matrix to a pitch/yaw/roll vector.  Based on what
-// Freelancer does for the save game.
-// This was in mobiledocking/SaveFiles.cpp - migrate to MatrixToEuler()
-void Matrix_to_Vector(const Matrix& mat, Vector& vec)
+Quaternion HkMatrixToQuaternion(Matrix m)
 {
-        Vector x = { mat.data[0][0], mat.data[1][0], mat.data[2][0] };
-        Vector y = { mat.data[0][1], mat.data[1][1], mat.data[2][1] };
-        Vector z = { mat.data[0][2], mat.data[1][2], mat.data[2][2] };
-
-        float h = (float)_hypot(x.x, x.y);
-        if (h > 1 / 524288.0f)
-        {
-                vec.x = degrees(atan2f(y.z, z.z));
-                vec.y = degrees(atan2f(-x.z, h));
-                vec.z = degrees(atan2f(x.y, x.x));
-        }
-        else
-        {
-                vec.x = degrees(atan2f(-z.y, y.y));
-                vec.y = degrees(atan2f(-x.z, h));
-                vec.z = 0;
-        }
+        Quaternion quaternion;
+        quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
+        quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
+        quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
+        quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
+        quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
+        quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
+        quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);
+        return quaternion;
 }
 
 // Format a chat string in accordance with the receiver's preferences and send it. Will
@@ -930,20 +919,6 @@ void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &w
 
 	HkFMsg(iToClientID, wscXML);
 }
-
-Quaternion HkMatrixToQuaternion(Matrix m)
-{
-	Quaternion quaternion;
-	quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
-	quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
-	quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
-	quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
-	quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);
-	return quaternion;
-}
-
 
 void ini_get_wstring(INI_Reader &ini, wstring &wscValue)
 {

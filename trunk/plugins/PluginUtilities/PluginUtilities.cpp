@@ -85,62 +85,6 @@ bool IsInRange(uint iClientID, float fDistance)
         return false;
 }
 
-// Determine the path name of a file in the charname account directory with the
-// provided extension. The resulting path is returned in the path parameter.
-bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension)
-{
-	// init variables
-	char szDataPath[MAX_PATH];
-	GetUserDataPath(szDataPath);
-	string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
-
-	wstring wscDir;
-	wstring wscFile;
-	if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
-		return false;
-	if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
-		return false;
-	path = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + extension;
-	return true;
-}
-
-// playercntl uses this variation - merge with below
-string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
-{
-        // init variables
-        char szDataPath[MAX_PATH];
-        GetUserDataPath(szDataPath);
-        string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
-
-        wstring wscDir;
-        wstring wscFile;
-        if (HkGetAccountDirName(wscCharname, wscDir)!=HKE_OK)
-                return "";
-        if (HkGetCharFileName(wscCharname, wscFile)!=HKE_OK)
-                return "";
-
-        return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + scExtension;
-}
-
-// Determine the path name of a file in the charname account directory with the
-// provided extension.The resulting path is returned in the path parameter.
-string GetUserFilePath(const wstring &charname)
-{
-	// init variables
-	char datapath[MAX_PATH];
-	GetUserDataPath(datapath);
-	string scAcctPath = string(datapath) + "\\Accts\\MultiPlayer\\";
-
-	wstring wscDir;
-	wstring wscFile;
-	if (HkGetAccountDirName(charname, wscDir) != HKE_OK)
-		return "";
-	if (HkGetCharFileName(charname, wscFile) != HKE_OK)
-		return "";
-
-	return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
-}
-
 CAccount* HkGetAccountByClientID(uint iClientID)
 {
 	if (!HkIsValidClientID(iClientID))

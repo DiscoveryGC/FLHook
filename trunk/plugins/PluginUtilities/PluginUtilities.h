@@ -10,10 +10,7 @@
 #define HAS_FLAG(a, b) ((a).wscFlags.find(b) != -1)
 
 bool IsInRange(uint iClientID, float fDistance);
-bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension);
 
-string GetUserFilePath(const wstring &wscCharname, const string &scExtension);
-string GetUserFilePath(const wstring &charname);
 CAccount* HkGetAccountByClientID(uint iClientID);
 
 float HkDistance3D(Vector v1, Vector v2);

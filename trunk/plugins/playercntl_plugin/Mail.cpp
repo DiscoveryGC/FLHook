@@ -15,7 +15,7 @@
 #include <math.h>
 #include <list>
 
-#include <PluginUtilities.h>
+#include "Main.h"
 #include "Mail.h"
 
 bool extern set_bLocalTime;

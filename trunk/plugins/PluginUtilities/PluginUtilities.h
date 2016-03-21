@@ -10,10 +10,7 @@
 #define HAS_FLAG(a, b) ((a).wscFlags.find(b) != -1)
 
 bool IsInRange(uint iClientID, float fDistance);
-bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension);
 
-string GetUserFilePath(const wstring &wscCharname, const string &scExtension);
-string GetUserFilePath(const wstring &charname);
 CAccount* HkGetAccountByClientID(uint iClientID);
 
 float HkDistance3D(Vector v1, Vector v2);
@@ -60,10 +57,9 @@ wstring GetLocation(unsigned int iClientID);
 wstring GetTimeString(bool bLocalTime);
 
 Vector MatrixToEuler(const Matrix& mat);
-void Matrix_to_Vector(const Matrix& mat, Vector& vec);
-void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &wscText, const wstring &wscTextColor);
 Quaternion HkMatrixToQuaternion(Matrix m);
 
+void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &wscText, const wstring &wscTextColor);
 void ini_get_wstring(INI_Reader &ini, wstring &wscValue);
 void ini_write_wstring(FILE *file, const string &parmname, wstring &in);
 void PrintLocalUserCmdText(uint iClientID, const wstring &wscMsg, float fDistance);

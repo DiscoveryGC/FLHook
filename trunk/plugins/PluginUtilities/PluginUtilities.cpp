@@ -85,62 +85,6 @@ bool IsInRange(uint iClientID, float fDistance)
         return false;
 }
 
-// Determine the path name of a file in the charname account directory with the
-// provided extension. The resulting path is returned in the path parameter.
-bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension)
-{
-	// init variables
-	char szDataPath[MAX_PATH];
-	GetUserDataPath(szDataPath);
-	string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
-
-	wstring wscDir;
-	wstring wscFile;
-	if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
-		return false;
-	if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
-		return false;
-	path = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + extension;
-	return true;
-}
-
-// playercntl uses this variation - merge with below
-string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
-{
-        // init variables
-        char szDataPath[MAX_PATH];
-        GetUserDataPath(szDataPath);
-        string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
-
-        wstring wscDir;
-        wstring wscFile;
-        if (HkGetAccountDirName(wscCharname, wscDir)!=HKE_OK)
-                return "";
-        if (HkGetCharFileName(wscCharname, wscFile)!=HKE_OK)
-                return "";
-
-        return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + scExtension;
-}
-
-// Determine the path name of a file in the charname account directory with the
-// provided extension.The resulting path is returned in the path parameter.
-string GetUserFilePath(const wstring &charname)
-{
-	// init variables
-	char datapath[MAX_PATH];
-	GetUserDataPath(datapath);
-	string scAcctPath = string(datapath) + "\\Accts\\MultiPlayer\\";
-
-	wstring wscDir;
-	wstring wscFile;
-	if (HkGetAccountDirName(charname, wscDir) != HKE_OK)
-		return "";
-	if (HkGetCharFileName(charname, wscFile) != HKE_OK)
-		return "";
-
-	return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
-}
-
 CAccount* HkGetAccountByClientID(uint iClientID)
 {
 	if (!HkIsValidClientID(iClientID))
@@ -916,28 +860,17 @@ Vector MatrixToEuler(const Matrix& mat)
 	return vec;
 }
 
-// Convert an orientation matrix to a pitch/yaw/roll vector.  Based on what
-// Freelancer does for the save game.
-// This was in mobiledocking/SaveFiles.cpp - migrate to MatrixToEuler()
-void Matrix_to_Vector(const Matrix& mat, Vector& vec)
+Quaternion HkMatrixToQuaternion(Matrix m)
 {
-        Vector x = { mat.data[0][0], mat.data[1][0], mat.data[2][0] };
-        Vector y = { mat.data[0][1], mat.data[1][1], mat.data[2][1] };
-        Vector z = { mat.data[0][2], mat.data[1][2], mat.data[2][2] };
-
-        float h = (float)_hypot(x.x, x.y);
-        if (h > 1 / 524288.0f)
-        {
-                vec.x = degrees(atan2f(y.z, z.z));
-                vec.y = degrees(atan2f(-x.z, h));
-                vec.z = degrees(atan2f(x.y, x.x));
-        }
-        else
-        {
-                vec.x = degrees(atan2f(-z.y, y.y));
-                vec.y = degrees(atan2f(-x.z, h));
-                vec.z = 0;
-        }
+        Quaternion quaternion;
+        quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
+        quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
+        quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
+        quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
+        quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
+        quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
+        quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);
+        return quaternion;
 }
 
 // Format a chat string in accordance with the receiver's preferences and send it. Will
@@ -986,20 +919,6 @@ void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &w
 
 	HkFMsg(iToClientID, wscXML);
 }
-
-Quaternion HkMatrixToQuaternion(Matrix m)
-{
-	Quaternion quaternion;
-	quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
-	quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
-	quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
-	quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
-	quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);
-	return quaternion;
-}
-
 
 void ini_get_wstring(INI_Reader &ini, wstring &wscValue)
 {

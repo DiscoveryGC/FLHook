@@ -64,8 +64,8 @@ void SaveDockInfo(uint client)
 		HookExt::IniSetF(client, "dock.carrier_pos.y", cd.vCarrierLocation.y);
 		HookExt::IniSetF(client, "dock.carrier_pos.z", cd.vCarrierLocation.z);
 		
-		Vector vRot;
-		Matrix_to_Vector(cd.mCarrierLocation, vRot);
+		Vector vRot = MatrixToEuler(cd.mCarrierLocation);
+
 		HookExt::IniSetF(client, "dock.carrier_rot.x", vRot.x);
 		HookExt::IniSetF(client, "dock.carrier_rot.y", vRot.y);
 		HookExt::IniSetF(client, "dock.carrier_rot.z", vRot.z);
@@ -108,8 +108,7 @@ void UpdateDockInfo(const wstring &wscCharname, uint iSystem, Vector pos, Matrix
 	HookExt::IniSetF(wscCharname, "dock.carrier_pos.y", pos.y);
 	HookExt::IniSetF(wscCharname, "dock.carrier_pos.z", pos.z);
 	
-	Vector vRot;
-	Matrix_to_Vector(rot, vRot);
+	Vector vRot = MatrixToEuler(rot);
 
 	HookExt::IniSetF(wscCharname, "dock.carrier_rot.x", vRot.x);
 	HookExt::IniSetF(wscCharname, "dock.carrier_rot.y", vRot.y);

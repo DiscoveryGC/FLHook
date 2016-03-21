@@ -45,7 +45,7 @@ map<uint, uint> mapIDs;
 struct pinfo
 {
 	uint playerid;
-	uint maxholdsize;
+	float maxholdsize;
 	uint shipclass;
 };
 

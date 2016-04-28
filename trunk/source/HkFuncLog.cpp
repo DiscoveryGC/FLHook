@@ -18,12 +18,16 @@ void AddDebugLog(const char *szString, ...)
 	va_start(marker, szString);
 	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
 
-	char szBuf[64];
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
-	fprintf(fLogDebug, "[%s] %s\n", szBuf, szBufString);
-	fflush(fLogDebug);
+	if (fLogDebug) {
+		char szBuf[64];
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
+		fprintf(fLogDebug, "[%s] %s\n", szBuf, szBufString);
+		fflush(fLogDebug);
+	} else {
+		ConPrint(L"Failed to write debug log! This might be due to inability to create the directory - are you running as an administrator?\n");
+	}
 }
 
 
@@ -36,12 +40,16 @@ void AddLog(const char *szString, ...)
 	va_start(marker, szString);
 	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
 
-	char szBuf[64];
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
-	fprintf(fLog, "[%s] %s\n", szBuf, szBufString);
-	fflush(fLog);
+	if (fLog) {
+		char szBuf[64];
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
+		fprintf(fLog, "[%s] %s\n", szBuf, szBufString);
+		fflush(fLog);
+	} else {
+		ConPrint(L"Failed to write log! This might be due to inability to create the directory - are you running as an administrator?\n");
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,12 +219,16 @@ static void AddLog(FILE* fLog, const char *szString, ...)
 	va_start(marker, szString);
 	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
 
-	char szBuf[64];
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
-	fprintf(fLog, "[%s] %s\n", szBuf, szBufString);
-	fflush(fLog);
+	if (fLog) {
+		char szBuf[64];
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
+		fprintf(fLog, "[%s] %s\n", szBuf, szBufString);
+		fflush(fLog);
+	} else {
+		ConPrint(L"Failed to write log! This might be due to inability to create the directory - are you running as an administrator?\n");
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

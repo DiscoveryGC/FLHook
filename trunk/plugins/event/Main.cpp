@@ -623,7 +623,7 @@ void __stdcall GFGoodSell_AFTER(struct SGFGoodSellInfo const &gsi, unsigned int 
 				{
 					int iInitialCount = HookExt::IniGetI(iClientID, "event.quantity");
 
-					if (iInitialCount > gsi.iCount)
+					if (gsi.iCount > iInitialCount)
 					{
 						//leave event mode
 						HookExt::IniSetB(iClientID, "event.enabled", false);

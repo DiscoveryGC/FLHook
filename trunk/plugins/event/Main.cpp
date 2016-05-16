@@ -411,8 +411,10 @@ void LoadSettings()
 					}
 					else if ((ini.is_value("data")) && (exist == true))
 					{
-						wscCharname = stows(ini.get_value_string(0));
-						iCount = ini.get_value_int(1);
+						string delim = ", ";
+						string data = ini.get_value_string();
+						wscCharname = stows(data.substr(0, data.find(delim)));
+						iCount = ToInt(data.substr(data.find(delim) + delim.length()));
 						mapEventTracking[id].PlayerEventData[wscCharname] = iCount;
 					}
 				}

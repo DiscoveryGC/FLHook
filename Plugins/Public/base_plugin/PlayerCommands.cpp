@@ -45,8 +45,8 @@ namespace PlayerCommands
 			L"<TRA bold=\"true\"/><TEXT>/base login [password]</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Login as base administrator. The following commands are only available if you are logged in as a base administrator.</TEXT><PARA/><PARA/>"
 
-			L"<TRA bold=\"true\"/><TEXT>/base addpwd [password], /base rmpwd [password], /base lstpwd</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list administrator passwords for the base.</TEXT><PARA/><PARA/>"
+			L"<TRA bold=\"true\"/><TEXT>/base addpwd [password] [viewshop], /base rmpwd [password], /base lstpwd</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Add, remove and list administrator passwords for the base. Add 'viewshop' to addpwd to only allow the password to view the shop.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base addtag [tag], /base rmtag [tag], /base lsttag</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Add, remove and list ally tags for the base.</TEXT><PARA/><PARA/>"
@@ -137,17 +137,26 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (find(base->passwords.begin(), base->passwords.end(), password) == base->passwords.end())
-		{
+		BasePassword searchBp;
+		searchBp.pass = password;
+		list<BasePassword>::iterator ret = find(base->passwords.begin(), base->passwords.end(), searchBp);
+		if (ret == base->passwords.end()) {
 			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
-
-		clients[client].admin = true;
-		SendMarketGoodSync(base, client);
-		PrintUserCmdText(client, L"OK Access granted");
-		PrintUserCmdText(client, L"Welcome administrator, all base command and control functions are available.");
-		return;
+		
+		BasePassword foundBp = *ret;
+		if (foundBp.admin) {
+			clients[client].admin = true;
+			SendMarketGoodSync(base, client);
+			PrintUserCmdText(client, L"OK Access granted");
+			PrintUserCmdText(client, L"Welcome administrator, all base command and control functions are available.");
+		}
+		if (foundBp.viewshop) {
+			clients[client].viewshop = true;
+			PrintUserCmdText(client, L"OK Access granted");
+			PrintUserCmdText(client, L"Welcome shop viewer.");
+		}
 	}
 
 	void BaseAddPwd(uint client, const wstring &args)
@@ -172,13 +181,29 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (find(base->passwords.begin(), base->passwords.end(), password) != base->passwords.end())
+		BasePassword searchBp;
+		searchBp.pass = password;
+
+		if (find(base->passwords.begin(), base->passwords.end(), searchBp) != base->passwords.end())
 		{
 			PrintUserCmdText(client, L"ERR Password already exists");
 			return;
 		}
 
-		base->passwords.push_back(password);
+		BasePassword bp;
+		bp.pass = password;
+
+		wstring flagsStr = GetParam(args, ' ', 3);
+		int flags = 0;
+		if (flagsStr.length() && flagsStr == L"viewshop")
+		{
+			bp.viewshop = true;
+		}
+		else {
+			bp.admin = true;
+		}
+
+		base->passwords.push_back(bp);
 		base->Save();
 		PrintUserCmdText(client, L"OK");
 	}
@@ -204,15 +229,19 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR No password");
 		}
 
-		if (find(base->passwords.begin(), base->passwords.end(), password) == base->passwords.end())
+		BasePassword searchBp;
+		searchBp.pass = password;
+		list<BasePassword>::iterator ret = find(base->passwords.begin(), base->passwords.end(), searchBp);
+		if (ret != base->passwords.end())
 		{
-			PrintUserCmdText(client, L"ERR Password does not exist");
+			BasePassword bp = *ret;
+			base->passwords.remove(bp);
+			base->Save();
+			PrintUserCmdText(client, L"OK");
 			return;
 		}
 
-		base->passwords.remove(password);
-		base->Save();
-		PrintUserCmdText(client, L"OK");
+		PrintUserCmdText(client, L"ERR Password does not exist");
 	}
 
 	void BaseSetMasterPwd(uint client, const wstring &args)
@@ -246,7 +275,11 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (find(base->passwords.begin(), base->passwords.end(), new_password) != base->passwords.end())
+		BasePassword bp;
+		bp.pass = new_password;
+		bp.admin = true;
+
+		if (find(base->passwords.begin(), base->passwords.end(), bp) != base->passwords.end())
 		{
 			PrintUserCmdText(client, L"ERR Password already exists");
 			return;
@@ -254,7 +287,7 @@ namespace PlayerCommands
 
 		if (base->passwords.size())
 		{
-			if (base->passwords.front() != old_password)
+			if (base->passwords.front().pass != old_password)
 			{
 				PrintUserCmdText(client, L"ERR Incorrect master password");
 				PrintUserCmdText(client, L"/base setmasterpwd <old_password> <new_password>");
@@ -262,8 +295,8 @@ namespace PlayerCommands
 			}
 		}
 
-		base->passwords.remove(old_password);
-		base->passwords.push_front(new_password);
+		base->passwords.remove(base->passwords.front());
+		base->passwords.push_front(bp);
 		base->Save();
 		PrintUserCmdText(client, L"OK New master password %s", new_password.c_str());
 	}
@@ -285,12 +318,22 @@ namespace PlayerCommands
 
 		// Do not display the first password.
 		bool first = true;
-		foreach (base->passwords, wstring, i)
+		foreach (base->passwords, BasePassword, bpi)
 		{
 			if (first)
 				first = false;
-			else
-				PrintUserCmdText(client, L"%s", i->c_str());
+			else {
+				BasePassword bp = *bpi;
+				wstring *p = &(bp.pass);
+				if (bp.admin)
+				{
+					PrintUserCmdText(client, L"%s - admin", p->c_str());
+				}
+				if (bp.viewshop)
+				{
+					PrintUserCmdText(client, L"%s - viewshop", p->c_str());
+				}
+			}
 		}
 		PrintUserCmdText(client, L"OK");		
 	}
@@ -1134,8 +1177,11 @@ namespace PlayerCommands
 
 		wstring status = L"<RDL><PUSH/>";
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
-		status += L"<TEXT>  /shop price [item] [price] [min stock] [max stock]</TEXT><PARA/>"; 
-		status += L"<TEXT>  /shop remove [item]</TEXT><PARA/>"; 
+		if (clients[client].admin)
+		{
+			status += L"<TEXT>  /shop price [item] [price] [min stock] [max stock]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop remove [item]</TEXT><PARA/>";
+		}
 		status += L"<TEXT>  /shop [page]</TEXT><PARA/><PARA/>"; 
 
 		status += L"<TEXT>Stock:</TEXT><PARA/>";
@@ -1184,13 +1230,13 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (!clients[client].admin)
+		const wstring &cmd = GetParam(args, ' ', 1);
+		if (!clients[client].admin && (!clients[client].viewshop || (cmd == L"price" || cmd == L"remove")))
 		{
 			PrintUserCmdText(client, L"ERROR: Access denied");
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 1);
 		if (cmd == L"price")
 		{
 			int item = ToInt(GetParam(args, ' ', 2));

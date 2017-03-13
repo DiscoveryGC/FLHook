@@ -243,6 +243,20 @@ public:
 	bool ClearQueue();
 };
 
+class BasePassword
+{
+public:
+	wstring pass;
+	bool admin = false;
+	bool viewshop = false;
+
+	friend bool operator ==(const BasePassword& lhs, const BasePassword& rhs);
+};
+inline bool operator ==(const BasePassword& lhs, const BasePassword& rhs)
+{
+	return lhs.pass == rhs.pass;
+};
+
 class PlayerBase
 {
 public:
@@ -329,7 +343,7 @@ public:
 	uint base;
 
 	// The list of administration passwords
-	list<wstring> passwords;
+	list<BasePassword> passwords;
 
 	// If 0 then base is neutral to all ships. Only ships on the ally tag list may dock.
 	// If 1 then base is hostile to all ships unless they are on the ally tag list.
@@ -425,6 +439,9 @@ struct CLIENT_DATA
 
 	// True if this player is the base administrator.
 	bool admin;
+
+	// True if this player is able to view the shop.
+	bool viewshop;
 
 	// Set to player base hash if ship is in base-> 0 if not.
 	uint player_base;

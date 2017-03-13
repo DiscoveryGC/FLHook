@@ -145,9 +145,13 @@ void ExportData::ToJSON()
 			minijson::object_writer pw = pwc.nested_object( wstos(HtmlEncode(base->basename)).c_str() );
 			
 			// first thing we'll do is grab all administrator passwords, encoded.
-			for (list<wstring>::iterator it=base->passwords.begin(); it != base->passwords.end(); ++it)
+			for (list<BasePassword>::iterator it=base->passwords.begin(); it != base->passwords.end(); ++it)
 			{
-				pw.write("password", wstos(HtmlEncode(*it)).c_str());
+				BasePassword bp = *it;
+				wstring l = bp.pass;
+				if (!bp.admin && bp.viewshop)
+					l += L" viewshop";
+				pw.write("password", wstos(HtmlEncode(l)).c_str());
 			}
 			
 			//add basic elements

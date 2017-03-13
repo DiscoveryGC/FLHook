@@ -1248,6 +1248,7 @@ void __stdcall BaseEnter(uint base, uint client)
 	returncode = DEFAULT_RETURNCODE;
 
 	clients[client].admin = false;
+	clients[client].viewshop = false;
 
 	// If the last player base is set then we have not docked at a non player base yet.
 	if (clients[client].last_player_base)
@@ -1293,6 +1294,7 @@ void __stdcall BaseExit(uint base, uint client)
 
 	// Reset client state and save it retaining the last player base ID to deal with respawn.
 	clients[client].admin = false;
+	clients[client].viewshop = false;
 	if (clients[client].player_base)
 	{
 		if (set_plugin_debug)

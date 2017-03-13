@@ -10,7 +10,10 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	base = CreateID(nickname.c_str());
 	
 	// The creating ship is an ally by default.
-	passwords.push_back(password);
+	BasePassword bp;
+	bp.pass = password;
+	bp.admin = true;
+	passwords.push_back(bp);
 	ally_tags.push_back((const wchar_t*)Players.GetActiveCharacterName(client));
 
 	// Setup the base in the current system and at the location 
@@ -284,7 +287,16 @@ void PlayerBase::Load()
 					{
 						wstring passwd;
 						ini_get_wstring(ini, passwd);
-						passwords.push_back(passwd);
+						BasePassword bp;
+						bp.pass = GetParam(passwd, ' ', 0);
+						if (GetParam(passwd, ' ', 1) == L"viewshop")
+						{
+							bp.viewshop = true;
+						}
+						else {
+							bp.admin = true;
+						}
+						passwords.push_back(bp);
 					}
 				}
 				if (basetype.empty())
@@ -393,9 +405,14 @@ void PlayerBase::Save()
 		{
 			ini_write_wstring(file, "perma_hostile_tag", *i);
 		}
-		foreach(passwords, wstring, i)
+		foreach(passwords, BasePassword, i)
 		{
-			ini_write_wstring(file, "passwd", *i);
+			BasePassword bp = *i;
+			wstring l = bp.pass;
+			if (!bp.admin && bp.viewshop) {
+				l += L" viewshop";
+			}
+			ini_write_wstring(file, "passwd", l);
 		}
 		fprintf(file, "health = %0.0f\n", base_health);
 

@@ -202,6 +202,7 @@ namespace PimpShip
 			{
 				mapInfo[iClientID].bInPimpDealer = false;
 				mapInfo[iClientID].mapCurrEquip.clear();
+				PrintUserCmdText(iClientID, L"ERR ship pimping facilities not available at this base.");
 				return false;
 			}
 		}

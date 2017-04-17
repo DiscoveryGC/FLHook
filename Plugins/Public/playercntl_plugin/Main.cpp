@@ -614,12 +614,13 @@ namespace HkIServerImpl
 			for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 				{
 					if (item->sID == slot)
-					{		
-						if (string(item->szHardPoint.value) == "BAY")
+					{
+						string hp = string(item->szHardPoint.value);
+						if (hp == "BAY" || hp == "HpCM01")
 						{
 							if (item->bMounted == true)
 							{
-								PrintUserCmdText(iClientID, L"This ship is locked. You can't sell your ID or Armor. You will be kicked to prevent corruption.");
+								PrintUserCmdText(iClientID, L"This ship is locked. You can't sell your ID, Armor, or CM/Cloak. You will be kicked to prevent corruption.");
 								wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 								wstring spurdoip;
 								HkGetPlayerIP(iClientID, spurdoip);
@@ -633,17 +634,16 @@ namespace HkIServerImpl
 							
 							//PrintUserCmdText(iClientID, L"I like %d", item->equip.get_count());
 						}
-						else
+						else if (Rename::IsLockedShip(iClientID, 3))
 						{
-							PrintUserCmdText(iClientID, L"Selling equipment is not allowed on a locked ship. You will now be kicked.");
-							/*
-							wstring wsccharname = Players.GetActiveCharacterName(iClientID);
+							PrintUserCmdText(iClientID, L"Selling equipment is not allowed on this ship. You will now be kicked to prevent corruption.");
+							wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 							wstring spurdoip;
 							HkGetPlayerIP(iClientID, spurdoip);
 							AddLog("SHIPLOCK: Attempt to sell item on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
-							ConPrint(L"SHIPLOCK: Attempt to sell item on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());							
+							ConPrint(L"SHIPLOCK: Attempt to sell item on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
+							HkDelayedKick(iClientID, 1);
 							returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-							*/
 						}
 					}
 				}

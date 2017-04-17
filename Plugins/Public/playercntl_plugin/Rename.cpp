@@ -1119,23 +1119,10 @@ bool Rename::IsLockedShip(uint iClientID, int PermissionLevel)
 	wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 	if (MapLockedShips.find(wsccharname) != MapLockedShips.end())
 	{
-		if (PermissionLevel == 1)
+		if (MapLockedShips[wsccharname].LockLevel >= PermissionLevel)
 		{
-			//Ships with lock level 2 also have level 1 features
-			if (MapLockedShips[wsccharname].LockLevel >= 1)
-			{
-				return true;
-			}
+			return true;
 		}
-		else if (PermissionLevel == 2)
-		{
-			//Ships with lock level 1 do not have level 2 features
-			if (MapLockedShips[wsccharname].LockLevel == 2)
-			{
-				return true;
-			}
-		}
-		
 	}
 
 	return false;

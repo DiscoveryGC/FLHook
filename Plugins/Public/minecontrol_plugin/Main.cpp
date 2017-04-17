@@ -732,6 +732,94 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &wscCmd)
     return false;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
+
+struct USERCMD
+{
+	wchar_t *wszCmd;
+	_UserCmdProc proc;
+	wchar_t *usage;
+};
+
+bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	uint iSystem = 0;
+	pub::Player::GetSystem(iClientID, iSystem);
+	uint iShip = 0;
+	pub::Player::GetShip(iClientID, iShip);
+	Vector vLoc = { 0.0f, 0.0f, 0.0f };
+	Matrix mRot = { 0.0f, 0.0f, 0.0f };
+	pub::SpaceObj::GetLocation(iShip, vLoc, mRot);
+	vLoc.x += 30.0;
+
+	list<CARGO_INFO> lstCargo;
+	int iRemainingHoldSize = 0;
+	uint items = 0;
+	if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize) == HKE_OK)
+	{
+		foreach(lstCargo, CARGO_INFO, item)
+		{
+			bool flag = false;
+			pub::IsCommodity(item->iArchID, flag);
+			if (!item->bMounted && flag)
+			{
+				HkRemoveCargo(wscCharname, item->iID, item->iCount);
+				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
+				items++;
+			}
+		}
+	}
+	PrintUserCmdText(iClientID, L"OK, jettisoned %u item(s)", items);
+	return true;
+}
+
+USERCMD UserCmds[] =
+{
+	{ L"/jettisonall", UserCmd_JettisonAll, L"Usage: /jettisonall" },
+};
+
+/**
+This function is called by FLHook when a user types a chat string. We look at the
+string they've typed and see if it starts with one of the above commands. If it
+does we try to process it.
+*/
+bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	wstring wscCmdLineLower = ToLower(wscCmd);
+
+	// If the chat string does not match the USER_CMD then we do not handle the
+	// command, so let other plugins or FLHook kick in. We require an exact match
+	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
+	{
+		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
+		{
+			// Extract the parameters string from the chat string. It should
+			// be immediately after the command and a space.
+			wstring wscParam = L"";
+			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
+			{
+				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
+					continue;
+				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
+			}
+
+			// Dispatch the command to the appropriate processing function.
+			if (UserCmds[i].proc(iClientID, wscCmd, wscParam, UserCmds[i].usage))
+			{
+				// We handled the command tell FL hook to stop processing this
+				// chat string.
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL; // we handled the command, return immediatly
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -750,5 +838,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&MineAsteroid, PLUGIN_HkIServerImpl_MineAsteroid, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPMunitionCollision, PLUGIN_HkIServerImpl_SPMunitionCollision, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	return p_PI;
 }

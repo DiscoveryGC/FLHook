@@ -8,6 +8,7 @@
 // includes 
 #include <windows.h>
 #include <stdio.h>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <string>
 #include <time.h>
 #include <math.h>
@@ -616,7 +617,8 @@ namespace HkIServerImpl
 					if (item->sID == slot)
 					{
 						string hp = string(item->szHardPoint.value);
-						if (hp == "BAY" || hp == "HpCM01")
+						boost::to_upper(hp);
+						if (hp == "BAY" || hp.substr(0, 4) == "HPCM")
 						{
 							if (item->bMounted == true)
 							{

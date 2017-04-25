@@ -1465,6 +1465,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		Rename::ReloadLockedShips();
+		return true;
 	}
     return false;
 }

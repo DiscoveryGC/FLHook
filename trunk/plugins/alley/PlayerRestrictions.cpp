@@ -54,13 +54,17 @@ void GiftLogging(const char *szString, ...)
 	va_start(marker, szString);
 	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
 
-	char szBuf[64];
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
-	fprintf(GiftLogfile, "%s %s\n", szBuf, szBufString);
-	fflush(GiftLogfile);
-	fclose(GiftLogfile);
+	if (GiftLogfile) {
+		char szBuf[64];
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+		fprintf(GiftLogfile, "%s %s\n", szBuf, szBufString);
+		fflush(GiftLogfile);
+		fclose(GiftLogfile);
+	} else {
+		ConPrint(L"Failed to write gift log! This might be due to inability to create the directory - are you running as an administrator?\n");
+	}
 	GiftLogfile = fopen("./flhook_logs/alley_gifts.log", "at");
 }
 
@@ -220,13 +224,17 @@ void PMLogging(const char *szString, ...)
 	va_start(marker, szString);
 	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
 
-	char szBuf[64];
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
-	fprintf(PMLogfile, "%s %s\n", szBuf, szBufString);
-	fflush(PMLogfile);
-	fclose(PMLogfile);
+	if (PMLogfile) {
+		char szBuf[64];
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+		fprintf(PMLogfile, "%s %s\n", szBuf, szBufString);
+		fflush(PMLogfile);
+		fclose(PMLogfile);
+	} else {
+		ConPrint(L"Failed to write generatedids log! This might be due to inability to create the directory - are you running as an administrator?\n");
+	}
 	PMLogfile = fopen("./flhook_logs/generatedids.log", "at");
 }
 

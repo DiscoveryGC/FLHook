@@ -50,13 +50,17 @@ void Logging(const char *szString, ...)
 	va_start(marker, szString);
 	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
 
-	char szBuf[64];
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
-	fprintf(Logfile, "%s %s\n", szBuf, szBufString);
-	fflush(Logfile);
-	fclose(Logfile);
+	if (Logfile) {
+		char szBuf[64];
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+		fprintf(Logfile, "%s %s\n", szBuf, szBufString);
+		fflush(Logfile);
+		fclose(Logfile);
+	} else {
+		ConPrint(L"Failed to write nodockcommand log! This might be due to inability to create the directory - are you running as an administrator?\n");
+	}
 	Logfile = fopen("./flhook_logs/nodockcommand.log", "at");
 }
 

@@ -1098,11 +1098,11 @@ namespace Message
 			if (iter->iClientID==iClientID)
 				bSenderReceived=true;
 
-			FormatSendChat(iter->iClientID, wscSender, wscMsg, L"FF7BFF");
+			FormatSendChat(iter->iClientID, wscSender, wscMsg, L"00CCFF");
 			bMsgSent=true;
 		}
 		if (!bSenderReceived)
-			FormatSendChat(iClientID, wscSender, wscMsg, L"FF7BFF");
+			FormatSendChat(iClientID, wscSender, wscMsg, L"00CCFF");
 
 		if (bMsgSent==false)
 			PrintUserCmdText(iClientID, L"ERR No chars found");

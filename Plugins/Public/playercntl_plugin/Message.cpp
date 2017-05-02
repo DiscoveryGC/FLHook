@@ -217,6 +217,9 @@ namespace Message
 	/** help text for when user types /help */
 	static list<INISECTIONVALUE> set_lstHelpLines;
 
+	/** text for command list */
+	static list<INISECTIONVALUE> set_lstCommandListLines;
+
 	/** greetings text for when user types /help */
 	static list<wstring> set_lstGreetingBannerLines;
 
@@ -398,8 +401,9 @@ namespace Message
 		foreach (players, HKPLAYERINFO, p)
 			LoadMsgs(p->iClientID);
 
-		// Load the help, getting and banner text
+		// Load the help, command list, greeting and banner text
 		IniGetSection(scPluginCfgFile, "Help", set_lstHelpLines);
+		IniGetSection(scPluginCfgFile, "CommandList", set_lstCommandListLines);
 
 		set_lstGreetingBannerLines.clear();
 		set_lstSpecialBannerLines.clear();
@@ -1255,6 +1259,21 @@ namespace Message
 			return true;
 		}
 		return false;
+	}
+
+	bool Message::UserCmd_CommandList(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		foreach (set_lstCommandListLines, INISECTIONVALUE, iter)
+		{
+			string scList=iter->scKey;
+			if (iter->scValue.size()>0)
+			{
+				scList+="=";
+				scList+=iter->scValue;
+			}
+			PrintUserCmdText(iClientID, stows(scList));
+		}
+		return true;
 	}
 
 	/** Print out help for built in flhook commands */

@@ -1000,6 +1000,7 @@ USERCMD UserCmds[] =
 	{ L"/help",			Message::UserCmd_CustomHelp, L""},
 	{ L"/h",			Message::UserCmd_CustomHelp, L""},
 	{ L"/?",			Message::UserCmd_CustomHelp, L""},
+	{ L"/commandlist",	Message::UserCmd_CommandList, L""},
 	{ L"/mail",			Message::UserCmd_MailShow, L"Usage: /mail <msgnum>"},
 	{ L"/maildel",		Message::UserCmd_MailDel, L"Usage: /maildel <msgnum>"},
 	{ L"/si",			PlayerInfo::UserCmd_ShowInfo, L"Usage: /showinfo"},

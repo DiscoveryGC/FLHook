@@ -618,23 +618,18 @@ namespace HkIServerImpl
 					{
 						string hp = string(item->szHardPoint.value);
 						boost::to_upper(hp);
-						if (hp == "BAY" || hp.substr(0, 4) == "HPCM")
+						if (item->bMounted == true && (hp == "BAY" || hp.substr(0, 4) == "HPCM" || hp.substr(0, 18) == "HPSPECIALEQUIPMENT"))
 						{
-							if (item->bMounted == true)
-							{
-								PrintUserCmdText(iClientID, L"This ship is locked. You can't sell your ID, Armor, or CM/Cloak. You will be kicked to prevent corruption.");
-								wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-								wstring spurdoip;
-								HkGetPlayerIP(iClientID, spurdoip);
-								AddLog("SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
-								ConPrint(L"SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
+							PrintUserCmdText(iClientID, L"This ship is locked. You can't sell your ID, Armor, or CM/Cloak. You will be kicked to prevent corruption.");
+							wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+							wstring spurdoip;
+							HkGetPlayerIP(iClientID, spurdoip);
+							AddLog("SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
+							ConPrint(L"SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
 
-								HkDelayedKick(iClientID, 1);
+							HkDelayedKick(iClientID, 1);
 
-								returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-							}
-							
-							//PrintUserCmdText(iClientID, L"I like %d", item->equip.get_count());
+							returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 						}
 						else if (Rename::IsLockedShip(iClientID, 3))
 						{

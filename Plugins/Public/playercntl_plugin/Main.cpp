@@ -631,7 +631,7 @@ namespace HkIServerImpl
 
 							returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 						}
-						else if (Rename::IsLockedShip(iClientID, 3))
+						else if (hp != "BAY" && Rename::IsLockedShip(iClientID, 3))
 						{
 							PrintUserCmdText(iClientID, L"Selling equipment is not allowed on this ship. You will now be kicked to prevent corruption.");
 							wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);

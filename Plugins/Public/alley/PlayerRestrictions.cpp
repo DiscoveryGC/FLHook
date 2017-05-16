@@ -620,6 +620,39 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 	return true;
 }
 
+bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	uint iSystem = 0;
+	pub::Player::GetSystem(iClientID, iSystem);
+	uint iShip = 0;
+	pub::Player::GetShip(iClientID, iShip);
+	Vector vLoc = { 0.0f, 0.0f, 0.0f };
+	Matrix mRot = { 0.0f, 0.0f, 0.0f };
+	pub::SpaceObj::GetLocation(iShip, vLoc, mRot);
+	vLoc.x += 30.0;
+
+	list<CARGO_INFO> lstCargo;
+	int iRemainingHoldSize = 0;
+	uint items = 0;
+	if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize) == HKE_OK)
+	{
+		foreach(lstCargo, CARGO_INFO, item)
+		{
+			bool flag = false;
+			pub::IsCommodity(item->iArchID, flag);
+			if (!item->bMounted && flag)
+			{
+				HkRemoveCargo(wscCharname, item->iID, item->iCount);
+				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
+				items++;
+			}
+		}
+	}
+	PrintUserCmdText(iClientID, L"OK, jettisoned %u item(s)", items);
+	return true;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef bool (*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
@@ -650,6 +683,7 @@ USERCMD UserCmds[] =
 	{ L"$chase*", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
 	{ L"/marktarget",			UserCmd_MarkObjGroup, L"Usage: /marktarget"},
 	{ L"/marktarget*",			UserCmd_MarkObjGroup, L"Usage: /marktarget"},
+	{ L"/jettisonall", UserCmd_JettisonAll, L"Usage: /jettisonall"},
 };
 
 

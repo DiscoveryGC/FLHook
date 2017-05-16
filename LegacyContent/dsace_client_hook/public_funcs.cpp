@@ -286,6 +286,9 @@ bool __stdcall HkCb_HandleKeyCmd(int keycmd, int dunno)
 	case 0x84:
 		SendChatToServer(0, 0xFFFF, L"/unmarktarget*");
 		return true;
+	case 0x89:
+		SendChatToServer(0, 0xFFFF, L"/jettisonall");
+		return True;
 	case 0x8e:
 		SendChatToServer(0, 0xFFFF, L"/cloak*");
 		return true;
@@ -706,6 +709,9 @@ void PublicClientPatchInstall()
 
 		static char patch8[] = "USER_GROUP_UNMARK_TARGET";
 		*((char**)0x614FE8) = patch8; // USER_MANEUVER_SLIDE_EVADE
+
+		static char patch9[] = "USER_JETTISON_ALL";
+		*((char**)0x614FFC) = patch9; // USER_ACTIVATE_MANEUVER
 
 		BYTE patch[] = { 0xB9, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xE1 }; // mov ecx HkCb_HandleKeyCmdNaked, jmp ecx
 		DWORD *iAddr = (DWORD*)((char*)&patch + 1);

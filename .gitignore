@@ -22,3 +22,4 @@ _ReSharper*/
 [Bb]oost*/
 *.sdf
 [Dd]sacesrv_discovery*/
+.vs/

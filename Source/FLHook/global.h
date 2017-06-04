@@ -21,13 +21,13 @@ using namespace std;
 
 // defines
 #if _MSC_VER == 1500
-#define VERSION L"3.0.0-vc9 plugin"
+#define VERSION L"3.1.0-vc9 plugin"
 #elif _MSC_VER == 1900
-#define VERSION L"3.0.0-vc14 plugin"
+#define VERSION L"3.1.0-vc14 plugin"
 #elif _MSC_VER == 1910
-#define VERSION L"3.0.0-vc141 plugin"
+#define VERSION L"3.1.0-vc141 plugin"
 #else
-#define VERSION L"3.0.0-UNKNOWN plugin"
+#define VERSION L"3.1.0-UNKNOWN plugin"
 #endif
 
 

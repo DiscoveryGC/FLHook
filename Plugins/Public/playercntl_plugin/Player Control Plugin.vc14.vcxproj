@@ -52,24 +52,23 @@
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(SolutionDir)\Plugins\Public\hookext_plugin;$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <TargetName>playercntl</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\Plugins\Public\hookext_plugin</IncludePath>
+    <IncludePath>$(SolutionDir)\Plugins\Public\hookext_plugin;$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <TargetName>playercntl</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <PreBuildEvent>
-      <Command />
-    </PreBuildEvent>
     <CustomBuildStep>
-      <Command>copy /Y $(OutDir)$(TargetName).dll ..\..\..\bin-vc14\flhook_plugins\$(TargetName).dll
-copy /Y $(OutDir)$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins\$(TargetName).dll
+      <Command>copy /Y $(OutDir)$(TargetName).dll  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
+copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
 </Command>
-      <Outputs>..\..\..\bin-vc14\flhook_plugins\$(TargetName).dll;C:\Discovery\FreelancerSDK\EXE\flhook_plugins\$(TargetName).dll;%(Outputs)</Outputs>
+      <Outputs>..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll;..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).pdb;%(Outputs)</Outputs>
     </CustomBuildStep>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -84,7 +83,7 @@ copy /Y $(OutDir)$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>../../hookext_plugin/release/ahookext.lib;shlwapi.lib;psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>shlwapi.lib;psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)playercntl.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -97,9 +96,6 @@ copy /Y $(OutDir)$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <PreBuildEvent>
-      <Command />
-    </PreBuildEvent>
     <CustomBuildStep>
       <Command>copy /Y $(OutDir)$(TargetName).dll  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
 copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\

@@ -29,6 +29,9 @@
 // Current configuration
 int set_iPluginDebug = 0;
 
+//Arbitrary name of the Hera Torpedo ammo, for JD disruption
+//uint JDDisruptAmmo = 0;
+
 /// True if loot logging is enabled
 bool set_bLogLooting = false;
 
@@ -117,6 +120,8 @@ void LoadSettings()
 
 	set_bLocalTime = IniGetB(scPluginCfgFile, "General", "LocalTime", false);
 
+	//JDDisruptAmmo = CreateID("dsy_torpedo_jd_ammo");
+
 	ZoneUtilities::ReadUniverse();
 	EquipmentUtilities::ReadIniNicknames();
 	Rename::LoadSettings(scPluginCfgFile);
@@ -180,10 +185,34 @@ void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uin
 	}
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2, enum DamageEntry::SubObjFate p3)
+/*
+void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
+	// If this is not a ship, do no other processing.
+	if (ci.dwTargetShip == 0)
+		return;
+
+	if (JDDisruptAmmo == ci.iProjectileArchID)
+	{
+		uint ship = ci.dwTargetShip;
+		uint targetid = HkGetClientIDByShip(ship);
+
+		if (targetid)
+		{
+			HyperJump::Disrupt(targetid, iClientID);
+		}
+		else
+		{
+			HkMsgU(L"Debug: targetid invalid HyperJump::Disrupt");
+		}	
+	}
+
+	returncode = DEFAULT_RETURNCODE;
+	return;
 }
+*/
+
 
 static bool IsDockingAllowed(uint iShip, uint iDockTarget, uint iClientID)
 {	
@@ -401,6 +430,7 @@ namespace HkIServerImpl
 
 	void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 	{		
+		HyperJump::CheckForMatrix(iClientID);
 		returncode = DEFAULT_RETURNCODE;
 	}
 
@@ -1311,42 +1341,20 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (IS_CMD("move"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_Move(cmds, cmds->ArgFloat(1), cmds->ArgFloat(2), cmds->ArgFloat(3));
-		return true;
-	}
-	else if (IS_CMD("smiteall"))
+	
+	if (IS_CMD("smiteall"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		MiscCmds::AdminCmd_SmiteAll(cmds);
 		return true;
 	}
-  else if (IS_CMD("bob"))
+	else if (IS_CMD("bob"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		MiscCmds::AdminCmd_Bob(cmds, cmds->ArgCharname(1));
 		return true;
 	}
-	else if (IS_CMD("chase"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_Chase(cmds, cmds->ArgCharname(1));
-		return true;
-	}
-  	else if (IS_CMD("lrs"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_ListRestrictedShips(cmds);
-		return true;
-	}
-	else if (IS_CMD("makecoord"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_MakeCoord(cmds);
-		return true;
-	}
+	
 	else if (IS_CMD("playmusic"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1379,12 +1387,45 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		HyperJump::AdminCmd_Pull(cmds, cmds->ArgCharname(1));
 		return true;
 	}
+	if (IS_CMD("move"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::AdminCmd_Move(cmds, cmds->ArgFloat(1), cmds->ArgFloat(2), cmds->ArgFloat(3));
+		return true;
+	}
+	else if (IS_CMD("chase"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::AdminCmd_Chase(cmds, cmds->ArgCharname(1));
+		return true;
+	}
+	/*
 	else if (IS_CMD("testbot"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HyperJump::AdminCmd_TestBot(cmds, cmds->ArgStr(1), cmds->ArgInt(2));
 		return true;
 	}
+	*/
+	else if (IS_CMD("lrs"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::AdminCmd_ListRestrictedShips(cmds);
+		return true;
+	}
+	else if (IS_CMD("makecoord"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::AdminCmd_MakeCoord(cmds);
+		return true;
+	}
+	else if (IS_CMD("jumptest"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::AdminCmd_JumpTest(cmds, cmds->ArgStr(1));
+		return true;
+	}
+	
 	else if (IS_CMD("authchar"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1453,12 +1494,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL; 
 		Rename::AdminCmd_DropTag(cmds, cmds->ArgStr(1));
-		return true;
-	}
-	else if (IS_CMD("jumptest"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; 
-		HyperJump::AdminCmd_JumpTest(cmds, cmds->ArgStr(1));
 		return true;
 	}
 	else if (IS_CMD("reloadlockedships"))
@@ -1565,5 +1600,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CmdHelp_Callback, PLUGIN_CmdHelp_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCB_MissileTorpHit, PLUGIN_HkCB_MissileTorpHit,0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&RequestBestPath, PLUGIN_HkIServerImpl_RequestBestPath, 0));
+//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPMunitionCollision, PLUGIN_HkIServerImpl_SPMunitionCollision, 0));
 	return p_PI;
 }

@@ -136,12 +136,13 @@ namespace HyperJump
 	void ClearClientInfo(unsigned int iClientID);
 	void PlayerLaunch(unsigned int iShip, unsigned int iClientID);
 	void MissileTorpHit(uint iClientID, DamageList *dmg);
+	bool CheckForMatrix(uint iClientID);
 	
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);
 	void AdminCmd_Pull(CCmds* cmds, const wstring &wscCharname);
 	void AdminCmd_Move(CCmds* cmds, float x, float y, float z);
-	void AdminCmd_TestBot(CCmds* cmds, const wstring &wscSystemNick, int iCheckZoneTime);
+	//void AdminCmd_TestBot(CCmds* cmds, const wstring &wscSystemNick, int iCheckZoneTime);
 	void AdminCmd_JumpTest(CCmds* cmds, const wstring &fuse);
 	void AdminCmd_ListRestrictedShips(CCmds* cmds);
 	void AdminCmd_MakeCoord(CCmds* cmds);
@@ -153,6 +154,8 @@ namespace HyperJump
 	bool UserCmd_DeployBeacon(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_JumpBeacon(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ListJumpableSystems(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+
+	void Disrupt(uint iTargetID, uint iClientID);
 }
 
 namespace PimpShip

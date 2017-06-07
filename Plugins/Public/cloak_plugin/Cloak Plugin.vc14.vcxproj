@@ -53,6 +53,8 @@
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <TargetName>cloak</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
@@ -65,19 +67,21 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
       <Message>Get Latest SDK</Message>
-      <Command>copy /Y C:\Development\flhookplugin\trunk\plugins\flhookplugin_sdk\libs\*.lib libs\
-copy /Y C:\Development\flhookplugin\trunk\plugins\flhookplugin_sdk\headers\*.h headers\
+      <Command>mkdir libs
+mkdir headers
+copy /Y $(SolutionDir)Source\FLHookPluginSDK\libs\*.lib libs\
+copy /Y $(SolutionDir)Source\FLHookPluginSDK\headers\*.h headers\
 </Command>
     </PreBuildEvent>
     <CustomBuildStep>
-      <Command>copy /Y $(OutDir)$(TargetName).dll ..\..\..\bin-vc14\flhook_plugins\$(TargetName).dll
-copy /Y $(OutDir)$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins\$(TargetName).dll
+      <Command>copy /Y $(OutDir)$(TargetName).dll  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
+copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
 </Command>
       <Outputs>..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll;%(Outputs)</Outputs>
     </CustomBuildStep>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\flhookplugin_sdk\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source\FLHookPluginSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -102,8 +106,12 @@ copy /Y $(OutDir)$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Message />
-      <Command />
+      <Message>Get Latest SDK</Message>
+      <Command>mkdir libs
+mkdir headers
+copy /Y $(SolutionDir)Source\FLHookPluginSDK\libs\*.lib libs\
+copy /Y $(SolutionDir)Source\FLHookPluginSDK\headers\*.h headers\
+</Command>
     </PreBuildEvent>
     <CustomBuildStep>
       <Command>copy /Y $(OutDir)$(TargetName).dll  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
@@ -122,6 +130,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source\FLHookPluginSDK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

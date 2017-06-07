@@ -24,6 +24,8 @@ struct FLHOOK_PLAYER_DATA
 
 map<uint, EVENT_PLUGIN_POB_TRANSFER> eventplugindata;
 
+map<uint, string> miningobjdata;
+
 map<uint, FLHOOK_PLAYER_DATA> clients;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
@@ -223,6 +225,30 @@ namespace HookExt
 		//send the data to the event plugin for processing
 		return sentmap;
 	}
+
+	//mining stuff
+
+	EXPORT void AddMiningObj(uint spaceobj, string basename)
+	{
+		miningobjdata[spaceobj] = basename;		
+	}
+
+	EXPORT void ClearMiningObjData()
+	{
+		miningobjdata.clear();
+	}
+
+	EXPORT map<uint, string> GetMiningEventObjs()
+	{
+		//make a local copy of the map
+		map<uint, string> sentmap = miningobjdata;
+
+		//send the data to the event plugin for processing
+		return sentmap;
+	}
+
+
+	//end mining stuff
 
 	EXPORT string IniGetS(uint client, const string &name)
 	{

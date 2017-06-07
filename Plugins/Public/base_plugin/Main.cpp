@@ -95,6 +95,9 @@ POBSOUNDS pbsounds;
 //archtype structure
 map<string, ARCHTYPE_STRUCT> mapArchs;
 
+//commodities to watch for logging
+map<uint, wstring> listCommodities;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PlayerBase *GetPlayerBase(uint base)
@@ -145,23 +148,55 @@ void Logging(const char *szString, ...)
 // These logging functions need consolidating.
 void BaseLogging(const char *szString, ...)
 {
-        char szBufString[1024];
-        va_list marker;
-        va_start(marker, szString);
-        _vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
+    char szBufString[1024];
+    va_list marker;
+    va_start(marker, szString);
+    _vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
-        char szBuf[64];
-        time_t tNow = time(0);
-        struct tm *t = localtime(&tNow);
-        strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+    char szBuf[64];
+    time_t tNow = time(0);
+    struct tm *t = localtime(&tNow);
+    strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
 
-        FILE *BaseLogfile = fopen("./flhook_logs/playerbase_events.log", "at");
-        if (BaseLogfile)
-        {
-                fprintf(BaseLogfile, "%s %s\n", szBuf, szBufString);
-                fflush(BaseLogfile);
-                fclose(BaseLogfile);
-        }
+    FILE *BaseLogfile = fopen("./flhook_logs/playerbase_events.log", "at");
+    if (BaseLogfile)
+    {
+        fprintf(BaseLogfile, "%s %s\n", szBuf, szBufString);
+        fflush(BaseLogfile);
+        fclose(BaseLogfile);
+    }
+}
+
+FILE *LogfileEventCommodities = fopen("./flhook_logs/event_pobsales.log", "at");
+
+void LoggingEventCommodity(const char *szString, ...)
+{
+	char szBufString[1024];
+	va_list marker;
+	va_start(marker, szString);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
+
+	char szBuf[64];
+	time_t tNow = time(0);
+	struct tm *t = localtime(&tNow);
+	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+	fprintf(LogfileEventCommodities, "%s %s\n", szBuf, szBufString);
+	fflush(LogfileEventCommodities);
+	fclose(LogfileEventCommodities);
+	LogfileEventCommodities = fopen("./flhook_logs/event_pobsales.log", "at");
+}
+
+void Notify_Event_Commodity_Sold(uint iClientID, string commodity, int count, string basename)
+{
+	//internal log
+	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	wstring wscMsgLog = L"<%player> has sold <%units> of the event commodity <%eventname> to the POB <%pob>";
+	wscMsgLog = ReplaceStr(wscMsgLog, L"%player", wscCharname.c_str());
+	wscMsgLog = ReplaceStr(wscMsgLog, L"%eventname", stows(commodity).c_str());
+	wscMsgLog = ReplaceStr(wscMsgLog, L"%units", stows(itos(count)).c_str());
+	wscMsgLog = ReplaceStr(wscMsgLog, L"%pob", stows(basename).c_str());
+	string scText = wstos(wscMsgLog);
+	LoggingEventCommodity("%s", scText.c_str());
 }
 
 void LogCheater(uint client, const wstring &reason)
@@ -316,6 +351,8 @@ void LoadSettingsActual()
 	set_base_crew_consumption_items.clear();
 	set_base_crew_food_items.clear();
 	shield_power_items.clear();
+
+	HookExt::ClearMiningObjData();
 	
 	INI_Reader ini;
 	if (ini.open(cfg_file.c_str(), false))
@@ -404,6 +441,12 @@ void LoadSettingsActual()
 						{
 							ConPrint(L"BASE: Attention, POB Holiday mode is enabled.\n");
 						}
+					}
+					else if (ini.is_value("watch"))
+					{
+						uint c = CreateID(ini.get_value_string());
+						listCommodities[c] = stows(ini.get_value_string());
+
 					}
 				}
 			}
@@ -545,6 +588,14 @@ void LoadSettingsActual()
 					else if (ini.is_value("display"))
 					{
 						archstruct.display = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("mining"))
+					{
+						archstruct.mining = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("miningevent"))
+					{
+						archstruct.miningevent = ini.get_value_string(0);
 					}
 				}
 				mapArchs[nickname] = archstruct;
@@ -1106,9 +1157,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 
 				pub::SpaceObj::GetLocation(iShip, pos, ornt);
 
-				pos.x = pbase->destposition.x += 200;
-				pos.y = pbase->destposition.y += 200;
-				pos.z = pbase->destposition.z += 200;
+				pos.x = pbase->destposition.x;
+				pos.y = pbase->destposition.y;
+				pos.z = pbase->destposition.z;
 
 				const Universe::ISystem *iSys = Universe::get_system(pbase->destsystem);
 				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
@@ -1448,6 +1499,21 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		base->ChangeMoney(0-price);
 		base->Save();
 
+		if (listCommodities.find(gsi.iArchID) != listCommodities.end())
+		{
+			string cname = wstos(listCommodities[gsi.iArchID]);
+			string cbase = wstos(base->basename);
+
+			Notify_Event_Commodity_Sold(client, cname, gsi.iCount, cbase);
+		}
+
+		//build string and log the purchase
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		const GoodInfo *gi = GoodList_get()->find_by_id(gsi.iArchID);
+		string gname = wstos(HtmlEncode(HkGetWStringFromIDS(gi->iIDSName)));
+		string msg = "Player " + wstos(charname) + "sold item " + gname + " x" + (char)count;
+		Log::LogBaseAction(wstos(base->basename), msg.c_str());
+
 		//Event plugin hooks
 		if (HookExt::IniGetB(client, "event.enabled") && (clients[client].reverse_sell == false))
 		{
@@ -1541,6 +1607,8 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 		int curr_money;
 		pub::Player::InspectCash(client, curr_money);
 
+		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+
 		// In theory, these should never be called.
 		if (count == 0 || base->market_items[gbi.iGoodID].min_stock >= base->market_items[gbi.iGoodID].quantity)
 		{
@@ -1563,12 +1631,21 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 		base->ChangeMoney(price);
 		base->Save();
 
+		//build string and log the purchase
 		const GoodInfo *gi = GoodList_get()->find_by_id(gbi.iGoodID);
+		string gname = wstos(HtmlEncode(HkGetWStringFromIDS(gi->iIDSName)));
+		string msg = "Player " + wstos(charname) + "purchased item " + gname + " x" + (char)count;
+		Log::LogBaseAction(wstos(base->basename), msg.c_str());
+
 		if (gi && gi->iType == GOODINFO_TYPE_SHIP)
 		{
 			returncode = SKIPPLUGINS;
-			PrintUserCmdText(client, L"LAZEEEEERRR GUNNNNNNN");
-			mapPOBShipPurchases[client] = true;
+			PrintUserCmdText(client, L"Purchased ship");
+		}
+		else if (gi && gi->iType == GOODINFO_TYPE_HULL)
+		{
+			returncode = SKIPPLUGINS;
+			PrintUserCmdText(client, L"Purchased hull");
 		}
 	}
 }
@@ -1581,10 +1658,7 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const &gbi, unsigned int iC
 	PlayerBase *base = GetPlayerBaseForClient(iClientID);
 	if (base)
 	{
-		if (mapPOBShipPurchases.find(iClientID) != mapPOBShipPurchases.end())
-		{
-			PrintUserCmdText(iClientID, L"LAZEEEEERRR GUNNNNNNNZZZZZ");
-
+			returncode = SKIPPLUGINS;
 			// Update the player CRC so that the player is not kicked for 'ship related' kick
 			PlayerData *pd = &Players[iClientID];
 			char *ACCalcCRC = (char*)hModServer + 0x6FAF0;
@@ -1598,11 +1672,10 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const &gbi, unsigned int iC
 					popad
 			}
 
-			HkSaveChar((const wchar_t*)Players.GetActiveCharacterName(iClientID));
-			HkDelayedKick(iClientID, 1);
-			mapPOBShipPurchases.erase(iClientID);
-			return;
-		}
+			//PrintUserCmdText(iClientID, L"You will be kicked to update your ship.");
+			//HkSaveChar((const wchar_t*)Players.GetActiveCharacterName(iClientID));
+			//HkDelayedKick(iClientID, 10);
+			
 	}
 }
 
@@ -1633,18 +1706,6 @@ void __stdcall ReqAddItem_AFTER(unsigned int good, char const *hardpoint, int co
 		returncode = SKIPPLUGINS;
 		PlayerData *pd = &Players[client];			
 	
-		// Update the player CRC so that the player is not kicked for 'ship related' kick
-		char *ACCalcCRC = (char*)hModServer + 0x6FAF0;
-		__asm
-		{
-			pushad
-			mov ecx, [pd]
-			call [ACCalcCRC]
-			mov ecx, [pd]
-			mov [ecx+320h], eax
-			popad
-		}
-
 		// Add to check-list which is being compared to the users equip-list when saving
 		// char to fix "Ship or Equipment not sold on base" kick
 		EquipDesc ed;
@@ -1652,6 +1713,18 @@ void __stdcall ReqAddItem_AFTER(unsigned int good, char const *hardpoint, int co
 		ed.iCount = 1;
 		ed.iArchID = good;
 		pd->lShadowEquipDescList.add_equipment_item(ed, false);
+
+		// Update the player CRC so that the player is not kicked for 'ship related' kick
+		char *ACCalcCRC = (char*)hModServer + 0x6FAF0;
+		__asm
+		{
+			pushad
+			mov ecx, [pd]
+				call[ACCalcCRC]
+				mov ecx, [pd]
+				mov[ecx + 320h], eax
+				popad
+		}
 	}
 }
 
@@ -1713,11 +1786,18 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 		pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
 
 		map<uint, Module*>::iterator i = spaceobj_modules.find(iDmgToSpaceID);
-		if (i != spaceobj_modules.end())
+		if ((i != spaceobj_modules.end()) && (i->second->mining == false) )
 		{
 			if (set_plugin_debug)
 				ConPrint(L"HkCb_AddDmgEntry iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f damage=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
 				iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);	
+
+			if (set_holiday_mode)
+			{
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iDmgToSpaceID = 0;
+				return;
+			}
 
 			// A work around for an apparent bug where mines/missiles at the base
 			// causes the base damage to jump down to 0 even if the base is
@@ -1740,15 +1820,10 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 				return;
 			}
 
-			// This call is for us, skip all plugins.
-			returncode = SKIPPLUGINS;
+			// This call is for us, skip all plugins.		
 			float new_damage = i->second->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, damage);
-			if (new_damage == 100000.0f)
-			{
-				//arbitrary value to detect fragile types
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				return;
-			}
+			returncode = SKIPPLUGINS;
+
 			if (new_damage != 0.0f)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1974,6 +2049,49 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		//cmd->Print(L"OK Base is gone are you proud of yourself.");
 		return true;
 	}
+	else if (args.find(L"basetogglegod") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		bool optype = cmd->ArgInt(1);
+
+		//return SpaceObjDestroyed(space_obj);
+		//alleynote1
+		int billythecat = 0;
+		PlayerBase *base;
+		for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
+		{
+			if (i->second->basename == cmd->ArgStrToEnd(2))
+			{
+				base = i->second;
+				billythecat = 1;
+				break;
+			}
+		}
+
+
+		if (billythecat == 0)
+		{
+			cmd->Print(L"ERR Base doesn't exist lmao");
+			return true;
+		}
+
+		
+		if (optype == true)
+		{
+			base->invulnerable = true;
+			cmd->Print(L"OK Base made invulnerable.");
+		}
+		else if (optype == false)
+		{
+			base->invulnerable = false;
+			cmd->Print(L"OK Base made vulnerable.");
+		}
+
+		//cmd->Print(L"OK Base is gone are you proud of yourself.");
+		return true;
+	}
 	else if (args.find(L"testbase") == 0)
 	{
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
@@ -2038,6 +2156,130 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		PrintUserCmdText(client, L"OK: Siege Cannon deployed");
 		PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
 
+		return true;
+	}
+	else if (args.find(L"jumpcreate") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		PlayerBase *base = GetPlayerBaseForClient(client);
+
+		uint ship;
+		pub::Player::GetShip(client, ship);
+		if (!ship)
+		{
+			PrintUserCmdText(client, L"ERR Not in space");
+			return true;
+		}
+
+		// If the ship is moving, abort the processing.
+		Vector dir1;
+		Vector dir2;
+		pub::SpaceObj::GetMotion(ship, dir1, dir2);
+		if (dir1.x>5 || dir1.y>5 || dir1.z>5)
+		{
+			PrintUserCmdText(client, L"ERR Ship is moving");
+			return true;
+		}
+
+		wstring archtype = cmd->ArgStr(1);
+		if (!archtype.length())
+		{
+			PrintUserCmdText(client, L"ERR No archtype");
+			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			return true;
+		}
+		wstring loadout = cmd->ArgStr(2);
+		if (!loadout.length())
+		{
+			PrintUserCmdText(client, L"ERR No loadout");
+			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			return true;
+		}
+		wstring type = cmd->ArgStr(3);
+		if (!type.length())
+		{
+			PrintUserCmdText(client, L"ERR No type");
+			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			return true;
+		}
+		wstring destsystem = cmd->ArgStr(4);
+		if (!destsystem.length())
+		{
+			PrintUserCmdText(client, L"ERR No destination system");
+			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			return true;
+		}
+
+		Vector destpos;
+		destpos.x = cmd->ArgFloat(5);
+		destpos.y = cmd->ArgFloat(6);
+		destpos.z = cmd->ArgFloat(7);
+
+		wstring theaffiliation = cmd->ArgStr(8);
+		if (!theaffiliation.length())
+		{
+			PrintUserCmdText(client, L"ERR No affiliation");
+			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			return true;
+		}
+
+
+		wstring basename = cmd->ArgStrToEnd(9);
+		if (!basename.length())
+		{
+			PrintUserCmdText(client, L"ERR No name entered");
+			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			return true;
+		}
+
+
+
+		// Check for conflicting base name
+		if (GetPlayerBase(CreateID(PlayerBase::CreateBaseNickname(wstos(basename)).c_str())))
+		{
+			PrintUserCmdText(client, L"ERR Base name already exists");
+			return true;
+		}
+
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		AddLog("NOTICE: Base created %s by %s (%s)",
+			wstos(basename).c_str(),
+			wstos(charname).c_str(),
+			wstos(HkGetAccountID(HkGetAccountByCharname(charname))).c_str());
+
+		wstring password = L"nopassword";
+
+		PlayerBase *newbase = new PlayerBase(client, password, basename);
+		player_bases[newbase->base] = newbase;
+		newbase->affiliation = CreateID(wstos(theaffiliation).c_str());
+		newbase->basetype = wstos(type);
+		newbase->basesolar = wstos(archtype);
+		newbase->baseloadout = wstos(loadout);
+		newbase->defense_mode = 4;
+		newbase->base_health = 10000000000;
+
+		newbase->destsystem = CreateID(wstos(destsystem).c_str());
+		newbase->destposition = destpos;
+
+		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
+		{
+
+			ARCHTYPE_STRUCT &thearch = iter->second;
+			if (iter->first == newbase->basetype)
+			{
+				newbase->invulnerable = thearch.invulnerable;
+				newbase->logic = thearch.logic;
+				newbase->radius = thearch.radius;
+			}
+		}
+
+		newbase->Spawn();
+		newbase->Save();
+
+		PrintUserCmdText(client, L"OK: Solar deployed");
+		//PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
 		return true;
 	}
 	else if (args.find(L"basecreate") == 0)

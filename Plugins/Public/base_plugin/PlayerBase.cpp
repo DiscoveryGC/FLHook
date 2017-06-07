@@ -640,6 +640,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	if (client)
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		last_attacker = charname;
 		// Allies are allowed to shoot at the base without the base becoming hostile. We do the ally search
 		// after checking to see if this player is on the hostile list because allies don't normally
 		// shoot at bases and so this is more efficient than searching the ally list first.

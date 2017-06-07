@@ -886,6 +886,7 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|     <type> = 5 - Hyperspace Survey Module Mk1");
 			PrintUserCmdText(client, L"|     <type> = 6 - Hyperspace Survey Module Mk2");
 			PrintUserCmdText(client, L"|     <type> = 7 - Hyperspace Survey Module Mk3");
+			PrintUserCmdText(client, L"|     <type> = 15 - Hyperspace Matrix Mk1");
 			PrintUserCmdText(client, L"|     For Cloaking Device Factory");
 			PrintUserCmdText(client, L"|     <type> = 8 - Cloaking Device MK1 (small)");
 			PrintUserCmdText(client, L"|     <type> = 9 - Cloaking Device MK2 (medium)");
@@ -1257,6 +1258,13 @@ namespace PlayerCommands
 
 	void BaseDeploy(uint client, const wstring &args)
 	{
+		if (set_holiday_mode)
+		{
+			PrintUserCmdText(client, L"ERR Cannot create bases when holiday mode is active");
+			return;
+		}
+
+
 		// Abort processing if this is not a "heavy lifter"
 		uint shiparch;
 		pub::Player::GetShipID(client, shiparch);

@@ -27,7 +27,17 @@ void DeleteBase(PlayerBase *base)
 	}
 
 	// Remove the base.
-	_unlink(base->path.c_str());
+	//_unlink(base->path.c_str());
+
+	//Edit by Alley: Don't remove the base, instead move it to an archive folder
+	char datapath[MAX_PATH];
+	GetUserDataPath(datapath);
+	// Create base save  dir if it doesn't exist
+	string basesvdir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\destroyed\\";
+	CreateDirectoryA(basesvdir.c_str(), 0);
+	string fullpath = basesvdir + wstos(base->basename) + ".ini";
+	MoveFile(base->path.c_str(), fullpath.c_str());
+
 	player_bases.erase(base->base);
 	delete base;
 }

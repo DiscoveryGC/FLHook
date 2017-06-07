@@ -151,10 +151,18 @@ void SendBaseStatus(uint client, PlayerBase *base)
 		base_status += L"<TEXT>Affiliation: None</TEXT><PARA/>";
 	}
 
-	if (base->repairing)
-		base_status += L"<TEXT>Repair Status: OK</TEXT><PARA/>";
+	if (set_holiday_mode)
+	{
+		base_status += L"<TEXT>Repair Status: ALL I WANT FOR CHRISTMAS IS YOU</TEXT><PARA/>";
+	}
+	else if (base->repairing)
+	{
+		base_status += L"<TEXT>Repair Status: Repairing</TEXT><PARA/>";
+	}
 	else
-		base_status += L"<TEXT>Repair Status: Not available</TEXT><PARA/>";
+	{
+		base_status += L"<TEXT>Repair Status: Not repairing</TEXT><PARA/>";
+	}
 
 	base_status += L"<PARA/>";
 	base_status += L"<TEXT>Modules:</TEXT><PARA/>";

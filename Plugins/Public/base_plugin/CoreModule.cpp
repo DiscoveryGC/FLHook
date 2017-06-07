@@ -10,6 +10,7 @@
 #include <plugin.h>
 #include <PluginUtilities.h>
 #include "Main.h"
+#include <hookext_exports.h>
 
 CoreModule::CoreModule(PlayerBase *the_base) : Module(TYPE_CORE), base(the_base), space_obj(0), dont_eat(false), dont_rust(false)
 {
@@ -357,6 +358,16 @@ void CoreModule::Spawn()
 		pub::AI::SetPersonalityParams pers = MakePersonality();
 		pub::AI::SubmitState(space_obj, &pers);
 
+		if (mapArchs[base->basetype].mining)
+		{
+			HookExt::AddMiningObj(space_obj, mapArchs[base->basetype].miningevent);
+			spaceobj_modules[space_obj]->mining = true;
+		}
+		else
+		{
+			spaceobj_modules[space_obj]->mining = false;
+		}
+
 	}
 }
 
@@ -441,12 +452,21 @@ void CoreModule::RepairDamage(float max_base_health)
 
 bool CoreModule::Timer(uint time)
 {
+	if (space_obj && set_holiday_mode)
+	{
+		//force the base to keep max health
+		base->base_health = base->max_base_health;
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+		//ConPrint(L"CoreModule::timer space_obj=%u health=%f maxhealth=%f\n", space_obj, base->base_health, base->max_base_health);
+		return false;
+	}
+
 	if ((time%set_tick_time) != 0)
 		return false;
 
 	if (space_obj)
 	{
-
 		if ((base->logic == 1) || (base->invulnerable == 0))
 		{
 
@@ -477,7 +497,7 @@ bool CoreModule::Timer(uint time)
 				if (time % 43200 == 0)
 				{
 					for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
-					i != set_base_crew_consumption_items.end(); ++i)
+						i != set_base_crew_consumption_items.end(); ++i)
 					{
 						// Use water and oxygen.
 						if (base->HasMarketItem(i->first) >= number_of_crew)
@@ -494,7 +514,7 @@ bool CoreModule::Timer(uint time)
 					// Humans use food but may eat one of a number of types.
 					uint crew_to_feed = number_of_crew;
 					for (map<uint, uint>::iterator i = set_base_crew_food_items.begin();
-					i != set_base_crew_food_items.end(); ++i)
+						i != set_base_crew_food_items.end(); ++i)
 					{
 						if (!crew_to_feed)
 							break;
@@ -530,9 +550,10 @@ bool CoreModule::Timer(uint time)
 			pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 			//ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
 		}
+
 		// if health is 0 then the object will be destroyed but we won't
 		// receive a notification of this so emulate it.
-		if ((base->base_health < 1) && (base->invulnerable == 0))
+		if (base->base_health < 1)
 			return SpaceObjDestroyed(space_obj);
 	}
 
@@ -541,11 +562,16 @@ bool CoreModule::Timer(uint time)
 
 float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float damage)
 {
-	if ((base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock"))
-	{
-		return 100000.0f;
-	}
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, damage);
+
+	if (set_holiday_mode || (base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock") || (base->basetype == "planet"))
+	{
+			//force the base to keep max health
+			base->base_health = base->max_base_health;
+			float rhealth = base->base_health / base->max_base_health;
+			pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+			return curr_hitpoints;
+	}
 
 	if (base->invulnerable == 0)
 	{
@@ -578,19 +604,41 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj)
 		//No need to calculate health in this scenario, go straight to drama
 		Siege::SiegeAudioCalc(base->base, base->system, base->position, 0);
 
+		//List all players in the system at the time
+		list<string> CharsInSystem;
 		struct PlayerData *pd = 0;
 		while (pd = Players.traverse_active(pd))
 		{
 			PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
-
+			if (pd->iSystemID == base->system)
+			{
+				const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(pd->iOnlineID);
+				CharsInSystem.push_back(wstos(charname));
+			}
 		}
-
-		ConPrint(L"BASE: Base %s destroyed\n", base->basename.c_str());
+			
 		// Logging
 		wstring wscMsg = L": Base %b destroyed";
 		wscMsg = ReplaceStr(wscMsg, L"%b", base->basename.c_str());
 		string scText = wstos(wscMsg);
 		BaseLogging("%s", scText.c_str());
+
+		//Base specific logging
+		string msg = "Base destroyed. Players in system: ";
+		for each (string player in CharsInSystem)
+		{
+			msg += (player + "; ");
+		}
+		Log::LogBaseAction(wstos(base->basename), msg.c_str());
+
+		if (!base->last_attacker.empty())
+		{
+			ConPrint(L"BASE: Base %s destroyed. Last attacker: %s\n", base->basename.c_str(), base->last_attacker.c_str());
+		}
+		else
+		{
+			ConPrint(L"BASE: Base %s destroyed\n", base->basename.c_str());
+		}
 
 		// Unspawn, delete base and save file.
 		DeleteBase(base);

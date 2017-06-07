@@ -145,6 +145,9 @@ bool BuildModule::Timer(uint time)
 					case Module::TYPE_DEFENSE_3:
 						base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_3);
 						break;
+					case Module::TYPE_M_CLOAKDISRUPTOR:
+						base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
+						break;
 					default:
 						base->modules[i] = 0;
 						break;

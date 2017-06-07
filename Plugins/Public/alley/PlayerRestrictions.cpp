@@ -864,6 +864,106 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		ADOCK::AdminNoDock(cmds, cmds->ArgCharname(1));
 		return true;
 	}
+	else if (IS_CMD("testfuseobj"))
+	{
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		{
+			cmds->Print(L"ERR No permission\n");
+			return true;
+		}
+
+		HKPLAYERINFO adminPlyr;
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
+		{
+			cmds->Print(L"ERR Not in space\n");
+			return true;
+		}
+
+		string fuse = wstos(cmds->ArgStrToEnd(1));
+
+		uint space_obj = 0;
+		pub::SpaceObj::GetTarget(adminPlyr.iShip, space_obj);
+		pub::SpaceObj::LightFuse(space_obj, fuse.c_str(), 0);
+		return true;
+	}
+	else if (IS_CMD("testunfuseobj"))
+	{
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		{
+			cmds->Print(L"ERR No permission\n");
+			return true;
+		}
+
+		HKPLAYERINFO adminPlyr;
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
+		{
+			cmds->Print(L"ERR Not in space\n");
+			return true;
+		}
+
+		uint space_obj = 0;
+		pub::SpaceObj::GetTarget(adminPlyr.iShip, space_obj);
+
+		uint fuse = CreateID(wstos(cmds->ArgStrToEnd(1)).c_str());
+		uint dunno;
+		IObjInspectImpl *inspect;
+
+		if (GetShipInspect(space_obj, inspect, dunno))
+		{
+			HkUnLightFuse((IObjRW*)inspect, fuse, 0);
+			cmds->Print(L"OK unlighted fuse");
+		}
+
+		return true;
+	}
+	else if (IS_CMD("testselffuseobj"))
+	{
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		{
+			cmds->Print(L"ERR No permission\n");
+			return true;
+		}
+
+		HKPLAYERINFO adminPlyr;
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
+		{
+			cmds->Print(L"ERR Not in space\n");
+			return true;
+		}
+
+		string fuse = wstos(cmds->ArgStrToEnd(1));
+
+		pub::SpaceObj::LightFuse(adminPlyr.iShip, fuse.c_str(), 0);
+		return true;
+	}
+	else if (IS_CMD("testselfunfuseobj"))
+	{
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		{
+			cmds->Print(L"ERR No permission\n");
+			return true;
+		}
+
+		HKPLAYERINFO adminPlyr;
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
+		{
+			cmds->Print(L"ERR Not in space\n");
+			return true;
+		}
+
+
+		uint fuse = CreateID(wstos(cmds->ArgStrToEnd(1)).c_str());
+		uint dunno;
+		IObjInspectImpl *inspect;
+
+		if (GetShipInspect(adminPlyr.iShip, inspect, dunno))
+		{
+			HkUnLightFuse((IObjRW*)inspect, fuse, 0);
+			cmds->Print(L"OK unlighted fuse");
+		}
+
+		return true;
+	}
 	return false;
 }
 

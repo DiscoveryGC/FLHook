@@ -1,0 +1,1 @@
+This folder is to store your personal plugins you do not want to share or accidently include in a pull request. After the commit creating this file, the folder will be added to gitignore.

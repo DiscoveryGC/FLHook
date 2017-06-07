@@ -48,6 +48,7 @@
     <IntDir>Debug\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
+    <IncludePath>$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>Release\</OutDir>
@@ -58,11 +59,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <CustomBuildStep>
-      <Command>copy /Y $(OutDir)$(TargetName).dll  ..\Binaries\bin-vc14\
-copy /Y $(OutDir)$(TargetName).lib  ..\FLHookPluginSDK\libs\
-
+      <Command>copy /Y  $(OutDir)$(TargetName).dll  $(SolutionDir)\Binaries\bin-vc14\
+copy /Y  $(OutDir)$(TargetName).pdb  $(SolutionDir)\Binaries\bin-vc14\
+copy /Y  $(OutDir)$(TargetName).lib  $(SolutionDir)\Source\FLHookPluginSDK\libs\$(TargetName).lib
 </Command>
-      <Outputs>..\Binaries\bin-vc14\$(TargetName).dll;..\FLHookPluginSDK\libs\$(TargetName).lib;%(Outputs)</Outputs>
+      <Outputs>$(SolutionDir)\Binaries\bin-vc14\$(TargetName).dll;$(SolutionDir)\Source\FLHookPluginSDK\libs\$(TargetName).lib;%(Outputs)</Outputs>
     </CustomBuildStep>
     <ClCompile>
       <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>

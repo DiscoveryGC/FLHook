@@ -54,7 +54,7 @@
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <TargetName>hookext</TargetName>
+    <TargetName>ahookext</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
@@ -77,7 +77,7 @@ copy /Y $(SolutionDir)Source\FLHookPluginSDK\headers\*.h headers\
       <Command>copy /Y $(OutDir)$(TargetName).dll $(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\
 copy /Y $(OutDir)$(TargetName).pdb  $(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\
 </Command>
-      <Outputs>$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\$(TargetName).dll;$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\$(TargetName).pdb;%(Outputs)</Outputs>
+      <Outputs>$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll;$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).pdb;%(Outputs)</Outputs>
     </CustomBuildStep>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -93,7 +93,7 @@ copy /Y $(OutDir)$(TargetName).pdb  $(SolutionDir)\Binaries\bin-vc14\flhook_plug
     </ClCompile>
     <Link>
       <AdditionalDependencies>./libs/FLHook.lib;./libs/FLCoreDACom.lib;./libs/FLCoreDALib.lib;./libs/FLCoreCommon.lib;./libs/FLCoreServer.lib;./libs/FLCoreRemoteClient.lib;shlwapi.lib;psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)hookext.dll</OutputFile>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -117,7 +117,7 @@ copy /Y $(SolutionDir)Source\FLHookPluginSDK\headers\*.h headers\
       <Command>copy /Y $(OutDir)$(TargetName).dll $(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\
 copy /Y $(OutDir)$(TargetName).pdb  $(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\
 </Command>
-      <Outputs>$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\$(TargetName).dll;$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\$(TargetName).pdb;%(Outputs)</Outputs>
+      <Outputs>$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll;$(SolutionDir)\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).pdb;%(Outputs)</Outputs>
     </CustomBuildStep>
     <ClCompile>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>

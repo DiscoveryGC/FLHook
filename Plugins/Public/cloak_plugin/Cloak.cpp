@@ -41,6 +41,7 @@ struct CLOAK_ARCH
 	int iCooldownTime;
 	int iHoldSizeLimit;
 	map<uint, uint> mapFuelToUsage;
+	bool singleUseCloak = false;
 	bool bDropShieldsOnUncloak;
 };
 
@@ -68,6 +69,7 @@ struct CLOAK_INFO
 	uint iState;
 	bool bAdmin;
 	int DisruptTime;
+	bool singleCloakConsumed = false;
 
 	CLOAK_ARCH arch;
 };
@@ -125,6 +127,7 @@ void LoadSettings()
 
 	int cloakamt = 0;
 	int cdamt = 0;
+	int limitedamt = 0;
 	INI_Reader ini;
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
@@ -156,6 +159,11 @@ void LoadSettings()
 					{
 						string scNickName = ini.get_value_string(0);
 						uint usage = ini.get_value_int(1);
+						bool limitedCloak = ini.get_value_bool(2);
+						if (limitedCloak) {
+							limitedamt++;
+						}
+						device.singleUseCloak = limitedCloak;
 						device.mapFuelToUsage[CreateID(scNickName.c_str())] = usage;
 					}
 					else if (ini.is_value("drop_shields_on_uncloak"))
@@ -205,6 +213,7 @@ void LoadSettings()
 
 	ConPrint(L"CLOAK: Loaded %u cloaking devices \n", cloakamt);
 	ConPrint(L"CLOAK: Loaded %u cloak disruptors \n", cdamt);
+	ConPrint(L"CLOAK: Loaded %u limited cloak setups \n", limitedamt);
 
 	struct PlayerData *pd = 0;
 	while (pd = Players.traverse_active(pd))
@@ -261,13 +270,37 @@ void SetState(uint iClientID, uint iShipID, int iNewState)
 	}
 }
 
+bool removeSingleFuel(uint iClientID, CLOAK_INFO &info)
+{
+	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		uint fuel_usage = info.arch.mapFuelToUsage[item->iArchID];
+		if (item->iCount >= fuel_usage)
+		{
+			pub::Player::RemoveCargo(iClientID, item->sID, fuel_usage);
+			info.singleCloakConsumed = true;
+			return true;
+		}
+	} 
 
+	return false;
+
+}
 
 // Returns false if the ship has no fuel to operate its cloaking device.
 static bool ProcessFuel(uint iClientID, CLOAK_INFO &info)
 {
 	if (info.bAdmin)
 		return true;
+
+	if (!info.singleCloakConsumed && info.arch.singleUseCloak) {
+		return removeSingleFuel(iClientID, info);
+	}
+
+	else if (info.singleCloakConsumed)
+	{
+		return true;
+	}
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{

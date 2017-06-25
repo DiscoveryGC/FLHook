@@ -594,6 +594,152 @@ void AdminCmd_AIKill(CCmds* cmds, int loot)
 	return;
 }
 
+/* Make AI come to your position */
+void AdminCmd_AICome(CCmds* cmds)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	{
+		cmds->Print(L"ERR No permission\n");
+		return;
+	}
+
+	uint iShip1;
+	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
+	if (iShip1)
+	{
+		Vector pos;
+		Matrix rot;
+		pub::SpaceObj::GetLocation(iShip1, pos, rot);
+
+		foreach(npcs, uint, iShipIter)
+		{
+			pub::AI::DirectiveCancelOp cancelOP;
+			pub::AI::SubmitDirective(*iShipIter, &cancelOP);
+
+			pub::AI::DirectiveGotoOp go;
+			go.iGotoType = 1;
+			go.vPos = pos;
+			go.vPos.x = pos.x + rand_FloatRange(0, 500);
+			go.vPos.y = pos.y + rand_FloatRange(0, 500);
+			go.vPos.z = pos.z + rand_FloatRange(0, 500);
+			go.fRange = 0;
+			pub::AI::SubmitDirective(*iShipIter, &go);
+		}
+	}
+	cmds->Print(L"OK\n");
+	return;
+}
+
+/* Make AI follow you until death */
+void AdminCmd_AIFollow(CCmds* cmds)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	{
+		cmds->Print(L"ERR No permission\n");
+		return;
+	}
+
+	uint iShip1;
+	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
+	if (iShip1)
+	{
+		foreach(npcs, uint, iShipIter)
+		{
+			pub::AI::DirectiveCancelOp cancelOP;
+			pub::AI::SubmitDirective(*iShipIter, &cancelOP);
+
+			pub::AI::DirectiveFollowOp testOP;
+			testOP.leader = iShip1;
+			testOP.max_distance = 100;
+			pub::AI::SubmitDirective(*iShipIter, &testOP);
+		}
+	}
+	cmds->Print(L"OK\n");
+	return;
+}
+
+/* Cancel the current operation */
+void AdminCmd_AICancel(CCmds* cmds)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	{
+		cmds->Print(L"ERR No permission\n");
+		return;
+	}
+
+	uint iShip1;
+	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
+	if (iShip1)
+	{
+		foreach(npcs, uint, iShipIter)
+		{
+			pub::AI::DirectiveCancelOp testOP;
+			pub::AI::SubmitDirective(*iShipIter, &testOP);
+		}
+	}
+	cmds->Print(L"OK\n");
+	return;
+}
+
+/** List npc fleets */
+void AdminCmd_ListNPCFleets(CCmds* cmds)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	{
+		cmds->Print(L"ERR No permission\n");
+		return;
+	}
+
+	cmds->Print(L"Available fleets: %d\n", mapNPCFleets.size());
+	for (map<wstring, NPC_FLEETSTRUCT>::iterator i = mapNPCFleets.begin();
+	i != mapNPCFleets.end(); ++i)
+	{
+		cmds->Print(L"|%s\n", i->first.c_str());
+	}
+	cmds->Print(L"OK\n");
+
+	return;
+}
+
+
+/* Spawn a Fleet */
+void AdminCmd_AIFleet(CCmds* cmds, wstring FleetName)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	{
+		cmds->Print(L"ERR No permission\n");
+		return;
+	}
+
+	int wrongnpcname = 0;
+
+	map<wstring, NPC_FLEETSTRUCT>::iterator iter = mapNPCFleets.find(FleetName);
+	if (iter != mapNPCFleets.end())
+	{
+		NPC_FLEETSTRUCT &fleetmembers = iter->second;
+		for (map<wstring, int>::iterator i = fleetmembers.fleetmember.begin(); i != fleetmembers.fleetmember.end(); ++i)
+		{
+			wstring membername = i->first;
+			int amount = i->second;
+
+			AdminCmd_AIMake(cmds, amount, membername);
+		}
+	}
+	else
+	{
+		wrongnpcname = 1;
+	}
+
+	if (wrongnpcname == 1)
+	{
+		cmds->Print(L"ERR Wrong Fleet name\n");
+		return;
+	}
+
+	cmds->Print(L"OK fleet spawned\n");
+	return;
+}
+
 /*
 typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
@@ -671,6 +817,36 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		AdminCmd_AIKill(cmds, cmds->ArgInt(1));
+		return true;
+	}
+	else if (IS_CMD("aicancel"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_AICancel(cmds);
+		return true;
+	}
+	else if (IS_CMD("aifollow"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_AIFollow(cmds);
+		return true;
+	}
+	else if (IS_CMD("aicome"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_AICome(cmds);
+		return true;
+	}
+	else if (IS_CMD("aifleet"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_AIFleet(cmds, cmds->ArgStr(1));
+		return true;
+	}
+	else if (IS_CMD("fleetlist"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_ListNPCFleets(cmds);
 		return true;
 	}
 	return false;

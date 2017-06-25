@@ -53,22 +53,21 @@
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(SolutionDir)\Plugins\Public\Hookext_plugin;$(SolutionDir)\Dependencies\boost;$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <TargetName>base</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Dependencies\boost;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\Plugins\Public\hookext_plugin</IncludePath>
+    <IncludePath>$(SolutionDir)\Plugins\Public\Hookext_plugin;$(SolutionDir)\Dependencies\boost;$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <TargetName>base</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <PreBuildEvent>
-      <Command />
-    </PreBuildEvent>
     <CustomBuildStep>
-      <Command>copy /Y $(OutDir)$(TargetName).dll ..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll
-copy /Y $(OutDir)$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins\$(TargetName).dll
+      <Command>copy /Y $(OutDir)$(TargetName).dll  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
+copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
 </Command>
       <Outputs>..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll;%(Outputs)</Outputs>
     </CustomBuildStep>
@@ -84,22 +83,20 @@ copy /Y $(OutDir)$(TargetName).dll C:\Discovery\FreelancerSDK\EXE\flhook_plugins
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\hookext_plugin\Release\ahookext.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)base.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>$(SolutionDir)\Dependencies\boost\lib32-msvc-14.1;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command />
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <PreBuildEvent>
-      <Command />
-    </PreBuildEvent>
     <CustomBuildStep>
       <Command>copy /Y $(OutDir)$(TargetName).dll  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
 copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\public\
@@ -143,6 +140,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ClCompile Include="ExportData.cpp" />
     <ClCompile Include="FactoryModule.cpp" />
     <ClCompile Include="Jumper.cpp" />
+    <ClCompile Include="Logs.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="PlayerBase.cpp" />
     <ClCompile Include="PlayerCommands.cpp" />
@@ -156,6 +154,9 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ClInclude Include="minijson_writer.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Source\FLHook.vcxproj">
+      <Project>{fe6eb3c9-da22-4492-aec3-068c9553a623}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\hookext_plugin\HookExt Plugin.vcxproj">
       <Project>{81d33b95-1ddd-4f58-a24c-e2ec4a143dd0}</Project>
     </ProjectReference>

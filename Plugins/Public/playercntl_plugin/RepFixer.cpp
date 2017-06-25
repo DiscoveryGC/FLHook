@@ -52,8 +52,17 @@ namespace RepFixer
 		float fRep;
 	};
 
+	struct TagHack
+	{
+		string scRepGroup;
+		float fRep;
+	};
+
 	/// Map of faction equipment IDs to reputations list.
-	static map<unsigned int, list<FactionRep> > set_mapFactionReps;
+	static map<unsigned int, list<FactionRep>> set_mapFactionReps;
+
+	/// Tag rephacks, (regex, rephacks associated)
+	static map<wstring, list<TagHack>> set_mapTagHacks;
 
 	/// If true updates are logged to flhook.log
 	static bool set_bLogUpdates = false;
@@ -104,6 +113,49 @@ namespace RepFixer
 		set_mapFactionReps[archID] = lstFactionReps;
 	}
 
+	void LoadTagRephacks()
+	{
+		// The path to the configuration file.
+		char szCurDir[MAX_PATH];
+		GetCurrentDirectory(sizeof(szCurDir), szCurDir);
+		string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\playercntl_tagrephacks.cfg";
+
+		int iLoaded = 0;
+
+		INI_Reader ini;
+		if (ini.open(scPluginCfgFile.c_str(), false))
+		{
+			while (ini.read_header())
+			{
+				if (ini.is_header("tag"))
+				{
+					wstring tagname;
+					list<TagHack> replist;
+
+					while (ini.read_value())
+					{
+						if (ini.is_value("name"))
+						{
+							tagname = stows(ini.get_value_string(0));
+						}
+						else if (ini.is_value("rep"))
+						{
+							TagHack th;
+							th.scRepGroup = ini.get_value_string(0);
+							th.fRep = ini.get_value_float(1);
+							replist.push_back(th);
+						}
+					}
+					set_mapTagHacks[tagname] = replist;
+					++iLoaded;
+				}
+			}
+			ini.close();
+		}
+
+		ConPrint(L"Playercntl: Loaded %u tag rephacks\n", iLoaded);
+	}
+
 	/// Load the plugin settings.
 	void RepFixer::LoadSettings(const string &scPluginCfgFile)
 	{
@@ -117,6 +169,8 @@ namespace RepFixer
 		IniGetSection(scPluginCfgFile, "RepFixerItems", lstValues);
 		foreach (lstValues, INISECTIONVALUE, var)
 			LoadFactionReps(scPluginCfgFile, var->scKey);
+
+		LoadTagRephacks();
 	}
 
 	/// For the specified client ID check and reset any factions that have reputations
@@ -175,8 +229,25 @@ namespace RepFixer
 			}
 
 			// We've adjusted the reps, stop searching the cargo list.
-			return;
+			break;
 		}
+
+		//tag based rephacks
+		for (map<wstring, list<TagHack>>::iterator tagReps = set_mapTagHacks.begin(); tagReps != set_mapTagHacks.end(); tagReps++)
+		{
+			if (wscCharName.find(tagReps->first) != string::npos)
+			{
+				//we have a match, apply reps
+				for each (TagHack tag in tagReps->second)
+				{
+					HkSetRep(wscCharName, stows(tag.scRepGroup), tag.fRep);
+				}
+				//HkMsgU(L"Applied tag rephacks");
+				break;
+			}
+		}
+
+		return;
 	}
 
 	void RepFixer::PlayerLaunch(unsigned int iShip, unsigned int iClientID)

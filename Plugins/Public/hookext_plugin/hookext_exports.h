@@ -21,4 +21,7 @@ namespace HookExt
 	IMPORT void AddPOBEventData(uint client, string eventid, int count);
 	IMPORT void ClearPOBEventData();
 	IMPORT map<uint, EVENT_PLUGIN_POB_TRANSFER> RequestPOBEventData();
+	IMPORT map<uint, string> GetMiningEventObjs();
+	IMPORT void AddMiningObj(uint spaceobj, string basename);
+	IMPORT void ClearMiningObjData();
 };

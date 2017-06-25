@@ -38,6 +38,8 @@ struct ARCHTYPE_STRUCT
 	list<uint> allowedshipclasses;
 	int isjump;
 	bool display;
+	bool mining;
+	string miningevent;
 };
 
 struct MARKET_ITEM
@@ -69,6 +71,7 @@ class Module
 {
 public:
 	int type;
+	int mining;
 	static const int TYPE_BUILD = 0;
 	static const int TYPE_CORE = 1;
 	static const int TYPE_SHIELDGEN = 2;
@@ -369,6 +372,9 @@ public:
 	int logic;
 	int invulnerable;
 
+	//last player attacker
+	wstring last_attacker;
+
 	////////////Unique to Solars/////////////
 	//the radius (for jumps)
 	float radius;
@@ -478,6 +484,11 @@ namespace PlayerCommands
 	void Shop(uint client, const wstring &args);
 
 	void BaseDeploy(uint client, const wstring &args);
+}
+
+namespace Log {
+	void LogBaseAction(string basename, const char *message);
+	void LogGenericAction(string message);
 }
 
 extern map<uint, CLIENT_DATA> clients;

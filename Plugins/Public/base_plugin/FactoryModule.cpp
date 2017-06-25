@@ -220,7 +220,8 @@ bool FactoryModule::AddToQueue(uint equipment_type)
 	{
 		if (equipment_type == 5
 			|| equipment_type == 6
-			|| equipment_type == 7)
+			|| equipment_type == 7
+			|| equipment_type == 15)
 		{
 			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
 			return true;

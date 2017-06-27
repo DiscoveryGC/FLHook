@@ -60,7 +60,7 @@
     <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)\Plugins\Public\hookext_plugin;$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(SolutionDir)Dependencies\boost;$(SolutionDir)\Plugins\Public\hookext_plugin;$(SolutionDir)\Plugins\PluginUtilities;$(SolutionDir)\Source\FLHookPluginSDK\headers;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <TargetName>playercntl</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -120,6 +120,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>$(SolutionDir)\Dependencies\boost\lib32-msvc-14.1;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command />

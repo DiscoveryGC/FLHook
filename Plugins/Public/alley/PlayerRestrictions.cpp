@@ -303,7 +303,7 @@ void UnSetFuse(uint iClientID, uint fuse)
 }
 
 
-bool UserCmd_ShowRestrictions(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+/*bool UserCmd_ShowRestrictions(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		struct PlayerData *pPD = 0;
 		while(pPD = Players.traverse_active(pPD))
@@ -315,7 +315,7 @@ bool UserCmd_ShowRestrictions(uint iClientID, const wstring &wscCmd, const wstri
 			HkFMsg(iClientsID, wscMsg);
 		}
 		return true;
-	}
+	}*/
 
 bool PirateCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
@@ -634,8 +634,8 @@ struct USERCMD
 
 USERCMD UserCmds[] =
 {
-	{ L"/showrestrictions", UserCmd_ShowRestrictions, L"Usage: /showrestrictions"},
-	{ L"/showrestrictions*", UserCmd_ShowRestrictions, L"Usage: /showrestrictions"},
+	/*{ L"/showrestrictions", UserCmd_ShowRestrictions, L"Usage: /showrestrictions"},
+	{ L"/showrestrictions*", UserCmd_ShowRestrictions, L"Usage: /showrestrictions"},*/
 	{ L"/nodock", ADOCK::NoDockCommand, L"Usage: /nodock"},
 	{ L"/nodock*", ADOCK::NoDockCommand, L"Usage: /nodock"},
 	{ L"/police", ADOCK::PoliceCmd, L"Usage: /nodock" },

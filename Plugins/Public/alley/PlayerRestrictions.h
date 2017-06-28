@@ -15,7 +15,7 @@
 
 
 
-bool UserCmd_ShowRestrictions(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+//bool UserCmd_ShowRestrictions(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 void SetFuse(uint iClientID, uint fuse, float lifetime);
 void UnSetFuse(uint iClientID, uint fuse);
 

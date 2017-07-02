@@ -41,6 +41,8 @@ static map<uint, int> mapActiveNoDock;
 
 static list<uint> baseblacklist;
 
+static list<wstring> superNoDockedShips;
+
 FILE *Logfile = fopen("./flhook_logs/nodockcommand.log", "at");
 
 void Logging(const char *szString, ...)
@@ -109,6 +111,16 @@ void ADOCK::LoadSettings()
 							duration = ini.get_value_int(0);
 						}
 					}	
+				}
+				else if (ini.is_header("supernodockedships"))
+				{
+					while (ini.read_value())
+					{
+						if (ini.is_value("ship"))
+						{
+							superNoDockedShips.push_back((const wchar_t*) ini.get_value_wstring());
+						}
+					}
 				}
 			}
 		ini.close();
@@ -263,7 +275,27 @@ bool ADOCK::NoDockCommand(uint iClientID, const wstring &wscCmd, const wstring &
 	}
 
 bool ADOCK::IsDockAllowed(uint iShip, uint iDockTarget, uint iClientID)
-{	
+{
+	boolean supernodocked = false;
+	wstring curCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	list<wstring>::iterator sndIter = superNoDockedShips.begin();
+	while (sndIter != superNoDockedShips.end())
+	{
+		if (*sndIter == curCharName)
+		{
+			supernodocked = true;
+			break;
+		}
+		sndIter++;
+	}
+
+	if (supernodocked)
+	{
+		pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
+		PrintUserCmdText(iClientID, L"You are not allowed to dock on any base.");
+		return false;
+	}
+
 	bool aminice = true;
 
 	// is he under nodock effect

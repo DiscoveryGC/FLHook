@@ -291,9 +291,15 @@ bool ADOCK::IsDockAllowed(uint iShip, uint iDockTarget, uint iClientID)
 
 	if (supernodocked)
 	{
-		pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
-		PrintUserCmdText(iClientID, L"You are not allowed to dock on any base.");
-		return false;
+		uint iID;
+		pub::SpaceObj::GetDockingTarget(iDockTarget, iID);
+		Universe::IBase *base = Universe::get_base(iID);
+		if (base)
+		{
+			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
+			PrintUserCmdText(iClientID, L"You are not allowed to dock on any base.");
+			return false;
+		}
 	}
 
 	bool aminice = true;

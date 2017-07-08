@@ -93,6 +93,7 @@ namespace HyperJump
 		map<uint, uint> mapFuelToUsage;
 		float power;
 		float field_range;
+		boolean cd_disrupts_charge;
 	};
 	static map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
 
@@ -387,6 +388,10 @@ namespace HyperJump
 						else if (ini.is_value("field_range"))
 						{
 							jd.field_range = ini.get_value_float(0);
+						}
+						else if (ini.is_value("cd_disrupts_charge"))
+						{
+							jd.cd_disrupts_charge = ini.get_value_bool(0);
 						}
 					}
 					mapJumpDriveArch[jd.nickname] = jd;
@@ -1484,6 +1489,7 @@ namespace HyperJump
 			mapJumpDrives[iClientID].arch.discharge_rate = 0;
 			mapJumpDrives[iClientID].arch.jump_fuse = 0;
 			mapJumpDrives[iClientID].arch.mapFuelToUsage.clear();
+			mapJumpDrives[iClientID].arch.cd_disrupts_charge = true;
 
 			mapJumpDrives[iClientID].charging_on = false;
 			mapJumpDrives[iClientID].curr_charge = 0;
@@ -1965,7 +1971,7 @@ namespace HyperJump
 		//TEMPORARY: Allow JDs to be disrupted with CDs
 		if (mapJumpDrives.find(iClientID) != mapJumpDrives.end())
 		{
-			if (mapJumpDrives[iClientID].charging_on == true)
+			if (mapJumpDrives[iClientID].charging_on && mapJumpDrives[iClientID].arch.cd_disrupts_charge)
 			{
 				if (dmg->get_cause() == 6)
 				{				

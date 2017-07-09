@@ -622,6 +622,14 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 
 bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
+	uint baseID = 0;
+	pub::Player::GetBase(iClientID, baseID);
+	if (baseID)
+	{
+		PrintUserCmdText(iClientID, L"Can't jettison while docked");
+		return true;
+	}
+
 	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 	uint iSystem = 0;
 	pub::Player::GetSystem(iClientID, iSystem);

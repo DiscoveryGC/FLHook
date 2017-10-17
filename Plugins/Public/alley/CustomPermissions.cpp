@@ -33,7 +33,10 @@
 
 list<wstring> angels;
 list<wstring> events;
+list<uint> racestartids;
 map<uint, uint> bastillebase;
+
+map<uint, byte> racecountdown;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Settings Loading
@@ -70,6 +73,16 @@ void AP::LoadSettings()
 							events.push_back(stows(ini.get_value_string()));
 						}
 					}	
+				}
+				else if (ini.is_header("racestart"))
+				{
+					while (ini.read_value())
+					{
+						if (ini.is_value("id"))
+						{
+							racestartids.push_back(CreateID(ini.get_value_string()));
+						}
+					}
 				}
 				else if (ini.is_header("bastillebase"))
 				{
@@ -335,3 +348,99 @@ void AP::ClearClientInfo(uint iClientID)
 	}
 
 */
+
+bool AP::RacestartCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	uint iShip = 0;
+	pub::Player::GetShip(iClientID, iShip);
+	if (!iShip) {
+		PrintUserCmdText(iClientID, L"Error: You are docked");
+		return true;
+	}
+
+	bool isAllowed = false;
+
+	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		if (find(racestartids.begin(), racestartids.end(), item->iArchID) != racestartids.end() && item->bMounted)
+		{
+			isAllowed = true;
+			break;
+		}
+	}
+
+	if (isAllowed)
+	{
+		uint iShip;
+		pub::Player::GetShip(iClientID, iShip);
+
+		uint iSystem;
+		pub::Player::GetSystem(iClientID, iSystem);
+
+		struct PlayerData *pPD = 0;
+		while (pPD = Players.traverse_active(pPD))
+		{
+			uint iClientID2 = HkGetClientIdFromPD(pPD);
+			uint iSystem2 = 0;
+			pub::Player::GetSystem(iClientID2, iSystem2);
+			if (iSystem != iSystem2)
+				continue;
+
+			uint iShip2;
+			pub::Player::GetShip(iClientID2, iShip2);
+			if (HkDistance3DByShip(iShip, iShip2) < 5000.0f)
+			{
+				racecountdown[iClientID2] = 7;
+			}
+		}
+
+		PrintUserCmdText(iClientID, L"Sending race start audio and mission objectives to everyone within 5K");
+	}
+	else
+	{
+		PrintUserCmdText(iClientID, L"You are not allowed to use this.");
+	}
+
+	return true;
+}
+
+void ShowPlayerMissionText(uint iClientID, const wstring &text)
+{
+	HkChangeIDSString(iClientID, 526999, text);
+
+	FmtStr caption(0, 0);
+	caption.begin_mad_lib(526999);
+	caption.end_mad_lib();
+
+	pub::Player::DisplayMissionMessage(iClientID, caption, pub::Player::MissionMessageType_Type2, true);
+}
+
+void AP::Timer()
+{
+	// every second, decrement race countdowns
+	for (map<uint, byte>::iterator i = racecountdown.begin(); i != racecountdown.end(); ++i)
+	{
+		if (i->second == 7)
+		{
+			pub::Audio::PlaySoundEffect(i->first, CreateID("dsy_racestart"));
+		}
+		else if (i->second == 5)
+		{
+			ShowPlayerMissionText(i->first, L"Countdown: 3");
+		}
+		else if (i->second == 3)
+		{
+			ShowPlayerMissionText(i->first, L"Countdown: 2");
+		}
+		else if (i->second == 2)
+		{
+			ShowPlayerMissionText(i->first, L"Countdown: 1");
+		}
+		else if (i->second == 0)
+		{
+			ShowPlayerMissionText(i->first, L"Go!!!");
+			racecountdown.erase(i->first);
+		}
+		i->second--;
+	}
+}

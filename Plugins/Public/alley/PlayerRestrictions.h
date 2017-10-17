@@ -74,9 +74,25 @@ namespace AP
 	void LoadSettings();
 	bool AlleyCmd_Help(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool AlleyCmd_Chase(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool RacestartCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
 	void ClearClientInfo(unsigned int iClientID);
 	void BaseEnter_AFTER(uint iBaseID, uint iClientID);
+	void Timer();
+}
+
+namespace pub
+{
+	namespace Player
+	{
+		enum MissionMessageType
+		{
+			MissionMessageType_Failure, // mission failure
+			MissionMessageType_Type1, // objective
+			MissionMessageType_Type2, // objective
+			MissionMessageType_Type3, // mission success
+		};
+	}
 }
 
 #endif

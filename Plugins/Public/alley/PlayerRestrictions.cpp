@@ -31,20 +31,6 @@
 namespace pt = boost::posix_time;
 static int set_iPluginDebug = 0;
 
-namespace pub
-{
-	namespace Player
-	{
-		enum MissionMessageType
-		{
-			MissionMessageType_Failure, // mission failure
-			MissionMessageType_Type1, // objective
-			MissionMessageType_Type2, // objective
-			MissionMessageType_Type3, // mission success
-		};
-	}
-}
-
 FILE *GiftLogfile = fopen("./flhook_logs/alley_gifts.log", "at");
 
 void GiftLogging(const char *szString, ...)
@@ -683,6 +669,7 @@ USERCMD UserCmds[] =
 	{ L"/police*", ADOCK::PoliceCmd, L"Usage: /nodock" },
 	{ L"/pirate", PirateCmd, L"Usage: /pirate"},
 	{ L"/pirate*", PirateCmd, L"Usage: /pirate"},
+	{ L"/racestart", AP::RacestartCmd, L"Usage: /racestart" },
 	{ L"/gift", GiftCmd, L"Usage: /gift amount"},
 	{ L"/gift*", GiftCmd, L"Usage: /gift amount"},
 	{ L"$help", AP::AlleyCmd_Help, L"Usage: $help"},
@@ -1295,6 +1282,8 @@ void __stdcall ReqRemoveItem(unsigned short slot, int amount, unsigned int iClie
 		{
 			MarkUsageTimer.clear();
 		}
+
+		AP::Timer();
 	}
 
 

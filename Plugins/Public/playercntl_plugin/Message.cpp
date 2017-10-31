@@ -260,6 +260,9 @@ namespace Message
 	/** Load the msgs for specified client ID into memory. */
 	static void LoadMsgs(uint iClientID)
 	{
+		// Chat time settings.
+		mapInfo[iClientID].bShowChatTime = HookExt::IniGetB(iClientID, "msg.chat_time");
+
 		if (!set_bSetMsg)
 			return;
 
@@ -274,9 +277,6 @@ namespace Message
 		{
 			mapCoordsInfo[iClientID].coordslot[iCoordMsgSlot] = HookExt::IniGetWS(iClientID, "coordmsg." + itos(iCoordMsgSlot));
 		}
-
-		// Chat time settings.
-		mapInfo[iClientID].bShowChatTime = HookExt::IniGetB(iClientID, "msg.chat_time");
 	}
 
 	/** Show the greeting banner to the specified player */

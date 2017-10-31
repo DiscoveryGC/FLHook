@@ -1026,15 +1026,29 @@ void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float 
 					Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
 					float amounttoheal = curr;
 
-					if (TheShipArchHealed->iShipClass <= 5)
+					if (TheShipArchHealed->iShipClass == 1 || TheShipArchHealed->iShipClass == 3)
 					{
-						//it's a snub
-						amounttoheal = max / 100; // 1%/hit
+						amounttoheal = max / 100 + 600;
+					} else if (TheShipArchHealed->iShipClass == 2 || TheShipArchHealed->iShipClass == 4 || TheShipArchHealed->iShipClass == 5)
+					{
+						amounttoheal = max / 100 + 1200;
 					}
-					else
-					{	
-						//a capital or repair ship
-						amounttoheal = (max / 100) / 3; //0.33%/hit
+					else if (TheShipArchHealed->iShipClass >= 6 && TheShipArchHealed->iShipClass <= 12)
+					{
+						amounttoheal = max / 100 * 3 / 4 + 2400;
+					}
+					else if (TheShipArchHealed->iShipClass >= 13 || TheShipArchHealed->iShipClass <= 15)
+					{
+						amounttoheal = max / 100 / 2 + 3600;
+					}
+					else if (TheShipArchHealed->iShipClass >= 16 || TheShipArchHealed->iShipClass <= 18)
+					{
+						amounttoheal = max / 100 / 5 + 12000;
+					}
+					else if (TheShipArchHealed->iShipClass == 19)
+					{
+						// no double-medic
+						return;
 					}
 					
 					float testhealth = curr + amounttoheal;

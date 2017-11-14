@@ -346,23 +346,23 @@ void HkTimerJSON()
 				wstring spurdoip;
 				HkGetPlayerIP(iClientID, spurdoip);
 				mapActivityData[iClientID].ip = wstos(spurdoip);
+			}
 
-				Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
-				mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];	
+			Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
+			mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];	
 
-				//ensure the ID is empty, as we want to return something if no ID is found.
-				mapActivityData[iClientID].id = "";
+			//ensure the ID is empty, as we want to return something if no ID is found.
+			mapActivityData[iClientID].id = "";
 
-				for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+			for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+			{
+				if (mapIDs.find(item->iArchID) != mapIDs.end())
 				{
-					if (mapIDs.find(item->iArchID) != mapIDs.end())
+					if (item->bMounted)
 					{
-						if (item->bMounted)
-						{
-							mapActivityData[iClientID].id = mapIDs[item->iArchID];
-							//PrintUserCmdText(iClientID, L"DEBUG: Found relevant item: %s", stows(mapIDs[item->equip.iArchID]).c_str());
-							//pub::Audio::PlaySoundEffect(iClientID, CreateID("cargo_jettison"));			
-						}
+						mapActivityData[iClientID].id = mapIDs[item->iArchID];
+						//PrintUserCmdText(iClientID, L"DEBUG: Found relevant item: %s", stows(mapIDs[item->equip.iArchID]).c_str());
+						//pub::Audio::PlaySoundEffect(iClientID, CreateID("cargo_jettison"));
 					}
 				}
 			}

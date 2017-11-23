@@ -227,6 +227,8 @@ void PMLogging(const char *szString, ...)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+map<uint, float> healingMultipliers;
+map<uint, uint> healingAdditions;
 
 void LoadSettings()
 {
@@ -253,6 +255,41 @@ void LoadSettings()
 					}				
 				}
 			}
+		ini.close();
+	}
+
+	string scHealingCfgFile = string(szCurDir) + "\\..\\DATA\\EQUIPMENT\\healingrates.cfg";
+	if (ini.open(scHealingCfgFile.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("HealingRate"))
+			{
+				list<uint> shipclasses;
+				float multiplier = 1.0f;
+				uint addition = 0;
+				while (ini.read_value())
+				{
+					if (ini.is_value("target_shipclass"))
+					{
+						shipclasses.push_back(ini.get_value_int(0));
+					}
+					else if (ini.is_value("addition"))
+					{
+						addition = ini.get_value_int(0);
+					}
+					else if (ini.is_value("multiplier"))
+					{
+						multiplier = ini.get_value_float(0);
+					}
+				}
+				foreach(shipclasses, uint, shipclass)
+				{
+					healingMultipliers[*shipclass] = multiplier;
+					healingAdditions[*shipclass] = addition;
+				}
+			}
+		}
 		ini.close();
 	}
 
@@ -1026,31 +1063,13 @@ void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float 
 					Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
 					float amounttoheal = curr;
 
-					if (TheShipArchHealed->iShipClass == 1 || TheShipArchHealed->iShipClass == 3)
+					if (healingMultipliers.find(TheShipArchHealed->iShipClass) == healingMultipliers.end())
 					{
-						amounttoheal = max / 100 + 600;
-					} else if (TheShipArchHealed->iShipClass == 2 || TheShipArchHealed->iShipClass == 4 || TheShipArchHealed->iShipClass == 5)
-					{
-						amounttoheal = max / 100 + 1200;
-					}
-					else if (TheShipArchHealed->iShipClass >= 6 && TheShipArchHealed->iShipClass <= 12)
-					{
-						amounttoheal = max / 100 * 3 / 4 + 2400;
-					}
-					else if (TheShipArchHealed->iShipClass >= 13 || TheShipArchHealed->iShipClass <= 15)
-					{
-						amounttoheal = max / 100 / 2 + 3600;
-					}
-					else if (TheShipArchHealed->iShipClass >= 16 || TheShipArchHealed->iShipClass <= 18)
-					{
-						amounttoheal = max / 100 / 5 + 12000;
-					}
-					else if (TheShipArchHealed->iShipClass == 19)
-					{
-						// no double-medic
 						return;
 					}
-					
+					// no need to check healingAdditions here as it is set at the same time as healingMultipliers
+					amounttoheal = max / 100 * healingMultipliers[TheShipArchHealed->iShipClass] + healingAdditions[TheShipArchHealed->iShipClass];
+
 					float testhealth = curr + amounttoheal;
 
 

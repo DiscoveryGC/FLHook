@@ -605,6 +605,12 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 	wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
 	uint iClientIDTarget = HkGetClientIDByShip(iTargetShip);
 
+	if (!iClientIDTarget)
+	{
+		PrintUserCmdText(iClientID, L"Error: This is not a player ship.");
+		return true;
+	}
+
 	list<GROUP_MEMBER> lstMembers;
 	HkGetGroupMembers((const wchar_t*) Players.GetActiveCharacterName(iClientID), lstMembers);
 

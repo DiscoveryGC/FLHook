@@ -531,8 +531,10 @@ void LoadSettings()
 					}
 					else if ((ini.is_value("data")) && (exist == true))
 					{
-						wscCharname = stows(ini.get_value_string(0));
-						iCount = ini.get_value_int(1);
+						string delim = ", ";
+						string data = ini.get_value_string();
+						wscCharname = stows(data.substr(0, data.find(delim)));
+						iCount = ToInt(data.substr(data.find(delim) + delim.length()));
 						mapEventTracking[id].PlayerEventData[wscCharname] = iCount;
 					}
 				}
@@ -745,7 +747,7 @@ void TradeEvent_Sale(struct SGFGoodSellInfo const &gsi, unsigned int iClientID)
 					{
 						int iInitialCount = HookExt::IniGetI(iClientID, "event.quantity");
 
-						if (iInitialCount > gsi.iCount)
+						if (gsi.iCount > iInitialCount)
 						{
 							//leave event mode
 							HookExt::IniSetB(iClientID, "event.enabled", false);
@@ -1227,7 +1229,7 @@ void ProcessEventPlayerInfo()
 		
 
 		//begin the json object writer
-		minijson::object_writer pw = writer.nested_object(iter->second.eventname.c_str());
+		minijson::object_writer pw = writer.nested_object(iter->first.c_str());
 
 		//begin the ini writer
 		string siegeblock;

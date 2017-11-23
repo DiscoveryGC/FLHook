@@ -541,8 +541,16 @@ namespace Message
 		// Extract text from rdlReader
 		BinaryRDLReader rdl;
 		wchar_t wszBuf[1024];
-		uint iRet1;
-		rdl.extract_text_from_buffer((unsigned short*)wszBuf, sizeof(wszBuf), iRet1, (const char*)rdlReader, iSize);
+		try
+		{
+			uint iRet1;
+			rdl.extract_text_from_buffer((unsigned short*)wszBuf, sizeof(wszBuf), iRet1, (const char*)rdlReader, iSize);
+		}
+		catch (...)
+		{
+			AddLog("SubmitChat Exception\n");
+			return true;
+		}
 
 		wstring wscChatMsg = ToLower(wszBuf);
 		uint iClientID = cId.iID;

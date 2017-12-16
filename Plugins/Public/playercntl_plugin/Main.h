@@ -204,6 +204,7 @@ namespace GiveCash
 	bool UserCmd_ShowCash(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_SetCashCode(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_DrawCash(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_GiveCashTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 }
 
 namespace Message

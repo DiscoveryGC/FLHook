@@ -1470,22 +1470,15 @@ namespace Message
 
 			if(ClientInfo[iClientID].dieMsg == DIEMSG_NONE)
 				continue;
-			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SYSTEM) && (iSystemID == iClientSystemID)) {
+			else if((ClientInfo[iClientID].dieMsg == DIEMSG_SYSTEM) && (iSystemID == iClientSystemID))  
 				HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-				PrintUserCmdText(iClientID, GetTimeString(set_bLocalTime));
-			}
-			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SELF) && ((iClientID == iClientIDVictim) || (iClientID == iClientIDKiller))) {
+			else if((ClientInfo[iClientID].dieMsg == DIEMSG_SELF) && ((iClientID == iClientIDVictim) || (iClientID == iClientIDKiller)))
 				HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-				PrintUserCmdText(iClientID, GetTimeString(set_bLocalTime));
-			}
 			else if(ClientInfo[iClientID].dieMsg == DIEMSG_ALL) {
-				if (iSystemID == iClientSystemID) {
+				if(iSystemID == iClientSystemID)
 					HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-				}
-				else {
+				else
 					HkFMsgSendChat(iClientID, szXMLBuf, iXMLBufRet);
-					PrintUserCmdText(iClientID, GetTimeString(set_bLocalTime));
-				}
 			}
 		}
 	}

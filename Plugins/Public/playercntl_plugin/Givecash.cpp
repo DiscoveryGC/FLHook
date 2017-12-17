@@ -168,11 +168,16 @@ namespace GiveCash
 		pub::SpaceObj::GetTarget(iShip, iTargetShip);
 		if (!iTargetShip)
 		{
-			PrintUserCmdText(iClientID, L"ERR: You cannot give cash to this target. Is it a Player?");
+			PrintUserCmdText(iClientID, L"ERR: This is not a ship.");
 			return true;
 		}
 		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 		uint iClientIDTarget = HkGetClientIDByShip(iTargetShip);
+		if (!iClientIDTarget)
+		{
+			PrintUserCmdText(iClientID, L"ERR: This is not a player ship.");
+			return true;
+		}
 		wstring wscTargetCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientIDTarget);
 
 		wstring wscCash = GetParam(wscParam, L' ', 0);

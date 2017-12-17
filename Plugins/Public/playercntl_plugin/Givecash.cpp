@@ -168,7 +168,7 @@ namespace GiveCash
 		pub::SpaceObj::GetTarget(iShip, iTargetShip);
 		if (!iTargetShip)
 		{
-			PrintUserCmdText(iClientID, L"Error: you must have something targeted to mark it.");
+			PrintUserCmdText(iClientID, L"ERR: You cannot give cash to this target. Is it a Player?");
 			return true;
 		}
 		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
@@ -183,7 +183,7 @@ namespace GiveCash
 		int cash = ToInt(wscCash);
 		if ((!wscTargetCharname.length() || cash <= 0) || (wscAnon.size() && wscAnon != L"anon"))
 		{
-			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+			PrintUserCmdText(iClientID, L"ERR: Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
 			return true;
 		}
@@ -212,7 +212,7 @@ namespace GiveCash
 		int cash = ToInt(wscCash);
 		if ((!wscTargetCharname.length() || cash<=0) || (wscAnon.size() && wscAnon!=L"anon"))
 		{
-			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+			PrintUserCmdText(iClientID, L"ERR: Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
 			return true;
 		}
@@ -231,7 +231,7 @@ namespace GiveCash
 
 		if (HkGetAccountByCharname(wscTargetCharname) == 0)
 		{
-			PrintUserCmdText(iClientID, L"ERR char does not exist");
+			PrintUserCmdText(iClientID, L"ERR: char does not exist");
 			return true;
 		}
 
@@ -239,13 +239,13 @@ namespace GiveCash
 		HkGetOnLineTime(wscCharname, secs);
 		if (secs<set_iMinTime)
 		{
-			PrintUserCmdText(iClientID, L"ERR insufficient time online");
+			PrintUserCmdText(iClientID, L"ERR: insufficient time online");
 			return true;
 		}
 
 		if (InBlockedSystem(wscCharname) || InBlockedSystem(wscTargetCharname))
 		{
-			PrintUserCmdText(iClientID, L"ERR cash transfer blocked");
+			PrintUserCmdText(iClientID, L"ERR: cash transfer blocked");
 			return true;
 		}
 
@@ -253,16 +253,16 @@ namespace GiveCash
 		// and check that the character has enough cash.
 		int iCash = 0;
 		if ((err = HkGetCash(wscCharname, iCash)) != HKE_OK) {
-			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
 			return true;
 		}
 		if (cash<set_iMinTransfer || cash<0) {
-			PrintUserCmdText(iClientID, L"ERR Transfer too small, minimum transfer " + ToMoneyStr(set_iMinTransfer) + L" credits");
+			PrintUserCmdText(iClientID, L"ERR: Transfer too small, minimum transfer " + ToMoneyStr(set_iMinTransfer) + L" credits");
 			return true;
 		}
 		if (iCash<cash)
 		{
-			PrintUserCmdText(iClientID, L"ERR Insufficient credits");
+			PrintUserCmdText(iClientID, L"ERR: Insufficient credits");
 			return true;
 		}
 
@@ -270,12 +270,12 @@ namespace GiveCash
 		float fTargetValue = 0.0f;
 		if (HKGetShipValue(wscTargetCharname, fTargetValue) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
 			return true;
 		}
 		if ((fTargetValue + cash) > 2000000000.0f)
 		{
-			PrintUserCmdText(iClientID, L"ERR Transfer will exceed credit limit");
+			PrintUserCmdText(iClientID, L"ERR: Transfer will exceed credit limit");
 			return true;
 		}
 
@@ -283,7 +283,7 @@ namespace GiveCash
 		int iExpectedCash = 0;
 		if ((err = HkGetCash(wscTargetCharname, iExpectedCash)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR Get cash failed err=" + HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR: Get cash failed err=" + HkErrGetText(err));
 			return true;
 		}
 		iExpectedCash += cash;
@@ -294,7 +294,7 @@ namespace GiveCash
 		{
 			if (HkAntiCheat(targetClientId) != HKE_OK)
 			{
-				PrintUserCmdText(iClientID, L"ERR Transfer failed");
+				PrintUserCmdText(iClientID, L"ERR: Transfer failed");
 				AddLog("NOTICE: Possible cheating when sending %s credits from %s (%s) to %s (%s)",
 					wstos(ToMoneyStr(cash)).c_str(),
 					wstos(wscCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscCharname))).c_str(),
@@ -308,7 +308,7 @@ namespace GiveCash
 		{
 			if (ClientInfo[iClientID].iTradePartner || ClientInfo[targetClientId].iTradePartner)
 			{
-				PrintUserCmdText(iClientID, L"ERR Trade window open");
+				PrintUserCmdText(iClientID, L"ERR: Trade window open");
 				AddLog("NOTICE: Trade window open when sending %s credits from %s (%s) to %s (%s) %u %u",
 					wstos(ToMoneyStr(cash)).c_str(),
 					wstos(wscCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscCharname))).c_str(),
@@ -322,13 +322,13 @@ namespace GiveCash
 		// save completes before allowing the cash to be added to the target ship.
 		if ((err = HkAddCash(wscCharname, 0 - cash)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR Remove cash failed err=" + HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR: Remove cash failed err=" + HkErrGetText(err));
 			return true;
 		}
 
 		if (HkAntiCheat(iClientID) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR Transfer failed");
+			PrintUserCmdText(iClientID, L"ERR: Transfer failed");
 			AddLog("NOTICE: Possible cheating when sending %s credits from %s (%s) to %s (%s)",
 				wstos(ToMoneyStr(cash)).c_str(),
 				wstos(wscCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscCharname))).c_str(),
@@ -340,7 +340,7 @@ namespace GiveCash
 		// Add cash to target character
 		if ((err = HkAddCash(wscTargetCharname, cash)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR Add cash failed err=" + HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR: Add cash failed err=" + HkErrGetText(err));
 			return true;
 		}
 
@@ -349,7 +349,7 @@ namespace GiveCash
 		{
 			if (HkAntiCheat(targetClientId) != HKE_OK)
 			{
-				PrintUserCmdText(iClientID, L"ERR Transfer failed");
+				PrintUserCmdText(iClientID, L"ERR: Transfer failed");
 				AddLog("NOTICE: Possible cheating when sending %s credits from %s (%s) to %s (%s)",
 					wstos(ToMoneyStr(cash)).c_str(),
 					wstos(wscCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscCharname))).c_str(),
@@ -370,7 +370,7 @@ namespace GiveCash
 				wstos(wscCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscCharname))).c_str(),
 				wstos(wscTargetCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscTargetCharname))).c_str(),
 				wstos(ToMoneyStr(iCurrCash)).c_str(), wstos(ToMoneyStr(iExpectedCash)).c_str());
-			PrintUserCmdText(iClientID, L"ERR Transfer failed");
+			PrintUserCmdText(iClientID, L"ERR: Transfer failed");
 			return true;
 		}
 

@@ -230,7 +230,7 @@ namespace GiveCash
 		return true;
 	}
 
-	bool GiveCash::UserCmd_GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon)
+	bool GiveCash::GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon)
 	{
 		HK_ERROR err;
 

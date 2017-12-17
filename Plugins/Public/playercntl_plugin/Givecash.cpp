@@ -192,9 +192,7 @@ namespace GiveCash
 		if (wscAnon == L"anon")
 			bAnon = true;
 
-		GiveCash::UserCmd_GiveCashCombined(iClientID, cash, wscTargetCharname, wscCash, wscCharname, bAnon);
-
-		PrintUserCmdText(iClientID, L"OK");
+		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon);
 		return true;
 	}
 
@@ -223,13 +221,11 @@ namespace GiveCash
 		if (wscAnon==L"anon")
 			bAnon = true;
 
-		GiveCash::UserCmd_GiveCashCombined(iClientID, cash, wscTargetCharname, wscCash, wscCharname, bAnon);
-
-		PrintUserCmdText(iClientID, L"OK");
+		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon);
 		return true;
 	}
 
-	bool GiveCash::UserCmd_GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCash, const wstring &wscCharname, const bool &bAnon)
+	bool GiveCash::UserCmd_GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon)
 	{
 		HK_ERROR err;
 

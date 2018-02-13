@@ -37,8 +37,13 @@ void DeleteBase(PlayerBase *base)
 	// Create base save  dir if it doesn't exist
 	string basesvdir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\destroyed\\";
 	CreateDirectoryA(basesvdir.c_str(), 0);
+
 	string timestamp = boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
-	string fullpath = basesvdir + wstos(base->basename) + "." + timestamp + ".ini";
+
+	char namehash[16];
+	sprintf(namehash, "%08x", base->base);
+
+	string fullpath = basesvdir + "base_" + namehash + "." + timestamp + ".ini";
 	if (!MoveFile(base->path.c_str(), fullpath.c_str())) {
 		AddLog(
 			"ERROR: Base destruction MoveFile FAILED! Error code: %s",

@@ -250,7 +250,7 @@ namespace Laws
 								uint iClientID = HkGetClientIdFromPD(pPD);
 
 								HkChangeIDSString(iClientID, 66076, wscPlayerInfo);
-								PrintUserCmdText(iClientID, L"Please press F5 to access the laws menu. (Open the Neural Net. This will not work if you are currently on a mission)");
+								PrintUserCmdText(iClientID, L"Ok!");
 
 								FmtStr caption(0, 0);
 								caption.begin_mad_lib(1);

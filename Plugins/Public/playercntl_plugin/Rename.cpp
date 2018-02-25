@@ -552,17 +552,14 @@ namespace Rename
 		// Get the character name for this connection.
 		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 
-		for (map<wstring, LockedShipsStruct>::iterator i = MapLockedShips.begin(); i != MapLockedShips.end(); ++i)
+		if (MapLockedShips.count(ToLower(wscCharname)) && MapLockedShips[ToLower(wscCharname)].LockLevel > 0)
 		{
-			if ((i->first == wscCharname) && (i->second.LockLevel > 0))
-			{
-				PrintUserCmdText(iClientID, L"ERR This ship is locked. The FBI has been notified.");
-				wstring spurdoip;
-				HkGetPlayerIP(iClientID, spurdoip);
-				AddLog("SHIPLOCK: Attempt to rename locked ship %s from IP %s", wstos(wscCharname).c_str(), wstos(spurdoip).c_str());
-				ConPrint(L"SHIPLOCK: Attempt to rename locked ship %s from IP %s\n", wscCharname.c_str(), spurdoip.c_str());
-				return true;
-			}
+			PrintUserCmdText(iClientID, L"ERR This ship is locked. The FBI has been notified.");
+			wstring spurdoip;
+			HkGetPlayerIP(iClientID, spurdoip);
+			AddLog("SHIPLOCK: Attempt to rename locked ship %s from IP %s", wstos(wscCharname).c_str(), wstos(spurdoip).c_str());
+			ConPrint(L"SHIPLOCK: Attempt to rename locked ship %s from IP %s\n", wscCharname.c_str(), spurdoip.c_str());
+			return true;
 		}
 
 		if (wscNewCharname.find(L" ")!=-1)
@@ -779,6 +776,7 @@ namespace Rename
 		// Get the target account directory.
 		string scFile;
 		wstring wscMovingCharname = Trim(GetParam(wscParam, L' ', 0));
+		wstring wscMovingCharnameLower = ToLower(wscMovingCharname);
 		if (!GetUserFilePath(scFile, wscMovingCharname, "-movechar.ini"))
 		{
 			PrintUserCmdText(iClientID, L"ERR Character does not exist");
@@ -797,17 +795,13 @@ namespace Rename
 		// Get the character name for this connection.
 		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 
-		for (map<wstring, LockedShipsStruct>::iterator i = MapLockedShips.begin(); i != MapLockedShips.end(); ++i)
-		{
-			if ((i->first == wscMovingCharname) && (i->second.LockLevel > 0))
-			{
-				PrintUserCmdText(iClientID, L"ERR This ship is locked. The FBI has been notified.");
-				wstring spurdoip;
-				HkGetPlayerIP(iClientID, spurdoip);
-				AddLog("SHIPLOCK: Attempt to movechar locked ship %s from IP %s", wstos(wscMovingCharname).c_str(), wstos(spurdoip).c_str());
-				ConPrint(L"SHIPLOCK: Attempt to movechar locked ship %s from IP %s\n", wscMovingCharname.c_str(), spurdoip.c_str());
-				return true;
-			}
+		if (MapLockedShips.count(wscMovingCharnameLower) && MapLockedShips[wscMovingCharnameLower].LockLevel > 0) {
+			PrintUserCmdText(iClientID, L"ERR This ship is locked. The FBI has been notified.");
+			wstring spurdoip;
+			HkGetPlayerIP(iClientID, spurdoip);
+			AddLog("SHIPLOCK: Attempt to movechar locked ship %s from IP %s", wstos(wscMovingCharname).c_str(), wstos(spurdoip).c_str());
+			ConPrint(L"SHIPLOCK: Attempt to movechar locked ship %s from IP %s\n", wscMovingCharname.c_str(), spurdoip.c_str());
+			return true;
 		}
 
 		// Prevent ships from banned accounts from being moved.
@@ -1073,7 +1067,7 @@ void Rename::ReloadLockedShips()
 						info.AccountName = filename + L".fl";
 						info.LockLevel = ini.get_value_int(1);
 
-						MapLockedShips[ship] = info;
+						MapLockedShips[ToLower(ship)] = info;
 						++numberoflockedships;						
 					}
 				}
@@ -1117,7 +1111,7 @@ bool Rename::DestroyCharacter(struct CHARACTER_ID const &cId, unsigned int iClie
 bool Rename::IsLockedShip(uint iClientID, int PermissionLevel)
 {
 	wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	if (MapLockedShips.find(wsccharname) != MapLockedShips.end())
+	if (MapLockedShips.find(ToLower(wsccharname)) != MapLockedShips.end())
 	{
 		if (MapLockedShips[wsccharname].LockLevel >= PermissionLevel)
 		{

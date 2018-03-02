@@ -507,6 +507,7 @@ IMPORT HK_ERROR HkSetRep(const wstring &wscCharname, const wstring &wscRepGroup,
 IMPORT HK_ERROR HkGetRep(const wstring &wscCharname, const wstring &wscRepGroup, float &fValue);
 IMPORT HK_ERROR HkReadCharFile(const wstring &wscCharname, list<wstring> &lstOutput);
 IMPORT HK_ERROR HkWriteCharFile(const wstring &wscCharname, wstring wscData);
+IMPORT bool HkIsOnDeathMenu(uint iClientID);
 
 // HkFuncLog
 IMPORT void AddDebugLog(const char *szString, ...);

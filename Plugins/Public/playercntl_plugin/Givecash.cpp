@@ -108,6 +108,25 @@ namespace GiveCash
 		return;
 	}
 
+	/** Return return if this account is banned */
+	static bool IsBannedAccount(CAccount *acc)
+	{
+		wstring wscDir;
+		HkGetAccountDirName(acc, wscDir);
+
+		char szDataPath[MAX_PATH];
+		GetUserDataPath(szDataPath);
+
+		string path = string(szDataPath) + "\\Accts\\MultiPlayer\\" + wstos(wscDir) + "\\banned";
+
+		FILE *file = fopen(path.c_str(), "r");
+		if (file) {
+			fclose(file);
+			return true;
+		}
+		return false;
+	}
+
 	/** Return return if this char is in the blocked system */
 	static bool InBlockedSystem(const wstring &wscCharname)
 	{
@@ -525,7 +544,7 @@ namespace GiveCash
 			return true;
 		}
 
-		if (InBlockedSystem(wscCharname) || InBlockedSystem(wscTargetCharname))
+		if (InBlockedSystem(wscCharname) || InBlockedSystem(wscTargetCharname) || IsBannedAccount(iTargetAcc))
 		{
 			PrintUserCmdText(iClientID, L"ERR cash transfer blocked");
 			return true;

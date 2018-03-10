@@ -603,6 +603,7 @@ EXPORT void HkGetItemsForSale(uint iBaseID, list<uint> &lstItems);
 EXPORT IObjInspectImpl* HkGetInspect(uint iClientID);
 EXPORT ENGINE_STATE HkGetEngineState(uint iClientID);
 EXPORT EQ_TYPE HkGetEqType(Archetype::Equipment *eq);
+EXPORT bool HkIsOnDeathMenu(uint iClientID);
 
 // HkFuncMsg
 EXPORT HK_ERROR HkMsg(uint iClientID, const wstring &wscMessage);
@@ -641,7 +642,6 @@ EXPORT HK_ERROR HkSetRep(const wstring &wscCharname, const wstring &wscRepGroup,
 EXPORT HK_ERROR HkGetRep(const wstring &wscCharname, const wstring &wscRepGroup, float &fValue);
 EXPORT HK_ERROR HkReadCharFile(const wstring &wscCharname, list<wstring> &lstOutput);
 EXPORT HK_ERROR HkWriteCharFile(const wstring &wscCharname, wstring wscData);
-EXPORT bool HkIsOnDeathMenu(uint iClientID);
 
 // HkFuncLog
 EXPORT void AddDebugLog(const char *szString, ...);

@@ -469,6 +469,7 @@ IMPORT void HkGetItemsForSale(uint iBaseID, list<uint> &lstItems);
 IMPORT IObjInspectImpl* HkGetInspect(uint iClientID);
 IMPORT ENGINE_STATE HkGetEngineState(uint iClientID);
 IMPORT EQ_TYPE HkGetEqType(Archetype::Equipment *eq);
+IMPORT bool HkIsOnDeathMenu(uint iClientID);
 
 // HkFuncMsg
 IMPORT HK_ERROR HkMsg(int iClientID, const wstring &wscMessage);
@@ -507,7 +508,6 @@ IMPORT HK_ERROR HkSetRep(const wstring &wscCharname, const wstring &wscRepGroup,
 IMPORT HK_ERROR HkGetRep(const wstring &wscCharname, const wstring &wscRepGroup, float &fValue);
 IMPORT HK_ERROR HkReadCharFile(const wstring &wscCharname, list<wstring> &lstOutput);
 IMPORT HK_ERROR HkWriteCharFile(const wstring &wscCharname, wstring wscData);
-IMPORT bool HkIsOnDeathMenu(uint iClientID);
 
 // HkFuncLog
 IMPORT void AddDebugLog(const char *szString, ...);

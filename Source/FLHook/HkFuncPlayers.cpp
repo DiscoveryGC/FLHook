@@ -1157,20 +1157,3 @@ HK_ERROR HkWriteCharFile(const wstring &wscCharname, wstring wscData)
 	}
 	return HKE_OK;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool HkIsOnDeathMenu(uint iClientID)
-{
-	uint iShip = 0;
-	uint iBase = 0;
-	pub::Player::GetShip(iClientID, iShip); // Are they in space?
-	pub::Player::GetBase(iClientID, iBase); // Are they docked?
-	if (!iShip && !iBase) // If they are not in space and not docked, then they must be dead.
-	{
-		return true;
-	}
-	return false;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////

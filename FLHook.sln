@@ -2,11 +2,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Template", "Plugins\Public\__PLUGIN_TEMPLATE\Template.vcxproj", "{E7008BA7-4F75-4AF7-B25C-3A9A3287A88F}"
-	ProjectSection(ProjectDependencies) = postProject
-		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PluginUtilities", "Plugins\PluginUtilities\PluginUtilities.vcxitems", "{45D41ACC-2C3C-43D2-BC10-02AA73FFC7C7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{69E78BDE-48E9-40DE-A39E-06EF1FE30ADB}"

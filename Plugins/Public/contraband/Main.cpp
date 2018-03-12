@@ -169,33 +169,20 @@ static void CheckCargo(int iClientID)
 		list<CARGO_INFO> lstCargo;
 		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iHoldSize);
 
-		for (map<uint, string>::iterator iter = mapHouseAndSystems.begin(); iter != mapHouseAndSystems.end(); iter++)
+		if (mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end())
 		{
-
-			uint currentSector = iter->first;
-			string currentHouse = iter->second;
-
-			if (currentSector == iSystemID)
+			string currentHouse = mapHouseAndSystems[iSystemID];
+			if(mapHouseCargoList.find(currentHouse) != mapHouseCargoList.end())
 			{
-				for (map<string, list<uint>>::iterator iter = mapHouseCargoList.begin(); iter != mapHouseCargoList.end(); iter++)
+				list<uint> cfgCargoLst = mapHouseCargoList[currentHouse];
+				for (list<CARGO_INFO>::iterator i = lstCargo.begin(); i != lstCargo.end(); ++i)
 				{
-					string currentHouseCompare = iter->first;
-					list<uint> cfgCargoLst = iter->second;
-
-					if (currentHouse == currentHouseCompare)
+					uint correctCargo = i->iArchID;
+					bool foundCargo = (find(cfgCargoLst.begin(), cfgCargoLst.end(), correctCargo) != cfgCargoLst.end());
+					if(foundCargo)
 					{
-						for (list<CARGO_INFO>::iterator i = lstCargo.begin(); i != lstCargo.end(); ++i)
-						{
-							uint correctCargo = i->iArchID;
-							foreach(cfgCargoLst, uint, cfgCargoIter)
-							{
-								if (*cfgCargoIter == correctCargo) // If their cargo is on the list
-								{
-									ContrabandWarning(iClientID, L"WARNING: You are carrying items which are illegal in this sector.");
-									return;
-								}
-							}
-						}
+						ContrabandWarning(iClientID, L"WARNING: You are carrying items which are illegal in this sector.");
+						return;
 					}
 				}
 			}
@@ -216,46 +203,29 @@ bool UserCmd_Laws(uint iClientID, const wstring & wscCmd, const wstring & wscPar
 {
 	if (set_lawsEnabled)
 	{
-		for (map<uint, string>::iterator iter = mapHouseAndSystems.begin(); iter != mapHouseAndSystems.end(); iter++)
+		uint getSystem;
+		pub::Player::GetSystem(iClientID, getSystem);
+
+		if (mapHouseAndSystems.find(getSystem) != mapHouseAndSystems.end())
 		{
-			uint currentSystem = iter->first;
-			string currentHouse = iter->second;
-
-			uint getSystem;
-			pub::Player::GetSystem(iClientID, getSystem);
-
-			if (currentSystem == getSystem)
+			string currentHouse = mapHouseAndSystems[getSystem];
+			if (mapHouseLawList.find(currentHouse) != mapHouseLawList.end())
 			{
-				for (map<string, wstring>::iterator iter2 = mapHouseLawList.begin(); iter2 != mapHouseLawList.end(); iter2++)
-				{
-					string currentHouseCompare = iter2->first;
-					if (currentHouse == currentHouseCompare)
-					{
-						wstring scXML = iter2->second;
+				wstring wscXML = mapHouseLawList[currentHouse];
+				wstring wscPlayerInfo = L"<RDL><PUSH/>" + wscXML + L"<PARA/><POP/></RDL>";
 
-						wstring wscPlayerInfo = L"<RDL><PUSH/>" + scXML + L"<PARA/><POP/></RDL>";
+				HkChangeIDSString(iClientID, 500001, L"The Local Laws");
+				HkChangeIDSString(iClientID, 500000, wscPlayerInfo);
 
-						struct PlayerData *pPD = 0;
-						while (pPD = Players.traverse_active(pPD))
-						{
-							uint iClientID = HkGetClientIdFromPD(pPD);
+				FmtStr caption(0, 0);
+				caption.begin_mad_lib(500000);
+				caption.end_mad_lib();
 
-							HkChangeIDSString(iClientID, 66076, wscPlayerInfo);
-							HkChangeIDSString(iClientID, 1, L"The Local Laws");
+				FmtStr message(0, 0);
+				message.begin_mad_lib(500001);
+				message.end_mad_lib();
 
-							FmtStr caption(0, 0);
-							caption.begin_mad_lib(1);
-							caption.end_mad_lib();
-
-							FmtStr message(0, 0);
-							message.begin_mad_lib(66076);
-							message.end_mad_lib();
-
-							pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
-						}
-					}
-				}
-
+				pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
 			}
 		}
 		return false;
@@ -278,21 +248,13 @@ void __stdcall JumpInComplete(unsigned int system, unsigned int ship)
 	CheckCargo(iClientID);
 }
 
-/** Clean up when a client disconnects */
-void ClearClientInfo(uint iClientID)
-{
-	returncode = DEFAULT_RETURNCODE;
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Client command processing
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
-// ReSharper disable CppInconsistentNaming
 struct USERCMD
-	// ReSharper restore CppInconsistentNaming
 {
 	wchar_t *wszCmd;
 	_UserCmdProc proc;
@@ -362,7 +324,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JumpInComplete, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));

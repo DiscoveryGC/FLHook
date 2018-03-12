@@ -77,37 +77,31 @@ void LoadSettings()
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\laz_help.cfg";
-	bPluginEnabled = IniGetB(scPluginCfgFile, "Config", "Enabled", true);
+	bPluginEnabled = IniGetB(scPluginCfgFile, "Config", "Enabled", true); // Allow things to be quickly disabled
 
-	INI_Reader ini;
-	if (ini.open(scPluginCfgFile.c_str(), false))
+
+	HELPSTRUCT helpstruct;
+	list<INISECTIONVALUE> iniSection; // Create a new list to store our values
+	IniGetSection(scPluginCfgFile, "Commands", iniSection); // Which header will we use to fill the values
+
+	foreach(iniSection, INISECTIONVALUE, iter) // Loop through the list
 	{
-		while (ini.read_header())
+		if(iter->scKey == "help") // Imitate ini reader
 		{
-			HELPSTRUCT helpstruct;
-			if (ini.is_header("Commands"))
-			{
-				while (ini.read_value())
-				{
-					if (ini.is_value("help"))
-					{
-						wstring getValueString = stows(ini.get_value_string()); // Get each line and turn it into a string
-						int firstComma = getValueString.find(','); // Get index of first comma
-						int secondComma = getValueString.substr(firstComma + 1).find(','); // Get index of second comma
-						wstring wscParam = getValueString.substr(0, firstComma); // Our param for the command
-						helpstruct.wscTitle = Trim(getValueString.substr(firstComma + 1, secondComma)); // The title for our text box
-						helpstruct.wscContent = Trim(getValueString.substr(firstComma + secondComma + 2)); // The content of our text box. XML String.
+			wstring getValueString = stows(iter->scValue); // Get around the character limit glitch
 
-						mapHelp[wscParam] = helpstruct;
-						lstHelpCommands.push_back(wscParam); // So we can iterate through the list
-						intHelpCommands++;
-					}
-				}
-			}
+			int firstComma = getValueString.find(','); // Get index of first comma
+			int secondComma = getValueString.substr(firstComma + 1).find(','); // Get index of second comma
+			wstring wscParam = getValueString.substr(0, firstComma); // Our param for the command
+			helpstruct.wscTitle = Trim(getValueString.substr(firstComma + 1, secondComma)); // The title for our text box
+			helpstruct.wscContent = Trim(getValueString.substr(firstComma + secondComma + 2)); // The content of our text box. XML String.
+
+			mapHelp[wscParam] = helpstruct;
+			lstHelpCommands.push_back(wscParam); // So we can iterate through the list
+			intHelpCommands++;
 		}
-		ini.close();
-		ConPrint(L"HELP EXPANDED: Commands Loaded: %u \n", intHelpCommands);
 	}
+	ConPrint(L"HELP MENUS: Loaded %u help menus\n", intHelpCommands);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -127,7 +121,7 @@ void HelpInfo(uint iClientID)
 
 bool ValidityCheck(uint iClientID)
 {
-	if (!bPluginEnabled)
+	if (!bPluginEnabled) // Make sure that the plugin isn't disabled via the cfg
 	{
 		PrintUserCmdText(iClientID, L"The extended help menu is currently disabled.");
 		return false;
@@ -144,28 +138,22 @@ bool ValidityCheck(uint iClientID)
 
 void TextboxPopUp(uint iClientID, const wstring &wscTitle, const wstring &wscXML)
 {
-	struct PlayerData *pPD = 0;
-	while (pPD = Players.traverse_active(pPD))
-	{
-		uint iClientID = HkGetClientIdFromPD(pPD);
 
-		HkChangeIDSString(iClientID, 500000, wscTitle); // Change Title to second param in the cfg file
-		HkChangeIDSString(iClientID, 500001, wscXML); // Change content to xml string in the cfg file
+	HkChangeIDSString(iClientID, 500000, wscTitle); // Change Title to second param in the cfg file
+	HkChangeIDSString(iClientID, 500001, wscXML); // Change content to xml string in the cfg file
 
-		FmtStr caption(0, 0); // Create new text box title
-		caption.begin_mad_lib(500000); // Populate it with the infocard we changed
-		caption.end_mad_lib();
+	FmtStr caption(0, 0); // Create new text box title
+	caption.begin_mad_lib(500000); // Populate it with the infocard we changed
+	caption.end_mad_lib();
 
-		FmtStr message(0, 0); // Create a new message
-		message.begin_mad_lib(500001); // Populate that message with the infocard we changed
-		message.end_mad_lib();
+	FmtStr message(0, 0); // Create a new message
+	message.begin_mad_lib(500001); // Populate that message with the infocard we changed
+	message.end_mad_lib();
 
-		pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
-		// Display that message in game
+	pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
+	// Display that message in game
 
-		PrintUserCmdText(iClientID, L"OK");
-		return;
-	}
+	PrintUserCmdText(iClientID, L"OK");
 }
 
 // We need a seperate one for special infocards, ones that are not controlled by this plugin
@@ -173,26 +161,19 @@ void TextboxPopUp(uint iClientID, const wstring &wscTitle, const wstring &wscXML
 // So we'll use those and skip out on any potential bugs with HkChangeIDSString
 void RulesOrStarted(uint iClientID, const wstring &wscTitle, const int infocardNumber)
 {
-	struct PlayerData *pPD = 0;
-	while (pPD = Players.traverse_active(pPD))
-	{
-		uint iClientID = HkGetClientIdFromPD(pPD);
+	HkChangeIDSString(iClientID, 500000, wscTitle);
 
-		HkChangeIDSString(iClientID, 500000, wscTitle);
+	FmtStr caption(0, 0);
+	caption.begin_mad_lib(500000);
+	caption.end_mad_lib();
 
-		FmtStr caption(0, 0);
-		caption.begin_mad_lib(500000);
-		caption.end_mad_lib();
+	FmtStr message(0, 0);
+	message.begin_mad_lib(infocardNumber);
+	message.end_mad_lib();
 
-		FmtStr message(0, 0);
-		message.begin_mad_lib(infocardNumber);
-		message.end_mad_lib();
+	pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
 
-		pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
-
-		PrintUserCmdText(iClientID, L"OK");
-		return;
-	}
+	PrintUserCmdText(iClientID, L"OK");
 }
 
 bool UserCmd_Rules(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
@@ -215,7 +196,7 @@ bool UserCmd_GettingStarted(uint iClientID, const wstring &wscCmd, const wstring
 
 bool UserCmd_HelpMenu(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
-	if (!ValidityCheck(iClientID))
+	if (!ValidityCheck(iClientID)) // See function for details
 		return false;
 
 	wstring wscHelpParam = ToLower(GetParam(wscParam, ' ', 0)); // What help list are we trying to get?
@@ -226,29 +207,15 @@ bool UserCmd_HelpMenu(uint iClientID, const wstring &wscCmd, const wstring &wscP
 		return false;
 	}
 
-	for (map<wstring, HELPSTRUCT>::iterator iter = mapHelp.begin(); iter != mapHelp.end(); iter++)
+	if (mapHelp.find(wscHelpParam) != mapHelp.end())
 	{
-		wstring wscIter = iter->first; // Iterate through the list until we find a matching pair, or until we finish the list
-
-		if(wscHelpParam == wscIter)
-		{
-			HELPSTRUCT &xml = iter->second; // Load in the correct struct
-			wstring wscContent = L"<RDL><PUSH/>" + xml.wscContent + L"<PARA/><POP/></RDL>"; // Format it to valid XML
-			TextboxPopUp(iClientID, xml.wscTitle, wscContent); // Send it to be turned into a message box
-			return true;
-		}
+		HELPSTRUCT &xml = mapHelp[wscHelpParam]; // Load in the correct struct
+		wstring wscContent = L"<RDL><PUSH/>" + xml.wscContent + L"<PARA/><POP/></RDL>"; // Format it to valid XML
+		TextboxPopUp(iClientID, xml.wscTitle, wscContent); // Send it to be turned into a message box
+		return true;
 	}
+
 	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Actual Code
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/** Clean up when a client disconnects */
-void ClearClientInfo(uint iClientID)
-{
-	returncode = DEFAULT_RETURNCODE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,7 +296,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 
 	return p_PI;

@@ -114,10 +114,15 @@ bool UserCmd_Rep(uint iClientID, const wstring &wscCmd, const wstring &wscParam,
 		uint factionExternal = iter->second;
 
 		wstring Faction = HkGetWStringFromIDS(factionExternal);
-		uint playerRep = HkGetRep(wscCharName, stows(factionName), fRep);
+		HK_ERROR error;
+
+		if ((error = HkGetRep(wscCharName, stows(factionName), fRep)) != HKE_OK)
+		{
+			PrintUserCmdText(iClientID, L"ERR %s", HkErrGetText(error).c_str());
+			return true;
+		}
 
 		factionReps[wstos(Faction)] = fRep;
-		string FactionVector = wstos(Faction);
 	}
 
 	// Below code is mostly from stackoverflow
@@ -140,16 +145,6 @@ bool UserCmd_Rep(uint iClientID, const wstring &wscCmd, const wstring &wscParam,
 	}
 
 	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Calls
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/** Clean up when a client disconnects */
-void ClearClientInfo(uint iClientID)
-{
-	returncode = DEFAULT_RETURNCODE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -226,7 +221,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 
 	return p_PI;

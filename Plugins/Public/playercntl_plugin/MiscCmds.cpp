@@ -230,8 +230,7 @@ namespace MiscCmds
 	Roll dice for everyone within 6km of a vessel. Supports 1d20 formatting.
 	*/
 	bool MiscCmds::UserCmd_Dice(uint iFromClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-
+	{
 		boost::wregex expr(L"(\\d{1,2})[Dd](\\d{1,3})(([+\\-*])?(\\d{1,5}))?");
 		boost::wsmatch sm;
 
@@ -265,7 +264,7 @@ namespace MiscCmds
 			}
 
 			string diceResultSteps = "";
-			int number = 0;
+			uint number = 0;
 
 			for (int i = 0; i < rollCount; i++)
 			{
@@ -317,10 +316,8 @@ namespace MiscCmds
 			PrintUserCmdText(iFromClientID, L"Usage: /roll 1d20");
 			PrintUserCmdText(iFromClientID, L"       /roll 1d8+4");
 			PrintUserCmdText(iFromClientID, L"       /roll 4d20+2");
-		}
-
-		return true;
-
+		}
+		return true;
 	}
 
 	/** Throw the dice and tell all players within 6 km */

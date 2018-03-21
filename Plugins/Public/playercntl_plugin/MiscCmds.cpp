@@ -304,7 +304,7 @@ namespace MiscCmds
 			// Only print the steps taken if less than 10 dice was rolled.
 			if (rollCount < 10)
 			{
-				PrintUserCmdText(iFromClientID, stows(diceResultSteps));
+				PrintLocalUserCmdText(iFromClientID, stows(diceResultSteps), set_iLocalChatRange);
 			}
 
 		}

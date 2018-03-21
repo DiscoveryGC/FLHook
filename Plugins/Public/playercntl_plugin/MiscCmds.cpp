@@ -16,6 +16,7 @@
 #include <math.h>
 #include <list>
 #include <set>
+#include <boost\regex.hpp>
 
 #include <PluginUtilities.h>
 #include "Main.h"
@@ -38,6 +39,14 @@ namespace MiscCmds
 
 		/// Self destruct
 		bool bSelfDestruct;
+	};
+
+	/** An enum list for each mathamatical operation usable for the dice command */
+	enum diceOperation
+	{
+		ADD,
+		SUBTRACT,
+		NONE
 	};
 
 	/** A list of clients that are being smited */
@@ -218,6 +227,7 @@ namespace MiscCmds
 	}
 
 	/** Throw the dice and tell all players within 6 km */
+	/*
 	bool MiscCmds::UserCmd_Dice(uint iFromClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iFromClientID);
@@ -233,6 +243,91 @@ namespace MiscCmds
 		wscMsg = ReplaceStr(wscMsg, L"%max", stows(itos(max)));
 		PrintLocalUserCmdText(iFromClientID, wscMsg, set_iLocalChatRange);
 		return true;
+	}
+	*/
+
+	bool MiscCmds::UserCmd_Dice(uint iFromClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
+		boost::wregex expr(L"(\\d{1,2})[Dd](\\d{1,3})(([+\\-*])?(\\d{1,5}))?");
+		boost::wsmatch sm;
+
+		// If the regex finds a match denoting the correct roll format, run the randomized numbers
+		if (boost::regex_match(wscParam, sm, expr))
+		{
+
+			// Smatch index [1] represents the roll count
+			int rollCount = _wtoi(sm[1].str().c_str());
+
+			// Smatch index [2] represents the dice count
+			int diceCount = _wtoi(sm[2].str().c_str());
+
+			diceOperation operation;
+			if (sm[3].str().find(L"+") == 0)
+			{
+				operation = diceOperation::ADD;
+			}
+			else if (sm[3].str().find(L"-") == 0)
+			{
+				operation = diceOperation::SUBTRACT;
+			}
+			else
+			{
+				operation = diceOperation::NONE;
+			}
+
+			string diceResultSteps = "";
+			uint number = 0;
+			int numBuffer;
+			for (int i = 0; i < rollCount; i++)
+			{
+				int randValue = (rand() % diceCount) + 1;
+
+				// If we have a modifier, apply it
+				if (operation == diceOperation::ADD)
+				{
+					numBuffer = _wtoi(sm[5].str().c_str());
+					number += (randValue + numBuffer);
+					diceResultSteps.append("(").append(itos(randValue)).append(" + ").append(itos(numBuffer).append(")"));
+				}
+				else if (operation == diceOperation::SUBTRACT)
+				{
+					numBuffer = _wtoi(sm[5].str().c_str());
+					number -= (randValue - numBuffer);
+					diceResultSteps.append(" - ").append(itos(numBuffer).append(")"));
+				}
+				else
+				{
+					number += randValue;
+					diceResultSteps.append("(").append(itos(randValue)).append(")");
+				}
+
+				// Are we not on the last value? Keep the string pretty by adding another +
+				if (i < rollCount - 1)
+				{
+					diceResultSteps.append(" + ");
+				}
+			}
+
+			// Print the results
+			wstring diceAlert = L"%player rolled %value with the formula %formula";
+			diceAlert = ReplaceStr(diceAlert, L"%player", wscCharname);
+			diceAlert = ReplaceStr(diceAlert, L"%value", stows(itos(number)));
+			diceAlert = ReplaceStr(diceAlert, L"%formula", sm[0].str().c_str());
+
+			PrintLocalUserCmdText(iFromClientID, diceAlert, set_iLocalChatRange);
+			PrintUserCmdText(iFromClientID, stows(diceResultSteps));
+
+
+		}
+		else
+		{
+			PrintUserCmdText(iFromClientID, L"Usage: /roll 1d20");
+			PrintUserCmdText(iFromClientID, L"       /roll 1d8+4");
+			PrintUserCmdText(iFromClientID, L"       /roll 4d20+2");
+			return true;
+		}
+		return true;
 	}
 
 	/** Throw the dice and tell all players within 6 km */

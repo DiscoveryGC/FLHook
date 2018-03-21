@@ -903,7 +903,7 @@ USERCMD UserCmds[] =
 	{ L"/pos",			MiscCmds::UserCmd_Pos,			L"Usage: /pos" },
 	{ L"/stuck",		MiscCmds::UserCmd_Stuck,		L"Usage: /stuck" },
 	{ L"/droprep",		MiscCmds::UserCmd_DropRep,		L"Usage: /droprep" },
-	{ L"/dice",			MiscCmds::UserCmd_Dice,			L"Usage: /dice [max]" },
+	{ L"/roll",			MiscCmds::UserCmd_Dice,			L"Usage: /roll 1d20 | 1d20+3 | etc." },
 	{ L"/coin",			MiscCmds::UserCmd_Coin,			L"Usage: /coin" },
 	{ L"/pimpship",		PimpShip::UserCmd_PimpShip,		L"Usage: /pimpship" },
 	{ L"/showsetup",	PimpShip::UserCmd_ShowSetup,	L"Usage: /showsetup" },
@@ -1106,7 +1106,7 @@ void UserCmd_Help(uint iClientID, const wstring &wscParam)
 	PrintUserCmdText(iClientID, L"/pos");
 	PrintUserCmdText(iClientID, L"/stuck");
 	PrintUserCmdText(iClientID, L"/droprep");
-	PrintUserCmdText(iClientID, L"/dice [max]");
+	PrintUserCmdText(iClientID, L"/roll 1d20");
 	PrintUserCmdText(iClientID, L"/coin");
 
 	if (!set_bEnableRenameMe)

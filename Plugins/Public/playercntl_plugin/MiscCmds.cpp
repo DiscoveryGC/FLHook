@@ -226,26 +226,9 @@ namespace MiscCmds
 		return true;
 	}
 
-	/** Throw the dice and tell all players within 6 km */
 	/*
-	bool MiscCmds::UserCmd_Dice(uint iFromClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iFromClientID);
-
-		int max = ToInt(GetParam(wscParam, ' ', 0));
-		if (max<=1)
-			max = 6;
-
-		uint number = (rand()%max)+1;
-		wstring wscMsg = set_wscDiceMsg;
-		wscMsg = ReplaceStr(wscMsg, L"%player", wscCharname);
-		wscMsg = ReplaceStr(wscMsg, L"%number", stows(itos(number)));
-		wscMsg = ReplaceStr(wscMsg, L"%max", stows(itos(max)));
-		PrintLocalUserCmdText(iFromClientID, wscMsg, set_iLocalChatRange);
-		return true;
-	}
+	Roll dice for everyone within 6km of a vessel. Supports 1d20 formatting.
 	*/
-
 	bool MiscCmds::UserCmd_Dice(uint iFromClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		boost::wregex expr(L"(\\d{1,2})[Dd](\\d{1,3})(([+\\-*])?(\\d{1,5}))?");

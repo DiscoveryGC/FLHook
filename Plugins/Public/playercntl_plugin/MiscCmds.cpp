@@ -244,14 +244,19 @@ namespace MiscCmds
 			// Smatch index [2] represents the dice count
 			int diceCount = _wtoi(sm[2].str().c_str());
 
+			// Smatch index [3] represents any modifier numeric value. This is set ONLY if we are using a mod-operation
+			int modifierValue;
+
 			diceOperation operation;
 			if (sm[3].str().find(L"+") == 0)
 			{
 				operation = diceOperation::ADD;
+				modifierValue = _wtoi(sm[5].str().c_str());
 			}
 			else if (sm[3].str().find(L"-") == 0)
 			{
 				operation = diceOperation::SUBTRACT;
+				modifierValue = _wtoi(sm[5].str().c_str());
 			}
 			else
 			{
@@ -260,7 +265,7 @@ namespace MiscCmds
 
 			string diceResultSteps = "";
 			uint number = 0;
-			int numBuffer;
+
 			for (int i = 0; i < rollCount; i++)
 			{
 				int randValue = (rand() % diceCount) + 1;
@@ -268,15 +273,13 @@ namespace MiscCmds
 				// If we have a modifier, apply it
 				if (operation == diceOperation::ADD)
 				{
-					numBuffer = _wtoi(sm[5].str().c_str());
-					number += (randValue + numBuffer);
-					diceResultSteps.append("(").append(itos(randValue)).append(" + ").append(itos(numBuffer).append(")"));
+					number += (randValue + modifierValue);
+					diceResultSteps.append("(").append(itos(randValue)).append(" + ").append(itos(modifierValue).append(")"));
 				}
 				else if (operation == diceOperation::SUBTRACT)
 				{
-					numBuffer = _wtoi(sm[5].str().c_str());
-					number += (randValue - numBuffer);
-					diceResultSteps.append("(").append(itos(randValue)).append(" - ").append(itos(numBuffer).append(")"));
+					number += (randValue - modifierValue);
+					diceResultSteps.append("(").append(itos(randValue)).append(" - ").append(itos(modifierValue).append(")"));
 				}
 				else
 				{

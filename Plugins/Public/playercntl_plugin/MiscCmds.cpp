@@ -248,7 +248,6 @@ namespace MiscCmds
 
 	bool MiscCmds::UserCmd_Dice(uint iFromClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
-		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
 		boost::wregex expr(L"(\\d{1,2})[Dd](\\d{1,3})(([+\\-*])?(\\d{1,5}))?");
 		boost::wsmatch sm;
 
@@ -293,8 +292,8 @@ namespace MiscCmds
 				else if (operation == diceOperation::SUBTRACT)
 				{
 					numBuffer = _wtoi(sm[5].str().c_str());
-					number -= (randValue - numBuffer);
-					diceResultSteps.append(" - ").append(itos(numBuffer).append(")"));
+					number += (randValue - numBuffer);
+					diceResultSteps.append("(").append(itos(randValue)).append(" - ").append(itos(numBuffer).append(")"));
 				}
 				else
 				{
@@ -309,6 +308,8 @@ namespace MiscCmds
 				}
 			}
 
+			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
+
 			// Print the results
 			wstring diceAlert = L"%player rolled %value with the formula %formula";
 			diceAlert = ReplaceStr(diceAlert, L"%player", wscCharname);
@@ -316,8 +317,12 @@ namespace MiscCmds
 			diceAlert = ReplaceStr(diceAlert, L"%formula", sm[0].str().c_str());
 
 			PrintLocalUserCmdText(iFromClientID, diceAlert, set_iLocalChatRange);
-			PrintUserCmdText(iFromClientID, stows(diceResultSteps));
 
+			// Only print the steps taken if less than 10 dice was rolled.
+			if (rollCount < 10)
+			{
+				PrintUserCmdText(iFromClientID, stows(diceResultSteps));
+			}
 
 		}
 		else
@@ -325,7 +330,6 @@ namespace MiscCmds
 			PrintUserCmdText(iFromClientID, L"Usage: /roll 1d20");
 			PrintUserCmdText(iFromClientID, L"       /roll 1d8+4");
 			PrintUserCmdText(iFromClientID, L"       /roll 4d20+2");
-			return true;
 		}
 		return true;
 	}

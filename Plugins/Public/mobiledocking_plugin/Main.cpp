@@ -1,5 +1,9 @@
 #include "Main.h"
 
+PLUGIN_RETURNCODE returncode;
+map<uint, CLIENT_DATA> mobiledockClients;
+map<uint, uint> mapPendingDockingRequests;
+vector<uint> dockingModuleEquipmentIds;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function handling changing systems when undocking from a carrier
@@ -38,7 +42,7 @@ void LogCheater(uint client, const wstring &reason)
 	wstring wscDir;
 	HkGetAccountDirName(acc, wscDir);
 	string scBanPath = scAcctPath + wstos(wscDir) + "\\banned";
-	FILE *file = fopen(scBanPath.c_str(), "wb");
+	FILE *file = fopen(scBanPath.c_str(), "wbe");
 	if (file)
 	{
 		fprintf(file, "Autobanned by Docking Module\n");
@@ -46,13 +50,26 @@ void LogCheater(uint client, const wstring &reason)
 	}
 }
 
+bool IsShipDockedOnCarrier(wstring &carrier_charname, wstring &docked_charname)
+{
+	const uint client = HkGetClientIdFromCharname(carrier_charname);
+	if (client != -1)
+	{
+		return mobiledockClients[client].mapDockedShips.find(docked_charname) != mobiledockClients[client].mapDockedShips.end();
+	}
+	else
+	{
+		return false;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Clear client info when a client connects.
+/// Clear client info when a client disconnects.
 void ClearClientInfo(uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	clients.erase(client);
+	mobiledockClients.erase(client);
 	mapDeferredJumps.erase(client);
 	mapPendingDockingRequests.erase(client);
 }
@@ -68,17 +85,93 @@ void LoadSettings()
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\mobiledocking.cfg";
 
-	// Load generic settings
-	set_iPluginDebug = IniGetI(scPluginCfgFile, "General", "Debug", 0);
-
 	struct PlayerData *pd = 0;
 
 	// Load all of the ships which have logged out while being docked
-	while (pd = Players.traverse_active(pd))
+	while ((pd = Players.traverse_active(pd)))
 	{
 		if (!HkIsInCharSelectMenu(pd->iOnlineID))
 			LoadDockInfo(pd->iOnlineID);
 	}
+
+	//@@TODO Add support for defining multiple docking modules in the configuration file
+	// Add the current available docking module to the list of available arches
+	dockingModuleEquipmentIds.push_back(CreateID("dsy_docking_module_1"));
+}
+
+void __stdcall BaseExit(uint iBaseID, uint iClientID)
+{
+
+	//Set the players docking module count to 0, update the list to the proper amount shortly afterwards
+	mobiledockClients[iClientID].iDockingModules = 0;
+
+	// Check to see if the vessel undocking currently has a docking module equipped
+	for(list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		if(find(dockingModuleEquipmentIds.begin(), dockingModuleEquipmentIds.end(), item->iArchID) != dockingModuleEquipmentIds.end())
+		{
+			if(item->bMounted)
+			{
+				mobiledockClients[iClientID].iDockingModules++;
+			}
+		}
+	}
+
+	PrintUserCmdText(iClientID, L"You have %i modules mounted.", mobiledockClients[iClientID].iDockingModules);
+
+}
+
+// If this is a docking request at a player ship then process it.
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int iCancel, enum DOCK_HOST_RESPONSE response)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	UINT client = HkGetClientIDByShip(iShip);
+	if (client)
+	{
+		// If no target then ignore the request.
+		uint iTargetShip;
+		pub::SpaceObj::GetTarget(iShip, iTargetShip);
+		if (!iTargetShip)
+			return 0;
+
+		uint iType;
+		pub::SpaceObj::GetType(iTargetShip, iType);
+		if (iType != OBJ_FREIGHTER)
+			return 0;
+
+		// If target is not player ship or ship is too far away then ignore the request.
+		const uint iTargetClientID = HkGetClientIDByShip(iTargetShip);
+		if (!iTargetClientID || HkDistance3DByShip(iShip, iTargetShip) > 1000.0f)
+		{
+			PrintUserCmdText(client, L"Ship is out of range");
+			return 0;
+		}
+
+		// Check that the target ship has an empty docking module. Report the error
+		if (mobiledockClients[iTargetClientID].mapDockedShips.size() >= mobiledockClients[iTargetClientID].iDockingModules)
+		{
+			PrintUserCmdText(client, L"Target ship has no free docking capacity");
+			return 0;
+		}
+
+		// Check that the requesting ship is of the appropriate size to dock.
+		CShip* cship = dynamic_cast<CShip*>(HkGetEqObjFromObjRW(reinterpret_cast<IObjRW*>(HkGetInspect(client))));
+		if (cship->shiparch()->fHoldSize > 275)
+		{
+			PrintUserCmdText(client, L"Target ship is too small");
+			return 0;
+		}
+
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		// Create a docking request and send a notification to the target ship.
+		mapPendingDockingRequests[client] = iTargetClientID;
+		PrintUserCmdText(iTargetClientID, L"%s is requesting to dock, authorise with /allowdock", Players.GetActiveCharacterName(client));
+		PrintUserCmdText(client, L"Docking request sent to %s", Players.GetActiveCharacterName(iTargetClientID));
+		return -1;
+	}
+	return 0;
 }
 
 bool UserCmd_Process(uint client, const wstring &wscCmd)
@@ -86,15 +179,15 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 	returncode = DEFAULT_RETURNCODE;
 	if(wscCmd.find(L"/listdocked") == 0)
 	{
-		if(clients[client].mapDockedShips.size() == 0)
+		if(mobiledockClients[client].mapDockedShips.empty())
 		{
 			PrintUserCmdText(client, L"No ships currently docked");
 		}
 		else
 		{
 			PrintUserCmdText(client, L"Docked ships:");
-			for(map<wstring, wstring>::iterator i = clients[client].mapDockedShips.begin();
-				i != clients[client].mapDockedShips.end(); ++i)
+			for(map<wstring, wstring>::iterator i = mobiledockClients[client].mapDockedShips.begin();
+				i != mobiledockClients[client].mapDockedShips.end(); ++i)
 			{
 				PrintUserCmdText(client, i->first);
 			}
@@ -130,7 +223,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		}
 
 		// Check that there is an empty docking module
-		if(clients[client].mapDockedShips.size() >= clients[client].iDockingModules)
+		if(mobiledockClients[client].mapDockedShips.size() >= mobiledockClients[client].iDockingModules)
 		{
 			mapPendingDockingRequests.erase(iTargetClientID);
 			PrintUserCmdText(client, L"No free docking modules available.");
@@ -150,17 +243,17 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 		// Save the carrier info
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iTargetClientID);
-		clients[client].mapDockedShips[charname] = charname;
-		SaveDockInfo(client);
+		mobiledockClients[client].mapDockedShips[charname] = charname;
+		SaveDockInfo(client, mobiledockClients[client]);
 
 		// Save the docking ship info
-		clients[iTargetClientID].mobile_docked = true;
-		clients[iTargetClientID].wscDockedWithCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		if (clients[iTargetClientID].iLastBaseID != 0)
-			clients[iTargetClientID].iLastBaseID = Players[iTargetClientID].iLastBaseID;
-		pub::SpaceObj::GetSystem(iShip, clients[iTargetClientID].iCarrierSystem);
-		pub::SpaceObj::GetLocation(iShip, clients[iTargetClientID].vCarrierLocation, clients[iTargetClientID].mCarrierLocation);
-		SaveDockInfo(iTargetClientID);
+		mobiledockClients[iTargetClientID].mobile_docked = true;
+		mobiledockClients[iTargetClientID].wscDockedWithCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		if (mobiledockClients[iTargetClientID].iLastBaseID != 0)
+			mobiledockClients[iTargetClientID].iLastBaseID = Players[iTargetClientID].iLastBaseID;
+		pub::SpaceObj::GetSystem(iShip, mobiledockClients[iTargetClientID].iCarrierSystem);
+		pub::SpaceObj::GetLocation(iShip, mobiledockClients[iTargetClientID].vCarrierLocation, mobiledockClients[iTargetClientID].mCarrierLocation);
+		SaveDockInfo(iTargetClientID, mobiledockClients[iTargetClientID]);
 
 		// Land the ship on the proxy base
 		pub::Player::ForceLand(iTargetClientID, iBaseID);
@@ -186,4 +279,24 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 	}
 	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+EXPORT PLUGIN_INFO* Get_PluginInfo()
+{
+	PLUGIN_INFO* p_PI = new PLUGIN_INFO();
+	p_PI->sName = "Mobile Docking Plugin";
+	p_PI->sShortName = "dock";
+	p_PI->bMayPause = true;
+	p_PI->bMayUnload = true;
+	p_PI->ePluginReturnCode = &returncode;
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
+
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
+
+	return p_PI;
 }

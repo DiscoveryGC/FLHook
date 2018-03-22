@@ -51,16 +51,10 @@ struct DEFERREDJUMPS
 static map<uint, DEFERREDJUMPS> mapDeferredJumps;
 
 void LoadDockInfo(uint client);
-void SaveDockInfo(uint client);
+void SaveDockInfo(uint client, CLIENT_DATA clientData);
 void UpdateDockInfo(const wstring &charname, uint iSystem, Vector pos, Matrix rot);
 
 void SendResetMarketOverride(uint client);
-
-// Conn hash
-uint connSystemID = CreateID("LI06");
-
-// A map of all docking requests pending approval by the carrier
-map<uint, uint> mapPendingDockingRequests;
 
 // Is debug mode running
 static int set_iPluginDebug = 1;
@@ -68,6 +62,8 @@ static int set_iPluginDebug = 1;
 // The distance to undock from the carrier
 static int set_iMobileDockOffset = 100;
 
-PLUGIN_RETURNCODE returncode;
+extern map<uint, CLIENT_DATA> mobiledockClients;
 
-extern map<uint, CLIENT_DATA> clients;
+// A map of all docking requests pending approval by the carrier
+extern map<uint, uint> mapPendingDockingRequests;
+

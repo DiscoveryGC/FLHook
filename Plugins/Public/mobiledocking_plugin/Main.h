@@ -1,5 +1,4 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__ 1
+#pragma once
 
 #include <windows.h>
 #include <stdio.h>
@@ -13,15 +12,11 @@
 #include <plugin.h>
 #include <PluginUtilities.h>
 
-using namespace std;
-
 struct CLIENT_DATA
 {
-	CLIENT_DATA() : bSetup(false), reverse_sell(false), stop_buy(false), bAdmin(false), iDockingModules(0),
-	mobile_docked(false) {}
-
+	
 	bool bSetup;
- 
+
 	bool reverse_sell;
 	bool stop_buy;
 	list<CARGO_INFO> cargo;
@@ -31,10 +26,10 @@ struct CLIENT_DATA
 	uint iDockingModules;
 	map<wstring, wstring> mapDockedShips;
 
-	// True if currently docked on a carrier.
+	// True if currently docked on a carrier
 	bool mobile_docked;
 
-	// The name of the carrier.
+	// The name of the carrier
 	wstring wscDockedWithCharname;
 
 	// The last known location in space of the carrier
@@ -42,10 +37,37 @@ struct CLIENT_DATA
 	Vector vCarrierLocation;
 	Matrix mCarrierLocation;
 
-	// The last real base this ship was on.
+	// The last real base this ship was on
 	uint iLastBaseID;
 };
 
-extern map<uint, CLIENT_DATA> clients;
+struct DEFERREDJUMPS
+{
+	uint system;
+	Vector pos;
+	Matrix rot;
+};
 
-#endif
+static map<uint, DEFERREDJUMPS> mapDeferredJumps;
+
+void LoadDockInfo(uint client);
+void SaveDockInfo(uint client);
+void UpdateDockInfo(const wstring &charname, uint iSystem, Vector pos, Matrix rot);
+
+void SendResetMarketOverride(uint client);
+
+// Conn hash
+uint connSystemID = CreateID("LI06");
+
+// A map of all docking requests pending approval by the carrier
+map<uint, uint> mapPendingDockingRequests;
+
+// Is debug mode running
+static int set_iPluginDebug = 1;
+
+// The distance to undock from the carrier
+static int set_iMobileDockOffset = 100;
+
+PLUGIN_RETURNCODE returncode;
+
+extern map<uint, CLIENT_DATA> clients;

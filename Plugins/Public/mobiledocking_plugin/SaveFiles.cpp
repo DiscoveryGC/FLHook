@@ -2,7 +2,7 @@
 
 void LoadDockInfo(uint clientID)
 {
-	CLIENT_DATA &cd = clients[clientID];
+	CLIENT_DATA &cd = mobiledockClients[clientID];
 	cd.mapDockedShips.clear();
 
 	// The path to the data file.
@@ -37,7 +37,7 @@ void LoadDockInfo(uint clientID)
 	}
 }
 
-void SaveDockInfo(CLIENT_DATA client, uint clientID)
+void SaveDockInfo(uint clientID, CLIENT_DATA client)
 {
 	// The path to the data file.
 	char datapath[MAX_PATH];
@@ -74,7 +74,7 @@ void SavePluginState()
 		fprintf(file, "[DockedClients]\n");
 
 		// Save each clientID to the file.
-		for (auto& client : clients)
+		for (auto& client : mobiledockClients)
 		{
 			fprintf(file, "dockedclient=%u\n", client.first);
 		}

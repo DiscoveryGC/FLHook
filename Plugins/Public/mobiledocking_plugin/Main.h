@@ -27,18 +27,23 @@ struct CLIENT_DATA
 	map<wstring, wstring> mapDockedShips;
 
 	// True if currently docked on a carrier
-	bool mobile_docked;
+	bool mobileDocked;
+
+	// Boolean flag used for a within-system teleport, instead of a system changeout
+	bool simpleJump = false;
 
 	// The name of the carrier
 	wstring wscDockedWithCharname;
 
-	// The last known location in space of the carrier
-	uint iCarrierSystem;
-	Vector vCarrierLocation;
-	Matrix mCarrierLocation;
-
 	// The last real base this ship was on
 	uint iLastBaseID;
+
+	// The last system which the vessel was in
+	uint iLastSystem;
+
+	Vector carrierPos;
+	Matrix carrierRot;
+	uint carrierSystem;
 };
 
 struct DEFERREDJUMPS
@@ -52,9 +57,9 @@ static map<uint, DEFERREDJUMPS> mapDeferredJumps;
 
 void LoadDockInfo(uint client);
 void SaveDockInfo(uint client, CLIENT_DATA clientData);
-void UpdateDockInfo(const wstring &charname, uint iSystem, Vector pos, Matrix rot);
 
 void SendResetMarketOverride(uint client);
+void SendSetBaseInfoText2(UINT client, const wstring &message);
 
 // Is debug mode running
 static int set_iPluginDebug = 1;

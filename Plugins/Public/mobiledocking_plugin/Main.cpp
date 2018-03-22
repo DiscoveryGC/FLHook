@@ -5,6 +5,8 @@ map<uint, CLIENT_DATA> mobiledockClients;
 map<uint, uint> mapPendingDockingRequests;
 vector<uint> dockingModuleEquipmentIds;
 
+uint connSystemID = CreateID("li06");
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Function handling changing systems when undocking from a carrier
 void JumpToLocation(uint client, uint system, Vector pos, Matrix ornt)
@@ -101,6 +103,7 @@ void LoadSettings()
 
 void __stdcall BaseExit(uint iBaseID, uint iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 
 	//Set the players docking module count to 0, update the list to the proper amount shortly afterwards
 	mobiledockClients[iClientID].iDockingModules = 0;
@@ -117,7 +120,135 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 		}
 	}
 
-	PrintUserCmdText(iClientID, L"You have %i modules mounted.", mobiledockClients[iClientID].iDockingModules);
+	// If this is a ship which is currently docked, clear the market
+	if(mobiledockClients[iClientID].mobileDocked)
+	{
+		SendResetMarketOverride(iClientID);
+	}
+
+}
+
+void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (mobiledockClients[client].mobileDocked)
+	{
+		// Update the location of the carrier and remove the docked ship from the carrier
+		uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
+		if (carrier_client != -1)
+		{
+			mobiledockClients[carrier_client].mapDockedShips.erase((const wchar_t*)Players.GetActiveCharacterName(client));
+		}
+
+		//Get the carrier ship information
+		uint carrierShip;
+		uint carrierSystem;
+		Vector carrierPos;
+		Matrix carrierRot;
+		pub::Player::GetShip(carrier_client, carrierShip);
+
+		uint clientShip;
+		pub::Player::GetShip(client, clientShip);
+
+
+		PrintUserCmdText(client, L"Debug: Swapping systems for dockingmod");
+
+		// Check and handle if the carrier is docked on a base
+		if(!carrierShip)
+		{
+			uint iBaseID;
+			pub::Player::GetBase(carrierShip, iBaseID);
+			if (!iBaseID)
+				return;
+
+			Universe::IBase *base = Universe::get_base(iBaseID);
+			uint baseObjId = base->lSpaceObjID;
+
+			// Set the carrier position, system and rotation, as the base's data
+			pub::SpaceObj::GetSystem(baseObjId, carrierSystem);
+			pub::SpaceObj::GetLocation(baseObjId, carrierPos, carrierRot);
+
+			// Setup undock offsets
+			float rad, brad;
+			Vector vec, bvec;
+
+			pub::SpaceObj::GetRadius(baseObjId, rad, vec);
+			pub::SpaceObj::GetBurnRadius(baseObjId, brad, bvec);
+			if (rad < brad)
+				rad = brad;
+
+			carrierPos.x = carrierRot.data[0][1] * (rad + set_iMobileDockOffset);
+			carrierPos.y = carrierRot.data[1][1] * (rad + set_iMobileDockOffset);
+			carrierPos.z = carrierRot.data[2][1] * (rad + set_iMobileDockOffset);
+		}
+		else
+		{
+			// If the carrier is out in space, simply set the undock location to where the carrier is currently
+			pub::SpaceObj::GetSystem(carrierShip, carrierSystem);
+			pub::SpaceObj::GetLocation(carrierShip, carrierPos, carrierRot);
+
+			carrierPos.x += carrierRot.data[0][1] * set_iMobileDockOffset;
+			carrierPos.y += carrierRot.data[1][1] * set_iMobileDockOffset;
+			carrierPos.z += carrierRot.data[2][1] * set_iMobileDockOffset;
+		}
+
+		// Debug
+		PrintUserCmdText(client, L"Hop, skip, JUUMMP");
+
+		// Now that the data is prepared, send the player to the carriers location
+		JumpToLocation(client, carrierSystem, carrierPos, carrierRot);
+
+		//Conn exploiting check
+
+		if (Players[client].iSystemID == connSystemID)
+		{
+			wstring playerName = (const wchar_t*)Players.GetActiveCharacterName(client);
+			list<CARGO_INFO> cargo;
+			int holdSize = 0;
+
+			HkEnumCargo(playerName, cargo, holdSize);
+
+			for (list<CARGO_INFO>::const_iterator it = cargo.begin(); it != cargo.end(); ++it)
+			{
+				const CARGO_INFO & item = *it;
+
+				bool flag = false;
+				pub::IsCommodity(item.iArchID, flag);
+
+				// Some commodity present.
+				if (flag)
+				{
+					pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
+					wstring wscMsgU = L"MF: %name has been permabanned. (Type 6)";
+					wscMsgU = ReplaceStr(wscMsgU, L"%name", playerName.c_str());
+
+					HkMsgU(wscMsgU);
+
+					wstring wscMsgLog = L"<%sender> was permabanned for undocking from a docking module with cargo in hold. Type 6.";
+					wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", playerName.c_str());
+
+					LogCheater(client, wscMsgLog);
+				}
+			}
+		}
+
+
+	}
+}
+
+void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	//Do we have a request for a in-system jump?
+	if(mobiledockClients[client].simpleJump)
+	{
+		PrintUserCmdText(client, L"Relocating to a different position with PLAYERLAUNCH_AFTER");
+
+		pub::SpaceObj::Relocate(ship, mobiledockClients[client].carrierSystem, mobiledockClients[client].carrierPos, mobiledockClients[client].carrierRot);
+		mobiledockClients[client].simpleJump = false;
+	}
 
 }
 
@@ -172,6 +303,44 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		return -1;
 	}
 	return 0;
+}
+
+void __stdcall BaseEnter(uint iBaseID, uint client)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	//@@TODO Update the location of any docked ships.
+	if (mobiledockClients[client].mapDockedShips.size())
+	{
+		
+		//Do that here
+
+	}
+
+	if (mobiledockClients[client].mobileDocked)
+	{
+		// Clear the market. We don't support transfers in this version.
+		SendResetMarketOverride(client);
+
+		// Set the base name
+		wstring status = L"<RDL><PUSH/>";
+		status += L"<TEXT>" + XMLText(mobiledockClients[client].wscDockedWithCharname) + L"</TEXT><PARA/><PARA/>";
+		status += L"<POP/></RDL>";
+		SendSetBaseInfoText2(client, status);
+
+		// Check to see that the carrier thinks this ship is docked to it.
+		// If it isn't then eject the ship to space.
+		/*wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		if (!IsShipDockedOnCarrier(mobiledockClients[client].wscDockedWithCharname, charname))
+		{
+			JumpToLocation(client,
+				mobiledockClients[client].iCarrierSystem,
+				mobiledockClients[client].vCarrierLocation,
+				mobiledockClients[client].mCarrierLocation);
+			return;
+		}*/
+	}
+
 }
 
 bool UserCmd_Process(uint client, const wstring &wscCmd)
@@ -244,20 +413,20 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		// Save the carrier info
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iTargetClientID);
 		mobiledockClients[client].mapDockedShips[charname] = charname;
-		SaveDockInfo(client, mobiledockClients[client]);
+		//SaveDockInfo(client, mobiledockClients[client]);
 
 		// Save the docking ship info
-		mobiledockClients[iTargetClientID].mobile_docked = true;
+		mobiledockClients[iTargetClientID].mobileDocked = true;
 		mobiledockClients[iTargetClientID].wscDockedWithCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		if (mobiledockClients[iTargetClientID].iLastBaseID != 0)
 			mobiledockClients[iTargetClientID].iLastBaseID = Players[iTargetClientID].iLastBaseID;
-		pub::SpaceObj::GetSystem(iShip, mobiledockClients[iTargetClientID].iCarrierSystem);
-		pub::SpaceObj::GetLocation(iShip, mobiledockClients[iTargetClientID].vCarrierLocation, mobiledockClients[iTargetClientID].mCarrierLocation);
-		SaveDockInfo(iTargetClientID, mobiledockClients[iTargetClientID]);
+		pub::SpaceObj::GetSystem(iShip, mobiledockClients[iTargetClientID].iLastSystem);
+		//SaveDockInfo(iTargetClientID, mobiledockClients[iTargetClientID]);
 
 		// Land the ship on the proxy base
 		pub::Player::ForceLand(iTargetClientID, iBaseID);
 		PrintUserCmdText(client, L"Ship docked");
+
 		return true;
 	}
 	return false;
@@ -281,6 +450,70 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	return true;
 }
 
+void SystemSwitchOutComplete(unsigned int iShip, unsigned int client)
+{
+	returncode = DEFAULT_RETURNCODE;
+	static PBYTE SwitchOut = 0;
+	if (!SwitchOut)
+	{
+		SwitchOut = (PBYTE)hModServer + 0xf600;
+
+		DWORD dummy;
+		VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
+	}
+
+	// Patch the system switch out routine to put the ship in a
+	// system of our choosing.
+	if (mapDeferredJumps.find(client) != mapDeferredJumps.end())
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		SwitchOut[0x0d7] = 0xeb;				// ignore exit object
+		SwitchOut[0x0d8] = 0x40;
+		SwitchOut[0x119] = 0xbb;				// set the destination system
+		*(PDWORD)(SwitchOut + 0x11a) = mapDeferredJumps[client].system;
+		SwitchOut[0x266] = 0x45;				// don't generate warning
+		*(float*)(SwitchOut + 0x2b0) = mapDeferredJumps[client].pos.z;		// set entry location
+		*(float*)(SwitchOut + 0x2b8) = mapDeferredJumps[client].pos.y;
+		*(float*)(SwitchOut + 0x2c0) = mapDeferredJumps[client].pos.x;
+		*(float*)(SwitchOut + 0x2c8) = mapDeferredJumps[client].rot.data[2][2];
+		*(float*)(SwitchOut + 0x2d0) = mapDeferredJumps[client].rot.data[1][1];
+		*(float*)(SwitchOut + 0x2d8) = mapDeferredJumps[client].rot.data[0][0];
+		*(float*)(SwitchOut + 0x2e0) = mapDeferredJumps[client].rot.data[2][1];
+		*(float*)(SwitchOut + 0x2e8) = mapDeferredJumps[client].rot.data[2][0];
+		*(float*)(SwitchOut + 0x2f0) = mapDeferredJumps[client].rot.data[1][2];
+		*(float*)(SwitchOut + 0x2f8) = mapDeferredJumps[client].rot.data[1][0];
+		*(float*)(SwitchOut + 0x300) = mapDeferredJumps[client].rot.data[0][2];
+		*(float*)(SwitchOut + 0x308) = mapDeferredJumps[client].rot.data[0][1];
+		*(PDWORD)(SwitchOut + 0x388) = 0x03ebc031;		// ignore entry object
+		mapDeferredJumps.erase(client);
+
+		pub::SpaceObj::SetInvincible(iShip, false, false, 0);
+		Server.SystemSwitchOutComplete(iShip, client);
+
+		// Unpatch the code.
+		SwitchOut[0x0d7] = 0x0f;
+		SwitchOut[0x0d8] = 0x84;
+		SwitchOut[0x119] = 0x87;
+		*(PDWORD)(SwitchOut + 0x11a) = 0x1b8;
+		*(PDWORD)(SwitchOut + 0x25d) = 0x1cf7f;
+		SwitchOut[0x266] = 0x1a;
+		*(float*)(SwitchOut + 0x2b0) =
+			*(float*)(SwitchOut + 0x2b8) =
+			*(float*)(SwitchOut + 0x2c0) = 0;
+		*(float*)(SwitchOut + 0x2c8) =
+			*(float*)(SwitchOut + 0x2d0) =
+			*(float*)(SwitchOut + 0x2d8) = 1;
+		*(float*)(SwitchOut + 0x2e0) =
+			*(float*)(SwitchOut + 0x2e8) =
+			*(float*)(SwitchOut + 0x2f0) =
+			*(float*)(SwitchOut + 0x2f8) =
+			*(float*)(SwitchOut + 0x300) =
+			*(float*)(SwitchOut + 0x308) = 0;
+		*(PDWORD)(SwitchOut + 0x388) = 0xcf8b178b;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 EXPORT PLUGIN_INFO* Get_PluginInfo()
@@ -293,10 +526,14 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 
 	return p_PI;
 }

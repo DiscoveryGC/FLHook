@@ -172,7 +172,8 @@ namespace HyperJump
 
 	static string set_scEncryptKey = "secretcode";
 
-	static map<uint, bool> set_death_systems;
+	static map<uint, bool> set_death_systems; // Systems the user is killed upon entering
+	static map<uint, bool> set_banned_systems;  // Systems that cannot be random jumped to.
 
 	static wstring FormatCoords(char* ibuf)
 	{
@@ -300,6 +301,11 @@ namespace HyperJump
 						{
 							set_death_systems[CreateID(ini.get_value_string(0))] = true;
 						}
+						else if (ini.is_value("banned_system"))
+						{
+							set_banned_systems[CreateID(ini.get_value_string(0))] = true;
+						}
+
 						else if (ini.is_value("JumpWhiteListEnabled"))
 						{
 						JumpWhiteListEnabled = ini.get_value_int(0);
@@ -1870,12 +1876,21 @@ namespace HyperJump
 				systems.push_back(sysinfo->nickname);
 				sysinfo = Universe::GetNextSystem();
 			}
-
-			// Pick a random system and position
-			jd.iTargetSystem = CreateID(systems[rand() % systems.size()].c_str());
-			jd.vTargetPosition.x = ((rand()*10) % 400000) - 200000.0f;
-			jd.vTargetPosition.y = ((rand()*10) % 400000) - 200000.0f;
-			jd.vTargetPosition.z = ((rand()*10) % 400000) - 200000.0f;
+			int x = 0;
+			while(x == 0)
+			{
+				// Pick a random system and position
+				jd.iTargetSystem = CreateID(systems[rand() % systems.size()].c_str());
+				if (set_banned_systems.find(jd.iTargetSystem) != set_banned_systems.end())
+				{
+					PrintUserCmdText(iClientID, L"ERR: Hyper Drive Malfunction. Recalculating Jump.");
+					continue;
+				}
+				x = 1;
+			}
+			jd.vTargetPosition.x = ((rand() * 10) % 400000) - 200000.0f;
+			jd.vTargetPosition.y = ((rand() * 10) % 400000) - 200000.0f;
+			jd.vTargetPosition.z = ((rand() * 10) % 400000) - 200000.0f;
 		}
 
 		// Start the jump timer.

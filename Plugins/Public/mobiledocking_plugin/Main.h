@@ -14,23 +14,11 @@
 
 struct CLIENT_DATA
 {
-	
-	bool bSetup;
-
-	bool reverse_sell;
-	bool stop_buy;
-	list<CARGO_INFO> cargo;
-
-	bool bAdmin;
-
 	uint iDockingModules;
 	map<wstring, wstring> mapDockedShips;
 
 	// True if currently docked on a carrier
 	bool mobileDocked;
-
-	// Boolean flag used for a within-system teleport, instead of a system changeout
-	bool simpleJump = false;
 
 	// The name of the carrier
 	wstring wscDockedWithCharname;
@@ -44,6 +32,12 @@ struct CLIENT_DATA
 	Vector carrierPos;
 	Matrix carrierRot;
 	uint carrierSystem;
+
+	// A base pointer used to teleport the ship into a base on undock
+	Universe::IBase *undockBase;
+	
+	// A flag denoting that the above base should be used as an undock point
+	bool baseUndock = false;
 };
 
 struct DEFERREDJUMPS

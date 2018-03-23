@@ -74,21 +74,27 @@ void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip) {
 	// Check and handle if the carrier is docked on a base
 	if (!carrierShip)
 	{
+
+		//CURRENTLY UNUSED
+
 		uint iBaseID;
 		pub::Player::GetBase(carrierShip, iBaseID);
+		ConPrint(L"Base: %s\n", stows(itos(iBaseID)));
 		if (!iBaseID)
 			return;
 
 		Universe::IBase *base = Universe::get_base(iBaseID);
-		uint baseObjId = base->lSpaceObjID;
+		ulong baseObjId = base->lSpaceObjID;
+
+		ConPrint(L"Base ID: %s\n", stows(itos(baseObjId)));
 
 		// Set the carrier position, system and rotation, as the base's data
 		pub::SpaceObj::GetSystem(baseObjId, mobiledockClients[dockedClientId].carrierSystem);
-		pub::SpaceObj::GetLocation(baseObjId, mobiledockClients[dockedClientId].carrierPos , mobiledockClients[dockedClientId].carrierRot);
+		pub::SpaceObj::GetLocation(baseObjId, carrierPos , carrierRot);
 
 		// Setup undock offsets
 		float rad, brad;
-		Vector vec{}, bvec{};
+		Vector vec, bvec;
 
 		pub::SpaceObj::GetRadius(baseObjId, rad, vec);
 		pub::SpaceObj::GetBurnRadius(baseObjId, brad, bvec);
@@ -101,6 +107,7 @@ void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip) {
 	}
 	else
 	{
+		
 		// If the carrier is out in space, simply set the undock location to where the carrier is currently
 		pub::SpaceObj::GetSystem(carrierShip, mobiledockClients[dockedClientId].carrierSystem);
 		pub::SpaceObj::GetLocation(carrierShip, carrierPos, carrierRot);
@@ -179,13 +186,16 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
+
+	wstring clientName = (const wchar_t*)Players.GetActiveCharacterName(client);
+
 	if (mobiledockClients[client].mobileDocked)
 	{
 		// Update the location of the carrier and remove the docked ship from the carrier
-		uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
 		if (carrier_client != -1)
 		{
-			mobiledockClients[carrier_client].mapDockedShips.erase((const wchar_t*)Players.GetActiveCharacterName(client));
+			mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
 		}
 
 		//Get the carrier ship information
@@ -194,6 +204,25 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 		uint clientShip;
 		pub::Player::GetShip(client, clientShip);
+
+		// Check to see if the carrier is currently in a base. If so, force the client to dock on that base.
+		if(!carrierShip)
+		{
+			uint iBaseID;
+			pub::Player::GetBase(carrier_client, iBaseID);
+
+			if(!iBaseID)
+			{
+				PrintUserCmdText(client, L"Bug Detected: Carrier noted to be inside of a base, but we couldn't find that ID. Contact the administration team.");
+				return;
+			}
+
+			// Set the flags which the PlayerLaunch_AFTER uses to handle teleporting to the carriers base
+			mobiledockClients[client].undockBase = Universe::get_base(iBaseID);
+			mobiledockClients[client].baseUndock = true;
+
+			return;
+		}
 
 		// Update the internal values of the docked ship pretaining to the carrier
 		UpdateCarrierLocationInformation(client, carrierShip);
@@ -208,7 +237,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		mobiledockClients.erase(client);
 
 		//Conn exploiting check
-
 		if (Players[client].iSystemID == connSystemID)
 		{
 			wstring playerName = (const wchar_t*)Players.GetActiveCharacterName(client);
@@ -249,13 +277,11 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	//Do we have a request for a in-system jump?
-	if(mobiledockClients[client].simpleJump)
+	// Is the client flagged to dock at a base after exiting?
+	if(mobiledockClients[client].baseUndock)
 	{
-		PrintUserCmdText(client, L"Relocating to a different position with PLAYERLAUNCH_AFTER");
-
-		pub::SpaceObj::Relocate(ship, mobiledockClients[client].carrierSystem, mobiledockClients[client].carrierPos, mobiledockClients[client].carrierRot);
-		mobiledockClients[client].simpleJump = false;
+		pub::Player::ForceLand(client, mobiledockClients[client].undockBase->iBaseID);
+		mobiledockClients.erase(client);
 	}
 
 }
@@ -380,6 +406,16 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			return true;
 		}
 
+		// Only allow jettisonning a ship if the carrier is undocked
+		uint carrierShip;
+		pub::Player::GetShip(client, carrierShip);
+		if(!carrierShip)
+		{
+			PrintUserCmdText(client, L"You can only jettison a vessel if you are in space.");
+			return true;
+		}
+
+
 		// Check to see if the user listed is actually docked with the carrier at the moment
 		if(mobiledockClients[client].mapDockedShips.find(charname) == mobiledockClients[client].mapDockedShips.end())
 		{
@@ -403,6 +439,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		}
 
 		mobiledockClients.erase(iDockedClientID);
+		mobiledockClients[client].mapDockedShips.erase(charname);
 		PrintUserCmdText(client, L"Ship jettisoned");
 		return true;
 

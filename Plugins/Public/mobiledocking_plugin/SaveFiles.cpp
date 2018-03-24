@@ -144,6 +144,7 @@ void LoadShip(string shipFileName)
 					}
 				}
 
+				shipInfo.mobileDocked = true;
 				mobiledockClients[shipClientId] = shipInfo;
 				ConPrint(L"Loaded Ship\n");
 			}
@@ -154,6 +155,7 @@ void LoadShip(string shipFileName)
 	
 	if (foundFile) {
 		_unlink(path.c_str());
+		ConPrint(L"Error: %i\n", errno);
 	}
 
 }

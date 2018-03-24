@@ -157,9 +157,10 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 
 void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 {
-	returncode = DEFAULT_RETURNCODE;
+	returncode = SKIPPLUGINS;
 
 	uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
+	PrintUserCmdText(client, stows(itos(carrier_client)));
 
 	wstring clientName = (const wchar_t*)Players.GetActiveCharacterName(client);
 
@@ -169,6 +170,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		if (carrier_client != -1)
 		{
 			mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
+			mobiledockClients[carrier_client].iDockingModules++;
 		}
 
 		//Get the carrier ship information
@@ -181,6 +183,9 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		// Check to see if the carrier is currently in a base. If so, force the client to dock on that base.
 		if(!carrierShip)
 		{
+
+			PrintUserCmdText(client, L"We think that the carrier is inside of a base");
+
 			uint iBaseID;
 			pub::Player::GetBase(carrier_client, iBaseID);
 
@@ -535,6 +540,12 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		PrintUserCmdText(client, L"Ship docked");
 
 		return true;
+	}
+	else if(wscCmd.find(L"/debug") == 0)
+	{
+		PrintUserCmdText(client, mobiledockClients[client].wscDockedWithCharname);
+		PrintUserCmdText(client, stows(itos(mobiledockClients[client].iLastBaseID)));
+		PrintUserCmdText(client, stows(itos(mobiledockClients[client].iDockingModules)));
 	}
 	return false;
 }

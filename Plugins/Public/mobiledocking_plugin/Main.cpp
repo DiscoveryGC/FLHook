@@ -172,7 +172,17 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 			mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
 			mobiledockClients[carrier_client].iDockingModules++;
 		}
+		else
+		{
+			// If the carrier doesn't exist for some reason, force the client to dock on it's last known base
+			uint iBaseID = mobiledockClients[client].iLastBaseID;
+			mobiledockClients[client].undockBase = Universe::get_base(iBaseID);
+			mobiledockClients[client].baseUndock = true;
 
+			return;
+
+		}
+		
 		//Get the carrier ship information
 		uint carrierShip;
 		pub::Player::GetShip(carrier_client, carrierShip);
@@ -245,6 +255,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 				}
 			}
 		}
+
 
 
 	}
@@ -586,7 +597,6 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 		// Is this a carrier?
 		if(!mobiledockClients[iClientID].mapDockedShips.empty())
 		{
-			ConPrint(L"User was a carrier\n");
 			wstring shipFileName;
 			wstring charName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
 

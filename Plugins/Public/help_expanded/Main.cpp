@@ -61,7 +61,6 @@ struct HELPSTRUCT
 
 bool bPluginEnabled = true; // So we can disable it with ease.
 map<wstring, HELPSTRUCT> mapHelp; 
-list<wstring> lstHelpCommands; // So we have a list of help commands that can be iterated over
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
@@ -69,8 +68,6 @@ list<wstring> lstHelpCommands; // So we have a list of help commands that can be
 
 void LoadSettings()
 {
-	int intHelpCommands = 0; // Loading amount for console
-	lstHelpCommands.clear(); // This is to ensure that during .rehash the lists are empty
 	mapHelp.clear();
 	returncode = DEFAULT_RETURNCODE;
 
@@ -78,7 +75,6 @@ void LoadSettings()
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\laz_help.cfg";
 	bPluginEnabled = IniGetB(scPluginCfgFile, "Config", "Enabled", true); // Allow things to be quickly disabled
-
 
 	HELPSTRUCT helpstruct;
 	list<INISECTIONVALUE> iniSection; // Create a new list to store our values
@@ -97,11 +93,9 @@ void LoadSettings()
 			helpstruct.wscContent = Trim(getValueString.substr(firstComma + secondComma + 2)); // The content of our text box. XML String.
 
 			mapHelp[wscParam] = helpstruct;
-			lstHelpCommands.push_back(wscParam); // So we can iterate through the list
-			intHelpCommands++;
 		}
 	}
-	ConPrint(L"HELP MENUS: Loaded %u help menus\n", intHelpCommands);
+	ConPrint(L"HELP MENUS: Loaded %u help menus\n", mapHelp.size());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,12 +104,11 @@ void LoadSettings()
 
 void HelpInfo(uint iClientID)
 {
+	PrintUserCmdText(iClientID, L"Below is a list of all possible helpmenu commands, but there is also /rules and /start for some basic information for new players.");
 	PrintUserCmdText(iClientID, L"The current help commands available are as follows:");
-	foreach(lstHelpCommands, wstring, iter)
+	for (map<wstring, HELPSTRUCT>::iterator iter = mapHelp.begin(); iter != mapHelp.end(); iter++)
 	{
-		wstring wscIter = *iter;
-		PrintUserCmdText(iClientID, L"helpmenu %s", wscIter.c_str());
-		// Iterate through all possible help commands
+		PrintUserCmdText(iClientID, L"helpmenu %s", iter->first.c_str());
 	}
 }
 

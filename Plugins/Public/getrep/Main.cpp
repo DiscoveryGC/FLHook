@@ -25,8 +25,6 @@
 #include "../hookext_plugin/hookext_exports.h"
 
 map<string, uint> factions;
-map<string, float> factionReps;
-
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
 
@@ -93,7 +91,7 @@ void LoadSettings()
 			}
 		}
 		ini.close();
-		ConPrint(L"MyRep: Loaded %u factions\n", factions.size());
+		ConPrint(L"Rep: Loaded %u factions\n", factions.size());
 	}
 	HkLoadStringDLLs();
 }
@@ -106,6 +104,7 @@ void LoadSettings()
 bool UserCmd_Rep(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
 	wstring wscCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	map<string, float> factionReps;
 
 	for (map<string, uint>::iterator iter = factions.begin(); iter != factions.end(); iter++)
 	{

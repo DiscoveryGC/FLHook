@@ -1,6 +1,3 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__ 1
-
 #include <windows.h>
 #include <stdio.h>
 #include <string>
@@ -14,7 +11,3 @@
 #include <PluginUtilities.h>
 
 using namespace std;
-
-
-
-#endif

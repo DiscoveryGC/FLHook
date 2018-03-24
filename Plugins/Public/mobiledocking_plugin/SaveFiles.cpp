@@ -109,8 +109,7 @@ void LoadShip(string shipFileName)
 		ini.close();
 
 		if (foundFile) {
-			ConPrint(L"Delete me baby\n");
-			remove(path.c_str());
+			int error = _unlink(path.c_str());
 			return;
 		}
 	}
@@ -150,10 +149,11 @@ void LoadShip(string shipFileName)
 			}
 		}
 	}
+
+	ini.close();
 	
 	if (foundFile) {
-		ConPrint(L"Attempting to delete path: %s\n", stows(tpath));
-		remove(path.c_str());
+		_unlink(path.c_str());
 	}
 
 }

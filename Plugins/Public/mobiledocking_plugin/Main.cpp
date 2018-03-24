@@ -552,11 +552,16 @@ void __stdcall JumpInComplete(uint iSystemID, uint iShip)
 	
 }
 
-void __stdcall PlayerLogin(struct SLoginInfo const &li, unsigned int iClientID)
+void __stdcall CharacterSelect(struct CHARACTER_ID const & cId, unsigned int iClientID)
 {
+
+	returncode = DEFAULT_RETURNCODE;
 	
-	// Attempt to load the data for this ship if it exists
-	LoadShip(iClientID);
+	// Attempt to load the data for this ship if it exists. Trim off the .fl at the end of the file name.
+	string charFilename = cId.szCharFilename;
+	charFilename = charFilename.substr(0, charFilename.size() - 3);
+
+	LoadShip(charFilename);
 
 }
 
@@ -571,19 +576,24 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 		if(!mobiledockClients[iClientID].mapDockedShips.empty())
 		{
 			ConPrint(L"User was a carrier\n");
-			ConPrint(L"Some relevent shit: %u\n", mobiledockClients[iClientID].iLastBaseID);
-			SaveDockInfoCarrier(iClientID, mobiledockClients[iClientID]);
+			wstring shipFileName;
+			wstring charName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+
+			HkGetCharFileName(charName, shipFileName);
+			SaveDockInfoCarrier(shipFileName ,iClientID, mobiledockClients[iClientID]);
 		}
 
 		// Is this a carried ship?
 		else if(!empty(mobiledockClients[iClientID].wscDockedWithCharname))
 		{
-			ConPrint(L"User was a carried ship\n");
-			SaveDockInfoCarried(iClientID, mobiledockClients[iClientID]);
+			wstring shipFileName;
+			wstring charName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+
+			HkGetCharFileName(charName, shipFileName);
+			SaveDockInfoCarried(shipFileName, iClientID, mobiledockClients[iClientID]);
 		}
 
 		mobiledockClients.erase(iClientID);
-		ConPrint(L"Erasing user %s\n", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
 	}
 
 }
@@ -694,7 +704,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLogin, PLUGIN_HkIServerImpl_Login, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
 
 	return p_PI;
 }

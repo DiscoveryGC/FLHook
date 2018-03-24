@@ -1,14 +1,14 @@
 #include "Main.h"
 
 // A function used to save a docked player to the filesystem
-void SaveDockInfoCarried(uint clientID, const CLIENT_DATA& client)
+void SaveDockInfoCarried(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client)
 {
 	// The path to the data file.
 	char datapath[MAX_PATH];
 	GetUserDataPath(datapath);
 
 	char tpath[1024];
-	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\docked_%08x.ini)", datapath, clientID);
+	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\docked_%ls.ini)", datapath, shipFileName.c_str());
 	string path = tpath;
 
 	FILE *file = fopen(path.c_str(), "w");
@@ -24,14 +24,14 @@ void SaveDockInfoCarried(uint clientID, const CLIENT_DATA& client)
 }
 
 // A function used to save a carrier player to the filesystem.
-void SaveDockInfoCarrier(uint clientID, const CLIENT_DATA& client)
+void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client)
 {
 	// The path to the data file.
 	char datapath[MAX_PATH];
 	GetUserDataPath(datapath);
 
 	char tpath[1024];
-	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\carrier_%08x.ini)", datapath, clientID);
+	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\carrier_%ls.ini)", datapath, shipFileName.c_str());
 	string path = tpath;
 
 	FILE *file = fopen(path.c_str(), "w");
@@ -54,17 +54,19 @@ void SaveDockInfoCarrier(uint clientID, const CLIENT_DATA& client)
 	fclose(file);
 }
 
-void LoadShip(uint clientID)
+void LoadShip(string shipFileName)
 {
 	// The path to the data file.
 	char datapath[MAX_PATH];
 	GetUserDataPath(datapath);
 
 	char tpath[1024];
-	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\carrier_%08x.ini)", datapath, clientID);
+	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\carrier_%s.ini)", datapath, shipFileName.c_str());
 	string path = tpath;
 
 	INI_Reader ini;
+
+	bool foundFile = false;
 
 	// Attempt to load the ship as a carrier
 	if (ini.open(path.c_str(), false))
@@ -75,6 +77,7 @@ void LoadShip(uint clientID)
 			{
 				uint shipClientId;
 				CLIENT_DATA carrierInfo;
+				foundFile = true;
 
 				while (ini.read_value())
 				{
@@ -101,16 +104,21 @@ void LoadShip(uint clientID)
 				mobiledockClients[shipClientId] = carrierInfo;
 				ConPrint(L"Loaded Carrier\n");
 
-				// Delete the file now that it's been loaded
-				ConPrint(L"I should be deleting path: %s\n", stows(tpath));
-				remove(tpath);
 			}
 		}
 		ini.close();
+
+		if (foundFile) {
+			ConPrint(L"Delete me baby\n");
+			remove(path.c_str());
+			return;
+		}
 	}
 
-	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\docked_%08x.ini)", datapath, clientID);
+	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\docked_%s.ini)", datapath, shipFileName.c_str());
 	path = tpath;
+
+	ConPrint(L"Using path: %s\n", stows(path));
 	if(ini.open(path.c_str(), false))
 	{
 		while(ini.read_header())
@@ -119,6 +127,7 @@ void LoadShip(uint clientID)
 			{
 				uint shipClientId;
 				CLIENT_DATA shipInfo;
+				foundFile = true;
 
 				while(ini.read_value())
 				{
@@ -136,16 +145,15 @@ void LoadShip(uint clientID)
 					}
 				}
 
-				if (!shipClientId)
-					continue;
 				mobiledockClients[shipClientId] = shipInfo;
 				ConPrint(L"Loaded Ship\n");
-
-				// Delete the file now that it's been loaded
-				ConPrint(L"Attempting to delete path: %u\n", path.c_str());
-				remove(path.c_str());
 			}
 		}
+	}
+	
+	if (foundFile) {
+		ConPrint(L"Attempting to delete path: %s\n", stows(tpath));
+		remove(path.c_str());
 	}
 
 }

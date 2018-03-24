@@ -46,9 +46,9 @@ struct DEFERREDJUMPS
 
 static map<uint, DEFERREDJUMPS> mapDeferredJumps;
 
-void LoadShip(uint clientId);
-void SaveDockInfoCarrier(uint clientID, const CLIENT_DATA& client);
-void SaveDockInfoCarried(uint clientID, const CLIENT_DATA& client);
+void LoadShip(string shipFileName);
+void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
+void SaveDockInfoCarried(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
 
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);

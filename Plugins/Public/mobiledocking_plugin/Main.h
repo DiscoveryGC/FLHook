@@ -26,9 +26,6 @@ struct CLIENT_DATA
 	// The last real base this ship was on
 	uint iLastBaseID;
 
-	// The last system which the vessel was in
-	uint iLastSystem;
-
 	Vector carrierPos;
 	Matrix carrierRot;
 	uint carrierSystem;

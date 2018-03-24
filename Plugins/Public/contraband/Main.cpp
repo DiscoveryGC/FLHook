@@ -38,6 +38,8 @@ list<string> lstHouse;
 map<uint, string> mapHouseAndSystems;
 map<string, wstring> mapHouseLawList;
 map<string, list<uint>> mapHouseCargoList;
+map<uint, uint> mapItems;
+map<uint, uint> iClient_systems;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -77,6 +79,8 @@ bool bPluginEnabled = true;
 void LoadSettings()
 {
 	returncode = DEFAULT_RETURNCODE;
+
+	iClient_systems.clear(); // Remove client ids
 
 	int housesLoaded = 0;
 	int houseSystemsLoaded = 0;
@@ -136,11 +140,40 @@ void LoadSettings()
 		}
 		ini.close();
 
-		ConPrint(L"LAWS: Houses Loaded: %u \n", housesLoaded);
-		ConPrint(L"LAWS: House Systems Loaded: %u \n", houseSystemsLoaded);
-		ConPrint(L"LAWS: Laws Loaded: %u \n", lawsLoaded);
-		ConPrint(L"LAWS: Contraband Items Loaded: %u \n", contrabandLoaded);
+		ConPrint(L"Contraband: Houses Loaded: %u \n", housesLoaded);
+		ConPrint(L"Contraband: House Systems Loaded: %u \n", houseSystemsLoaded);
+		ConPrint(L"Contraband: Laws Loaded: %u \n", lawsLoaded);
+		ConPrint(L"Contraband: Illegal Items Loaded: %u \n", contrabandLoaded);
 	}
+
+	string goods = R"(..\data\equipment\select_equip.ini)";
+	if (ini.open(goods.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("Commodity"))
+			{
+				uint ids_name;
+				uint nick_id;
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						nick_id = CreateID(ini.get_value_string());
+					}
+					else if (ini.is_value("ids_name"))
+					{
+						ids_name = ini.get_value_int(0);
+					}
+				}
+				mapItems[nick_id] = ids_name;
+			}
+		}
+		ini.close();
+		ConPrint(L"Contraband: Loaded Items: %u\n", mapItems.size());
+	}
+	HkLoadStringDLLs();
+	
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,7 +202,7 @@ static void CheckCargo(int iClientID)
 		list<CARGO_INFO> lstCargo;
 		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iHoldSize);
 
-		if (mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end())
+		if (mapHouseAndSystems[iSystemID] != mapHouseAndSystems[iClient_systems[iClientID]] || mapHouseAndSystems.find(iClient_systems[iClientID]) == mapHouseAndSystems.end())
 		{
 			string currentHouse = mapHouseAndSystems[iSystemID];
 			if(mapHouseCargoList.find(currentHouse) != mapHouseCargoList.end())
@@ -177,16 +210,15 @@ static void CheckCargo(int iClientID)
 				list<uint> cfgCargoLst = mapHouseCargoList[currentHouse];
 				for (list<CARGO_INFO>::iterator i = lstCargo.begin(); i != lstCargo.end(); ++i)
 				{
-					uint correctCargo = i->iArchID;
-					bool foundCargo = (find(cfgCargoLst.begin(), cfgCargoLst.end(), correctCargo) != cfgCargoLst.end());
-					if(foundCargo)
+					if(find(cfgCargoLst.begin(), cfgCargoLst.end(), i->iArchID) != cfgCargoLst.end())
 					{
-						ContrabandWarning(iClientID, L"WARNING: You are carrying items which are illegal in this sector.");
-						return;
+						wstring illegalCargo = HkGetWStringFromIDS(mapItems[i->iArchID]);
+						ContrabandWarning(iClientID, L"WARNING: You are carrying %s which is illegal in this sector.", illegalCargo.c_str());
 					}
 				}
 			}
 		}
+		iClient_systems[iClientID] = iSystemID; // Update it after everything else is done.
 	}
 }
 
@@ -237,9 +269,12 @@ bool UserCmd_Laws(uint iClientID, const wstring & wscCmd, const wstring & wscPar
 //Calls
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int client)
+void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 {
-	CheckCargo(client);
+	CheckCargo(iClientID);
+	uint iSystemID;
+	pub::Player::GetSystem(iClientID, iSystemID);
+	iClient_systems[iClientID] = iSystemID; // We want to update it AFTER their cargo has been checked.
 }
 
 void __stdcall JumpInComplete(unsigned int system, unsigned int ship)

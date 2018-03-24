@@ -115,18 +115,13 @@ void LoadSettings()
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	char szCurDir[MAX_PATH];
-	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\mobiledocking.cfg";
+	// The path to the data file.
+	char datapath[MAX_PATH];
+	GetUserDataPath(datapath);
 
-	struct PlayerData *pd = 0;
-
-	// Load all of the ships which have logged out while being docked
-	while ((pd = Players.traverse_active(pd)))
-	{
-		if (!HkIsInCharSelectMenu(pd->iOnlineID))
-			LoadDockInfo(pd->iOnlineID);
-	}
+	// Create the directory if it doesn't exist
+	string moddir = string(datapath) + R"(\Accts\MultiPlayer\docking_module\)";
+	CreateDirectoryA(moddir.c_str(), 0);
 
 	//@@TODO Add support for defining multiple docking modules in the configuration file
 	// Add the current available docking module to the list of available arches
@@ -523,6 +518,8 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iTargetClientID);
 		mobiledockClients[client].mapDockedShips[charname] = charname;
 		pub::SpaceObj::GetSystem(iShip, mobiledockClients[client].carrierSystem);
+		if (mobiledockClients[client].iLastBaseID != 0)
+			mobiledockClients[client].iLastBaseID = Players[client].iLastBaseID;
 
 		// Save the docking ship info
 		mobiledockClients[iTargetClientID].mobileDocked = true;
@@ -530,6 +527,8 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		if (mobiledockClients[iTargetClientID].iLastBaseID != 0)
 			mobiledockClients[iTargetClientID].iLastBaseID = Players[iTargetClientID].iLastBaseID;
 		pub::SpaceObj::GetSystem(iShip, mobiledockClients[iTargetClientID].carrierSystem);
+
+		mobiledockClients[client].iDockingModules--;
 
 		// Land the ship on the proxy base
 		pub::Player::ForceLand(iTargetClientID, iBaseID);
@@ -542,6 +541,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 void __stdcall JumpInComplete(uint iSystemID, uint iShip)
 {
+	returncode = DEFAULT_RETURNCODE;
 	const uint iClientID = HkGetClientIDByShip(iShip);
 	
 	// After completing a jump, if it's in our map, we update the current system
@@ -550,6 +550,42 @@ void __stdcall JumpInComplete(uint iSystemID, uint iShip)
 		pub::SpaceObj::GetSystem(iShip, mobiledockClients[iClientID].carrierSystem);
 	}
 	
+}
+
+void __stdcall PlayerLogin(struct SLoginInfo const &li, unsigned int iClientID)
+{
+	
+	// Attempt to load the data for this ship if it exists
+	LoadShip(iClientID);
+
+}
+
+void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
+{
+
+	returncode = DEFAULT_RETURNCODE;
+	// Is the disconnecting user a part of the docking module plugin at the moment?
+	if(mobiledockClients.find(iClientID) != mobiledockClients.end())
+	{
+		// Is this a carrier?
+		if(!mobiledockClients[iClientID].mapDockedShips.empty())
+		{
+			ConPrint(L"User was a carrier\n");
+			ConPrint(L"Some relevent shit: %u\n", mobiledockClients[iClientID].iLastBaseID);
+			SaveDockInfoCarrier(iClientID, mobiledockClients[iClientID]);
+		}
+
+		// Is this a carried ship?
+		else if(!empty(mobiledockClients[iClientID].wscDockedWithCharname))
+		{
+			ConPrint(L"User was a carried ship\n");
+			SaveDockInfoCarried(iClientID, mobiledockClients[iClientID]);
+		}
+
+		mobiledockClients.erase(iClientID);
+		ConPrint(L"Erasing user %s\n", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
+	}
+
 }
 
 
@@ -656,6 +692,9 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
+
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLogin, PLUGIN_HkIServerImpl_Login, 0));
 
 	return p_PI;
 }

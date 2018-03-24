@@ -996,6 +996,7 @@ USERCMD UserCmds[] =
 	{ L"/fi",			Message::UserCmd_FactionInvite, L"Usage: /factioninvite <tag> or /fi ..."},
 	{ L"/lastpm",       Message::UserCmd_ShowLastPMSender, L""},
 	{ L"/set chattime", Message::UserCmd_SetChatTime, L"Usage: /set chattime [on|off]"},
+	{ L"/set dietime",  Message::UserCmd_SetDeathTime, L"Usage: /set dietime [on|off]"},
 	{ L"/help",			Message::UserCmd_CustomHelp, L""},
 	{ L"/h",			Message::UserCmd_CustomHelp, L""},
 	{ L"/?",			Message::UserCmd_CustomHelp, L""},

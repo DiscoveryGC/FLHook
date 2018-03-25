@@ -1257,6 +1257,7 @@ namespace Message
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
+			return true;
 		}
 
 		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);

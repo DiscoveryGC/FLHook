@@ -385,6 +385,13 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 				{
 					uint iDockedClientID = HkGetClientIdFromCharname(i->second);
 
+					// Make sure that each docked ship agrees that it's docked before sending a teleport order
+					if(!mobiledockClients[iDockedClientID].mobileDocked)
+					{
+						mobiledockClients[client].mapDockedShips.erase(i->first);
+						continue;
+					}
+
 					// Update the coordinates the given ship should launch to.
 					UpdateCarrierLocationInformation(iDockedClientID, cship->get_position(), cship->get_orientation());
 

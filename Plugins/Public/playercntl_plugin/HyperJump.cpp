@@ -1876,8 +1876,8 @@ namespace HyperJump
 				systems.push_back(sysinfo->nickname);
 				sysinfo = Universe::GetNextSystem();
 			}
-			int x = 0;
-			while(x == 0)
+			bool x = true;
+			while(x)
 			{
 				// Pick a random system and position
 				jd.iTargetSystem = CreateID(systems[rand() % systems.size()].c_str());
@@ -1886,7 +1886,7 @@ namespace HyperJump
 					PrintUserCmdText(iClientID, L"ERR: Hyper Drive Malfunction. Recalculating Jump.");
 					continue;
 				}
-				x = 1;
+				x = false;
 			}
 			jd.vTargetPosition.x = ((rand() * 10) % 400000) - 200000.0f;
 			jd.vTargetPosition.y = ((rand() * 10) % 400000) - 200000.0f;

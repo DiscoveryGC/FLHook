@@ -1478,8 +1478,6 @@ namespace Message
 				timeSent = true;
 			}
 
-			// Send for all players who currently has 
-
 			char *szXMLBuf;
 			int iXMLBufRet;
 			char *szXMLBufSys;

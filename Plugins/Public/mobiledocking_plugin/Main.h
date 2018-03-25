@@ -14,7 +14,8 @@
 
 struct CLIENT_DATA
 {
-	uint iDockingModules;
+	uint iDockingModulesInstalled = 0;
+	int iDockingModulesAvailable = 0;
 	map<wstring, wstring> mapDockedShips;
 
 	// True if currently docked on a carrier

@@ -48,7 +48,6 @@ void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIEN
 			fprintf(file, "dockedchar=%ls, %ls\n", it->first.c_str(), it->second.c_str());
 		}
 
-		fprintf(file, "availablemodules=%u\n", client.iDockingModules);
 		fprintf(file, "lastdocked=%u\n", client.iLastBaseID);
 	}
 	fclose(file);
@@ -92,10 +91,6 @@ void LoadShip(string shipFileName)
 					else if (ini.is_value("lastdocked"))
 					{
 						carrierInfo.iLastBaseID = ini.get_value_int(0);
-					}
-					else if(ini.is_value("availablemodules"))
-					{
-						carrierInfo.iDockingModules = ini.get_value_int(0);
 					}
 				}
 				if (!shipClientId)

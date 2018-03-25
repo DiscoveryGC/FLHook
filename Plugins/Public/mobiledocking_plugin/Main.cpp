@@ -132,9 +132,6 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	//Set the players docking module count to 0, update the list to the proper amount shortly afterwards
-	mobiledockClients[iClientID].iDockingModules = 0;
-
 	// Check to see if the vessel undocking currently has a docking module equipped
 	for(list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
@@ -142,10 +139,13 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 		{
 			if(item->bMounted)
 			{
-				mobiledockClients[iClientID].iDockingModules++;
+				mobiledockClients[iClientID].iDockingModulesInstalled++;
 			}
 		}
 	}
+
+	// Normalize the docking modules available, with the number of people currently docked
+	mobiledockClients[iClientID].iDockingModulesAvailable = (mobiledockClients[iClientID].iDockingModulesInstalled - mobiledockClients[iClientID].mapDockedShips.size());
 
 	// If this is a ship which is currently docked, clear the market
 	if(mobiledockClients[iClientID].mobileDocked)
@@ -170,7 +170,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		if (carrier_client != -1)
 		{
 			mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
-			mobiledockClients[carrier_client].iDockingModules++;
+			mobiledockClients[carrier_client].iDockingModulesAvailable++;
 		}
 		else
 		{
@@ -302,7 +302,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		}
 
 		// Check that the target ship has an empty docking module. Report the error
-		if (mobiledockClients[iTargetClientID].mapDockedShips.size() >= mobiledockClients[iTargetClientID].iDockingModules)
+		if (mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
 		{
 			PrintUserCmdText(client, L"Target ship has no free docking capacity");
 			return 0;
@@ -476,6 +476,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			JumpToLocation(iDockedClientID, dockedShipData.carrierSystem, dockedShipData.carrierPos, dockedShipData.carrierRot);
 		}
 
+		mobiledockClients[client].iDockingModulesAvailable++;
 		mobiledockClients.erase(iDockedClientID);
 		mobiledockClients[client].mapDockedShips.erase(charname);
 		PrintUserCmdText(client, L"Ship jettisoned");
@@ -512,10 +513,11 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		}
 
 		// Check that there is an empty docking module
-		if(mobiledockClients[client].mapDockedShips.size() >= mobiledockClients[client].iDockingModules)
+		if (mobiledockClients[client].iDockingModulesAvailable <= 0)
 		{
 			mapPendingDockingRequests.erase(iTargetClientID);
 			PrintUserCmdText(client, L"No free docking modules available.");
+			PrintUserCmdText(client, L"Seriously. I'm reading that you have (dockingModulesAvailable <= 0) returning as true");
 			return true;
 		}
 
@@ -544,7 +546,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			mobiledockClients[iTargetClientID].iLastBaseID = Players[iTargetClientID].iLastBaseID;
 		pub::SpaceObj::GetSystem(iShip, mobiledockClients[iTargetClientID].carrierSystem);
 
-		mobiledockClients[client].iDockingModules--;
+		mobiledockClients[client].iDockingModulesAvailable--;
 
 		// Land the ship on the proxy base
 		pub::Player::ForceLand(iTargetClientID, iBaseID);
@@ -556,7 +558,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 	{
 		PrintUserCmdText(client, mobiledockClients[client].wscDockedWithCharname);
 		PrintUserCmdText(client, stows(itos(mobiledockClients[client].iLastBaseID)));
-		PrintUserCmdText(client, stows(itos(mobiledockClients[client].iDockingModules)));
+		PrintUserCmdText(client, stows(itos(mobiledockClients[client].iDockingModulesAvailable)));
 	}
 	return false;
 }
@@ -584,6 +586,25 @@ void __stdcall CharacterSelect(struct CHARACTER_ID const & cId, unsigned int iCl
 	charFilename = charFilename.substr(0, charFilename.size() - 3);
 
 	LoadShip(charFilename);
+
+	//If the user is a carrier, update the number of available modules
+	if(mobiledockClients[iClientID].iDockingModulesAvailable != 0)
+	{
+		// Check how many modules are currently installed on the player, and normalize the storage variables.
+		for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+		{
+			if (find(dockingModuleEquipmentIds.begin(), dockingModuleEquipmentIds.end(), item->iArchID) != dockingModuleEquipmentIds.end())
+			{
+				if (item->bMounted)
+				{
+					mobiledockClients[iClientID].iDockingModulesInstalled++;
+				}
+			}
+		}
+
+		// Normalize the docking modules available, with the number of people currently docked
+		mobiledockClients[iClientID].iDockingModulesAvailable = (mobiledockClients[iClientID].iDockingModulesInstalled - mobiledockClients[iClientID].mapDockedShips.size());
+	}
 
 }
 

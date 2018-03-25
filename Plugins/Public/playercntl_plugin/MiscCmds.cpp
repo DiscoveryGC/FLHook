@@ -313,9 +313,10 @@ namespace MiscCmds
 		}
 		else
 		{
-			PrintUserCmdText(iFromClientID, L"Usage: /roll 1d20");
-			PrintUserCmdText(iFromClientID, L"       /roll 1d8+4");
-			PrintUserCmdText(iFromClientID, L"       /roll 4d20+2");
+			PrintUserCmdText(iFromClientID, L"Usage: (NumDice) d (DiceSides) [+-] (Modifier)");
+			PrintUserCmdText(iFromClientID, L"Examples:	/roll 1d20 -- Roll 1, 20 sided die");
+			PrintUserCmdText(iFromClientID, L"		       /roll 1d8+4 -- Roll 1, 8 sided die and add 8");
+			PrintUserCmdText(iFromClientID, L"           /roll 4d20+2 -- Roll 4, 20 sided dice, adding 2 to each die rolled");
 		}
 		return true;
 	}

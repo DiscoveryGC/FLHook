@@ -37,7 +37,6 @@ void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIEN
 	FILE *file = fopen(path.c_str(), "w");
 	if(file)
 	{
-		ConPrint(L"Doing this nooow\n");
 		fprintf(file, "[Carrier]\n");
 		fprintf(file, "clientid=%u\n", clientID);
 		
@@ -97,8 +96,6 @@ void LoadShip(string shipFileName)
 					continue;
 
 				mobiledockClients[shipClientId] = carrierInfo;
-				ConPrint(L"Loaded Carrier\n");
-
 			}
 		}
 		ini.close();
@@ -141,7 +138,6 @@ void LoadShip(string shipFileName)
 
 				shipInfo.mobileDocked = true;
 				mobiledockClients[shipClientId] = shipInfo;
-				ConPrint(L"Loaded Ship\n");
 			}
 		}
 	}

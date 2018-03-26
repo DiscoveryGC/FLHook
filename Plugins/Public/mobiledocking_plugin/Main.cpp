@@ -214,9 +214,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		// Update the internal values of the docked ship pretaining to the carrier
 		UpdateCarrierLocationInformation(client, carrierShip);
 
-		// Debug
-		PrintUserCmdText(client, L"Hop, skip, JUUMMP");
-
 		// Now that the data is prepared, send the player to the carriers location
 		JumpToLocation(client, mobiledockClients[client].carrierSystem, mobiledockClients[client].carrierPos, mobiledockClients[client].carrierRot);
 		
@@ -243,12 +240,12 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 				if (flag)
 				{
 					pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-					wstring wscMsgU = L"MF: %name has been permabanned. (Type 6)";
+					wstring wscMsgU = L"MF: %name has been banned. (Type 6)";
 					wscMsgU = ReplaceStr(wscMsgU, L"%name", playerName.c_str());
 
 					HkMsgU(wscMsgU);
 
-					wstring wscMsgLog = L"<%sender> was permabanned for undocking from a docking module with cargo in hold. Type 6.";
+					wstring wscMsgLog = L"<%sender> was banned for undocking from a docking module with cargo in hold. Type 6.";
 					wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", playerName.c_str());
 
 					LogCheater(client, wscMsgLog);
@@ -312,7 +309,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		CShip* cship = dynamic_cast<CShip*>(HkGetEqObjFromObjRW(reinterpret_cast<IObjRW*>(HkGetInspect(client))));
 		if (cship->shiparch()->fHoldSize > 275)
 		{
-			PrintUserCmdText(client, L"Target ship is too small");
+			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
 			return 0;
 		}
 
@@ -331,14 +328,6 @@ void __stdcall BaseEnter(uint iBaseID, uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	//@@TODO Update the location of any docked ships.
-	if (mobiledockClients[client].mapDockedShips.size())
-	{
-		
-		//Do that here
-
-	}
-
 	if (mobiledockClients[client].mobileDocked)
 	{
 		// Clear the market. We don't support transfers in this version.
@@ -352,15 +341,20 @@ void __stdcall BaseEnter(uint iBaseID, uint client)
 
 		// Check to see that the carrier thinks this ship is docked to it.
 		// If it isn't then eject the ship to space.
-		/*wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		if (!IsShipDockedOnCarrier(mobiledockClients[client].wscDockedWithCharname, charname))
 		{
+			// Update the carrier location
+			uint carrierShip;
+			pub::Player::GetShip(client, carrierShip);
+			UpdateCarrierLocationInformation(client, carrierShip);
+
 			JumpToLocation(client,
-				mobiledockClients[client].iCarrierSystem,
-				mobiledockClients[client].vCarrierLocation,
-				mobiledockClients[client].mCarrierLocation);
+				mobiledockClients[client].carrierSystem,
+				mobiledockClients[client].carrierPos,
+				mobiledockClients[client].carrierRot);
 			return;
-		}*/
+		}
 	}
 
 }
@@ -524,7 +518,16 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		{
 			mapPendingDockingRequests.erase(iTargetClientID);
 			PrintUserCmdText(client, L"No free docking modules available.");
-			PrintUserCmdText(client, L"Seriously. I'm reading that you have (dockingModulesAvailable <= 0) returning as true");
+			return true;
+		}
+
+		// Check if we're in conn. If so, reject the request
+		uint clientSystem;
+		pub::SpaceObj::GetSystem(client, clientSystem);
+		if(clientSystem == connSystemID)
+		{
+			mapPendingDockingRequests.erase(iTargetClientID);
+			PrintUserCmdText(client, L"You cannot dock in Connecticut.");
 			return true;
 		}
 
@@ -560,12 +563,6 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		PrintUserCmdText(client, L"Ship docked");
 
 		return true;
-	}
-	else if(wscCmd.find(L"/debug") == 0)
-	{
-		PrintUserCmdText(client, mobiledockClients[client].wscDockedWithCharname);
-		PrintUserCmdText(client, stows(itos(mobiledockClients[client].iLastBaseID)));
-		PrintUserCmdText(client, stows(itos(mobiledockClients[client].iDockingModulesAvailable)));
 	}
 	return false;
 }

@@ -43,7 +43,6 @@ void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIEN
 		// Save each docked ship name
 		for (map<wstring,wstring>::const_iterator it = client.mapDockedShips.begin(); it != client.mapDockedShips.end(); ++it)
 		{
-			ConPrint(L"For something\n");
 			fprintf(file, "dockedchar=%ls, %ls\n", it->first.c_str(), it->second.c_str());
 		}
 
@@ -109,7 +108,6 @@ void LoadShip(string shipFileName)
 	sprintf(tpath, R"(%s\Accts\MultiPlayer\docking_module\docked_%s.ini)", datapath, shipFileName.c_str());
 	path = tpath;
 
-	ConPrint(L"Using path: %s\n", stows(path));
 	if(ini.open(path.c_str(), false))
 	{
 		while(ini.read_header())
@@ -146,7 +144,6 @@ void LoadShip(string shipFileName)
 	
 	if (foundFile) {
 		_unlink(path.c_str());
-		ConPrint(L"Error: %i\n", errno);
 	}
 
 }

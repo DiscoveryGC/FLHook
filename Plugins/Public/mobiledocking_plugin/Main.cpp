@@ -160,7 +160,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 	returncode = SKIPPLUGINS;
 
 	uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
-	PrintUserCmdText(client, stows(itos(carrier_client)));
 
 	wstring clientName = (const wchar_t*)Players.GetActiveCharacterName(client);
 
@@ -193,8 +192,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		// Check to see if the carrier is currently in a base. If so, force the client to dock on that base.
 		if(!carrierShip)
 		{
-
-			PrintUserCmdText(client, L"We think that the carrier is inside of a base");
 
 			uint iBaseID;
 			pub::Player::GetBase(carrier_client, iBaseID);
@@ -245,7 +242,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 					HkMsgU(wscMsgU);
 
-					wstring wscMsgLog = L"<%sender> was banned for undocking from a docking module with cargo in hold. Type 6.";
+					wstring wscMsgLog = L"<%sender> was banned for undocking from a carrier in conn with cargo.";
 					wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", playerName.c_str());
 
 					LogCheater(client, wscMsgLog);
@@ -298,7 +295,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 			return 0;
 		}
 
-		// Check that the target ship has an empty docking module. Report the error
+		// Check that the target ship has an empty docking module.
 		if (mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
 		{
 			PrintUserCmdText(client, L"Target ship has no free docking capacity");
@@ -419,6 +416,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 bool UserCmd_Process(uint client, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
+
 	if(wscCmd.find(L"/listdocked") == 0)
 	{
 		if(mobiledockClients[client].mapDockedShips.empty())

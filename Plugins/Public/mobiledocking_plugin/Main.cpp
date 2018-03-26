@@ -435,6 +435,15 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			}
 		}
 	}
+	else if(wscCmd.find(L"/conn") == 0)
+	{
+		// This plugin always runs before playercntl runs it's conn function. Verify that there are no docked ships.
+		if(!mobiledockClients[client].mapDockedShips.empty())
+		{
+			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked with you!");
+			returncode = SKIPPLUGINS;
+		}
+	}
 	else if(wscCmd.find(L"/jettisonship") == 0)
 	{
 		// Get the supposed ship we should be ejecting from the command parameters
@@ -743,7 +752,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JumpInComplete, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));
 
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 3));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));

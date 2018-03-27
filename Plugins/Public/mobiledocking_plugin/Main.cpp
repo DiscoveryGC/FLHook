@@ -157,7 +157,8 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 
 void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 {
-	returncode = SKIPPLUGINS;
+
+	returncode = DEFAULT_RETURNCODE;
 
 	uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
 
@@ -165,6 +166,9 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 	if (mobiledockClients[client].mobileDocked)
 	{
+
+		returncode = SKIPPLUGINS;
+
 		// Update the location of the carrier and remove the docked ship from the carrier
 		if (carrier_client != -1)
 		{

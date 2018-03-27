@@ -47,6 +47,7 @@ void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIEN
 		}
 
 		fprintf(file, "lastdocked=%u\n", client.iLastBaseID);
+		fprintf(file, "availablemodules=%u\n", mobiledockClients[clientID].iDockingModulesAvailable);
 	}
 	fclose(file);
 }
@@ -89,6 +90,10 @@ void LoadShip(string shipFileName)
 					else if (ini.is_value("lastdocked"))
 					{
 						carrierInfo.iLastBaseID = ini.get_value_int(0);
+					}
+					else if (ini.is_value("availablemodules"))
+					{
+						carrierInfo.iDockingModulesAvailable = ini.get_value_int(0);
 					}
 				}
 				if (!shipClientId)

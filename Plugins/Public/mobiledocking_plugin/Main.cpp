@@ -1,3 +1,10 @@
+/**
+ * Mobile Docking Plugin for FLHook
+ * Initial Version by Cannon
+ * Using some work written by Alley
+ * Rework by Remnant
+ */
+
 #include "Main.h"
 
 PLUGIN_RETURNCODE returncode;

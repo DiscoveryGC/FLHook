@@ -260,7 +260,10 @@ namespace GiveCash
 		}
 
 		int secs = 0;
-		HkGetOnLineTime(wscCharname, secs);
+		if ((err = HkGetOnLineTime(wscCharname, secs)) != HKE_OK) {
+			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
+			return true;
+		}
 		if (secs<set_iMinTime)
 		{
 			PrintUserCmdText(iClientID, L"ERR: insufficient time online");
@@ -292,7 +295,7 @@ namespace GiveCash
 
 		// Prevent target ship from becoming corrupt.
 		float fTargetValue = 0.0f;
-		if (HKGetShipValue(wscTargetCharname, fTargetValue) != HKE_OK)
+		if ((err = HKGetShipValue(wscTargetCharname, fTargetValue)) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
 			return true;

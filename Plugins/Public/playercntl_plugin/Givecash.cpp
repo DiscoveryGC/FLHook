@@ -581,7 +581,7 @@ namespace GiveCash
 		// Check the adding this cash to this player will not
 		// exceed the maximum ship value.
 		float fTargetValue = 0.0f;
-		if (HKGetShipValue(wscCharname, fTargetValue) != HKE_OK)
+		if ((err = HKGetShipValue(wscCharname, fTargetValue)) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
 			return true;

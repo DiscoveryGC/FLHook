@@ -540,7 +540,10 @@ namespace GiveCash
 		}
 
 		int secs = 0;
-		HkGetOnLineTime(wscTargetCharname, secs);
+		if ((err = HkGetOnLineTime(wscCharname, secs)) != HKE_OK) {
+			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
+			return true;
+		}
 		if (secs<set_iMinTime)
 		{
 			PrintUserCmdText(iClientID, L"ERR insufficient time online");

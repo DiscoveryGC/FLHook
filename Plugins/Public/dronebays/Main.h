@@ -48,7 +48,6 @@ struct DeployedDroneInfo
 {
 	uint deployedDroneObj;
 	uint lastShipObjTarget;
-	bool distanceAlert = false;
 };
 
 struct ClientDroneInfo
@@ -61,6 +60,9 @@ struct ClientDroneInfo
 
 	// The type of DroneBay equipped by the client
 	BayArch droneBay;
+
+	// The carrier shipObj
+	uint carrierShipobj;
 };
 
 

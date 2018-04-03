@@ -172,16 +172,16 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[1] = 0.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[2] = 0.4f;
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[3] = 0.2f;
-	p.personality.EvadeDodgeUse.evade_dodge_cone_angle = 120.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_interval_time = 2.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_time = 2.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_distance = 150.0f;
-	p.personality.EvadeDodgeUse.evade_activate_range = 250.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_roll_angle = 0.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_waggle_axis_cone_angle = 0.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_slide_throttle = 0.75f;
-	p.personality.EvadeDodgeUse.evade_dodge_turn_throttle = 0.75f;
-	p.personality.EvadeDodgeUse.evade_dodge_corkscrew_roll_flip_direction = false;
+	p.personality.EvadeDodgeUse.evade_dodge_cone_angle = 1.5708f;
+	p.personality.EvadeDodgeUse.evade_dodge_interval_time = 10.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_time = 1.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_distance = 75.0f;
+	p.personality.EvadeDodgeUse.evade_activate_range = 100.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_roll_angle = 1.5708f;
+	p.personality.EvadeDodgeUse.evade_dodge_waggle_axis_cone_angle = 1.5708f;
+	p.personality.EvadeDodgeUse.evade_dodge_slide_throttle = 1.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_turn_throttle = 1.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_corkscrew_roll_flip_direction = true;
 	p.personality.EvadeDodgeUse.evade_dodge_interval_time_variance_percent = 0.5f;
 	p.personality.EvadeDodgeUse.evade_dodge_cone_angle_variance_percent = 0.5f;
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[0] = 0.25f;
@@ -189,9 +189,9 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[2] = 0.25f;
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[3] = 0.25f;
 
-	p.personality.EvadeBreakUse.evade_break_roll_throttle = 0.5f;
-	p.personality.EvadeBreakUse.evade_break_time = 5.0f;
-	p.personality.EvadeBreakUse.evade_break_interval_time = 1.0f;
+	p.personality.EvadeBreakUse.evade_break_roll_throttle = 1.0f;
+	p.personality.EvadeBreakUse.evade_break_time = 1.0f;
+	p.personality.EvadeBreakUse.evade_break_interval_time = 10.0f;
 	p.personality.EvadeBreakUse.evade_break_afterburner_delay = 0.0f;
 	p.personality.EvadeBreakUse.evade_break_turn_throttle = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_direction_weight[0] = 1.0f;
@@ -203,18 +203,18 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.EvadeBreakUse.evade_break_style_weight[2] = 1.0f;
 
 	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward = 500.0f;
-	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward_variance_percent = 0.1f;
-	p.personality.BuzzHeadTowardUse.buzz_max_time_to_head_away = 5.0f;
+	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward_variance_percent = 0.25f;
+	p.personality.BuzzHeadTowardUse.buzz_max_time_to_head_away = 1.0f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_engine_throttle = 1.0f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_turn_throttle = 1.0f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_roll_throttle = 1.0f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_turn_throttle = 1.0f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_cone_angle = 20.0f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_cone_angle = 1.5708f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_cone_angle_variance_percent = 0.5f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_waggle_axis_cone_angle = 0.0f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_roll_angle = 20.0f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time = 30.0f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time_variance_percent = 0.1f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_waggle_axis_cone_angle = 0.3491f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_roll_angle = 1.5708f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time = 10.0f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time_variance_percent = 0.5f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_direction_weight[0] = 0.25f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_direction_weight[1] = 0.25f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_direction_weight[2] = 0.25f;
@@ -223,7 +223,7 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[1] = 0.33f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[2] = 0.33f;
 
-	p.personality.BuzzPassByUse.buzz_distance_to_pass_by = 100.0f;
+	p.personality.BuzzPassByUse.buzz_distance_to_pass_by = 1000.0f;
 	p.personality.BuzzPassByUse.buzz_pass_by_time = 1.0f;
 	p.personality.BuzzPassByUse.buzz_break_direction_cone_angle = 1.5708f;
 	p.personality.BuzzPassByUse.buzz_break_turn_throttle = 1.0f;
@@ -234,15 +234,15 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.BuzzPassByUse.buzz_break_direction_weight[3] = 1.0f;
 	p.personality.BuzzPassByUse.buzz_pass_by_style_weight[2] = 1.0f;
 
-	p.personality.TrailUse.trail_lock_cone_angle = 60.0f;
-	p.personality.TrailUse.trail_break_time = 2.0f;
+	p.personality.TrailUse.trail_lock_cone_angle = 0.0873f;
+	p.personality.TrailUse.trail_break_time = 0.5f;
 	p.personality.TrailUse.trail_min_no_lock_time = 0.1f;
 	p.personality.TrailUse.trail_break_roll_throttle = 1.0f;
 	p.personality.TrailUse.trail_break_afterburner = true;
 	p.personality.TrailUse.trail_max_turn_throttle = 1.0f;
 	p.personality.TrailUse.trail_distance = 100.0f;
 
-	p.personality.StrafeUse.strafe_run_away_distance = 125.0f;
+	p.personality.StrafeUse.strafe_run_away_distance = 100.0f;
 	p.personality.StrafeUse.strafe_attack_throttle = 1.0f;
 
 	p.personality.EngineKillUse.engine_kill_search_time = 0.0f;
@@ -258,43 +258,43 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.RepairUse.use_hull_repair_post_delay = 1.0f;
 	p.personality.RepairUse.use_hull_repair_at_damage_percent = 0.2f;
 
-	p.personality.GunUse.gun_fire_interval_time = 0.0f;
-	p.personality.GunUse.gun_fire_interval_variance_percent = 0.25f;
-	p.personality.GunUse.gun_fire_burst_interval_time = 0.25f;
-	p.personality.GunUse.gun_fire_burst_interval_variance_percent = 0.25f;
+	p.personality.GunUse.gun_fire_interval_time = 0.1f;
+	p.personality.GunUse.gun_fire_interval_variance_percent = 0.05f;
+	p.personality.GunUse.gun_fire_burst_interval_time = 15.0f;
+	p.personality.GunUse.gun_fire_burst_interval_variance_percent = 0.05f;
 	p.personality.GunUse.gun_fire_no_burst_interval_time = 1.0f;
-	p.personality.GunUse.gun_fire_accuracy_cone_angle = 1.00001f;
+	p.personality.GunUse.gun_fire_accuracy_cone_angle = 0.00001f;
 	p.personality.GunUse.gun_fire_accuracy_power = 100.0f;
-	p.personality.GunUse.gun_range_threshold = 1.1f;
+	p.personality.GunUse.gun_range_threshold = 1.0f;
 	p.personality.GunUse.gun_target_point_switch_time = 0.0f;
 	p.personality.GunUse.fire_style = 0;
 	p.personality.GunUse.auto_turret_interval_time = 0.1f;
-	p.personality.GunUse.auto_turret_burst_interval_time = 1.0f;
-	p.personality.GunUse.auto_turret_no_burst_interval_time = 2.0f;
-	p.personality.GunUse.auto_turret_burst_interval_variance_percent = 0.2f;
-	p.personality.GunUse.gun_range_threshold_variance_percent = 0.3f;
+	p.personality.GunUse.auto_turret_burst_interval_time = 15.0f;
+	p.personality.GunUse.auto_turret_no_burst_interval_time = 0.1f;
+	p.personality.GunUse.auto_turret_burst_interval_variance_percent = 0.1f;
+	p.personality.GunUse.gun_range_threshold_variance_percent = 1.0f;
 	p.personality.GunUse.gun_fire_accuracy_power_npc = 100.0f;
 
 	p.personality.MineUse.mine_launch_interval = 0.5f;
 	p.personality.MineUse.mine_launch_cone_angle = 0.7854f;
 	p.personality.MineUse.mine_launch_range = 200.0f;
 
-	p.personality.MissileUse.missile_launch_interval_time = 1.0f;
+	p.personality.MissileUse.missile_launch_interval_time = 0.0f;
 	p.personality.MissileUse.missile_launch_interval_variance_percent = 0.5f;
 	p.personality.MissileUse.missile_launch_range = 800.0f;
-	p.personality.MissileUse.missile_launch_cone_angle = 22.5f;
+	p.personality.MissileUse.missile_launch_cone_angle = 0.01745f;
 	p.personality.MissileUse.missile_launch_allow_out_of_range = false;
 
-	p.personality.DamageReaction.evade_break_damage_trigger_percent = 0.25f;
+	p.personality.DamageReaction.evade_break_damage_trigger_percent = 1.0f;
 	p.personality.DamageReaction.evade_dodge_more_damage_trigger_percent = 0.25f;
-	p.personality.DamageReaction.engine_kill_face_damage_trigger_percent = 0.45f;
-	p.personality.DamageReaction.engine_kill_face_damage_trigger_time = 1.0f;
-	p.personality.DamageReaction.roll_damage_trigger_percent = 0.3f;
-	p.personality.DamageReaction.roll_damage_trigger_time = 1.0f;
-	p.personality.DamageReaction.afterburner_damage_trigger_percent = 0.5f;
-	p.personality.DamageReaction.afterburner_damage_trigger_time = 2.0f;
-	p.personality.DamageReaction.brake_reverse_damage_trigger_percent = 0.25f;
-	p.personality.DamageReaction.drop_mines_damage_trigger_percent = 0.75f;
+	p.personality.DamageReaction.engine_kill_face_damage_trigger_percent = 1.0f;
+	p.personality.DamageReaction.engine_kill_face_damage_trigger_time = 0.2f;
+	p.personality.DamageReaction.roll_damage_trigger_percent = 0.4f;
+	p.personality.DamageReaction.roll_damage_trigger_time = 0.2f;
+	p.personality.DamageReaction.afterburner_damage_trigger_percent = 0.2f;
+	p.personality.DamageReaction.afterburner_damage_trigger_time = 0.5f;
+	p.personality.DamageReaction.brake_reverse_damage_trigger_percent = 1.0f;
+	p.personality.DamageReaction.drop_mines_damage_trigger_percent = 0.25f;
 	p.personality.DamageReaction.drop_mines_damage_trigger_time = 0.1f;
 	p.personality.DamageReaction.fire_guns_damage_trigger_percent = 1.0f;
 	p.personality.DamageReaction.fire_guns_damage_trigger_time = 1.0f;
@@ -378,7 +378,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 	{
 		CShip *cship = reinterpret_cast<CShip*>(ecx[4]);
 		
-		// Check if this is a drone being destroyed
+		// Check if this is a drone or carrier being destroyed
 		for (auto drone = clientDroneInfo.begin(); drone != clientDroneInfo.end(); ++drone)
 		{
 			if(cship->get_id() == drone->second.deployedInfo.deployedDroneObj)
@@ -388,6 +388,20 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 				clientDroneInfo[drone->first].buildState = STATE_DRONE_OFF;
 
 				PrintUserCmdText(drone->first, L"Drone has been destroyed.");
+			}
+
+			// If the carrier is being destroyed, destroy the drone as well
+			else if(cship->get_id() == drone->second.carrierShipobj)
+			{
+				if(!drone->second.deployedInfo.deployedDroneObj != 0)
+				{
+					pub::SpaceObj::Destroy(drone->second.deployedInfo.deployedDroneObj, DestroyType::FUSE);
+					clientDroneInfo.erase(drone->first);
+					clientDroneInfo[drone->first].buildState = STATE_DRONE_OFF;
+
+					PrintUserCmdText(drone->first, L"Drone has been destroyed.");
+
+				}
 			}
 		}
 	}
@@ -400,6 +414,19 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 	{
 		pub::SpaceObj::Destroy(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj, DestroyType::FUSE);
 		PrintUserCmdText(iClientID, L"Drones cannot handle the tear of jumping. Self-destructing.");
+
+		clientDroneInfo.erase(iClientID);
+		clientDroneInfo[iClientID].buildState = STATE_DRONE_OFF;
+	}
+}
+
+void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
+{
+	// If the carrier changes systems, destroy any old drones
+	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
+	{
+		pub::SpaceObj::Destroy(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj, DestroyType::FUSE);
+		PrintUserCmdText(iClientID, L"Drones cannot dock or land on non-carrier structures. Self-destructing.");
 
 		clientDroneInfo.erase(iClientID);
 		clientDroneInfo[iClientID].buildState = STATE_DRONE_OFF;
@@ -424,7 +451,6 @@ void HkTimerCheckKick()
 	// Check the despawn requests for any ships to be removed
 	for (auto dt = droneDespawnMap.begin(); dt != droneDespawnMap.end(); ++dt)
 	{
-		ConPrint(L"BEEP..\n");
 		// Get the distance between the two objects and check that it's smaller than the carriers radius
 		float carrierRadius;
 		Vector radiusVector{};
@@ -520,6 +546,7 @@ USERCMD UserCmds[] =
 	{ L"/dronerecall", UserCommands::UserCmd_RecallDrone, L"Usage: /dronerecall"},
 	{ L"/dronehelp", UserCommands::UserCmd_DroneHelp, L"Usage: /dronehelp"},
 	{ L"/dronetypes", UserCommands::UserCmd_DroneBayAvailability, L"Usage: /dronetypes"},
+	{ L"/dronecome", UserCommands::UserCmd_DroneCome, L"Usage: /dronecome"},
 };
 
 /**
@@ -581,6 +608,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));

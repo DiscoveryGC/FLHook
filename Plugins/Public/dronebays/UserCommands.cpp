@@ -77,6 +77,9 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	// Set the buildstate, and alert the user
 	clientDroneInfo[iClientID].buildState = STATE_DRONE_BUILDING;
 	PrintUserCmdText(iClientID, L"Drone being prepared for deployment :: Launch in ETA %i seconds", clientDroneInfo[iClientID].droneBay.iDroneBuildTime);
+
+	// Save the carrier shipObj to the client struct
+	clientDroneInfo[iClientID].carrierShipobj = playerShip;
 	return true;
 }
 
@@ -311,6 +314,7 @@ bool UserCommands::UserCmd_DroneHelp(uint iClientID, const wstring& wscCmd, cons
 	PrintUserCmdText(iClientID, L"/dronetarget - Directs your drone to attack whatever you are targeting");
 	PrintUserCmdText(iClientID, L"/dronestop - Stops your drone from attacking");
 	PrintUserCmdText(iClientID, L"/dronerecall - Recalls your drone, and docks it with your carrier");
+	PrintUserCmdText(iClientID, L"/dronecome - Disengages the drone from it's current target, and directs it to fly to your position.");
 
 	return true;
 }

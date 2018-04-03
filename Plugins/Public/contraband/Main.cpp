@@ -214,6 +214,7 @@ static void CheckCargo(int iClientID)
 					{
 						wstring illegalCargo = HkGetWStringFromIDS(mapItems[i->iArchID]);
 						ContrabandWarning(iClientID, L"WARNING: You are carrying %s which is illegal in this sector.", illegalCargo.c_str());
+						ContrabandWarning(iClientID, L"If you are caught carrying %s, the local authorities might fine or destroy you.", illegalCargo.c_str());
 					}
 				}
 			}
@@ -250,11 +251,11 @@ bool UserCmd_Laws(uint iClientID, const wstring & wscCmd, const wstring & wscPar
 				HkChangeIDSString(iClientID, 500000, wscPlayerInfo);
 
 				FmtStr caption(0, 0);
-				caption.begin_mad_lib(500000);
+				caption.begin_mad_lib(500001);
 				caption.end_mad_lib();
 
 				FmtStr message(0, 0);
-				message.begin_mad_lib(500001);
+				message.begin_mad_lib(500000);
 				message.end_mad_lib();
 
 				pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);

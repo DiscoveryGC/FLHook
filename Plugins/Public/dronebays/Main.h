@@ -48,6 +48,7 @@ struct DeployedDroneInfo
 {
 	uint deployedDroneObj;
 	uint lastShipObjTarget;
+	bool distanceAlert = false;
 };
 
 struct ClientDroneInfo
@@ -64,14 +65,23 @@ struct ClientDroneInfo
 
 
 // A wrapper struct used to encapsulate all of the information the plugin needs to remember while in the buildstate
-struct DroneTimerWrapper
+struct DroneBuildTimerWrapper
 {
 	mstime startBuildTime;
 	DroneArch reqDrone;
 	int buildTimeRequired;
 };
 
-extern map<uint, DroneTimerWrapper> buildTimerMap;
+struct DroneDespawnWrapper
+{
+	uint droneObj;
+	uint parentObj;
+	
+	int timeElapsedSinceRecallCmd = 0;
+};
+
+extern map<uint, DroneBuildTimerWrapper> buildTimerMap;
+extern map<uint, DroneDespawnWrapper> droneDespawnMap;
 extern map<uint, ClientDroneInfo> clientDroneInfo;
 
 extern map<uint, BayArch> availableDroneBays;
@@ -86,19 +96,22 @@ namespace UserCommands
 	bool UserCmd_EnterFormation(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_RecallDrone(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_Debug(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_DroneStop(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_DroneCome(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_DroneHelp(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_DroneBayAvailability(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 }
 
 namespace Utility
 {
-	void DeployDrone(uint iClientID, const DroneTimerWrapper& timerWrapper);
+	void DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWrapper);
 	float RandFloatRange(float a, float b);
 	void CreateNPC(uint iClientID, Vector pos, Matrix rot, uint iSystem, DroneArch drone);
 	pub::AI::SetPersonalityParams MakePersonality();
 	uint rand_name();
 	
-	//@@TODO: Remove the reqClientID from these methods later. They're here for testing purposes.
-	void SetRepNeutral(uint clientObj, uint targetObj, uint reqClientId);
-	void SetRepHostile(uint clientObj, uint targetObj, uint reqClientId);
+	void SetRepNeutral(uint clientObj, uint targetObj);
+	void SetRepHostile(uint clientObj, uint targetObj);
 }
 
 #endif

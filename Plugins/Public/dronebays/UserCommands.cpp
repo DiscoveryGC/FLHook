@@ -115,36 +115,24 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 	Utility::SetRepNeutral(droneObj, clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget);
 	Utility::SetRepHostile(droneObj, iTargetObj);
 
-	// Set the target hostile to the drone as well
-	Utility::SetRepHostile(iTargetObj, droneObj);
+	// Set the target hostile to the drone as well only if it isn't another existing drone
+	bool isTargetDrone = false;
+	for (const auto& currClient : clientDroneInfo)
+	{
+		if(iTargetObj == currClient.second.deployedInfo.deployedDroneObj)
+		{
+			isTargetDrone = true;
+			break;
+		}
+	}
+
+	if(!isTargetDrone)
+		Utility::SetRepHostile(iTargetObj, droneObj);
 
 	clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget = iTargetObj;
 	return true;
 }
 
-bool UserCommands::UserCmd_EnterFormation(uint iClientID, const wstring& wscCmd, const wstring& wscParam,
-	const wchar_t* usage)
-{
-
-	// Verify that the user is in space
-	uint iShipObj;
-	pub::Player::GetShip(iClientID, iShipObj);
-	if (!iShipObj)
-	{
-		PrintUserCmdText(iClientID, L"You must be in space to use this command");
-		return true;
-	}
-
-	// Verify that the user has a drone currently deployed
-	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj == 0)
-	{
-		PrintUserCmdText(iClientID, L"You must have a drone deployed for this to work");
-		return true;
-	}
-	
-	PrintUserCmdText(iClientID, L"Command unfinished");
-	return true;
-}
 
 bool UserCommands::UserCmd_RecallDrone(uint iClientID, const wstring& wscCmd, const wstring& wscParam,
 	const wchar_t* usage)
@@ -320,7 +308,7 @@ bool UserCommands::UserCmd_DroneHelp(uint iClientID, const wstring& wscCmd, cons
 	PrintUserCmdText(iClientID, L"Drone Usage");
 	PrintUserCmdText(iClientID, L"/dronetypes - Lists all available dronetypes for your bay type");
 	PrintUserCmdText(iClientID, L"/dronedeploy [dronetype] - Launches a drone compatible with your dronebay");
-	PrintUserCmdText(iClientID, L"dronetarget - Directs your drone to attack whatever you are targeting");
+	PrintUserCmdText(iClientID, L"/dronetarget - Directs your drone to attack whatever you are targeting");
 	PrintUserCmdText(iClientID, L"/dronestop - Stops your drone from attacking");
 	PrintUserCmdText(iClientID, L"/dronerecall - Recalls your drone, and docks it with your carrier");
 

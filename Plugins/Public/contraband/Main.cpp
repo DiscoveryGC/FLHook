@@ -196,24 +196,25 @@ static void CheckCargo(int iClientID)
 	if (set_lawsContrabandEnabled)
 	{
 		uint iSystemID;
-		pub::Player::GetSystem(iClientID, iSystemID);
+		pub::Player::GetSystem(iClientID, iSystemID); // What system are we in?
 
 		int iHoldSize;
 		list<CARGO_INFO> lstCargo;
-		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iHoldSize);
+		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iHoldSize); // Get all their cargo
 
+		// If we are currently entering a system that is not within the sector we were in before or if we are just entering a sector from a system that was not in a sector.
 		if (mapHouseAndSystems[iSystemID] != mapHouseAndSystems[iClient_systems[iClientID]] || mapHouseAndSystems.find(iClient_systems[iClientID]) == mapHouseAndSystems.end())
 		{
-			string currentHouse = mapHouseAndSystems[iSystemID];
-			if(mapHouseCargoList.find(currentHouse) != mapHouseCargoList.end())
+			string currentHouse = mapHouseAndSystems[iSystemID]; // What house/sector are we in?
+			if(mapHouseCargoList.find(currentHouse) != mapHouseCargoList.end()) // Is the system we are in currently declared as being in any particular sector?
 			{
-				list<uint> cfgCargoLst = mapHouseCargoList[currentHouse];
-				for (list<CARGO_INFO>::iterator i = lstCargo.begin(); i != lstCargo.end(); ++i)
+				list<uint> cfgCargoLst = mapHouseCargoList[currentHouse]; // Load in the cargo for the sector we are currently in
+				for (list<CARGO_INFO>::iterator i = lstCargo.begin(); i != lstCargo.end(); ++i) // If we are carrying cargo we've declared illegal.
 				{
-					if(find(cfgCargoLst.begin(), cfgCargoLst.end(), i->iArchID) != cfgCargoLst.end())
+					if(find(cfgCargoLst.begin(), cfgCargoLst.end(), i->iArchID) != cfgCargoLst.end()) // If we found some cargo
 					{
-						wstring illegalCargo = HkGetWStringFromIDS(mapItems[i->iArchID]);
-						ContrabandWarning(iClientID, L"WARNING: You are carrying %s which is illegal in this sector.", illegalCargo.c_str());
+						wstring illegalCargo = HkGetWStringFromIDS(mapItems[i->iArchID]); // Get the name of the cargo
+						ContrabandWarning(iClientID, L"WARNING: You are carrying %s which is illegal in this sector.", illegalCargo.c_str()); // Inform the criminal scum
 						ContrabandWarning(iClientID, L"If you are caught carrying %s, the local authorities might fine or destroy you.", illegalCargo.c_str());
 					}
 				}
@@ -228,7 +229,44 @@ static void CheckCargo(int iClientID)
 //////////////////////////////////////////////
 bool UserCmd_ManualCargoCheck(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
 {
-	CheckCargo(iClientID);
+	// Code duplication, but there needs to be a small change in logic to the manual check always works.
+	if (set_lawsContrabandEnabled)
+	{
+		uint iSystemID;
+		pub::Player::GetSystem(iClientID, iSystemID);
+
+		int iHoldSize;
+		list<CARGO_INFO> lstCargo;
+		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iHoldSize);
+
+		if (mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end())
+		{
+			string currentHouse = mapHouseAndSystems[iSystemID];
+			if (mapHouseCargoList.find(currentHouse) != mapHouseCargoList.end()) // We only need them to be in the same sector.
+			{
+				list<uint> cfgCargoLst = mapHouseCargoList[currentHouse];
+				bool foundCargo = false;
+				for (list<CARGO_INFO>::iterator i = lstCargo.begin(); i != lstCargo.end(); ++i)
+				{
+					if (find(cfgCargoLst.begin(), cfgCargoLst.end(), i->iArchID) != cfgCargoLst.end())
+					{
+						wstring illegalCargo = HkGetWStringFromIDS(mapItems[i->iArchID]);
+						ContrabandWarning(iClientID, L"WARNING: You are carrying %s which is illegal in this sector.", illegalCargo.c_str());
+						ContrabandWarning(iClientID, L"If you are caught carrying %s, the local authorities might fine or destroy you.", illegalCargo.c_str());
+						foundCargo = true; // We found the right cargo
+					}
+				}
+				if (!foundCargo) // We found no cargo that is illegal in the sector
+				{
+					PrintUserCmdText(iClientID, L"You are not currently carrying any cargo that is considered illegal in this sector.");
+				}
+			}
+		}
+		else // We are not even in any sector that is defined in the cfg.
+		{
+			PrintUserCmdText(iClientID, L"You are not currently within any independent sector.");
+		}
+	}
 	return true;
 }
 
@@ -237,15 +275,15 @@ bool UserCmd_Laws(uint iClientID, const wstring & wscCmd, const wstring & wscPar
 	if (set_lawsEnabled)
 	{
 		uint getSystem;
-		pub::Player::GetSystem(iClientID, getSystem);
+		pub::Player::GetSystem(iClientID, getSystem); // What system are we in?
 
-		if (mapHouseAndSystems.find(getSystem) != mapHouseAndSystems.end())
+		if (mapHouseAndSystems.find(getSystem) != mapHouseAndSystems.end()) // If our system is any house/sector
 		{
-			string currentHouse = mapHouseAndSystems[getSystem];
-			if (mapHouseLawList.find(currentHouse) != mapHouseLawList.end())
+			string currentHouse = mapHouseAndSystems[getSystem]; // Load in the data for that particular house
+			if (mapHouseLawList.find(currentHouse) != mapHouseLawList.end()) // If we have the data for the laws of that house
 			{
-				wstring wscXML = mapHouseLawList[currentHouse];
-				wstring wscPlayerInfo = L"<RDL><PUSH/>" + wscXML + L"<PARA/><POP/></RDL>";
+				wstring wscXML = mapHouseLawList[currentHouse]; // Load in the XML
+				wstring wscPlayerInfo = L"<RDL><PUSH/>" + wscXML + L"<PARA/><POP/></RDL>"; // Format
 
 				HkChangeIDSString(iClientID, 500001, L"The Local Laws");
 				HkChangeIDSString(iClientID, 500000, wscPlayerInfo);
@@ -258,7 +296,7 @@ bool UserCmd_Laws(uint iClientID, const wstring & wscCmd, const wstring & wscPar
 				message.begin_mad_lib(500000);
 				message.end_mad_lib();
 
-				pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
+				pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK); // Display
 			}
 		}
 		return false;

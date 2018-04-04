@@ -586,7 +586,7 @@ void AdminCmd_AIKill(CCmds* cmds, int loot)
 
 	foreach(npcs, uint, iShipIter)
 	{
-		pub::SpaceObj::Destroy(*iShipIter, (pub::SpaceObj::DestroyType)num);
+		pub::SpaceObj::Destroy(*iShipIter, DestroyType::VANISH);
 	}
 	npcs.clear();
 	cmds->Print(L"OK\n");

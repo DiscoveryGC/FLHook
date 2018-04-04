@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.12
+VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Template", "Plugins\Public\__PLUGIN_TEMPLATE\Template.vcxproj", "{E7008BA7-4F75-4AF7-B25C-3A9A3287A88F}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -57,6 +57,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Player Control", "Plugins\P
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tempban Plugin", "Plugins\Public\tempban\Tempban Plugin.vc14.vcxproj", "{01DE3D3D-0DA2-447E-8C03-B2A2FB03A0F5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Laz", "Laz", "{63F35E63-664C-46D5-8897-D0EB32610F96}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Rep", "Plugins\Public\getrep\Rep.vcxproj", "{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{097bffbb-2bbe-4e16-b2fb-3ed8e90ecbd7}*SharedItemsImports = 4
@@ -74,6 +78,7 @@ Global
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{db39d53f-d243-4c8c-95cd-2101cca7d20f}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{e7008ba7-4f75-4af7-b25c-3a9a3287a88f}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{e7dfb061-5e6a-47dc-94c5-ccb169ea410a}*SharedItemsImports = 4
+		Plugins\PluginUtilities\PluginUtilities.vcxitems*{e7eb5672-90cc-4b88-a8a0-55bb6bbae7f7}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -186,6 +191,12 @@ Global
 		{01DE3D3D-0DA2-447E-8C03-B2A2FB03A0F5}.DebugDONOTUSE|Win32.Build.0 = Debug|Win32
 		{01DE3D3D-0DA2-447E-8C03-B2A2FB03A0F5}.Release|Win32.ActiveCfg = Release|Win32
 		{01DE3D3D-0DA2-447E-8C03-B2A2FB03A0F5}.Release|Win32.Build.0 = Release|Win32
+		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}.Debug|Win32.Build.0 = Debug|Win32
+		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}.DebugDONOTUSE|Win32.ActiveCfg = Debug|Win32
+		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}.DebugDONOTUSE|Win32.Build.0 = Debug|Win32
+		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}.Release|Win32.ActiveCfg = Release|Win32
+		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -209,5 +220,10 @@ Global
 		{7C84F18C-FE8C-4731-882D-05C237753A54} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 		{9E084A9E-A8B9-4F64-8048-F3357839683E} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 		{01DE3D3D-0DA2-447E-8C03-B2A2FB03A0F5} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
+		{63F35E63-664C-46D5-8897-D0EB32610F96} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
+		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7} = {63F35E63-664C-46D5-8897-D0EB32610F96}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {393C1DF6-B2DC-4FF2-8100-36DD1F304E10}
 	EndGlobalSection
 EndGlobal

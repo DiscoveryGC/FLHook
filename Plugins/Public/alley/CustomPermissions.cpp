@@ -412,7 +412,7 @@ void ShowPlayerMissionText(uint iClientID, const wstring &text)
 	caption.begin_mad_lib(526999);
 	caption.end_mad_lib();
 
-	pub::Player::DisplayMissionMessage(iClientID, caption, pub::Player::MissionMessageType_Type2, true);
+	pub::Player::DisplayMissionMessage(iClientID, caption, MissionMessageType::MissionMessageType_Type2, true);
 }
 
 void AP::Timer()

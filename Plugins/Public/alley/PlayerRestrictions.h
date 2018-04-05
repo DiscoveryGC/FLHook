@@ -81,18 +81,4 @@ namespace AP
 	void Timer();
 }
 
-namespace pub
-{
-	namespace Player
-	{
-		enum MissionMessageType
-		{
-			MissionMessageType_Failure, // mission failure
-			MissionMessageType_Type1, // objective
-			MissionMessageType_Type2, // objective
-			MissionMessageType_Type3, // mission success
-		};
-	}
-}
-
 #endif

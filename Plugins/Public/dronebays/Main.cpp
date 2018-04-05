@@ -237,93 +237,25 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 
 void HkTimerCheckKick()
 {
-	const mstime now = timeInMS();
-	uint curr_time = static_cast<uint>(time(nullptr));
+	// Process any queued drone launches if any exist
+	if (!buildTimerMap.empty())
+		Timers::processDroneBuildRequests(buildTimerMap);
 
-	// Check the launch timers for each client
-	for (auto dt = buildTimerMap.begin(); dt != buildTimerMap.end(); ++dt)
+	// Process any queued docking request if any exist
+	if (!droneDespawnMap.empty())
+		Timers::processDroneDockRequests(droneDespawnMap);
+
+	// Every 10 seconds, be sure that drones are within a proper range from the carrier
+	static int rangeTimer = 0;
+	if (!clientDroneInfo.empty() && rangeTimer > 10)
 	{
-		if ((dt->second.startBuildTime + (dt->second.buildTimeRequired * 1000)) < now)
-		{
-			Utility::DeployDrone(dt->first, dt->second);
-			buildTimerMap.erase(dt);
-		}
+		Timers::processDroneMaxDistance(clientDroneInfo);
+		rangeTimer = 0;
 	}
 
-	// Check the despawn requests for any ships to be removed
-	for (auto dt = droneDespawnMap.begin(); dt != droneDespawnMap.end(); ++dt)
-	{
-		// Get the distance between the two objects and check that it's smaller than the carriers radius
-		float carrierRadius;
-		Vector radiusVector{};
-		pub::SpaceObj::GetRadius(dt->second.parentObj, carrierRadius, radiusVector);
-		const int shipDistance = abs(HkDistance3DByShip(dt->second.parentObj, dt->second.droneObj));
-
-		// We give a padding of 100 meters to ensure that there is no collision
-		if(shipDistance < (carrierRadius + 100))
-		{
-			pub::SpaceObj::Destroy(dt->second.droneObj, DestroyType::VANISH);
-			PrintUserCmdText(dt->first, L"Drone docked");
-			droneDespawnMap.erase(dt->first);
-			
-			// Rebuild the client dronestate struct from the ground up
-			clientDroneInfo.erase(dt->first);
-			clientDroneInfo[dt->first].buildState = STATE_DRONE_OFF;
-		}
-	}
-
-	// Run the move-scanner every ten seconds
-	static int moveTimer = 0;
-	if(moveTimer == 10)
-	{
-		for(auto dt = clientDroneInfo.begin(); dt != clientDroneInfo.end(); ++dt)
-		{
-			// This only matters if the user is in space
-			uint carrierShip;
-			pub::Player::GetShip(dt->first, carrierShip);
-
-			if(!carrierShip)
-				continue;
-
-			// This also only matters if there is a drone to move
-			if (clientDroneInfo[dt->first].deployedInfo.deployedDroneObj == 0)
-				continue;
-
-			// Check to see if the distance is greater than the maximum distance
-			static uint droneSpaceObj = dt->second.deployedInfo.deployedDroneObj;
-			static float maxDistanceAllowed = 10000;
-			const float distance = HkDistance3DByShip(droneSpaceObj, carrierShip);
-
-			// If the drone is furthur than it should be, retreat to it's owner
-			if (distance > maxDistanceAllowed)
-			{
-				// If the drone is attacking someone, set the reputation back to neutral before returning
-				if(dt->second.deployedInfo.lastShipObjTarget != 0)
-				{
-					Utility::SetRepNeutral(droneSpaceObj, dt->second.deployedInfo.lastShipObjTarget);
-				}
-
-				pub::AI::DirectiveGotoOp gotoOp;
-				gotoOp.iGotoType = 0;
-				gotoOp.iTargetID = carrierShip;
-				gotoOp.fRange = 300.0;
-				gotoOp.fThrust = 80;
-				gotoOp.goto_cruise = true;
-
-				pub::AI::SubmitDirective(droneSpaceObj, &gotoOp);
-
-			}
-		}
-		moveTimer = 0;
-	}
-	moveTimer++;
+	rangeTimer++;
 }
 
-void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId, unsigned int client)
-{
-	returncode = DEFAULT_RETURNCODE;
-	clientDroneInfo[client].buildState = STATE_DRONE_OFF;
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Client command processing
@@ -412,7 +344,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
 
 	return p_PI;

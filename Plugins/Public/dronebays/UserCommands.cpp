@@ -285,9 +285,9 @@ bool UserCommands::UserCmd_DroneBayAvailability(uint iClientID, const wstring& w
 
 	// Print out each available drone type for this bay
 	PrintUserCmdText(iClientID, L"---Valid drones---");
-	for (auto bay : bayArch.availableDrones)
+	for (const auto bay : bayArch.availableDrones)
 	{
-		PrintUserCmdText(iClientID, stows(bay.c_str()));
+		PrintUserCmdText(iClientID, stows(bay));
 	}
 	PrintUserCmdText(iClientID, L"------------------");
 

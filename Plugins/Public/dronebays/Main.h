@@ -95,7 +95,6 @@ namespace UserCommands
 {
 	bool UserCmd_Deploy(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_AttackTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool UserCmd_EnterFormation(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_RecallDrone(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_Debug(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_DroneStop(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
@@ -114,6 +113,13 @@ namespace Utility
 	
 	void SetRepNeutral(uint clientObj, uint targetObj);
 	void SetRepHostile(uint clientObj, uint targetObj);
+}
+
+namespace Timers
+{
+	void processDroneMaxDistance(map<uint, ClientDroneInfo>& clientDrones);
+	void processDroneDockRequests(map<uint, DroneDespawnWrapper>& despawnList);
+	void processDroneBuildRequests(map<uint, DroneBuildTimerWrapper>& buildList);
 }
 
 #endif

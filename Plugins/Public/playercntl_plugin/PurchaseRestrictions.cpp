@@ -26,6 +26,9 @@ namespace PurchaseRestrictions
 	/// If true then an ID is used to check for valid IDs
 	static bool set_bCheckIDRestrictions = false;
 
+	/// If true then a tag is used to check against
+	static bool set_bCheckTagRestrictions = false;
+
 	/// If true then an ID is used to check for valid IDs
 	static bool set_bEnforceIDRestrictions = false;
 
@@ -37,6 +40,9 @@ namespace PurchaseRestrictions
 
 	/// list of items that we log transfers for
 	static map<uint, string> set_mapItemsOfInterest;
+
+	// Map to store our items/tags
+	static map<uint, wstring> mapTagList;
 
 	/** A map of baseid to goods that are not allowed to be bought */
 	static multimap<uint, uint> set_mapNoBuy;
@@ -80,6 +86,7 @@ namespace PurchaseRestrictions
 	/// Load the configuration
 	void PurchaseRestrictions::LoadSettings(const string &scPluginCfgFile)
 	{
+		set_bCheckTagRestrictions = IniGetB(scPluginCfgFile, "PurchaseRestrictions", "CheckTagRestrictions", false);
 		set_bCheckIDRestrictions = IniGetB(scPluginCfgFile, "PurchaseRestrictions", "CheckIDRestrictions", false);
 		set_bEnforceIDRestrictions = IniGetB(scPluginCfgFile, "PurchaseRestrictions", "EnforceIDRestrictions", false);
 		set_wscShipPurchaseDenied = stows(IniGetS(scPluginCfgFile, "PurchaseRestrictions", "ShipPurchaseDeniedMsg",  "ERR You cannot buy this ship because you do not have the correct ID."));
@@ -122,6 +129,17 @@ namespace PurchaseRestrictions
 						{
 							set_mapGoodItemRestrictions.insert(mapGoodItemRestrictions_map_pair_t(goodID,itemID));
 						}
+					}
+				}
+				// Read the good/tag restrictions list
+				else if (ini.is_header("TagItemRestrictions"))
+				{
+					while (ini.read_value())
+					{
+						uint goodID = CreateID(ini.get_name_ptr());
+						wstring tag = stows(ini.get_value_string());
+						mapTagList[goodID] = tag;
+						ConPrint(L"Good: %s\nTag: %s\n", stows(ini.get_name_ptr()).c_str(), stows(ini.get_value_string()).c_str());
 					}
 				}
 				// Read the ID mounting/buying restrictions list.
@@ -235,6 +253,28 @@ namespace PurchaseRestrictions
 				}
 			}
 		}
+
+		// Restrict things via player tag
+		if (set_bCheckTagRestrictions)
+		{
+			for (map<uint, wstring>::iterator iter = mapTagList.begin(); iter != mapTagList.end(); iter++)
+			{
+				if(iter->first == gbi.iGoodID)
+				{
+					wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+					if (wscCharname.find(iter->second) == string::npos)
+					{
+						AddLog("INFO: %s attempting to buy %u without correct tag", wstos(wscCharname).c_str(), gbi.iGoodID);
+						PrintUserCmdText(iClientID, L"You do not have the correct tag to buy this item.");
+						pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
+						mapInfo[iClientID].bSuppressBuy = true;
+						return true;
+					}
+				}
+			}
+		}
+		
+		
 
 		// Check for ship purchase restrictions.
 		if (set_bCheckIDRestrictions)

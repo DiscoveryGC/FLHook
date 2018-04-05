@@ -139,7 +139,6 @@ namespace PurchaseRestrictions
 						uint goodID = CreateID(ini.get_name_ptr());
 						wstring tag = stows(ini.get_value_string());
 						mapTagList[goodID] = tag;
-						ConPrint(L"Good: %s\nTag: %s\n", stows(ini.get_name_ptr()).c_str(), stows(ini.get_value_string()).c_str());
 					}
 				}
 				// Read the ID mounting/buying restrictions list.

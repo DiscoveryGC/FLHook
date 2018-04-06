@@ -462,7 +462,7 @@ bool CoreModule::Timer(uint time)
 		return false;
 	}
 
-	if ((time%set_damage_tick_time) != 0)
+	if ((time%set_tick_time) != 0)
 		return false;
 
 	if (space_obj)

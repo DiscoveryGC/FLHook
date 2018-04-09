@@ -61,6 +61,12 @@ struct SSPMunitionCollisionInfo
 
 };
 
+enum DestroyType
+{
+	VANISH = 0,
+	FUSE = 1
+};
+
 struct SSPObjCollisionInfo
 {
 	DWORD dwTargetShip;

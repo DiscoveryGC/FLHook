@@ -31,7 +31,7 @@ Sometimes it also like to not copy over the new dll from the plugin's folder int
 License
 -------
 
-Don't be a dick and don't claim other's work as your own. Past that, do what you want.
+Don't claim other's work as your own. Past that, do what you want.
 This has been a collaborative project for years and we expect you to respect that.
 
 Contributing

@@ -40,6 +40,7 @@ map<uint, ClientDroneInfo> clientDroneInfo;
 map<uint, BayArch> availableDroneBays;
 map<string, DroneArch> availableDroneArch;
 vector<uint> npcnames;
+map<uint, bool> droneAlertDebounceMap;
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
@@ -187,7 +188,6 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 			{
 				// If so, clear the carriers map and alert them
 				clientDroneInfo.erase(drone->first);
-				clientDroneInfo[drone->first].buildState = STATE_DRONE_OFF;
 
 				PrintUserCmdText(drone->first, L"Drone has been destroyed.");
 			}
@@ -199,7 +199,6 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 				{
 					pub::SpaceObj::Destroy(drone->second.deployedInfo.deployedDroneObj, DestroyType::FUSE);
 					clientDroneInfo.erase(drone->first);
-					clientDroneInfo[drone->first].buildState = STATE_DRONE_OFF;
 
 					PrintUserCmdText(drone->first, L"Drone has been destroyed.");
 
@@ -218,7 +217,6 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 		PrintUserCmdText(iClientID, L"Drones cannot handle the tear of jumping. Self-destructing.");
 
 		clientDroneInfo.erase(iClientID);
-		clientDroneInfo[iClientID].buildState = STATE_DRONE_OFF;
 	}
 }
 
@@ -231,7 +229,28 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 		PrintUserCmdText(iClientID, L"Drones cannot dock or land on non-carrier structures. Self-destructing.");
 
 		clientDroneInfo.erase(iClientID);
-		clientDroneInfo[iClientID].buildState = STATE_DRONE_OFF;
+	}
+}
+
+void __stdcall SetTarget(uint client, const XSetTarget& target)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	// If we already have a message sent regarding this targeting operation, ignore it
+	if(droneAlertDebounceMap[client])
+	{
+		return;
+	}
+	
+	// Check if the target is one of our drones
+	for(const auto& drone : clientDroneInfo)
+	{
+		if(drone.second.deployedInfo.deployedDroneObj == target.iSpaceID)
+		{
+			PrintUserCmdText(client, L"Target is a drone owned by %s", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(drone.first)));
+			droneAlertDebounceMap[client] = true;
+			return;
+		}
 	}
 }
 
@@ -246,14 +265,20 @@ void HkTimerCheckKick()
 		Timers::processDroneDockRequests(droneDespawnMap);
 
 	// Every 10 seconds, be sure that drones are within a proper range from the carrier
-	static int rangeTimer = 0;
-	if (!clientDroneInfo.empty() && rangeTimer > 10)
+	static int timerVal = 0;
+	if (!clientDroneInfo.empty() && timerVal > 10)
 	{
 		Timers::processDroneMaxDistance(clientDroneInfo);
-		rangeTimer = 0;
+		timerVal = 0;
 	}
 
-	rangeTimer++;
+	// Every 2 seconds, clear the debounce map allowing a drone alert to appear for the user again
+	if(timerVal % 2 == 0)
+	{
+		droneAlertDebounceMap.clear();
+	}
+
+	timerVal++;
 }
 
 
@@ -345,6 +370,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SetTarget, PLUGIN_HkIServerImpl_SetTarget, 0));
 
 	return p_PI;
 }

@@ -21,6 +21,33 @@ void Utility::SetRepHostile(uint clientObj, uint targetObj)
 	pub::Reputation::SetAttitude(droneRep, targetRep, -1.0f);
 }
 
+uint Utility::CreateDroneNameInfocard(const uint& droneOwnerId)
+{
+	// Allow the plugin to use IDs range 550000 to 550500
+	static int currInfocard = 550100;
+	if (currInfocard >= 550600)
+	{
+		// We have bypassed the limit of infocards available. Return the blank infocard '0'
+		return 0;
+	}
+
+	// Get the playername that we'll be injecting into the drone name infocard
+	const wstring &charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(droneOwnerId));
+
+	// Create an infocard with the current ID which contains the drone name, and sync it to all players
+	const wstring droneName = wstring(L"Drone - ") + charname;
+
+	struct PlayerData *pd = nullptr;
+	while((pd = Players.traverse_active(pd)))
+	{
+		PrintUserCmdText(pd->iOnlineID, charname);
+		HkChangeIDSString(pd->iOnlineID, currInfocard, droneName);
+	}
+
+	// Return the changed infocard and increment the counter
+	return currInfocard++;
+}
+
 void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWrapper)
 {
 	// Set the users client state to reflect a drone has been deployed
@@ -52,8 +79,6 @@ float Utility::RandFloatRange(float a, float b)
 	return ((b - a)*(static_cast<float>(rand()) / RAND_MAX)) + a;
 }
 
-static uint incrementDroneVal = 1;
-
 void Utility::CreateNPC(uint iClientID, Vector pos, Matrix rot, uint iSystem, DroneArch drone)
 {
 
@@ -73,28 +98,20 @@ void Utility::CreateNPC(uint iClientID, Vector pos, Matrix rot, uint iSystem, Dr
 	si.iComm = CreateID("comm_br_darcy_female");
 	si.iPilotVoice = CreateID("pilot_f_leg_f01a");
 	si.iHealth = -1;
-	si.iLevel = 19;
+	si.iLevel = 23;
 
-	// Define the string used for the scanner name. Because the
-	// following entry is empty, the pilot_name is used. This
-	// can be overriden to display the ship type instead.
-	FmtStr scanner_name(0, 0);
-	scanner_name.begin_mad_lib(0);
+	const uint droneNameInfocard = Utility::CreateDroneNameInfocard(iClientID);
+	// Define the string used for the scanner name
+	FmtStr scanner_name(droneNameInfocard, nullptr);
+	scanner_name.begin_mad_lib(droneNameInfocard);
 	scanner_name.end_mad_lib();
 
-	// Define the string used for the pilot name. The example
-	// below shows the use of multiple part names.
-	FmtStr pilot_name(0, 0);
-	pilot_name.begin_mad_lib(16163); // ids of "%s0 %s1"
-	pilot_name.append_string(rand_name());  // ids that replaces %s0
-	pilot_name.append_string(rand_name()); // ids that replaces %s1
+	// Define the string used for the pilot name. 
+	FmtStr pilot_name(droneNameInfocard, nullptr);
+	pilot_name.begin_mad_lib(droneNameInfocard);
 	pilot_name.end_mad_lib();
 
-	uint rep;
-	pub::Reputation::GetReputationGroup(rep, (string("fc_random") + itos(incrementDroneVal)).c_str());
-
 	pub::Reputation::Alloc(si.iRep, scanner_name, pilot_name);
-	pub::Reputation::SetAffiliation(si.iRep, rep);
 
 	uint iSpaceObj;
 	pub::SpaceObj::Create(iSpaceObj, si);
@@ -115,16 +132,16 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[1] = 0.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[2] = 0.4f;
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[3] = 0.2f;
-	p.personality.EvadeDodgeUse.evade_dodge_cone_angle = 1.5708f;
-	p.personality.EvadeDodgeUse.evade_dodge_interval_time = 10.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_time = 1.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_distance = 75.0f;
-	p.personality.EvadeDodgeUse.evade_activate_range = 100.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_roll_angle = 1.5708f;
-	p.personality.EvadeDodgeUse.evade_dodge_waggle_axis_cone_angle = 1.5708f;
-	p.personality.EvadeDodgeUse.evade_dodge_slide_throttle = 1.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_turn_throttle = 1.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_corkscrew_roll_flip_direction = true;
+	p.personality.EvadeDodgeUse.evade_dodge_cone_angle = 90.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_interval_time = 2.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_time = 2.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_distance = 500.0f;
+	p.personality.EvadeDodgeUse.evade_activate_range = 750.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_roll_angle = 0.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_waggle_axis_cone_angle = 0.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_slide_throttle = 0.75f;
+	p.personality.EvadeDodgeUse.evade_dodge_turn_throttle = 0.75f;
+	p.personality.EvadeDodgeUse.evade_dodge_corkscrew_roll_flip_direction = false;
 	p.personality.EvadeDodgeUse.evade_dodge_interval_time_variance_percent = 0.5f;
 	p.personality.EvadeDodgeUse.evade_dodge_cone_angle_variance_percent = 0.5f;
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[0] = 0.25f;
@@ -132,9 +149,9 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[2] = 0.25f;
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[3] = 0.25f;
 
-	p.personality.EvadeBreakUse.evade_break_roll_throttle = 1.0f;
-	p.personality.EvadeBreakUse.evade_break_time = 1.0f;
-	p.personality.EvadeBreakUse.evade_break_interval_time = 10.0f;
+	p.personality.EvadeBreakUse.evade_break_roll_throttle = 0.5f;
+	p.personality.EvadeBreakUse.evade_break_time = 5.0f;
+	p.personality.EvadeBreakUse.evade_break_interval_time = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_afterburner_delay = 0.0f;
 	p.personality.EvadeBreakUse.evade_break_turn_throttle = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_direction_weight[0] = 1.0f;
@@ -145,19 +162,19 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.EvadeBreakUse.evade_break_style_weight[1] = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_style_weight[2] = 1.0f;
 
-	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward = 500.0f;
-	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward_variance_percent = 0.25f;
-	p.personality.BuzzHeadTowardUse.buzz_max_time_to_head_away = 1.0f;
+	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward = 900.0f;
+	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward_variance_percent = 0.1f;
+	p.personality.BuzzHeadTowardUse.buzz_max_time_to_head_away = 5.0f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_engine_throttle = 1.0f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_turn_throttle = 1.0f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_roll_throttle = 1.0f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_turn_throttle = 1.0f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_cone_angle = 1.5708f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_cone_angle = 20.0f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_cone_angle_variance_percent = 0.5f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_waggle_axis_cone_angle = 0.3491f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_roll_angle = 1.5708f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time = 10.0f;
-	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time_variance_percent = 0.5f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_waggle_axis_cone_angle = 0.0f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_roll_angle = 20.0f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time = 30.0f;
+	p.personality.BuzzHeadTowardUse.buzz_dodge_interval_time_variance_percent = 0.1f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_direction_weight[0] = 0.25f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_direction_weight[1] = 0.25f;
 	p.personality.BuzzHeadTowardUse.buzz_dodge_direction_weight[2] = 0.25f;
@@ -166,9 +183,9 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[1] = 0.33f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[2] = 0.33f;
 
-	p.personality.BuzzPassByUse.buzz_distance_to_pass_by = 1000.0f;
+	p.personality.BuzzPassByUse.buzz_distance_to_pass_by = 900.0f;
 	p.personality.BuzzPassByUse.buzz_pass_by_time = 1.0f;
-	p.personality.BuzzPassByUse.buzz_break_direction_cone_angle = 1.5708f;
+	p.personality.BuzzPassByUse.buzz_break_direction_cone_angle = 90.0f;
 	p.personality.BuzzPassByUse.buzz_break_turn_throttle = 1.0f;
 	p.personality.BuzzPassByUse.buzz_drop_bomb_on_pass_by = true;
 	p.personality.BuzzPassByUse.buzz_break_direction_weight[0] = 1.0f;
@@ -177,15 +194,15 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.BuzzPassByUse.buzz_break_direction_weight[3] = 1.0f;
 	p.personality.BuzzPassByUse.buzz_pass_by_style_weight[2] = 1.0f;
 
-	p.personality.TrailUse.trail_lock_cone_angle = 0.0873f;
+	p.personality.TrailUse.trail_lock_cone_angle = 30.0f;
 	p.personality.TrailUse.trail_break_time = 0.5f;
 	p.personality.TrailUse.trail_min_no_lock_time = 0.1f;
 	p.personality.TrailUse.trail_break_roll_throttle = 1.0f;
 	p.personality.TrailUse.trail_break_afterburner = true;
 	p.personality.TrailUse.trail_max_turn_throttle = 1.0f;
-	p.personality.TrailUse.trail_distance = 100.0f;
+	p.personality.TrailUse.trail_distance = 300.0f;
 
-	p.personality.StrafeUse.strafe_run_away_distance = 100.0f;
+	p.personality.StrafeUse.strafe_run_away_distance = 600.0f;
 	p.personality.StrafeUse.strafe_attack_throttle = 1.0f;
 
 	p.personality.EngineKillUse.engine_kill_search_time = 0.0f;
@@ -222,18 +239,18 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.MineUse.mine_launch_cone_angle = 0.7854f;
 	p.personality.MineUse.mine_launch_range = 200.0f;
 
-	p.personality.MissileUse.missile_launch_interval_time = 0.0f;
+	p.personality.MissileUse.missile_launch_interval_time = 1.0f;
 	p.personality.MissileUse.missile_launch_interval_variance_percent = 0.5f;
-	p.personality.MissileUse.missile_launch_range = 800.0f;
-	p.personality.MissileUse.missile_launch_cone_angle = 0.01745f;
+	p.personality.MissileUse.missile_launch_range = 1250.0f;
+	p.personality.MissileUse.missile_launch_cone_angle = 30.0f;
 	p.personality.MissileUse.missile_launch_allow_out_of_range = false;
 
 	p.personality.DamageReaction.evade_break_damage_trigger_percent = 1.0f;
 	p.personality.DamageReaction.evade_dodge_more_damage_trigger_percent = 0.25f;
 	p.personality.DamageReaction.engine_kill_face_damage_trigger_percent = 1.0f;
-	p.personality.DamageReaction.engine_kill_face_damage_trigger_time = 0.2f;
-	p.personality.DamageReaction.roll_damage_trigger_percent = 0.4f;
-	p.personality.DamageReaction.roll_damage_trigger_time = 0.2f;
+	p.personality.DamageReaction.engine_kill_face_damage_trigger_time = 1.0f;
+	p.personality.DamageReaction.roll_damage_trigger_percent = 0.3f;
+	p.personality.DamageReaction.roll_damage_trigger_time = 1.0f;
 	p.personality.DamageReaction.afterburner_damage_trigger_percent = 0.2f;
 	p.personality.DamageReaction.afterburner_damage_trigger_time = 0.5f;
 	p.personality.DamageReaction.brake_reverse_damage_trigger_percent = 1.0f;
@@ -277,12 +294,12 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.Job.attack_subtarget_order[1] = 6;
 	p.personality.Job.attack_subtarget_order[2] = 7;
 	p.personality.Job.field_targeting = 3;
-	p.personality.Job.loot_preference = 7;
+	p.personality.Job.loot_preference = 0;
 	p.personality.Job.combat_drift_distance = 25000;
 	p.personality.Job.attack_order[0].distance = 5000;
 	p.personality.Job.attack_order[0].type = 11;
 	p.personality.Job.attack_order[0].flag = 15;
-	p.personality.Job.attack_order[1].type = 12;
+	p.personality.Job.attack_order[1].type = 12;	
 
 	return p;
 }

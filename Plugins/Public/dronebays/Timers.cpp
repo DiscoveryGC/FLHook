@@ -33,7 +33,7 @@ void Timers::processDroneMaxDistance(map<uint, ClientDroneInfo>& clientDrones)
 			gotoOp.iGotoType = 0;
 			gotoOp.iTargetID = carrierShip;
 			gotoOp.fRange = 300.0;
-			gotoOp.fThrust = 80;
+			gotoOp.fThrust = 200;
 			gotoOp.goto_cruise = true;
 
 			pub::AI::SubmitDirective(droneSpaceObj, &gotoOp);
@@ -50,7 +50,7 @@ void Timers::processDroneDockRequests(map<uint, DroneDespawnWrapper>& despawnLis
 		float carrierRadius;
 		Vector radiusVector{};
 		pub::SpaceObj::GetRadius(dt->second.parentObj, carrierRadius, radiusVector);
-		const int shipDistance = abs(HkDistance3DByShip(dt->second.parentObj, dt->second.droneObj));
+		const float shipDistance = abs(HkDistance3DByShip(dt->second.parentObj, dt->second.droneObj));
 
 		// We give a padding of 100 meters to ensure that there is no collision
 		if (shipDistance < (carrierRadius + 100))

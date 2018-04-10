@@ -28,11 +28,11 @@ struct DroneArch
 	// The name used to deploy this type of drone
 	string aliasName;
 	
-	// The ship archetype which this drone uses
-	uint archetype;
+	// The ship archetype which this drone uses - Defaults to civilian bomber
+	uint archetype = CreateID("dsy_civbomb");
 
-	// The loadout identification which this drone uses
-	uint loadout;
+	// The loadout identification which this drone uses - Defaults to no loadout
+	uint loadout = CreateID("null_loadout");
 };
 
 struct BayArch
@@ -89,6 +89,12 @@ extern map<uint, ClientDroneInfo> clientDroneInfo;
 extern map<uint, BayArch> availableDroneBays;
 extern map<string, DroneArch> availableDroneArch;
 
+/*
+ * Messages alerting a user of who owns a drone fires >5 times for some reason on first select. 
+ * Maintain a map cleared every 2 seconds which makes sure you only see the name once per click
+ */
+extern map<uint, bool> droneAlertDebounceMap;
+
 extern vector<uint> npcnames;
 
 namespace UserCommands
@@ -113,6 +119,8 @@ namespace Utility
 	
 	void SetRepNeutral(uint clientObj, uint targetObj);
 	void SetRepHostile(uint clientObj, uint targetObj);
+
+	uint CreateDroneNameInfocard(const uint& droneOwnerId);
 }
 
 namespace Timers

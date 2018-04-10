@@ -118,21 +118,26 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 	Utility::SetRepNeutral(droneObj, clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget);
 	Utility::SetRepHostile(droneObj, iTargetObj);
 
-	// Set the target hostile to the drone as well only if it isn't another existing drone
+	// Set the target hostile to the drone as well only if it isn't another existing drone 
 	bool isTargetDrone = false;
 	for (const auto& currClient : clientDroneInfo)
 	{
-		if(iTargetObj == currClient.second.deployedInfo.deployedDroneObj)
+		if (iTargetObj == currClient.second.deployedInfo.deployedDroneObj)
 		{
 			isTargetDrone = true;
 			break;
 		}
 	}
 
-	if(!isTargetDrone)
+	if (!isTargetDrone)
+	{
 		Utility::SetRepHostile(iTargetObj, droneObj);
+	}
 
 	clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget = iTargetObj;
+
+	PrintUserCmdText(iClientID, L"Drone targeting selected ship\n");
+
 	return true;
 }
 

@@ -108,6 +108,25 @@ namespace GiveCash
 		return;
 	}
 
+	/** Return return if this account is banned */
+	static bool IsBannedAccount(CAccount *acc)
+	{
+		wstring wscDir;
+		HkGetAccountDirName(acc, wscDir);
+
+		char szDataPath[MAX_PATH];
+		GetUserDataPath(szDataPath);
+
+		string path = string(szDataPath) + "\\Accts\\MultiPlayer\\" + wstos(wscDir) + "\\banned";
+
+		FILE *file = fopen(path.c_str(), "r");
+		if (file) {
+			fclose(file);
+			return true;
+		}
+		return false;
+	}
+
 	/** Return return if this char is in the blocked system */
 	static bool InBlockedSystem(const wstring &wscCharname)
 	{
@@ -241,7 +260,10 @@ namespace GiveCash
 		}
 
 		int secs = 0;
-		HkGetOnLineTime(wscCharname, secs);
+		if ((err = HkGetOnLineTime(wscCharname, secs)) != HKE_OK) {
+			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
+			return true;
+		}
 		if (secs<set_iMinTime)
 		{
 			PrintUserCmdText(iClientID, L"ERR: insufficient time online");
@@ -273,7 +295,7 @@ namespace GiveCash
 
 		// Prevent target ship from becoming corrupt.
 		float fTargetValue = 0.0f;
-		if (HKGetShipValue(wscTargetCharname, fTargetValue) != HKE_OK)
+		if ((err = HKGetShipValue(wscTargetCharname, fTargetValue)) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
 			return true;
@@ -518,14 +540,17 @@ namespace GiveCash
 		}
 
 		int secs = 0;
-		HkGetOnLineTime(wscTargetCharname, secs);
+		if ((err = HkGetOnLineTime(wscCharname, secs)) != HKE_OK) {
+			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
+			return true;
+		}
 		if (secs<set_iMinTime)
 		{
 			PrintUserCmdText(iClientID, L"ERR insufficient time online");
 			return true;
 		}
 
-		if (InBlockedSystem(wscCharname) || InBlockedSystem(wscTargetCharname))
+		if (InBlockedSystem(wscCharname) || InBlockedSystem(wscTargetCharname) || IsBannedAccount(iTargetAcc))
 		{
 			PrintUserCmdText(iClientID, L"ERR cash transfer blocked");
 			return true;
@@ -562,7 +587,7 @@ namespace GiveCash
 		// Check the adding this cash to this player will not
 		// exceed the maximum ship value.
 		float fTargetValue = 0.0f;
-		if (HKGetShipValue(wscCharname, fTargetValue) != HKE_OK)
+		if ((err = HKGetShipValue(wscCharname, fTargetValue)) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
 			return true;

@@ -44,6 +44,13 @@ enum DOCK_HOST_RESPONSE
 	DOCK = 5,
 };
 
+enum MissionMessageType
+{
+	MissionMessageType_Failure, // mission failure
+	MissionMessageType_Type1, // objective
+	MissionMessageType_Type2, // objective
+	MissionMessageType_Type3, // mission success
+};
 
 struct SSPMunitionCollisionInfo
 {
@@ -52,6 +59,12 @@ struct SSPMunitionCollisionInfo
 	DWORD dwTargetShip;
 	ushort s1;
 
+};
+
+enum DestroyType
+{
+	VANISH = 0,
+	FUSE = 1
 };
 
 struct SSPObjCollisionInfo

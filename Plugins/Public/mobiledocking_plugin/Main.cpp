@@ -344,7 +344,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 
 		// Check that the requesting ship is of the appropriate size to dock.
 		CShip* cship = dynamic_cast<CShip*>(HkGetEqObjFromObjRW(reinterpret_cast<IObjRW*>(HkGetInspect(client))));
-		if (cship->shiparch()->fHoldSize > 275)
+		if (cship->shiparch()->fHoldSize > cargoCapacityLimit)
 		{
 			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
 			return 0;

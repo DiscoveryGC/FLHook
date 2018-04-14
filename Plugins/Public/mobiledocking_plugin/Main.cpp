@@ -12,6 +12,9 @@ map<uint, CLIENT_DATA> mobiledockClients;
 map<uint, uint> mapPendingDockingRequests;
 vector<uint> dockingModuleEquipmentIds;
 
+// Above how much cargo capacity, should a ship be rejected as a docking user?
+int cargoCapacityLimit = 275;
+
 uint connSystemID = CreateID("li06");
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,9 +133,38 @@ void LoadSettings()
 	string moddir = string(datapath) + R"(\Accts\MultiPlayer\docking_module\)";
 	CreateDirectoryA(moddir.c_str(), 0);
 
-	//@@TODO Add support for defining multiple docking modules in the configuration file
-	// Add the current available docking module to the list of available arches
-	dockingModuleEquipmentIds.push_back(CreateID("dsy_docking_module_1"));
+	// Plugin configuration
+	char szCurDir[MAX_PATH];
+	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
+	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\dockingmodules.cfg";
+	
+	int dockingModAmount = 0;
+	INI_Reader ini;
+	if(ini.open(scPluginCfgFile.c_str(), false))
+	{
+		while(ini.read_header())
+		{
+			if(ini.is_header("Config"))
+			{
+				while(ini.read_value())
+				{
+					if(ini.is_value("allowedmodule"))
+					{
+						dockingModuleEquipmentIds.push_back(CreateID(ini.get_value_string()));
+						dockingModAmount++;
+					}
+					else if(ini.is_value("cargo_capacity_limit"))
+					{
+						cargoCapacityLimit = ini.get_value_int(0);
+					}
+				}
+			}
+		}
+		ini.close();
+	}
+
+	ConPrint(L"DockingModules: Loaded %u equipment\n", dockingModAmount);
+	ConPrint(L"DockingModules: Allowing ships below the cargo capacity of %i to dock\n", cargoCapacityLimit);
 }
 
 void __stdcall BaseExit(uint iBaseID, uint iClientID)

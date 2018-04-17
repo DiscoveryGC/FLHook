@@ -63,6 +63,9 @@ struct ClientDroneInfo
 
 	// The carrier shipObj
 	uint carrierShipobj;
+
+	// Is the drone currently moving back to it's carrier?
+	bool isDroneReturning = false;
 };
 
 
@@ -121,6 +124,8 @@ namespace Utility
 	void SetRepHostile(uint clientObj, uint targetObj);
 
 	uint CreateDroneNameInfocard(const uint& droneOwnerId);
+
+	void LogEvent(const char *szString, ...);
 }
 
 namespace Timers

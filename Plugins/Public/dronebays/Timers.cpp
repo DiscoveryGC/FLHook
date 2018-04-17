@@ -4,6 +4,11 @@ void Timers::processDroneMaxDistance(map<uint, ClientDroneInfo>& clientDrones)
 {
 	for (auto dt = clientDrones.begin(); dt != clientDrones.end(); ++dt)
 	{
+
+		// If the drone is already retreating, ignore this order
+		if (dt->second.isDroneReturning)
+			continue;
+
 		// This only matters if the user is in space
 		uint carrierShip;
 		pub::Player::GetShip(dt->first, carrierShip);
@@ -17,7 +22,7 @@ void Timers::processDroneMaxDistance(map<uint, ClientDroneInfo>& clientDrones)
 
 		// Check to see if the distance is greater than the maximum distance
 		static uint droneSpaceObj = dt->second.deployedInfo.deployedDroneObj;
-		static float maxDistanceAllowed = 10000;
+		static float maxDistanceAllowed = 7500;
 		const float distance = HkDistance3DByShip(droneSpaceObj, carrierShip);
 
 		// If the drone is furthur than it should be, retreat to it's owner
@@ -37,6 +42,14 @@ void Timers::processDroneMaxDistance(map<uint, ClientDroneInfo>& clientDrones)
 			gotoOp.goto_cruise = true;
 
 			pub::AI::SubmitDirective(droneSpaceObj, &gotoOp);
+
+			dt->second.isDroneReturning = true;
+			PrintUserCmdText(dt->first, L"Maximum distance of %f reached from the drone. Disengaging and returning to carrier.", maxDistanceAllowed);
+		}
+
+		else
+		{
+			dt->second.isDroneReturning = false;
 		}
 	}
 }
@@ -74,6 +87,7 @@ void Timers::processDroneBuildRequests(map<uint, DroneBuildTimerWrapper>& buildL
 		if ((dt->second.startBuildTime + (dt->second.buildTimeRequired * 1000)) < now)
 		{
 			Utility::DeployDrone(dt->first, dt->second);
+			clientDroneInfo[dt->first].buildState = STATE_DRONE_LAUNCHED;
 			buildTimerMap.erase(dt);
 		}
 	}

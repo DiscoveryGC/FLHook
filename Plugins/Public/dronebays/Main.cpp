@@ -84,17 +84,7 @@ void LoadSettings()
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("Names"))
-			{
-				while (ini.read_value())
-				{
-					if (ini.is_value("name"))
-					{
-						npcnames.push_back(ini.get_value_int(0));
-					}
-				}
-			}
-			else if (ini.is_header("BayArch"))
+			if (ini.is_header("BayArch"))
 			{
 				BayArch bayArch;
 				uint bayEquipId = 0;
@@ -205,11 +195,15 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 				}
 			}
 		}
+
+		// Check if the ship being destroyed had 
 	}
 }
 
 void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	// If the carrier changes systems, destroy any old drones
 	if(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
 	{
@@ -222,6 +216,8 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 
 void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	// If the carrier changes systems, destroy any old drones
 	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
 	{
@@ -232,11 +228,11 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 	}
 }
 
-void __stdcall SetTarget(uint client, const XSetTarget& target)
+void __stdcall SetTarget_AFTER(uint client, const XSetTarget& target)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// If we already have a message sent regarding this targeting operation, ignore it
+	// If we already have a message sent regarding this targeting operation within a few seconds, ignore it
 	if(droneAlertDebounceMap[client])
 	{
 		return;
@@ -256,6 +252,8 @@ void __stdcall SetTarget(uint client, const XSetTarget& target)
 
 void HkTimerCheckKick()
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	// Process any queued drone launches if any exist
 	if (!buildTimerMap.empty())
 		Timers::processDroneBuildRequests(buildTimerMap);
@@ -266,6 +264,7 @@ void HkTimerCheckKick()
 
 	// Every 10 seconds, be sure that drones are within a proper range from the carrier
 	static int timerVal = 0;
+
 	if (!clientDroneInfo.empty() && timerVal > 10)
 	{
 		Timers::processDroneMaxDistance(clientDroneInfo);
@@ -370,7 +369,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SetTarget, PLUGIN_HkIServerImpl_SetTarget, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SetTarget_AFTER, PLUGIN_HkIServerImpl_SetTarget_AFTER, 0));
 
 	return p_PI;
 }

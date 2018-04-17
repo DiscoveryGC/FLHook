@@ -48,6 +48,27 @@ uint Utility::CreateDroneNameInfocard(const uint& droneOwnerId)
 	return currInfocard++;
 }
 
+void Utility::LogEvent(const char* szString, ...)
+{
+	char szBufString[1024];
+	va_list marker;
+	va_start(marker, szString);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
+
+	char szBuf[64];
+	time_t tNow = time(0);
+	struct tm *t = localtime(&tNow);
+	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+
+	FILE *Logfile = fopen(("./flhook_logs/flhook_drones.log"), "at");
+	if (Logfile)
+	{
+		fprintf(Logfile, "%s %s\n", szBuf, szBufString);
+		fflush(Logfile);
+		fclose(Logfile);
+	}
+}
+
 void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWrapper)
 {
 	// Set the users client state to reflect a drone has been deployed
@@ -72,6 +93,13 @@ void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWra
 
 	Utility::CreateNPC(iClientID, shipPos, shipRot, shipSys, timerWrapper.reqDrone);
 	PrintUserCmdText(iClientID, L"Info :: Drone Launched");
+	
+	// Log event
+	const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+	wstring logString = L"Player %s launched drone";
+	logString = ReplaceStr(logString, L"%s", charname);
+	LogEvent(wstos(logString).c_str());
+
 }
 
 float Utility::RandFloatRange(float a, float b)

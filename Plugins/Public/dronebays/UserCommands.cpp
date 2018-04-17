@@ -50,7 +50,7 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	// Verify that the user isn't already building a drone
 	if(clientDroneInfo[iClientID].buildState != STATE_DRONE_OFF)
 	{
-		PrintUserCmdText(iClientID, L"You are already prepping a drone for takeoff! Use <insert command> to cancel the order");
+		PrintUserCmdText(iClientID, L"You are already prepping a drone for takeoff!");
 		return true;
 	}
 

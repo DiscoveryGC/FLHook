@@ -42,7 +42,7 @@ namespace PurchaseRestrictions
 	static map<uint, string> set_mapItemsOfInterest;
 
 	// Map to store our items/tags
-	static map<uint, wstring> mapTagList;
+	static map<uint, list<string>> mapTagList;
 
 	/** A map of baseid to goods that are not allowed to be bought */
 	static multimap<uint, uint> set_mapNoBuy;
@@ -136,9 +136,16 @@ namespace PurchaseRestrictions
 				{
 					while (ini.read_value())
 					{
-						uint goodID = CreateID(ini.get_name_ptr());
-						wstring tag = stows(ini.get_value_string());
-						mapTagList[goodID] = tag;
+						list<string> tagList; // A list to store the tags
+						uint goodID = CreateID(ini.get_name_ptr()); // Get the item we are restricting
+						string tags = ini.get_value_string(); // Get all the names that are allowed
+						for(int i = 0; i < count(tags.begin(), tags.end(), ','); i++)
+						{
+							string tag = Trim(GetParam(tags, ',', i)); // Remove spaces and split by ','
+							tagList.push_back(tag); // Add to list
+						}
+						
+						mapTagList[goodID] = tagList;
 					}
 				}
 				// Read the ID mounting/buying restrictions list.
@@ -256,14 +263,23 @@ namespace PurchaseRestrictions
 		// Restrict things via player tag
 		if (set_bCheckTagRestrictions)
 		{
-			for (map<uint, wstring>::iterator iter = mapTagList.begin(); iter != mapTagList.end(); iter++)
+			for (map<uint, list<string>>::iterator iter = mapTagList.begin(); iter != mapTagList.end(); iter++)
 			{
-				if(iter->first == gbi.iGoodID)
+				if (iter->first == gbi.iGoodID)
 				{
-					wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-					if (wscCharname.find(iter->second) == string::npos)
+					string wscCharname = wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID));
+					bool validTag = false;
+					for (list<string>::const_iterator i = iter->second.begin(); i != iter->second.end(); i++)
 					{
-						AddLog("INFO: %s attempting to buy %u without correct tag", wstos(wscCharname).c_str(), gbi.iGoodID);
+						if (wscCharname.find(*i) != string::npos)
+						{
+							validTag = true;
+							break;
+						}
+					}
+					if (!validTag)
+					{
+						AddLog("INFO: %s attempting to buy %u without correct tag", wscCharname.c_str(), gbi.iGoodID);
 						PrintUserCmdText(iClientID, L"You do not have the correct tag to buy this item.");
 						pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
 						mapInfo[iClientID].bSuppressBuy = true;

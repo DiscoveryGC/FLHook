@@ -356,19 +356,19 @@ namespace Message
 	Return false if tags cannot be replaced. */
 	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, wstring &wscMsg)
 	{
-		if (wscMsg.find(L"#t")!=-1)
+		if (wscMsg.find(L"#t") != -1)
 		{
-			if (clientData.uTargetClientID==-1)
+			if (clientData.uTargetClientID == -1)
 			{
 				PrintUserCmdText(iClientID, L"ERR Target not available");
-				return false;	
+				return false;
 			}
 
-			wstring wscTargetName = (const wchar_t*) Players.GetActiveCharacterName(clientData.uTargetClientID);
+			wstring wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#t", wscTargetName);
 		}
 
-		if (wscMsg.find(L"#c")!=-1)
+		if (wscMsg.find(L"#c") != -1)
 		{
 			wstring wscCurrLocation = GetLocation(iClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#c", wscCurrLocation.c_str());
@@ -376,56 +376,6 @@ namespace Message
 
 		return true;
 	}
-
-	/** Processes and sends an eventmode log message for given chat parameters. */
-	void Message::SendChatEvent(uint iClientID, uint iToID, wstring &wscMsg) {
-		wstring wscEvent;
-		wscEvent.reserve(256);
-		wscEvent = L"chat";
-		wscEvent += L" from=";
-		const wchar_t *wszFrom = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-		if (!iClientID)
-			wscEvent += L"console";
-		else if (!wszFrom)
-			wscEvent += L"unknown";
-		else
-			wscEvent += wszFrom;
-
-		wscEvent += L" id=";
-		wscEvent += stows(itos(iClientID));
-
-		wscEvent += L" type=";
-		if (iToID == 0x00010000)
-			wscEvent += L"universe";
-		else if (iToID == 0x10003)
-		{
-			wscEvent += L"group";
-			wscEvent += L" grpidto=";
-			wscEvent += stows(itos(Players.GetGroupID(iClientID)));
-		}
-		else if (iToID & 0x00010000)
-			wscEvent += L"system";
-		else {
-			wscEvent += L"player";
-			wscEvent += L" to=";
-
-			const wchar_t *wszTo = (const wchar_t*)Players.GetActiveCharacterName(iToID);
-			if (!iToID)
-				wscEvent += L"console";
-			else if (!wszTo)
-				wscEvent += L"unknown";
-			else
-				wscEvent += wszTo;
-
-			wscEvent += L" idto=";
-			wscEvent += stows(itos(iToID));
-		}
-
-		wscEvent += L" text=";
-		wscEvent += wscMsg;
-		ProcessEvent(L"%s", wscEvent.c_str());
-	}
-
 
 	/** Clean up when a client disconnects */
 	void Message::ClearClientInfo(uint iClientID)

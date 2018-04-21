@@ -91,6 +91,7 @@ bool FLHookInit();
 void FLHookInit_Pre();
 void FLHookShutdown();
 EXPORT void ProcessEvent(wstring wscText, ...);
+EXPORT void SendChatEvent(uint iClientID, uint iToID, wstring &wscMsg);
 void LoadSettings();
 void ProcessPendingCommands();
 

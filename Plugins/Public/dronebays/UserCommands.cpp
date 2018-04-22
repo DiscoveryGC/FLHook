@@ -54,6 +54,14 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 		return true;
 	}
 
+	// Verify that the client isn't cruising or in a tradelane
+	const ENGINE_STATE engineState = HkGetEngineState(iClientID);
+	if(engineState == ES_TRADELANE || engineState == ES_CRUISE)
+	{
+		PrintUserCmdText(iClientID, L"Engine state inoppertune for drone deployment, aborting launch");
+		return true;
+	}
+
 	//Get the drone type argument - We don't care about any garbage after the first space 
 	const string reqDroneType = wstos(GetParam(wscParam, L' ', 0));
 

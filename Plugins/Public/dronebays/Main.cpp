@@ -103,6 +103,10 @@ void LoadSettings()
 					{
 						bayArch.availableDrones.emplace_back(ini.get_value_string(0));
 					}
+					else if(ini.is_value("operationrange"))
+					{
+						bayArch.droneRange = ini.get_value_int(0);
+					}
 				}
 				if(bayEquipId != 0)
 				{
@@ -195,8 +199,6 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 				}
 			}
 		}
-
-		// Check if the ship being destroyed had 
 	}
 }
 

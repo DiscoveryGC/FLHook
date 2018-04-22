@@ -40,6 +40,9 @@ struct BayArch
 	// How long this bay takes to launch a drone
 	int iDroneBuildTime;
 
+	// What is the maximum range that a drone can be from this bay, without being recalled (Defaults to 10k)
+	uint droneRange = 10000;
+
 	// A list of available drone aliases usable by this bayarch
 	list<string> availableDrones;
 };

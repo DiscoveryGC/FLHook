@@ -22,11 +22,10 @@ void Timers::processDroneMaxDistance(map<uint, ClientDroneInfo>& clientDrones)
 
 		// Check to see if the distance is greater than the maximum distance
 		static uint droneSpaceObj = dt->second.deployedInfo.deployedDroneObj;
-		static float maxDistanceAllowed = 7500;
 		const float distance = HkDistance3DByShip(droneSpaceObj, carrierShip);
 
 		// If the drone is furthur than it should be, retreat to it's owner
-		if (distance > maxDistanceAllowed)
+		if (distance > dt->second.droneBay.droneRange)
 		{
 			// If the drone is attacking someone, set the reputation back to neutral before returning
 			if (dt->second.deployedInfo.lastShipObjTarget != 0)
@@ -44,7 +43,7 @@ void Timers::processDroneMaxDistance(map<uint, ClientDroneInfo>& clientDrones)
 			pub::AI::SubmitDirective(droneSpaceObj, &gotoOp);
 
 			dt->second.isDroneReturning = true;
-			PrintUserCmdText(dt->first, L"Maximum distance of %f reached from the drone. Disengaging and returning to carrier.", maxDistanceAllowed);
+			PrintUserCmdText(dt->first, L"Maximum distance of %u reached from the drone. Disengaging and returning to carrier.", dt->second.droneBay.droneRange);
 		}
 
 		else
@@ -84,6 +83,15 @@ void Timers::processDroneBuildRequests(map<uint, DroneBuildTimerWrapper>& buildL
 	// Check the launch timers for each client
 	for (auto dt = buildTimerMap.begin(); dt != buildTimerMap.end(); ++dt)
 	{
+		// Verify that the user isn't in a tradelane or cruising
+		const ENGINE_STATE engineState = HkGetEngineState(dt->first);
+		if(engineState == ES_TRADELANE || engineState == ES_CRUISE)
+		{
+			PrintUserCmdText(dt->first, L"Engine state inoppertune for drone deployment, aborting launch");
+			clientDroneInfo[dt->first].buildState = STATE_DRONE_OFF;
+			buildTimerMap.erase(dt);
+		}
+
 		if ((dt->second.startBuildTime + (dt->second.buildTimeRequired * 1000)) < now)
 		{
 			Utility::DeployDrone(dt->first, dt->second);

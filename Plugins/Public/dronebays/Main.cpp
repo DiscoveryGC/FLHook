@@ -264,22 +264,43 @@ void HkTimerCheckKick()
 	if (!droneDespawnMap.empty())
 		Timers::processDroneDockRequests(droneDespawnMap);
 
-	// Every 10 seconds, be sure that drones are within a proper range from the carrier
-	static int timerVal = 0;
-
-	if (!clientDroneInfo.empty() && timerVal > 10)
-	{
-		Timers::processDroneMaxDistance(clientDroneInfo);
-		timerVal = 0;
-	}
-
 	// Every 2 seconds, clear the debounce map allowing a drone alert to appear for the user again
+	static int timerVal = 0;
 	if(timerVal % 2 == 0)
 	{
 		droneAlertDebounceMap.clear();
+		timerVal = 0;
+	}
+	timerVal++;
+}
+
+void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (msg == CLIENT_CLOAK_INFO)
+	{
+		CLIENT_CLOAK_STRUCT* info = reinterpret_cast<CLIENT_CLOAK_STRUCT*>(data);
+		
+		// Check if the information given to us is relevent. (We only care about users in the carrier struct)
+		if (clientDroneInfo.find(info->iClientID) != clientDroneInfo.end())
+		{
+			if (info->isChargingCloak || info->isCloaked)
+			{
+				// If the client is cloaked or is cloaking, do not allow them to deploy a drone
+				if (buildTimerMap.find(info->iClientID) != buildTimerMap.end())
+				{
+					PrintUserCmdText(info->iClientID, L"Deployment will interfere with cloaking devices. Aborting launch");
+					clientDroneInfo[info->iClientID].buildState = STATE_DRONE_OFF;
+					buildTimerMap.erase(info->iClientID);
+					delete data;
+					return;
+				}
+			}
+		}
 	}
 
-	timerVal++;
+	return;
 }
 
 
@@ -372,6 +393,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SetTarget_AFTER, PLUGIN_HkIServerImpl_SetTarget_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 0));
 
 	return p_PI;
 }

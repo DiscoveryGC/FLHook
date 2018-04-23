@@ -440,6 +440,13 @@ void HkTimerCheckKick()
 				break;
 
 			case STATE_CLOAK_CHARGING:
+				// Alert other plugins that the client is charging it's cloaking device
+				CLIENT_CLOAK_STRUCT communicationInfo;
+				communicationInfo.iClientID = iClientID;
+				communicationInfo.isChargingCloak = true;
+				communicationInfo.isCloaked = false;
+				Plugin_Communication(CLIENT_CLOAK_INFO, &communicationInfo);
+
 				if (!ProcessFuel(iClientID, info))
 				{
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");	
@@ -456,6 +463,12 @@ void HkTimerCheckKick()
 				break;
 
 			case STATE_CLOAK_ON:
+				//Alert other plugins that the client has it's cloaking device activated
+				communicationInfo.iClientID = iClientID;
+				communicationInfo.isChargingCloak = false;
+				communicationInfo.isCloaked = true;
+				Plugin_Communication(CLIENT_CLOAK_INFO, &communicationInfo);
+
 				if (!ProcessFuel(iClientID, info))
 				{
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");	

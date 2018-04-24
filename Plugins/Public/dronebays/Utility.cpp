@@ -40,7 +40,6 @@ uint Utility::CreateDroneNameInfocard(const uint& droneOwnerId)
 	struct PlayerData *pd = nullptr;
 	while((pd = Players.traverse_active(pd)))
 	{
-		PrintUserCmdText(pd->iOnlineID, charname);
 		HkChangeIDSString(pd->iOnlineID, currInfocard, droneName);
 	}
 
@@ -99,6 +98,11 @@ void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWra
 	wstring logString = L"Player %s launched drone";
 	logString = ReplaceStr(logString, L"%s", charname);
 	LogEvent(wstos(logString).c_str());
+
+	// Print launch event to surrounding players
+	wstring wscMsg = L"%user has launched a drone";
+	wscMsg = ReplaceStr(wscMsg, L"%user", charname);
+	PrintLocalUserCmdText(iClientID, wscMsg, 10000);
 
 }
 

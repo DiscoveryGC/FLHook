@@ -71,6 +71,15 @@ struct ClientDroneInfo
 	bool isDroneReturning = false;
 };
 
+struct ChatDebounceStruct
+{
+	// The last drone which was targeted by the user - This is used to prevent duplicate messages on drone deselect
+	uint lastDroneObjSelected;
+
+	// Have we recently printed out a drone name before?
+	bool debounceToggle = false;
+};
+
 
 // A wrapper struct used to encapsulate all of the information the plugin needs to remember while in the buildstate
 struct DroneBuildTimerWrapper
@@ -99,7 +108,7 @@ extern map<string, DroneArch> availableDroneArch;
  * Messages alerting a user of who owns a drone fires >5 times for some reason on first select. 
  * Maintain a map cleared every 2 seconds which makes sure you only see the name once per click
  */
-extern map<uint, bool> droneAlertDebounceMap;
+extern map<uint, ChatDebounceStruct> droneAlertDebounceMap;
 
 extern vector<uint> npcnames;
 

@@ -40,7 +40,7 @@ map<uint, ClientDroneInfo> clientDroneInfo;
 map<uint, BayArch> availableDroneBays;
 map<string, DroneArch> availableDroneArch;
 vector<uint> npcnames;
-map<uint, bool> droneAlertDebounceMap;
+map<uint, ChatDebounceStruct> droneAlertDebounceMap;
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
@@ -235,7 +235,7 @@ void __stdcall SetTarget_AFTER(uint client, const XSetTarget& target)
 	returncode = DEFAULT_RETURNCODE;
 
 	// If we already have a message sent regarding this targeting operation within a few seconds, ignore it
-	if(droneAlertDebounceMap[client])
+	if(droneAlertDebounceMap[client].debounceToggle)
 	{
 		return;
 	}
@@ -245,8 +245,13 @@ void __stdcall SetTarget_AFTER(uint client, const XSetTarget& target)
 	{
 		if(drone.second.deployedInfo.deployedDroneObj == target.iSpaceID)
 		{
+			// Was the last alert for this drone? If so, ignore it
+			if (drone.second.deployedInfo.deployedDroneObj == droneAlertDebounceMap[client].lastDroneObjSelected)
+				return;
+
 			PrintUserCmdText(client, L"Target is a drone owned by %s", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(drone.first)));
-			droneAlertDebounceMap[client] = true;
+			droneAlertDebounceMap[client].debounceToggle = true;
+			droneAlertDebounceMap[client].lastDroneObjSelected = drone.second.deployedInfo.deployedDroneObj;
 			return;
 		}
 	}
@@ -268,7 +273,11 @@ void HkTimerCheckKick()
 	static int timerVal = 0;
 	if(timerVal % 2 == 0)
 	{
-		droneAlertDebounceMap.clear();
+		for(auto& userDebounce : droneAlertDebounceMap)
+		{
+			userDebounce.second.debounceToggle = false;
+		}
+
 		timerVal = 0;
 	}
 	timerVal++;
@@ -293,7 +302,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 					PrintUserCmdText(info->iClientID, L"Deployment will interfere with cloaking devices. Aborting launch");
 					clientDroneInfo[info->iClientID].buildState = STATE_DRONE_OFF;
 					buildTimerMap.erase(info->iClientID);
-					delete data;
+					free(data);
 					return;
 				}
 			}

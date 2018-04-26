@@ -149,7 +149,8 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 	if (clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget != 0)
 	{
 		const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
-		const wstring targetname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(HkGetClientIDByShip(clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget)));
+		const uint targetid = HkGetClientIDByShip(clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget);
+		const wstring targetname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(targetid));
 
 		// Only bother logging if we weren't engaging a NPC
 		if (!targetname.empty())
@@ -158,6 +159,9 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 			logString = ReplaceStr(logString, L"%s", charname);
 			logString = ReplaceStr(logString, L"%t", targetname);
 			Utility::LogEvent(wstos(logString).c_str());
+
+			// Since we know this was a real player, alert them that they're being engaged
+			PrintUserCmdText(targetid, L"Player %s has targeted you with a drone!", charname);
 		}
 	}
 

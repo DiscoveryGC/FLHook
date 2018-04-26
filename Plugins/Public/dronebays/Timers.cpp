@@ -18,6 +18,12 @@ void Timers::processDroneDockRequests(map<uint, DroneDespawnWrapper>& despawnLis
 			PrintUserCmdText(dt->first, L"Drone docked");
 			despawnList.erase(dt->first);
 			clientDroneInfo.erase(dt->first);
+
+			// Log event
+			const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dt->first));
+			wstring logString = L"Player %s has docked its drone";
+			logString = ReplaceStr(logString, L"%s", charname);
+			Utility::LogEvent(wstos(logString).c_str());
 		}
 	}
 }
@@ -44,6 +50,12 @@ void Timers::processDroneBuildRequests(map<uint, DroneBuildTimerWrapper>& buildL
 			Utility::DeployDrone(dt->first, dt->second);
 			clientDroneInfo[dt->first].buildState = STATE_DRONE_LAUNCHED;
 			buildTimerMap.erase(dt);
+
+			// Log event
+			const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dt->first));
+			wstring logString = L"Player %s has launched a drone";
+			logString = ReplaceStr(logString, L"%s", charname);
+			Utility::LogEvent(wstos(logString).c_str());
 		}
 	}
 }

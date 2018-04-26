@@ -143,8 +143,23 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 	}
 
 	clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget = iTargetObj;
-
 	PrintUserCmdText(iClientID, L"Drone targeting selected ship\n");
+
+	// If the last shipObj the drone was targeting is a player, log the event
+	if (clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget != 0)
+	{
+		const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+		const wstring targetname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(HkGetClientIDByShip(clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget)));
+
+		// Only bother logging if we weren't engaging a NPC
+		if (!targetname.empty())
+		{
+			wstring logString = L"Player %s has ordered its drone to target %t";
+			logString = ReplaceStr(logString, L"%s", charname);
+			logString = ReplaceStr(logString, L"%t", targetname);
+			Utility::LogEvent(wstos(logString).c_str());
+		}
+	}
 
 	return true;
 }
@@ -222,6 +237,13 @@ bool UserCommands::UserCmd_DroneStop(uint iClientID, const wstring& wscCmd, cons
 	SubmitDirective(droneObj, &cancelOp);
 
 	PrintUserCmdText(iClientID, L"Drone operations aborted");
+
+	// Log event
+	const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+	wstring logString = L"Player %s halted drone operations";
+	logString = ReplaceStr(logString, L"%s", charname);
+	Utility::LogEvent(wstos(logString).c_str());
+
 	return true;
 }
 
@@ -262,6 +284,23 @@ bool UserCommands::UserCmd_DroneCome(uint iClientID, const wstring& wscCmd, cons
 	pub::AI::SubmitDirective(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj, &gotoOp);
 
 	PrintUserCmdText(iClientID, L"Drone disengaging and returning to your position");
+
+	// If the last shipObj the drone was targeting is a player, log the event
+	if (clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget != 0)
+	{
+		const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+		const wstring targetname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(HkGetClientIDByShip(clientDroneInfo[iClientID].deployedInfo.lastShipObjTarget)));
+
+		// Only bother logging if we weren't engaging a NPC
+		if (!targetname.empty())
+		{
+			wstring logString = L"Player %s disengaged from target %t";
+			logString = ReplaceStr(logString, L"%s", charname);
+			logString = ReplaceStr(logString, L"%t", targetname);
+			Utility::LogEvent(wstos(logString).c_str());
+		}
+	}
+
 	return true;
 }
 
@@ -298,7 +337,7 @@ bool UserCommands::UserCmd_DroneBayAvailability(uint iClientID, const wstring& w
 
 	// Print out each available drone type for this bay
 	PrintUserCmdText(iClientID, L"---Valid drones---");
-	for (const auto bay : bayArch.availableDrones)
+	for (const auto& bay : bayArch.availableDrones)
 	{
 		PrintUserCmdText(iClientID, stows(bay));
 	}

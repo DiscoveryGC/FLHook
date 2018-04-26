@@ -50,7 +50,7 @@ struct BayArch
 struct DeployedDroneInfo
 {
 	uint deployedDroneObj;
-	uint lastShipObjTarget;
+	uint lastShipObjTarget = 0;
 };
 
 struct ClientDroneInfo

@@ -542,6 +542,7 @@ IMPORT void UserCmd_SetDieMsg(uint iClientID, const wstring &wscParam);
 IMPORT void UserCmd_SetChatFont(uint iClientID, const wstring &wscParam);
 
 IMPORT void ProcessEvent(wstring wscText, ...);
+IMPORT void SendChatEvent(uint iClientID, uint iToID, wstring &wscMsg);
 
 IMPORT void PrintUserCmdText(uint iClientID, wstring wscText, ...);
 

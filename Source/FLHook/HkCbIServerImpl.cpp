@@ -206,51 +206,7 @@ void __stdcall SubmitChat(struct CHAT_ID cId, unsigned long lP1, void const *rdl
 		}
 
 		// process chat event
-		wstring wscEvent;
-		wscEvent.reserve(256);
-		wscEvent = L"chat";
-		wscEvent += L" from=";
-		const wchar_t *wszFrom = (const wchar_t*)Players.GetActiveCharacterName(cId.iID);
-		if(!cId.iID)
-			wscEvent += L"console";
-		else if (!wszFrom)
-			wscEvent += L"unknown";
-		else
-			wscEvent += wszFrom;
-
-		wscEvent += L" id=";
-		wscEvent += stows(itos(cId.iID));
-
-		wscEvent += L" type=";
-		if(cIdTo.iID == 0x00010000)
-			wscEvent += L"universe";
-		else if(cIdTo.iID == 0x10003)
-		{
-			wscEvent += L"group";
-			wscEvent += L" grpidto=";
-			wscEvent += stows(itos(Players.GetGroupID(cId.iID)));
-		}
-		else if(cIdTo.iID & 0x00010000)
-			wscEvent += L"system";
-		else {
-			wscEvent += L"player";
-			wscEvent += L" to=";
-
-			const wchar_t *wszTo = (const wchar_t*)Players.GetActiveCharacterName(cIdTo.iID);
-			if(!cIdTo.iID)
-				wscEvent += L"console";
-			else if (!wszTo)
-				wscEvent += L"unknown";
-			else
-				wscEvent += wszTo;
-
-			wscEvent += L" idto=";
-			wscEvent += stows(itos(cIdTo.iID));
-		}
-
-		wscEvent += L" text=";
-		wscEvent += wscBuf;
-		ProcessEvent(L"%s", wscEvent.c_str());
+		SendChatEvent(iClientID, cIdTo.iID, wscBuf);
 
 		// check if chat should be suppressed
 		foreach(set_lstChatSuppress, wstring, i)

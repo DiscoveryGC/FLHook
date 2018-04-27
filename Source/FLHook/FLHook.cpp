@@ -636,6 +636,57 @@ void ProcessEvent(wstring wscText, ...)
 }
 
 /**************************************************************************************************************
+process and send an eventmode log message for given chat parameters
+**************************************************************************************************************/
+void SendChatEvent(uint iClientID, uint iToID, wstring &wscMsg) {
+	wstring wscEvent;
+	wscEvent.reserve(256);
+	wscEvent = L"chat";
+	wscEvent += L" from=";
+	const wchar_t *wszFrom = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	if (!iClientID)
+		wscEvent += L"console";
+	else if (!wszFrom)
+		wscEvent += L"unknown";
+	else
+		wscEvent += wszFrom;
+
+	wscEvent += L" id=";
+	wscEvent += stows(itos(iClientID));
+
+	wscEvent += L" type=";
+	if (iToID == 0x00010000)
+		wscEvent += L"universe";
+	else if (iToID == 0x10003)
+	{
+		wscEvent += L"group";
+		wscEvent += L" grpidto=";
+		wscEvent += stows(itos(Players.GetGroupID(iClientID)));
+	}
+	else if (iToID & 0x00010000)
+		wscEvent += L"system";
+	else {
+		wscEvent += L"player";
+		wscEvent += L" to=";
+
+		const wchar_t *wszTo = (const wchar_t*)Players.GetActiveCharacterName(iToID);
+		if (!iToID)
+			wscEvent += L"console";
+		else if (!wszTo)
+			wscEvent += L"unknown";
+		else
+			wscEvent += wszTo;
+
+		wscEvent += L" idto=";
+		wscEvent += stows(itos(iToID));
+	}
+
+	wscEvent += L" text=";
+	wscEvent += wscMsg;
+	ProcessEvent(L"%s", wscEvent.c_str());
+}
+
+/**************************************************************************************************************
 check for pending admin commands in console or socket and execute them
 **************************************************************************************************************/
 

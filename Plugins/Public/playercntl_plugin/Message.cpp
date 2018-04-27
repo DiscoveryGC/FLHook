@@ -356,19 +356,19 @@ namespace Message
 	Return false if tags cannot be replaced. */
 	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, wstring &wscMsg)
 	{
-		if (wscMsg.find(L"#t")!=-1)
+		if (wscMsg.find(L"#t") != -1)
 		{
-			if (clientData.uTargetClientID==-1)
+			if (clientData.uTargetClientID == -1)
 			{
 				PrintUserCmdText(iClientID, L"ERR Target not available");
-				return false;	
+				return false;
 			}
 
-			wstring wscTargetName = (const wchar_t*) Players.GetActiveCharacterName(clientData.uTargetClientID);
+			wstring wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#t", wscTargetName);
 		}
 
-		if (wscMsg.find(L"#c")!=-1)
+		if (wscMsg.find(L"#c") != -1)
 		{
 			wstring wscCurrLocation = GetLocation(iClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#c", wscCurrLocation.c_str());
@@ -376,7 +376,6 @@ namespace Message
 
 		return true;
 	}
-
 
 	/** Clean up when a client disconnects */
 	void Message::ClearClientInfo(uint iClientID)
@@ -812,6 +811,7 @@ namespace Message
 			return true;
 
 		SendSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10001, wscMsg);
 
 		return true;
 	}
@@ -843,6 +843,7 @@ namespace Message
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10002, wscMsg);
 
 		return true;
 	}
@@ -874,6 +875,7 @@ namespace Message
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10002, wscMsg);
 
 		return true;
 	}
@@ -905,6 +907,7 @@ namespace Message
 			return true;
 
 		SendGroupChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10003, wscMsg);
 		return true;
 	}
 
@@ -1007,6 +1010,7 @@ namespace Message
 
 		mapInfo[iter->second.uTargetClientID].ulastPmClientID = iClientID;
 		SendPrivateChat(iClientID, iter->second.uTargetClientID, wscMsg);
+		SendChatEvent(iClientID, iter->second.uTargetClientID, wscMsg);
 		return true;
 	}
 

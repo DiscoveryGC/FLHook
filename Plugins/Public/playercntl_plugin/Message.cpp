@@ -959,6 +959,7 @@ namespace Message
 
 		mapInfo[iter->second.ulastPmClientID].ulastPmClientID = iClientID;
 		SendPrivateChat(iClientID, iter->second.ulastPmClientID, wscMsg);
+		SendChatEvent(iClientID, iter->second.ulastPmClientID, wscMsg);
 		return true;
 	}
 

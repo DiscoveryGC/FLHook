@@ -906,6 +906,7 @@ USERCMD UserCmds[] =
 	{ L"/dice",			MiscCmds::UserCmd_Dice,			L"Usage: /dice [max]" },
 	{ L"/coin",			MiscCmds::UserCmd_Coin,			L"Usage: /coin" },
 	{ L"/pimpship",		PimpShip::UserCmd_PimpShip,		L"Usage: /pimpship" },
+	{ L"/pimpshiphelp",	PimpShip::UserCmd_PimpShipHelp,		L"Usage: /pimpship" },
 	{ L"/showsetup",	PimpShip::UserCmd_ShowSetup,	L"Usage: /showsetup" },
 	{ L"/showitems",	PimpShip::UserCmd_ShowItems,	L"Usage: /showitems" },
 	{ L"/setitem",		PimpShip::UserCmd_ChangeItem,	L"Usage: /setitem" },
@@ -915,13 +916,16 @@ USERCMD UserCmds[] =
 	{ L"/set movecharcode",	Rename::UserCmd_SetMoveCharCode,	L"Usage: /set movecharcode <code>" },
 	{ L"/restart",		Restart::UserCmd_Restart,		L"Usage: /restart <faction>" },
 	{ L"/showrestarts",	Restart::UserCmd_ShowRestarts,	L"Usage: /showrestarts" },
-	{ L"/givecash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon]" },
-	{ L"/givecasht",	GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon]" },
-	{ L"/givecasht*",	GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon]" },
+	{ L"/givecash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecasht <charname> <cash> [anon] or /gc ..." },
+	{ L"/gc",			GiveCash::UserCmd_GiveCash,		L"Usage: /givecasht <cash> [anon] or /gc ..." },
+	{ L"/givecasht",	GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon] or /gct ..." },
+	{ L"/gct",			GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon] or /gct ..." },
 	{ L"/sendcash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon]"},
 	{ L"/set cashcode",	GiveCash::UserCmd_SetCashCode,	L"Usage: /set cashcode <code>"},
-	{ L"/showcash",		GiveCash::UserCmd_ShowCash,		L"Usage: /showcash <charname> <code>"},
-	{ L"/drawcash",		GiveCash::UserCmd_DrawCash,		L"Usage: /drawcash <charname> <code> <cash>"},
+	{ L"/showcash",		GiveCash::UserCmd_ShowCash,		L"Usage: /showcash <charname> <code> or /shc ..." },
+	{ L"/drc",		GiveCash::UserCmd_DrawCash,		L"Usage:/drawcash <charname> <code> <cash or /drc ..." },
+	{ L"/shc",		GiveCash::UserCmd_ShowCash,		L"Usage: /showcash <charname> <code> or /shc ..." },
+	{ L"/drawcash",		GiveCash::UserCmd_DrawCash,		L"Usage: /drawcash <charname> <code> <cash> or /drc ..." },
 	{ L"/group",		Message::UserCmd_BuiltInCmdHelp, L"Usage: /group <message> or /g ..."},
 	{ L"/local",		Message::UserCmd_BuiltInCmdHelp, L"Usage: /local <message> or /l ...>"},
 	{ L"/system",		Message::UserCmd_BuiltInCmdHelp, L"Usage: /system <message> or /s ..."},
@@ -1348,6 +1352,14 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		MiscCmds::AdminCmd_SmiteAll(cmds);
 		return true;
 	}
+
+	else if (IS_CMD("pos"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_Pos(cmds);
+		return true;
+	}
+
 	else if (IS_CMD("bob"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1423,6 +1435,13 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HyperJump::AdminCmd_JumpTest(cmds, cmds->ArgStr(1));
+		return true;
+	}
+
+	else if (IS_CMD("jumpgroup"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::AdminCmd_JumpGroup(cmds, cmds->ArgStr(1), cmds->ArgInt(2), cmds->ArgInt(3), cmds->ArgInt(4));
 		return true;
 	}
 	

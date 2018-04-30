@@ -124,14 +124,46 @@ namespace MiscCmds
 		Vector pos;
 		Matrix rot;
 		pub::SpaceObj::GetLocation(p.iShip, pos, rot);
+		wstring currentLocation = GetLocation(iClientID);
 
 		Vector erot = MatrixToEuler(rot);
 
 		wchar_t buf[100];
-		_snwprintf(buf, sizeof(buf), L"Position %0.0f %0.0f %0.0f Orient %0.0f %0.0f %0.0f",
-			pos.x, pos.y, pos.z, erot.x, erot.y, erot.z);
+		_snwprintf(buf, sizeof(buf), L"Position: %0.0f %0.0f %0.0f - Orient: %0.0f %0.0f %0.0f - %s",
+			pos.x, pos.y, pos.z, erot.x, erot.y, erot.z, currentLocation.c_str());
 		PrintUserCmdText(iClientID, buf);
 		return true;
+	}
+
+	void MiscCmds::AdminCmd_Pos(CCmds* cmds)
+	{
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		{
+			cmds->Print(L"ERR No permission\n");
+			return;
+		}
+
+		HKPLAYERINFO adminPlyr;
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
+		{
+			cmds->Print(L"ERR Not in space\n");
+			return;
+		}
+
+		Vector pos;
+		Matrix rot;
+		pub::SpaceObj::GetLocation(adminPlyr.iShip, pos, rot);
+		wstring currentLocation = GetLocation(adminPlyr.iClientID);
+		uint iSystemID;
+		pub::Player::GetSystem(adminPlyr.iClientID, iSystemID);
+		const Universe::ISystem *iSys = Universe::get_system(iSystemID);
+		const LPCSTR internalName = iSys->nickname;
+
+		Vector erot = MatrixToEuler(rot);
+		wchar_t buf[100];
+		_snwprintf(buf, sizeof(buf), L"Position: %0.0f %0.0f %0.0f - Orient: %0.0f %0.0f %0.0f - %s - Internal Name: %s",
+			pos.x, pos.y, pos.z, erot.x, erot.y, erot.z, currentLocation.c_str(), stows(internalName).c_str());
+		PrintUserCmdText(adminPlyr.iClientID, buf);
 	}
 
 	/** Move a ship a little if it is stuck in the base */

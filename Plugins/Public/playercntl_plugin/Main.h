@@ -96,6 +96,7 @@ namespace MiscCmds
 
 	void AdminCmd_SmiteAll(CCmds* cmds);
 	void AdminCmd_Bob(CCmds* cmds, const wstring &wscCharname);
+	void AdminCmd_Pos(CCmds* cmds);
 	void AdminCmd_PlayMusic(CCmds* cmds, const wstring &wscMusicname);
 	void AdminCmd_PlaySound(CCmds* cmds, const wstring &wscSoundname);
 	void AdminCmd_PlayNNM(CCmds* cmds, const wstring &wscSoundname);
@@ -144,6 +145,7 @@ namespace HyperJump
 	void AdminCmd_Move(CCmds* cmds, float x, float y, float z);
 	//void AdminCmd_TestBot(CCmds* cmds, const wstring &wscSystemNick, int iCheckZoneTime);
 	void AdminCmd_JumpTest(CCmds* cmds, const wstring &fuse);
+	void AdminCmd_JumpGroup(CCmds* cmds, const wstring &sys, const int &x, const int &y, const int &z);
 	void AdminCmd_ListRestrictedShips(CCmds* cmds);
 	void AdminCmd_MakeCoord(CCmds* cmds);
 
@@ -164,6 +166,7 @@ namespace PimpShip
 	void LocationEnter(unsigned int locationID, unsigned int iClientID);
 
 	bool UserCmd_PimpShip(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_PimpShipHelp(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ShowSetup(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ShowItems(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ChangeItem(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
@@ -205,7 +208,7 @@ namespace GiveCash
 	bool UserCmd_SetCashCode(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_DrawCash(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_GiveCashTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon);
+	bool GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon, const wstring &wscReason);
 }
 
 namespace Message

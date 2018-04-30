@@ -108,25 +108,6 @@ namespace GiveCash
 		return;
 	}
 
-	/** Return return if this account is banned */
-	static bool IsBannedAccount(CAccount *acc)
-	{
-		wstring wscDir;
-		HkGetAccountDirName(acc, wscDir);
-
-		char szDataPath[MAX_PATH];
-		GetUserDataPath(szDataPath);
-
-		string path = string(szDataPath) + "\\Accts\\MultiPlayer\\" + wstos(wscDir) + "\\banned";
-
-		FILE *file = fopen(path.c_str(), "r");
-		if (file) {
-			fclose(file);
-			return true;
-		}
-		return false;
-	}
-
 	/** Return return if this char is in the blocked system */
 	static bool InBlockedSystem(const wstring &wscCharname)
 	{
@@ -216,7 +197,9 @@ namespace GiveCash
 		if (wscAnon == L"anon")
 			bAnon = true;
 
-		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon);
+		wstring wscReason = GetParamToEnd(wscParam, ' ', 2);
+
+		GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon, wscReason);
 		return true;
 	}
 
@@ -245,11 +228,13 @@ namespace GiveCash
 		if (wscAnon==L"anon")
 			bAnon = true;
 
-		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon);
+		wstring wscReason = GetParamToEnd(wscParam, ' ', 3);
+
+		GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon, wscReason);
 		return true;
 	}
 
-	bool GiveCash::GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon)
+	bool GiveCash::GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon, const wstring &wscReason)
 	{
 		HK_ERROR err;
 
@@ -260,10 +245,7 @@ namespace GiveCash
 		}
 
 		int secs = 0;
-		if ((err = HkGetOnLineTime(wscCharname, secs)) != HKE_OK) {
-			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
-			return true;
-		}
+		HkGetOnLineTime(wscCharname, secs);
 		if (secs<set_iMinTime)
 		{
 			PrintUserCmdText(iClientID, L"ERR: insufficient time online");
@@ -295,7 +277,7 @@ namespace GiveCash
 
 		// Prevent target ship from becoming corrupt.
 		float fTargetValue = 0.0f;
-		if ((err = HKGetShipValue(wscTargetCharname, fTargetValue)) != HKE_OK)
+		if (HKGetShipValue(wscTargetCharname, fTargetValue) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
 			return true;
@@ -403,7 +385,7 @@ namespace GiveCash
 
 		// If the target player is online then send them a message saying
 		// telling them that they've received the cash.
-		wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + ((bAnon) ? L"anonymous" : wscCharname);
+		wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + (bAnon ? L"anonymous" : wscCharname) + (!wscReason.empty() ? L"with the reason: " + wscReason : L".");
 		if (targetClientId != -1 && !HkIsInCharSelectMenu(targetClientId))
 		{
 			PrintUserCmdText(targetClientId, L"%s", msg.c_str());
@@ -413,7 +395,7 @@ namespace GiveCash
 		// of the transfer. The ini is cleared when ever the character logs in.
 		else
 		{
-			wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + ((bAnon) ? L"anonymous" : wscCharname);
+			wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + (bAnon ? L"anonymous" : wscCharname) + (!wscReason.empty() ? L"with the reason: " + wscReason : L".");
 			LogTransfer(wscTargetCharname, msg);
 		}
 
@@ -426,6 +408,9 @@ namespace GiveCash
 		msg = L"You have sent " + ToMoneyStr(cash) + L" credits to " + wscTargetCharname;
 		if (bAnon)
 			msg += L" anonymously";
+
+		if (!wscReason.empty())
+			msg += L" with the reason: " + wscReason;
 		PrintUserCmdText(iClientID, L"%s", msg.c_str());
 		return true;
 	}
@@ -540,17 +525,14 @@ namespace GiveCash
 		}
 
 		int secs = 0;
-		if ((err = HkGetOnLineTime(wscCharname, secs)) != HKE_OK) {
-			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
-			return true;
-		}
+		HkGetOnLineTime(wscTargetCharname, secs);
 		if (secs<set_iMinTime)
 		{
 			PrintUserCmdText(iClientID, L"ERR insufficient time online");
 			return true;
 		}
 
-		if (InBlockedSystem(wscCharname) || InBlockedSystem(wscTargetCharname) || IsBannedAccount(iTargetAcc))
+		if (InBlockedSystem(wscCharname) || InBlockedSystem(wscTargetCharname))
 		{
 			PrintUserCmdText(iClientID, L"ERR cash transfer blocked");
 			return true;
@@ -587,7 +569,7 @@ namespace GiveCash
 		// Check the adding this cash to this player will not
 		// exceed the maximum ship value.
 		float fTargetValue = 0.0f;
-		if ((err = HKGetShipValue(wscCharname, fTargetValue)) != HKE_OK)
+		if (HKGetShipValue(wscCharname, fTargetValue) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
 			return true;

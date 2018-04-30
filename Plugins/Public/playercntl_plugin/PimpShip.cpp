@@ -57,7 +57,6 @@ namespace PimpShip
 
 		// Map of hard point ID to equip.
 		map<uint, EQ_HARDPOINT> mapCurrEquip;
-
 		bool bInPimpDealer;
 	};
 	static map<uint, INFO> mapInfo;
@@ -206,31 +205,19 @@ namespace PimpShip
 				return false;
 			}
 		}
-
 		mapInfo[iClientID].mapCurrEquip.clear();
 		mapInfo[iClientID].bInPimpDealer = true;
 
-		PrintUserCmdText(iClientID, L"Available ship pimping commands:");
-
-		PrintUserCmdText(iClientID, L"/showsetup");
-		PrintUserCmdText(iClientID, L"|     Display current ship setup.");
-
-		PrintUserCmdText(iClientID, L"/showitems");
-		PrintUserCmdText(iClientID, L"|     Display items that may be added to your ship.");
-
-		PrintUserCmdText(iClientID, L"/setitem <hardpoint id> <new item id>");
-		PrintUserCmdText(iClientID, L"|     Change the item at <hp id> to <item id>.");
-		PrintUserCmdText(iClientID, L"|     <hi id>s are shown by typing /show setup.");
-		PrintUserCmdText(iClientID, L"|     <item id>s are shown by typing /show items.");
-
-		PrintUserCmdText(iClientID, L"/buynow");
-		PrintUserCmdText(iClientID, L"|     Confirms the changes.");
-		PrintUserCmdText(iClientID, L"This facility costs " + ToMoneyStr(set_iCost) + L" credits to use.");
+		PrintUserCmdText(iClientID, L"Pimpship commands enabled. Ready to upgrade your ship!");
+		PrintUserCmdText(iClientID, L"Use /pimpshiphelp to see your options.");
 
 		wstring wscCharName = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
 
 		// Build the equipment list.
 		int iSlotID = 1;
+
+		if (!mapInfo[iClientID].bInPimpDealer || !set_bEnablePimpShip)
+			return false;
 
 		list<EquipDesc> &eqLst = Players[iClientID].equipDescList.equip;
 		for (list<EquipDesc>::iterator eq = eqLst.begin(); eq != eqLst.end(); eq++)
@@ -244,6 +231,37 @@ namespace PimpShip
 				iSlotID++;
 			}
 		}
+		return true;
+	}
+
+	bool PimpShip::UserCmd_PimpShipHelp(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		if (!set_bEnablePimpShip)
+			return false;
+
+		PrintUserCmdText(iClientID, L"Available ship pimping commands:");
+
+		PrintUserCmdText(iClientID, L"/pimpship");
+		PrintUserCmdText(iClientID, L"|		Command to start the upgrade process (using more than once will reset your changes)");
+		PrintUserCmdText(iClientID, L"|		You must be inside a shipdealer of a shipyard (or New Haven Station in conn) to use this.");
+
+		PrintUserCmdText(iClientID, L"/showsetup");
+		PrintUserCmdText(iClientID, L"|     Display current ship setup.");
+
+		PrintUserCmdText(iClientID, L"/showitems");
+		PrintUserCmdText(iClientID, L"|     Display items that may be added to your ship.");
+
+		PrintUserCmdText(iClientID, L"/setitem <hardpoint id> <new item id>");
+		PrintUserCmdText(iClientID, L"|     Change the item at <hp id> to <item id>.");
+		PrintUserCmdText(iClientID, L"|     <hi id>s are shown by typing /show setup.");
+		PrintUserCmdText(iClientID, L"|     <item id>s are shown by typing /show items.");
+		PrintUserCmdText(iClientID, L"|     <hardpoint id> can be set to \"all\" to set all lights to a certain type.");
+		PrintUserCmdText(iClientID, L"|     <item id> can be set via the name of light, rather than it's number.");
+		PrintUserCmdText(iClientID, L"|     Example: /setitem all white");
+
+		PrintUserCmdText(iClientID, L"/buynow");
+		PrintUserCmdText(iClientID, L"|     Confirms the changes.");
+		PrintUserCmdText(iClientID, L"This facility costs " + ToMoneyStr(set_iCost) + L" credits to use.");
 		return true;
 	}
 
@@ -274,7 +292,7 @@ namespace PimpShip
 		PrintUserCmdText(iClientID, L"Available items: %d", mapAvailableItems.size());
 		for (map<uint, ITEM_INFO>::iterator iter = mapAvailableItems.begin(); iter != mapAvailableItems.end(); iter++)
 		{
-			PrintUserCmdText(iClientID, L"|     %.2d:  %s", iter->first, iter->second.wscDescription.c_str());
+			PrintUserCmdText(iClientID, L"%.2d: %s", iter->first, iter->second.wscDescription.c_str());
 		}
 		PrintUserCmdText(iClientID, L"OK");
 
@@ -287,19 +305,41 @@ namespace PimpShip
 		if (!mapInfo[iClientID].bInPimpDealer || !set_bEnablePimpShip)
 			return false;
 
-		int iHardPointID = ToInt(GetParam(wscParam, ' ', 0));
-		int iSelectedItemID = ToInt(GetParam(wscParam, ' ', 1));
+		wstring wscCommand = GetParam(wscParam, ' ', 0);
+		wstring wscItem = GetParam(wscParam, ' ', 1);
+		int iSelectedItemID = 0;
+		for (auto i : mapAvailableItems)
+		{
+			if(ToLower(i.second.wscDescription) == ToLower(wscItem))
+			{
+				iSelectedItemID = i.first;
+				break;
+			}
+		}
+		
+		if (iSelectedItemID == 0)
+			iSelectedItemID = ToInt(wscItem);
+
+		if (mapAvailableItems.find(iSelectedItemID) == mapAvailableItems.end())
+		{
+			PrintUserCmdText(iClientID, L"ERR Invalid item ID");
+			return true;
+		}
+
+		if(wscCommand == L"all")
+		{
+			for (int i = 1; i < mapInfo[iClientID].mapCurrEquip.size() + 1; ++i)
+			{
+				mapInfo[iClientID].mapCurrEquip[i].iArchID = mapAvailableItems[iSelectedItemID].iArchID;
+			}
+			return UserCmd_ShowSetup(iClientID, wscCmd, wscParam, usage);
+		}
+		int iHardPointID = ToInt(wscCommand);
 
 		if (mapInfo[iClientID].mapCurrEquip.find(iHardPointID)
 			== mapInfo[iClientID].mapCurrEquip.end())
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid hard point ID");
-			return true;
-		}
-
-		if (mapAvailableItems.find(iSelectedItemID) == mapAvailableItems.end())
-		{
-			PrintUserCmdText(iClientID, L"ERR Invalid item ID");
 			return true;
 		}
 

@@ -39,7 +39,7 @@ namespace HyperJump
 			ConPrint(L"ERROR: item '%s' is not valid\n", stows(nickname).c_str());
 		}
 
-		return item;	
+		return item;
 	}
 
 	// Ships restricted from jumping
@@ -64,12 +64,12 @@ namespace HyperJump
 	/*
 	struct TESTBOT
 	{
-		bool bBaseTest;
-		int iCheckZoneTime;
-		int iCheckSystemOrBase;
-		int iCheckZonesTimer;
-		int iCheckTestedZones;
-		list<ZONE> lstCheckZones;
+	bool bBaseTest;
+	int iCheckZoneTime;
+	int iCheckSystemOrBase;
+	int iCheckZonesTimer;
+	int iCheckTestedZones;
+	list<ZONE> lstCheckZones;
 	};
 	static map<uint, TESTBOT> mapTestBots;
 	*/
@@ -172,15 +172,16 @@ namespace HyperJump
 
 	static string set_scEncryptKey = "secretcode";
 
-	static map<uint, bool> set_death_systems;
+	static map<uint, bool> set_death_systems; // Systems the user is killed upon entering
+	static map<uint, bool> set_banned_systems;  // Systems that cannot be random jumped to.
 
 	static wstring FormatCoords(char* ibuf)
 	{
 		wstring sbuf;
 		wchar_t buf[100];
-		for (int i=0; i<HCOORD_SIZE; i++)
+		for (int i = 0; i<HCOORD_SIZE; i++)
 		{
-			if (i!=0 && (i%4)==0) sbuf += L"-";
+			if (i != 0 && (i % 4) == 0) sbuf += L"-";
 			_snwprintf(buf, sizeof(buf), L"%02X", (byte)ibuf[i]);
 			sbuf += buf;
 		}
@@ -191,11 +192,11 @@ namespace HyperJump
 	{
 		obuf[0] = ibuf[0];
 		obuf[1] = ibuf[1];
-		for (uint i=2, p=ibuf[0]%set_scEncryptKey.length(); i<HCOORD_SIZE; i++, p++)
+		for (uint i = 2, p = ibuf[0] % set_scEncryptKey.length(); i<HCOORD_SIZE; i++, p++)
 		{
 			if (p > set_scEncryptKey.length())
 				p = 0;
-			obuf[i] = ibuf[i]^set_scEncryptKey[p];
+			obuf[i] = ibuf[i] ^ set_scEncryptKey[p];
 		}
 	}
 
@@ -204,7 +205,7 @@ namespace HyperJump
 		char szBufString[1024];
 		va_list marker;
 		va_start(marker, szString);
-		_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+		_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 		char szBuf[64];
 		time_t tNow = time(0);
@@ -212,12 +213,12 @@ namespace HyperJump
 		strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
 
 		FILE *Logfile = fopen(("./flhook_logs/flhook_cheaters.log"), "at");
-		if(Logfile)
+		if (Logfile)
 		{
 			fprintf(Logfile, "%s %s\n", szBuf, szBufString);
 			fflush(Logfile);
 			fclose(Logfile);
-		}	
+		}
 	}
 
 	void LogCheater(uint client, const wstring &reason)
@@ -284,7 +285,7 @@ namespace HyperJump
 		GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 		string scCfgFile = string(szCurDir) + "\\flhook_plugins\\jump.cfg";
 		string scCfgFileSystemList = string(szCurDir) + "\\flhook_plugins\\jump_allowedsystems.cfg";
-	
+
 		int iItemID = 1;
 
 		INI_Reader ini;
@@ -300,20 +301,25 @@ namespace HyperJump
 						{
 							set_death_systems[CreateID(ini.get_value_string(0))] = true;
 						}
+						else if (ini.is_value("banned_system"))
+						{
+							set_banned_systems[CreateID(ini.get_value_string(0))] = true;
+						}
+
 						else if (ini.is_value("JumpWhiteListEnabled"))
 						{
-						JumpWhiteListEnabled = ini.get_value_int(0);
-						ConPrint(L"HYPERJUMP NOTICE: Ship Whitelist is %u (1=On, 0=Off)\n", JumpWhiteListEnabled);
+							JumpWhiteListEnabled = ini.get_value_int(0);
+							ConPrint(L"HYPERJUMP NOTICE: Ship Whitelist is %u (1=On, 0=Off)\n", JumpWhiteListEnabled);
 						}
 						else if (ini.is_value("JumpSystemListEnabled"))
 						{
-						JumpSystemListEnabled = ini.get_value_int(0);
-						ConPrint(L"HYPERJUMP NOTICE: System Whitelist is %u (1=On, 0=Off)\n", JumpSystemListEnabled);
+							JumpSystemListEnabled = ini.get_value_int(0);
+							ConPrint(L"HYPERJUMP NOTICE: System Whitelist is %u (1=On, 0=Off)\n", JumpSystemListEnabled);
 						}
 						else if (ini.is_value("SurveyPlaneLimit"))
 						{
-						SurveyPlaneLimit = ini.get_value_int(0);
-						ConPrint(L"HYPERJUMP NOTICE: Survey Plane Limit is %u \n", SurveyPlaneLimit);
+							SurveyPlaneLimit = ini.get_value_int(0);
+							ConPrint(L"HYPERJUMP NOTICE: Survey Plane Limit is %u \n", SurveyPlaneLimit);
 						}
 						else if (ini.is_value("BeaconCommodity"))
 						{
@@ -331,7 +337,7 @@ namespace HyperJump
 						{
 							BeaconCooldown = ini.get_value_int(0);
 						}
-					}				
+					}
 				}
 				else if (ini.is_header("shiprestrictions"))
 				{
@@ -352,7 +358,7 @@ namespace HyperJump
 					while (ini.read_value())
 					{
 						if (ini.is_value("nickname"))
-						{ 
+						{
 							jd.nickname = CreateValidID(ini.get_value_string(0));
 						}
 						else if (ini.is_value("can_jump_charge"))
@@ -402,7 +408,7 @@ namespace HyperJump
 					while (ini.read_value())
 					{
 						if (ini.is_value("nickname"))
-						{ 
+						{
 							hs.nickname = CreateValidID(ini.get_value_string(0));
 						}
 						else if (ini.is_value("survey_complete_charge"))
@@ -451,7 +457,7 @@ namespace HyperJump
 					}
 					mapBeaconMatrix[bm.nickname] = bm;
 				}
-				
+
 			}
 			if (BeaconCommodity == 0)
 			{
@@ -474,7 +480,7 @@ namespace HyperJump
 					while (ini.read_value())
 					{
 						if (ini.is_value("nickname"))
-						{ 
+						{
 							jumpsyslist.nickname = CreateID(ini.get_value_string(0));
 						}
 						else if (ini.is_value("jump"))
@@ -539,11 +545,11 @@ namespace HyperJump
 		IObjInspectImpl *obj = HkGetInspect(iClientID);
 		if (obj)
 		{
-			foreach (mapJumpDrives[iClientID].active_charge_fuse, uint, fuse)
-				HkUnLightFuse((IObjRW*) obj, *fuse, 0);
+			foreach(mapJumpDrives[iClientID].active_charge_fuse, uint, fuse)
+				HkUnLightFuse((IObjRW*)obj, *fuse, 0);
 			mapJumpDrives[iClientID].active_charge_fuse.clear();
 		}
-	}			
+	}
 
 	bool HyperJump::UserCmd_ListJumpableSystems(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
@@ -553,30 +559,30 @@ namespace HyperJump
 		wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
 
 		PrintUserCmdText(iClientID, L"Space kitteh knows you are in %s !", wscSysName.c_str());
-		
+
 		if (JumpWhiteListEnabled == 1)
 		{
-			for (map<uint, SYSTEM_JUMPLIST>::iterator iter = mapJumpSystems.begin(); iter!=mapJumpSystems.end(); iter++)
+			for (map<uint, SYSTEM_JUMPLIST>::iterator iter = mapJumpSystems.begin(); iter != mapJumpSystems.end(); iter++)
 			{
-			
-			SYSTEM_JUMPLIST &jumpsyslist = iter->second;
-				if (jumpsyslist.nickname == iSystemID) 
+
+				SYSTEM_JUMPLIST &jumpsyslist = iter->second;
+				if (jumpsyslist.nickname == iSystemID)
 				{
-				PrintUserCmdText(iClientID, L"The script has found %s !", wscSysName.c_str());
-				PrintUserCmdText(iClientID, L"You are allowed to jump to:");
-			
-					for (map<uint, uint>::iterator i = jumpsyslist.mapSystemsList.begin(); i != jumpsyslist.mapSystemsList.end(); ++i) 
+					PrintUserCmdText(iClientID, L"The script has found %s !", wscSysName.c_str());
+					PrintUserCmdText(iClientID, L"You are allowed to jump to:");
+
+					for (map<uint, uint>::iterator i = jumpsyslist.mapSystemsList.begin(); i != jumpsyslist.mapSystemsList.end(); ++i)
 					{
-					const Universe::ISystem *iSysList = Universe::get_system(i->first);
-					wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
-					PrintUserCmdText(iClientID, L"|     %s", wscSysNameList.c_str());
+						const Universe::ISystem *iSysList = Universe::get_system(i->first);
+						wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
+						PrintUserCmdText(iClientID, L"|     %s", wscSysNameList.c_str());
 					}
 				}
 			}
 		}
 		else
 		{
-			PrintUserCmdText(iClientID, L"Jump System Whitelisting is not enabled.");	
+			PrintUserCmdText(iClientID, L"Jump System Whitelisting is not enabled.");
 		}
 		return true;
 	}
@@ -610,7 +616,7 @@ namespace HyperJump
 		}
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
@@ -634,7 +640,7 @@ namespace HyperJump
 
 		// Calculate a simple parity check
 		WORD parity = 0;
-		for (int i=2; i<HCOORD_SIZE; i++)
+		for (int i = 2; i<HCOORD_SIZE; i++)
 			parity += ibuf[i];
 		coords.parity = parity;
 
@@ -654,7 +660,7 @@ namespace HyperJump
 
 		// Handle beacons
 
-		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i) 
+		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
 		{
 			BEACONTIMER &bc = i->second;
 
@@ -685,13 +691,13 @@ namespace HyperJump
 		}
 
 		// Handle survey charging
-		for (map<uint, SURVEY>::iterator iter = mapSurvey.begin(); iter!=mapSurvey.end(); iter++)
+		for (map<uint, SURVEY>::iterator iter = mapSurvey.begin(); iter != mapSurvey.end(); iter++)
 		{
 			uint iClientID = iter->first;
-			
+
 			uint iShip;
 			pub::Player::GetShip(iClientID, iShip);
-			if (iShip==0)
+			if (iShip == 0)
 			{
 				lstOldClients.push_back(iClientID);
 			}
@@ -756,7 +762,7 @@ namespace HyperJump
 
 						// Calculate a simple parity check
 						WORD parity = 0;
-						for (int i=2; i<HCOORD_SIZE; i++)
+						for (int i = 2; i<HCOORD_SIZE; i++)
 							parity += ibuf[i];
 						coords.parity = parity;
 
@@ -771,13 +777,13 @@ namespace HyperJump
 					}
 					else if (time(0) % 10 == 0)
 					{
-						PrintUserCmdText(iClientID, L"Survey %0.0f%% complete", (sm.curr_charge/sm.arch.survey_complete_charge)*100.0f);				
+						PrintUserCmdText(iClientID, L"Survey %0.0f%% complete", (sm.curr_charge / sm.arch.survey_complete_charge)*100.0f);
 					}
 				}
 			}
 		}
 
-		foreach (lstOldClients, uint, iClientID)
+		foreach(lstOldClients, uint, iClientID)
 		{
 			mapSurvey.erase(*iClientID);
 		}
@@ -785,13 +791,13 @@ namespace HyperJump
 		lstOldClients.clear();
 
 		// Handle jump drive charging
-		for (map<uint, JUMPDRIVE>::iterator iter = mapJumpDrives.begin(); iter!=mapJumpDrives.end(); iter++)
+		for (map<uint, JUMPDRIVE>::iterator iter = mapJumpDrives.begin(); iter != mapJumpDrives.end(); iter++)
 		{
 			uint iClientID = iter->first;
-			
+
 			uint iShip;
 			pub::Player::GetShip(iClientID, iShip);
-			if (iShip==0)
+			if (iShip == 0)
 			{
 				lstOldClients.push_back(iClientID);
 			}
@@ -813,7 +819,7 @@ namespace HyperJump
 					jd.jump_timer--;
 					// Turn on the jumpdrive flash
 					if (jd.jump_timer == 7)
-					{	
+					{
 						jd.charging_complete = false;
 						jd.curr_charge = 0.0;
 						jd.charging_on = false;
@@ -838,20 +844,20 @@ namespace HyperJump
 						// Restrict some ships from jumping, this is for the jumpship
 						Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
 						wstring playershiparch = stows(ship->szName);
-						if (mapRestrictedShips.find(playershiparch) != mapRestrictedShips.end() && JumpWhiteListEnabled == 1) 
+						if (mapRestrictedShips.find(playershiparch) != mapRestrictedShips.end() && JumpWhiteListEnabled == 1)
 						{
-							PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump."); 
+							PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump.");
 						}
-						else 
+						else
 						{
-							SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, mShipDir); 
+							SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, mShipDir);
 						}
 
 						// Find all ships within the jump field including the one with the jump engine.
 						if (jd.arch.field_range > 0)
 						{
 							struct PlayerData *pPD = 0;
-							while(pPD = Players.traverse_active(pPD))
+							while (pPD = Players.traverse_active(pPD))
 							{
 								uint iSystemID2;
 								pub::SpaceObj::GetSystem(pPD->iShipID, iSystemID2);
@@ -867,33 +873,34 @@ namespace HyperJump
 									// Restrict some ships from jumping, this is for the jumpers
 									Archetype::Ship *ship = Archetype::GetShip(pPD->iShipArchetype);
 									wstring playershiparch = stows(ship->szName);
-									if (mapRestrictedShips.find(playershiparch) != mapRestrictedShips.end() && JumpWhiteListEnabled == 1) 
+									if (mapRestrictedShips.find(playershiparch) != mapRestrictedShips.end() && JumpWhiteListEnabled == 1)
 									{
-										PrintUserCmdText(pPD->iOnlineID, L"ERR Ship is not allowed to jump."); 
+										PrintUserCmdText(pPD->iOnlineID, L"ERR Ship is not allowed to jump.");
 									}
-									else 
+									else
 									{
-									//PrintUserCmdText(pPD->iOnlineID, playershiparch);
-									PrintUserCmdText(pPD->iOnlineID, L"Jumping...");
+										//PrintUserCmdText(pPD->iOnlineID, playershiparch);
+										PrintUserCmdText(pPD->iOnlineID, L"Jumping...");
 
-									if (HookExt::IniGetB(iClientID, "event.enabled"))
-									{
-										string eventid = wstos(HookExt::IniGetWS(iClientID, "event.eventid"));
+										if (HookExt::IniGetB(iClientID, "event.enabled"))
+										{
+											string eventid = wstos(HookExt::IniGetWS(iClientID, "event.eventid"));
 
-										//else disable event mode
-										HookExt::IniSetB(iClientID, "event.enabled", false);
-										HookExt::IniSetWS(iClientID, "event.eventid", L"");
-										HookExt::IniSetI(iClientID, "event.quantity", 0);
-										PrintUserCmdText(iClientID, L"You have been unregistered from the event.");
+											//else disable event mode
+											HookExt::IniSetB(iClientID, "event.enabled", false);
+											HookExt::IniSetWS(iClientID, "event.eventid", L"");
+											HookExt::IniSetI(iClientID, "event.quantity", 0);
+											PrintUserCmdText(iClientID, L"You have been unregistered from the event.");
+										}
+
+										Vector vNewTargetPosition;
+										vNewTargetPosition.x = jd.vTargetPosition.x + (vPosition.x - vPosition2.x);
+										vNewTargetPosition.y = jd.vTargetPosition.y + (vPosition.y - vPosition2.y);
+										vNewTargetPosition.z = jd.vTargetPosition.z + (vPosition.z - vPosition2.z);
+										pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
+										pub::SpaceObj::DrainShields(pPD->iShipID);
+										SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2);
 									}
-
-									Vector vNewTargetPosition;
-									vNewTargetPosition.x = jd.vTargetPosition.x + (vPosition.x - vPosition2.x);
-									vNewTargetPosition.y = jd.vTargetPosition.y + (vPosition.y - vPosition2.y);
-									vNewTargetPosition.z = jd.vTargetPosition.z + (vPosition.z - vPosition2.z);
-									pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
-									pub::SpaceObj::DrainShields(pPD->iShipID);
-									SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2); }
 								}
 							}
 						}
@@ -959,7 +966,7 @@ namespace HyperJump
 					// skip to the next player.
 					if (!jd.charging_on)
 					{
-						PrintUserCmdText(iClientID, L"Jump drive charging failed");				
+						PrintUserCmdText(iClientID, L"Jump drive charging failed");
 						pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 						SetFuse(iClientID, 0);
 						StopChargeFuses(iClientID);
@@ -973,7 +980,7 @@ namespace HyperJump
 						jd.curr_charge = jd.arch.can_jump_charge;
 						if (!jd.charging_complete)
 						{
-							PrintUserCmdText(iClientID, L"Jump drive charging complete, ready to jump");				
+							PrintUserCmdText(iClientID, L"Jump drive charging complete, ready to jump");
 							pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_complete"));
 							jd.charging_complete = true;
 						}
@@ -984,14 +991,14 @@ namespace HyperJump
 					}
 
 
-					uint expected_charge_status = (uint)(jd.curr_charge/jd.arch.can_jump_charge * 10);
+					uint expected_charge_status = (uint)(jd.curr_charge / jd.arch.can_jump_charge * 10);
 					if (jd.charge_status != expected_charge_status)
 					{
 						jd.charge_status = expected_charge_status;
-						PrintUserCmdText(iClientID, L"Jump drive charge %0.0f%%", (jd.curr_charge/jd.arch.can_jump_charge)*100.0f);
-						
+						PrintUserCmdText(iClientID, L"Jump drive charge %0.0f%%", (jd.curr_charge / jd.arch.can_jump_charge)*100.0f);
+
 						// Find the currently expected charge fuse
-						uint charge_fuse_idx = (uint)((jd.curr_charge/jd.arch.can_jump_charge) * (jd.arch.charge_fuse.size() - 1));
+						uint charge_fuse_idx = (uint)((jd.curr_charge / jd.arch.can_jump_charge) * (jd.arch.charge_fuse.size() - 1));
 						if (charge_fuse_idx >= jd.arch.charge_fuse.size())
 							charge_fuse_idx = jd.arch.charge_fuse.size() - 1;
 
@@ -1022,7 +1029,7 @@ namespace HyperJump
 		}
 
 		// If the ship has docked or died remove the client.	
-		foreach (lstOldClients, uint, iClientID)
+		foreach(lstOldClients, uint, iClientID)
 		{
 			mapJumpDrives.erase(*iClientID);
 		}
@@ -1031,99 +1038,99 @@ namespace HyperJump
 		/*
 		for (map<uint, TESTBOT>::iterator iter = mapTestBots.begin(); iter!=mapTestBots.end(); iter++)
 		{
-			uint iClientID = iter->first;
-			TESTBOT &tb = iter->second;
+		uint iClientID = iter->first;
+		TESTBOT &tb = iter->second;
 
-			if (tb.bBaseTest)
-			{
-				if (tb.iCheckZonesTimer>0)
-				{
-					tb.iCheckZonesTimer--;
-				}
-				else if (tb.iCheckZonesTimer==0)
-				{
-					tb.iCheckZonesTimer = tb.iCheckZoneTime;
-					tb.iCheckTestedZones++;
-					uint iSystem;
-					pub::Player::GetSystem(iClientID, iSystem);
+		if (tb.bBaseTest)
+		{
+		if (tb.iCheckZonesTimer>0)
+		{
+		tb.iCheckZonesTimer--;
+		}
+		else if (tb.iCheckZonesTimer==0)
+		{
+		tb.iCheckZonesTimer = tb.iCheckZoneTime;
+		tb.iCheckTestedZones++;
+		uint iSystem;
+		pub::Player::GetSystem(iClientID, iSystem);
 
-					uint iShip;
-					pub::Player::GetShip(iClientID, iShip);
+		uint iShip;
+		pub::Player::GetShip(iClientID, iShip);
 
-					// if ship is in base undock it
-					uint iBase;
-					pub::Player::GetBase(iClientID, iBase);
-					if (iBase)
-					{
-						PrintUserCmdText(iClientID, L"Launching iteration %d", tb.iCheckTestedZones);
+		// if ship is in base undock it
+		uint iBase;
+		pub::Player::GetBase(iClientID, iBase);
+		if (iBase)
+		{
+		PrintUserCmdText(iClientID, L"Launching iteration %d", tb.iCheckTestedZones);
 
-						Vector pos = {0,300000,0};
-						Matrix ornt = {0};
-						SwitchSystem(iClientID, iSystem, pos, ornt);
-					}
-					// if in space dock with specified base.
-					else if (iShip)
-					{
-						PrintUserCmdText(iClientID, L"Docking iteration %d", tb.iCheckTestedZones);
+		Vector pos = {0,300000,0};
+		Matrix ornt = {0};
+		SwitchSystem(iClientID, iSystem, pos, ornt);
+		}
+		// if in space dock with specified base.
+		else if (iShip)
+		{
+		PrintUserCmdText(iClientID, L"Docking iteration %d", tb.iCheckTestedZones);
 
-						const struct Universe::IBase *baseinfo = Universe::get_base(tb.iCheckSystemOrBase);
-						pub::Player::ForceLand(iClientID, baseinfo->iBaseID);
-						if (iSystem != baseinfo->iSystemID)
-						{
-							Server.BaseEnter(baseinfo->iBaseID,iClientID);
-							Server.BaseExit(baseinfo->iBaseID,iClientID);
-							wstring wscCharFileName;
-							HkGetCharFileName((const wchar_t*)Players.GetActiveCharacterName(iClientID), wscCharFileName);
-							wscCharFileName += L".fl";
-							CHARACTER_ID cID;
-							strcpy(cID.szCharFilename,wstos(wscCharFileName.substr(0,14)).c_str());
-							Server.CharacterSelect(cID, iClientID);\
-						}
-					}
-				}
-			}
-			else
-			{
-				uint iSystem;
-				pub::Player::GetSystem(iter->first, iSystem);
-				if (tb.iCheckSystemOrBase==iSystem)
-				{
-					if (tb.iCheckZonesTimer>0)
-					{
-						if ((tb.iCheckZonesTimer%10)==0)
-							PrintUserCmdText(iClientID, L"Jump to next zone in %d seconds", tb.iCheckZonesTimer);
-						tb.iCheckZonesTimer--;
-					}
-					else if (tb.iCheckZonesTimer==0)
-					{
-						if (tb.lstCheckZones.size())
-						{
-							tb.iCheckZonesTimer = tb.iCheckZoneTime;
-							tb.iCheckTestedZones++;
+		const struct Universe::IBase *baseinfo = Universe::get_base(tb.iCheckSystemOrBase);
+		pub::Player::ForceLand(iClientID, baseinfo->iBaseID);
+		if (iSystem != baseinfo->iSystemID)
+		{
+		Server.BaseEnter(baseinfo->iBaseID,iClientID);
+		Server.BaseExit(baseinfo->iBaseID,iClientID);
+		wstring wscCharFileName;
+		HkGetCharFileName((const wchar_t*)Players.GetActiveCharacterName(iClientID), wscCharFileName);
+		wscCharFileName += L".fl";
+		CHARACTER_ID cID;
+		strcpy(cID.szCharFilename,wstos(wscCharFileName.substr(0,14)).c_str());
+		Server.CharacterSelect(cID, iClientID);\
+		}
+		}
+		}
+		}
+		else
+		{
+		uint iSystem;
+		pub::Player::GetSystem(iter->first, iSystem);
+		if (tb.iCheckSystemOrBase==iSystem)
+		{
+		if (tb.iCheckZonesTimer>0)
+		{
+		if ((tb.iCheckZonesTimer%10)==0)
+		PrintUserCmdText(iClientID, L"Jump to next zone in %d seconds", tb.iCheckZonesTimer);
+		tb.iCheckZonesTimer--;
+		}
+		else if (tb.iCheckZonesTimer==0)
+		{
+		if (tb.lstCheckZones.size())
+		{
+		tb.iCheckZonesTimer = tb.iCheckZoneTime;
+		tb.iCheckTestedZones++;
 
-							const ZONE &lz = tb.lstCheckZones.front();
-							PrintUserCmdText(iClientID, L"Testing zone %s (%0.0f %0.0f %0.0f) iteration %d",
-								stows(lz.zoneNick).c_str(), lz.pos.x, lz.pos.y, lz.pos.z, tb.iCheckTestedZones);
+		const ZONE &lz = tb.lstCheckZones.front();
+		PrintUserCmdText(iClientID, L"Testing zone %s (%0.0f %0.0f %0.0f) iteration %d",
+		stows(lz.zoneNick).c_str(), lz.pos.x, lz.pos.y, lz.pos.z, tb.iCheckTestedZones);
 
-							uint iShip;
-							pub::Player::GetShip(iClientID, iShip);
+		uint iShip;
+		pub::Player::GetShip(iClientID, iShip);
 
-							Vector myLocation;
-							Matrix myRot;
-							pub::SpaceObj::GetLocation(iShip, myLocation, myRot);
+		Vector myLocation;
+		Matrix myRot;
+		pub::SpaceObj::GetLocation(iShip, myLocation, myRot);
 
-							HkRelocateClient(iClientID, lz.pos, myRot);
-							tb.lstCheckZones.pop_front();
-							tb.lstCheckZones.push_back(lz);
-						}
-					}
-				}
-			}
+		HkRelocateClient(iClientID, lz.pos, myRot);
+		tb.lstCheckZones.pop_front();
+		tb.lstCheckZones.push_back(lz);
+		}
+		}
+		}
+		}
 		}
 		*/
 	}
 
-	
+
 	void HyperJump::SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller)
 	{
 		// If someone killed a bot then take revenge
@@ -1131,9 +1138,9 @@ namespace HyperJump
 		map<uint, TESTBOT>::iterator iter = mapTestBots.find(iClientIDVictim);
 		if (iter!=mapTestBots.end())
 		{
-			PrintUserCmdText(iClientIDKiller, L"Err 0101010001110 Does not compute");
-			HkKill((const wchar_t*) Players.GetActiveCharacterName(iClientIDKiller));
-			return;
+		PrintUserCmdText(iClientIDKiller, L"Err 0101010001110 Does not compute");
+		HkKill((const wchar_t*) Players.GetActiveCharacterName(iClientIDKiller));
+		return;
 		}
 		*/
 
@@ -1152,7 +1159,7 @@ namespace HyperJump
 			SwitchOut = (PBYTE)hModServer + 0xf600;
 
 			DWORD dummy;
-			VirtualProtect(SwitchOut+0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
+			VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
 		}
 
 		// Patch the system switch out routine to put the ship in a
@@ -1162,43 +1169,43 @@ namespace HyperJump
 			SwitchOut[0x0d7] = 0xeb;				// ignore exit object
 			SwitchOut[0x0d8] = 0x40;
 			SwitchOut[0x119] = 0xbb;				// set the destination system
-			*(PDWORD)(SwitchOut+0x11a) = mapDeferredJumps[iClientID].system;
+			*(PDWORD)(SwitchOut + 0x11a) = mapDeferredJumps[iClientID].system;
 			SwitchOut[0x266] = 0x45;				// don't generate warning
-			*(float*)(SwitchOut+0x2b0) = mapDeferredJumps[iClientID].pos.z;		// set entry location
-			*(float*)(SwitchOut+0x2b8) = mapDeferredJumps[iClientID].pos.y;
-			*(float*)(SwitchOut+0x2c0) = mapDeferredJumps[iClientID].pos.x;
-			*(float*)(SwitchOut+0x2c8) = mapDeferredJumps[iClientID].ornt.data[2][2];
-			*(float*)(SwitchOut+0x2d0) = mapDeferredJumps[iClientID].ornt.data[1][1];
-			*(float*)(SwitchOut+0x2d8) = mapDeferredJumps[iClientID].ornt.data[0][0];
-			*(float*)(SwitchOut+0x2e0) = mapDeferredJumps[iClientID].ornt.data[2][1];
-			*(float*)(SwitchOut+0x2e8) = mapDeferredJumps[iClientID].ornt.data[2][0];
-			*(float*)(SwitchOut+0x2f0) = mapDeferredJumps[iClientID].ornt.data[1][2];
-			*(float*)(SwitchOut+0x2f8) = mapDeferredJumps[iClientID].ornt.data[1][0];
-			*(float*)(SwitchOut+0x300) = mapDeferredJumps[iClientID].ornt.data[0][2];
-			*(float*)(SwitchOut+0x308) = mapDeferredJumps[iClientID].ornt.data[0][1];
-			*(PDWORD)(SwitchOut+0x388) = 0x03ebc031;		// ignore entry object
+			*(float*)(SwitchOut + 0x2b0) = mapDeferredJumps[iClientID].pos.z;		// set entry location
+			*(float*)(SwitchOut + 0x2b8) = mapDeferredJumps[iClientID].pos.y;
+			*(float*)(SwitchOut + 0x2c0) = mapDeferredJumps[iClientID].pos.x;
+			*(float*)(SwitchOut + 0x2c8) = mapDeferredJumps[iClientID].ornt.data[2][2];
+			*(float*)(SwitchOut + 0x2d0) = mapDeferredJumps[iClientID].ornt.data[1][1];
+			*(float*)(SwitchOut + 0x2d8) = mapDeferredJumps[iClientID].ornt.data[0][0];
+			*(float*)(SwitchOut + 0x2e0) = mapDeferredJumps[iClientID].ornt.data[2][1];
+			*(float*)(SwitchOut + 0x2e8) = mapDeferredJumps[iClientID].ornt.data[2][0];
+			*(float*)(SwitchOut + 0x2f0) = mapDeferredJumps[iClientID].ornt.data[1][2];
+			*(float*)(SwitchOut + 0x2f8) = mapDeferredJumps[iClientID].ornt.data[1][0];
+			*(float*)(SwitchOut + 0x300) = mapDeferredJumps[iClientID].ornt.data[0][2];
+			*(float*)(SwitchOut + 0x308) = mapDeferredJumps[iClientID].ornt.data[0][1];
+			*(PDWORD)(SwitchOut + 0x388) = 0x03ebc031;		// ignore entry object
 			mapDeferredJumps.erase(iClientID);
 			pub::SpaceObj::SetInvincible(iShip, false, false, 0);
-			Server.SystemSwitchOutComplete(iShip,iClientID);
+			Server.SystemSwitchOutComplete(iShip, iClientID);
 			SwitchOut[0x0d7] = 0x0f;
 			SwitchOut[0x0d8] = 0x84;
 			SwitchOut[0x119] = 0x87;
-			*(PDWORD)(SwitchOut+0x11a) = 0x1b8;
-			*(PDWORD)(SwitchOut+0x25d) = 0x1cf7f;
+			*(PDWORD)(SwitchOut + 0x11a) = 0x1b8;
+			*(PDWORD)(SwitchOut + 0x25d) = 0x1cf7f;
 			SwitchOut[0x266] = 0x1a;
-			*(float*)(SwitchOut+0x2b0) =
-				*(float*)(SwitchOut+0x2b8) =
-				*(float*)(SwitchOut+0x2c0) = 0;
-			*(float*)(SwitchOut+0x2c8) =
-				*(float*)(SwitchOut+0x2d0) =
-				*(float*)(SwitchOut+0x2d8) = 1;
-			*(float*)(SwitchOut+0x2e0) =
-				*(float*)(SwitchOut+0x2e8) =
-				*(float*)(SwitchOut+0x2f0) =
-				*(float*)(SwitchOut+0x2f8) =
-				*(float*)(SwitchOut+0x300) =
-				*(float*)(SwitchOut+0x308) = 0;
-			*(PDWORD)(SwitchOut+0x388) = 0xcf8b178b;
+			*(float*)(SwitchOut + 0x2b0) =
+				*(float*)(SwitchOut + 0x2b8) =
+				*(float*)(SwitchOut + 0x2c0) = 0;
+			*(float*)(SwitchOut + 0x2c8) =
+				*(float*)(SwitchOut + 0x2d0) =
+				*(float*)(SwitchOut + 0x2d8) = 1;
+			*(float*)(SwitchOut + 0x2e0) =
+				*(float*)(SwitchOut + 0x2e8) =
+				*(float*)(SwitchOut + 0x2f0) =
+				*(float*)(SwitchOut + 0x2f8) =
+				*(float*)(SwitchOut + 0x300) =
+				*(float*)(SwitchOut + 0x308) = 0;
+			*(PDWORD)(SwitchOut + 0x388) = 0xcf8b178b;
 
 			return true;
 		}
@@ -1225,14 +1232,14 @@ namespace HyperJump
 		}
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
 		}
 
 		HKPLAYERINFO targetPlyr;
-		if (HkGetPlayerInfo(wscCharname, targetPlyr, false)!=HKE_OK || targetPlyr.iShip==0)
+		if (HkGetPlayerInfo(wscCharname, targetPlyr, false) != HKE_OK || targetPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Player not found or not in space\n");
 			return;
@@ -1258,13 +1265,13 @@ namespace HyperJump
 		}
 
 		HKPLAYERINFO info;
-		if (HkGetPlayerInfo(wscCharname, info, false)!=HKE_OK)
+		if (HkGetPlayerInfo(wscCharname, info, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR Player not found\n");
 			return true;
 		}
 
-		if (info.iShip==0)
+		if (info.iShip == 0)
 		{
 			cmds->Print(L"ERR Player not in space\n");
 			return true;
@@ -1275,19 +1282,19 @@ namespace HyperJump
 		while (baseinfo)
 		{
 			wstring basename = HkGetWStringFromIDS(baseinfo->iBaseIDS);
-			if (ToLower(basename).find(ToLower(wscTargetBaseName))==0)
+			if (ToLower(basename).find(ToLower(wscTargetBaseName)) == 0)
 			{
 				pub::Player::ForceLand(info.iClientID, baseinfo->iBaseID);
 				if (info.iSystem != baseinfo->iSystemID)
 				{
-					Server.BaseEnter(baseinfo->iBaseID,info.iClientID);
-					Server.BaseExit(baseinfo->iBaseID,info.iClientID);
+					Server.BaseEnter(baseinfo->iBaseID, info.iClientID);
+					Server.BaseExit(baseinfo->iBaseID, info.iClientID);
 					wstring wscCharFileName;
-					HkGetCharFileName(info.wscCharname,wscCharFileName);
+					HkGetCharFileName(info.wscCharname, wscCharFileName);
 					wscCharFileName += L".fl";
 					CHARACTER_ID cID;
-					strcpy(cID.szCharFilename,wstos(wscCharFileName.substr(0,14)).c_str());
-					Server.CharacterSelect(cID, info.iClientID);\
+					strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+					Server.CharacterSelect(cID, info.iClientID); \
 				}
 				return true;
 			}
@@ -1299,19 +1306,19 @@ namespace HyperJump
 		while (baseinfo)
 		{
 			wstring basename = HkGetWStringFromIDS(baseinfo->iBaseIDS);
-			if (ToLower(basename).find(ToLower(wscTargetBaseName))!=-1)
+			if (ToLower(basename).find(ToLower(wscTargetBaseName)) != -1)
 			{
 				pub::Player::ForceLand(info.iClientID, baseinfo->iBaseID);
 				if (info.iSystem != baseinfo->iSystemID)
 				{
-					Server.BaseEnter(baseinfo->iBaseID,info.iClientID);
-					Server.BaseExit(baseinfo->iBaseID,info.iClientID);
+					Server.BaseEnter(baseinfo->iBaseID, info.iClientID);
+					Server.BaseExit(baseinfo->iBaseID, info.iClientID);
 					wstring wscCharFileName;
-					HkGetCharFileName(info.wscCharname,wscCharFileName);
+					HkGetCharFileName(info.wscCharname, wscCharFileName);
 					wscCharFileName += L".fl";
 					CHARACTER_ID cID;
-					strcpy(cID.szCharFilename,wstos(wscCharFileName.substr(0,14)).c_str());
-					Server.CharacterSelect(cID, info.iClientID);\
+					strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+					Server.CharacterSelect(cID, info.iClientID); \
 				}
 				return true;
 			}
@@ -1332,14 +1339,14 @@ namespace HyperJump
 		}
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
 		}
 
 		HKPLAYERINFO targetPlyr;
-		if (HkGetPlayerInfo(wscCharname, targetPlyr, false)!=HKE_OK)
+		if (HkGetPlayerInfo(wscCharname, targetPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR Player not found\n");
 			return;
@@ -1358,7 +1365,7 @@ namespace HyperJump
 	/** Move to location */
 	void HyperJump::AdminCmd_Move(CCmds* cmds, float x, float y, float z)
 	{
-		if (cmds->ArgStrToEnd(1).length()==0)
+		if (cmds->ArgStrToEnd(1).length() == 0)
 		{
 			cmds->Print(L"ERR Usage: move x y z\n");
 			return;
@@ -1371,7 +1378,7 @@ namespace HyperJump
 		}
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
@@ -1392,95 +1399,95 @@ namespace HyperJump
 	/*
 	void HyperJump::AdminCmd_TestBot(CCmds* cmds, const wstring &wscSystemNick, int iCheckZoneTime)
 	{
-		if(!(cmds->rights & RIGHT_SUPERADMIN))
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
+	if(!(cmds->rights & RIGHT_SUPERADMIN))
+	{
+	cmds->Print(L"ERR No permission\n");
+	return;
+	}
 
-		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
-		{
-			cmds->Print(L"ERR Not in space\n");
-			return;
-		}
+	HKPLAYERINFO adminPlyr;
+	if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+	{
+	cmds->Print(L"ERR Not in space\n");
+	return;
+	}
 
-		mapTestBots.erase(adminPlyr.iClientID);
-		if (wscSystemNick == L"stop")
-		{
-			cmds->Print(L"OK Check stopped\n");
-			return;
-		}
+	mapTestBots.erase(adminPlyr.iClientID);
+	if (wscSystemNick == L"stop")
+	{
+	cmds->Print(L"OK Check stopped\n");
+	return;
+	}
 
-		const struct Universe::ISystem *sysinfo = Universe::get_system(CreateID(wstos(wscSystemNick).c_str()));
-		if (sysinfo)
-		{
-			if (iCheckZoneTime==0)
-				iCheckZoneTime = 60;
+	const struct Universe::ISystem *sysinfo = Universe::get_system(CreateID(wstos(wscSystemNick).c_str()));
+	if (sysinfo)
+	{
+	if (iCheckZoneTime==0)
+	iCheckZoneTime = 60;
 
-			TESTBOT tb;
-			tb.bBaseTest = false;
-			tb.iCheckZonesTimer = 0;
-			tb.iCheckSystemOrBase = CreateID(wstos(wscSystemNick).c_str());
-			tb.iCheckTestedZones = 0;
-			tb.iCheckZoneTime = iCheckZoneTime;
+	TESTBOT tb;
+	tb.bBaseTest = false;
+	tb.iCheckZonesTimer = 0;
+	tb.iCheckSystemOrBase = CreateID(wstos(wscSystemNick).c_str());
+	tb.iCheckTestedZones = 0;
+	tb.iCheckZoneTime = iCheckZoneTime;
 
-			zone_map_iter_t start = zones.lower_bound(tb.iCheckSystemOrBase);
-			zone_map_iter_t end = zones.upper_bound(tb.iCheckSystemOrBase);
-			for (zone_map_iter_t i=start; i!=end; i++)
-			{
-				ZONE rlz;
-				if (ZoneUtilities::InDeathZone(tb.iCheckSystemOrBase, i->second.pos, rlz))
-					continue;
-				if (!i->second.encounter)
-					continue;
-				tb.lstCheckZones.push_back(i->second);
-			}
+	zone_map_iter_t start = zones.lower_bound(tb.iCheckSystemOrBase);
+	zone_map_iter_t end = zones.upper_bound(tb.iCheckSystemOrBase);
+	for (zone_map_iter_t i=start; i!=end; i++)
+	{
+	ZONE rlz;
+	if (ZoneUtilities::InDeathZone(tb.iCheckSystemOrBase, i->second.pos, rlz))
+	continue;
+	if (!i->second.encounter)
+	continue;
+	tb.lstCheckZones.push_back(i->second);
+	}
 
-			cmds->Print(L"Checking system %s (%x) containing %d zones\n", 
-				wscSystemNick.c_str(), tb.iCheckSystemOrBase, tb.lstCheckZones.size());
+	cmds->Print(L"Checking system %s (%x) containing %d zones\n",
+	wscSystemNick.c_str(), tb.iCheckSystemOrBase, tb.lstCheckZones.size());
 
-			// If we're not in the right system then jump to it.
-			if (adminPlyr.iSystem!=tb.iCheckSystemOrBase)
-			{
-				Vector pos = { 0, 100000, 0 };
-				Matrix ornt = { 0 };
-				SwitchSystem(adminPlyr.iClientID, tb.iCheckSystemOrBase, pos, ornt);
-			}
+	// If we're not in the right system then jump to it.
+	if (adminPlyr.iSystem!=tb.iCheckSystemOrBase)
+	{
+	Vector pos = { 0, 100000, 0 };
+	Matrix ornt = { 0 };
+	SwitchSystem(adminPlyr.iClientID, tb.iCheckSystemOrBase, pos, ornt);
+	}
 
-			mapTestBots[adminPlyr.iClientID] = tb;
-			return;
-		}
+	mapTestBots[adminPlyr.iClientID] = tb;
+	return;
+	}
 
-		const struct Universe::IBase *baseinfo = Universe::get_base(CreateID(wstos(wscSystemNick).c_str()));
-		if (baseinfo)
-		{
-			if (iCheckZoneTime==0)
-				iCheckZoneTime = 15;
+	const struct Universe::IBase *baseinfo = Universe::get_base(CreateID(wstos(wscSystemNick).c_str()));
+	if (baseinfo)
+	{
+	if (iCheckZoneTime==0)
+	iCheckZoneTime = 15;
 
-			TESTBOT tb;
-			tb.bBaseTest = true;
-			tb.iCheckZonesTimer = 0;
-			tb.iCheckSystemOrBase = CreateID(wstos(wscSystemNick).c_str());
-			tb.iCheckTestedZones = 0;
-			tb.iCheckZoneTime = iCheckZoneTime;
+	TESTBOT tb;
+	tb.bBaseTest = true;
+	tb.iCheckZonesTimer = 0;
+	tb.iCheckSystemOrBase = CreateID(wstos(wscSystemNick).c_str());
+	tb.iCheckTestedZones = 0;
+	tb.iCheckZoneTime = iCheckZoneTime;
 
-			cmds->Print(L"Testing base %s (%x) containing\n", 
-				wscSystemNick.c_str(), tb.iCheckSystemOrBase);
-			
-			mapTestBots[adminPlyr.iClientID] = tb;
-			return;
-		}
-		
-		cmds->Print(L"ERR System or base not found\n");
-		return;
+	cmds->Print(L"Testing base %s (%x) containing\n",
+	wscSystemNick.c_str(), tb.iCheckSystemOrBase);
+
+	mapTestBots[adminPlyr.iClientID] = tb;
+	return;
+	}
+
+	cmds->Print(L"ERR System or base not found\n");
+	return;
 	}
 	*/
 
 	bool InitJumpDriveInfo(uint iClientID)
 	{
 		// Initialise the drive parameters for this ship
-		if (mapJumpDrives.find(iClientID)==mapJumpDrives.end())
+		if (mapJumpDrives.find(iClientID) == mapJumpDrives.end())
 		{
 			mapJumpDrives[iClientID].arch.nickname = 0;
 			mapJumpDrives[iClientID].arch.can_jump_charge = 0;
@@ -1541,7 +1548,7 @@ namespace HyperJump
 	bool InitSurveyInfo(uint iClientID)
 	{
 		// Initialise the drive parameters for this ship
-		if (mapSurvey.find(iClientID)==mapSurvey.end())
+		if (mapSurvey.find(iClientID) == mapSurvey.end())
 		{
 			mapSurvey[iClientID].arch.nickname = 0;
 			mapSurvey[iClientID].arch.survey_complete_charge = 0;
@@ -1552,7 +1559,7 @@ namespace HyperJump
 
 			mapSurvey[iClientID].charging_on = false;
 			mapSurvey[iClientID].curr_charge = 0;
-			
+
 			// Check that the player has a jump drive and initialise the infomation
 			// about it - otherwise return false.
 			for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
@@ -1582,7 +1589,7 @@ namespace HyperJump
 
 		if (!InitSurveyInfo(iClientID))
 		{
-			PrintUserCmdText(iClientID, L"Survey module not available");			
+			PrintUserCmdText(iClientID, L"Survey module not available");
 			return true;
 		}
 
@@ -1591,12 +1598,12 @@ namespace HyperJump
 		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
 		if (cship->get_max_power() < sm.arch.power)
 		{
-			PrintUserCmdText(iClientID, L"Insufficient power to start survey module");			
+			PrintUserCmdText(iClientID, L"Insufficient power to start survey module");
 			return true;
 		}
 
 		HKPLAYERINFO p;
-		if (HkGetPlayerInfo((const wchar_t*) Players.GetActiveCharacterName(iClientID), p, false)!=HKE_OK || p.iShip==0)
+		if (HkGetPlayerInfo((const wchar_t*)Players.GetActiveCharacterName(iClientID), p, false) != HKE_OK || p.iShip == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Not in space");
 			return true;
@@ -1617,13 +1624,13 @@ namespace HyperJump
 		sm.charging_on = !sm.charging_on;
 		if (sm.charging_on)
 		{
-			PrintUserCmdText(iClientID, L"Survey started");			
+			PrintUserCmdText(iClientID, L"Survey started");
 			sm.curr_charge = 0;
 			return true;
 		}
 		else
 		{
-			PrintUserCmdText(iClientID, L"Survey aborted");			
+			PrintUserCmdText(iClientID, L"Survey aborted");
 			sm.curr_charge = 0;
 			return true;
 		}
@@ -1633,18 +1640,18 @@ namespace HyperJump
 	{
 		if (!InitJumpDriveInfo(iClientID))
 		{
-			PrintUserCmdText(iClientID, L"Jump drive not available");			
+			PrintUserCmdText(iClientID, L"Jump drive not available");
 			return true;
 		}
 
 		JUMPDRIVE &jd = mapJumpDrives[iClientID];
 		jd.iTargetSystem = 0;
 
-	//code to catch assholes	
+		//code to catch assholes	
 		if (jd.jump_timer > 0)
 		{
 			jd.rekt = true;
-			wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			wstring wscMsgU = L"%name has been permabanned. (Type 5)";
 			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
 			HkMsgU(wscMsgU);
@@ -1652,7 +1659,7 @@ namespace HyperJump
 			LogCheater(iClientID, wscMsgU);
 			return true;
 		}
-		
+
 
 		string sbuf = wstos(ReplaceStr(GetParam(wscParam, L' ', 0), L"-", L""));
 		if (sbuf.size() != 56)
@@ -1662,15 +1669,15 @@ namespace HyperJump
 		}
 
 		char ibuf[HCOORD_SIZE];
-		for (uint i=0, p=0; i<HCOORD_SIZE && (p+1)<sbuf.size(); i++, p+=2)
+		for (uint i = 0, p = 0; i<HCOORD_SIZE && (p + 1)<sbuf.size(); i++, p += 2)
 		{
 			char buf[3];
 			buf[0] = sbuf[p];
-			buf[1] = sbuf[p+1];
+			buf[1] = sbuf[p + 1];
 			buf[2] = 0;
 			ibuf[i] = (char)strtoul(buf, 0, 16);
 		}
-		
+
 		HYPERSPACE_COORDS coords;
 		char* obuf = (char*)&coords;
 		memset(&coords, 0, sizeof(coords));
@@ -1679,7 +1686,7 @@ namespace HyperJump
 
 		// Calculate a simple parity check
 		WORD parity = 0;
-		for (int i=2; i<HCOORD_SIZE; i++)
+		for (int i = 2; i<HCOORD_SIZE; i++)
 			parity += obuf[i];
 
 		if (coords.parity != parity)
@@ -1687,13 +1694,13 @@ namespace HyperJump
 			PrintUserCmdText(iClientID, L"ERR Invalid coordinates, parity error");
 			return true;
 		}
-	
+
 		if (coords.time < time(0))
 		{
 			PrintUserCmdText(iClientID, L"Warning old coordinates detected. Jump not recommended");
-			coords.accuracy *= rand()%7;
+			coords.accuracy *= rand() % 7;
 		}
-		
+
 		jd.iTargetSystem = coords.system;
 		jd.vTargetPosition.x = coords.x;
 		jd.vTargetPosition.y = coords.y;
@@ -1707,9 +1714,9 @@ namespace HyperJump
 			*(float*)&jd.vTargetPosition.z);
 
 		int wiggle_factor = (int)coords.accuracy;
-		jd.vTargetPosition.x += ((rand()*10) % wiggle_factor) - (wiggle_factor/2);
-		jd.vTargetPosition.y += ((rand()*10) % wiggle_factor) - (wiggle_factor/2);
-		jd.vTargetPosition.z += ((rand()*10) % wiggle_factor) - (wiggle_factor/2);
+		jd.vTargetPosition.x += ((rand() * 10) % wiggle_factor) - (wiggle_factor / 2);
+		jd.vTargetPosition.y += ((rand() * 10) % wiggle_factor) - (wiggle_factor / 2);
+		jd.vTargetPosition.z += ((rand() * 10) % wiggle_factor) - (wiggle_factor / 2);
 
 		return true;
 	}
@@ -1720,14 +1727,14 @@ namespace HyperJump
 		IObjInspectImpl *obj = HkGetInspect(iClientID);
 		if (!obj)
 		{
-			PrintUserCmdText(iClientID, L"Jump drive charging failed");			
+			PrintUserCmdText(iClientID, L"Jump drive charging failed");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
 
 		if (!InitJumpDriveInfo(iClientID))
 		{
-			PrintUserCmdText(iClientID, L"Jump drive not available");			
+			PrintUserCmdText(iClientID, L"Jump drive not available");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -1737,11 +1744,11 @@ namespace HyperJump
 		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
 		if (cship->get_max_power() < jd.arch.power)
 		{
-			PrintUserCmdText(iClientID, L"Insufficient power to charge jumpdrive");			
+			PrintUserCmdText(iClientID, L"Insufficient power to charge jumpdrive");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
-		
+
 		// Toogle the charge state
 		jd.charging_on = !jd.charging_on;
 		jd.charge_status = -1;
@@ -1755,59 +1762,59 @@ namespace HyperJump
 		{
 			if (jd.iTargetSystem == 0)
 			{
-				PrintUserCmdText(iClientID, L"WARNING NO JUMP COORDINATES");			
+				PrintUserCmdText(iClientID, L"WARNING NO JUMP COORDINATES");
 				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_blind_jump_warning"));
 			}
-		////////////////////////// System limit restriction ///////////////////////////////////////
-		if (JumpSystemListEnabled == 1 && jd.iTargetSystem != 0)
-		{
-			const Universe::ISystem *iSys = Universe::get_system(iSystemID);
-		    wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
-			//PrintUserCmdText(iClientID, L"Space kitteh knows you are in %u !", iSystemID);
-			for (map<uint, SYSTEM_JUMPLIST>::iterator iter = mapJumpSystems.begin(); iter!=mapJumpSystems.end(); iter++)
+			////////////////////////// System limit restriction ///////////////////////////////////////
+			if (JumpSystemListEnabled == 1 && jd.iTargetSystem != 0)
 			{
-			
-			SYSTEM_JUMPLIST &jumpsyslist = iter->second;
-				if (jumpsyslist.nickname == iSystemID) 
+				const Universe::ISystem *iSys = Universe::get_system(iSystemID);
+				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
+				//PrintUserCmdText(iClientID, L"Space kitteh knows you are in %u !", iSystemID);
+				for (map<uint, SYSTEM_JUMPLIST>::iterator iter = mapJumpSystems.begin(); iter != mapJumpSystems.end(); iter++)
 				{
-				//PrintUserCmdText(iClientID, L"The script has found %u !", iSystemID);
-			
-					for (map<uint, uint>::iterator i = jumpsyslist.mapSystemsList.begin(); i != jumpsyslist.mapSystemsList.end(); ++i) 
+
+					SYSTEM_JUMPLIST &jumpsyslist = iter->second;
+					if (jumpsyslist.nickname == iSystemID)
 					{
-						if ( jd.iTargetSystem == i->first)
+						//PrintUserCmdText(iClientID, L"The script has found %u !", iSystemID);
+
+						for (map<uint, uint>::iterator i = jumpsyslist.mapSystemsList.begin(); i != jumpsyslist.mapSystemsList.end(); ++i)
 						{
-							const Universe::ISystem *iSysList = Universe::get_system(i->first);
-							wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
-							//PrintUserCmdText(iClientID, L"Space kitteh knows you are attempting to jump to %s. Space kitteh agrees with that choice.", wscSysNameList.c_str() );
-							AllowedToWhiteListJump = 1;
+							if (jd.iTargetSystem == i->first)
+							{
+								const Universe::ISystem *iSysList = Universe::get_system(i->first);
+								wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
+								//PrintUserCmdText(iClientID, L"Space kitteh knows you are attempting to jump to %s. Space kitteh agrees with that choice.", wscSysNameList.c_str() );
+								AllowedToWhiteListJump = 1;
+							}
 						}
-					}
-					if (jd.iTargetSystem == 0)
-					{
-					//PrintUserCmdText(iClientID, L"Space kitteh thinks u crazy !!! Blind jump is dangerous !");
-					}
-					if (AllowedToWhiteListJump == 0)
-					{
+						if (jd.iTargetSystem == 0)
+						{
+							//PrintUserCmdText(iClientID, L"Space kitteh thinks u crazy !!! Blind jump is dangerous !");
+						}
+						if (AllowedToWhiteListJump == 0)
+						{
 							const Universe::ISystem *iSysList = Universe::get_system(jd.iTargetSystem);
 							wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
-							PrintUserCmdText(iClientID, L"ERROR: Gravitational rift detected. Cannot jump to %s from this system.", wscSysNameList.c_str() );
+							PrintUserCmdText(iClientID, L"ERROR: Gravitational rift detected. Cannot jump to %s from this system.", wscSysNameList.c_str());
 							PrintUserCmdText(iClientID, L"Jump drive disabled. Use /jumpsys for the list of available systems.");
 							jd.charging_complete = false;
 							jd.curr_charge = 0.0;
 							jd.charging_on = false;
 							StopChargeFuses(iClientID);
 							return true;
+						}
+
 					}
-					
 				}
 			}
-		}
-		else
-		{
-			//PrintUserCmdText(iClientID, L"Jump Whitelisting is not enabled. Carry on!");	
-		}
-		////////////////////////// End of System limit restriction ///////////////////////////////////////
-			
+			else
+			{
+				//PrintUserCmdText(iClientID, L"Jump Whitelisting is not enabled. Carry on!");	
+			}
+			////////////////////////// End of System limit restriction ///////////////////////////////////////
+
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging"));
 			PrintUserCmdText(iClientID, L"Jump drive charging");
 			// Print out a message within the iLocalChatRange when a player engages a JD.
@@ -1833,7 +1840,7 @@ namespace HyperJump
 		IObjInspectImpl *obj = HkGetInspect(iClientID);
 		if (!obj)
 		{
-			PrintUserCmdText(iClientID, L"Jump drive charging failed");			
+			PrintUserCmdText(iClientID, L"Jump drive charging failed");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -1841,17 +1848,17 @@ namespace HyperJump
 		// If no jumpdrive, report a warning.
 		if (!InitJumpDriveInfo(iClientID))
 		{
-			PrintUserCmdText(iClientID, L"Jump drive not ready");			
+			PrintUserCmdText(iClientID, L"Jump drive not ready");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
-		
+
 		JUMPDRIVE &jd = mapJumpDrives[iClientID];
 
 		// If insufficient charging, report a warning
 		if (!jd.charging_complete)
 		{
-			PrintUserCmdText(iClientID, L"Jump drive not ready");			
+			PrintUserCmdText(iClientID, L"Jump drive not ready");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
 			return true;
 		}
@@ -1870,18 +1877,62 @@ namespace HyperJump
 				systems.push_back(sysinfo->nickname);
 				sysinfo = Universe::GetNextSystem();
 			}
-
-			// Pick a random system and position
-			jd.iTargetSystem = CreateID(systems[rand() % systems.size()].c_str());
-			jd.vTargetPosition.x = ((rand()*10) % 400000) - 200000.0f;
-			jd.vTargetPosition.y = ((rand()*10) % 400000) - 200000.0f;
-			jd.vTargetPosition.z = ((rand()*10) % 400000) - 200000.0f;
+			bool isBannedSystem = true;
+			while (isBannedSystem)
+			{
+				// Pick a random system and position
+				jd.iTargetSystem = CreateID(systems[rand() % systems.size()].c_str());
+				if (set_banned_systems.find(jd.iTargetSystem) != set_banned_systems.end())
+				{
+					PrintUserCmdText(iClientID, L"ERR: Hyper Drive Malfunction. Recalculating Jump.");
+					continue;
+				}
+				isBannedSystem = false;
+			}
+			jd.vTargetPosition.x = ((rand() * 10) % 400000) - 200000.0f;
+			jd.vTargetPosition.y = ((rand() * 10) % 400000) - 200000.0f;
+			jd.vTargetPosition.z = ((rand() * 10) % 400000) - 200000.0f;
 		}
 
 		// Start the jump timer.
 		jd.jump_timer = 8;
 
 		return true;
+	}
+
+	void HyperJump::AdminCmd_JumpGroup(CCmds* cmds, const wstring &sys, const int &x, const int &y, const int &z)
+	{
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		{
+			cmds->Print(L"ERR No permission\n");
+			return;
+		}
+
+		HKPLAYERINFO adminPlyr;
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
+		{
+			cmds->Print(L"ERR Not in space\n");
+			return;
+		}
+
+		if(sys.empty() || x == 0 || y == 0 || z == 0)
+		{
+			PrintUserCmdText(adminPlyr.iClientID, L"Incorrect Usage.");
+			PrintUserCmdText(adminPlyr.iClientID, L"Usage: .jumpgroup sys_nickname x y z");
+			PrintUserCmdText(adminPlyr.iClientID, L"Example: .jumpgroup li01 1000 1000 50000");
+			return;
+		}
+		JUMPDRIVE_ARCH jdArch;
+		jdArch.field_range = 1000;
+
+		JUMPDRIVE &jd = mapJumpDrives[adminPlyr.iClientID];
+		jd.arch = jdArch;
+
+		jd.iTargetSystem = CreateID(wstos(sys).c_str());
+		jd.vTargetPosition.x = x;
+		jd.vTargetPosition.y = y;
+		jd.vTargetPosition.z = z;
+		jd.jump_timer = 8;
 	}
 
 	/** Move to location */
@@ -1894,7 +1945,7 @@ namespace HyperJump
 		}
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
@@ -1903,18 +1954,19 @@ namespace HyperJump
 		JUMPDRIVE &jd = mapJumpDrives[adminPlyr.iClientID];
 
 		jd.iTargetSystem = CreateID(wstos(sys).c_str());
-		jd.vTargetPosition.x = ((rand()*10) % 400000) - 200000.0f;
-		jd.vTargetPosition.y = ((rand()*10) % 400000) - 200000.0f;
-		jd.vTargetPosition.z = ((rand()*10) % 400000) - 200000.0f;
+		jd.vTargetPosition.x = ((rand() * 10) % 400000) - 200000.0f;
+		jd.vTargetPosition.y = ((rand() * 10) % 400000) - 200000.0f;
+		jd.vTargetPosition.z = ((rand() * 10) % 400000) - 200000.0f;
 		jd.jump_timer = 8;
 		return;
 	}
 
-	time_t filetime_to_timet(const FILETIME& ft){
+	time_t filetime_to_timet(const FILETIME& ft) {
 		ULARGE_INTEGER ull;
 		ull.LowPart = ft.dwLowDateTime;
 		ull.HighPart = ft.dwHighDateTime;
-		return ull.QuadPart / 10000000ULL - 11644473600ULL;}
+		return ull.QuadPart / 10000000ULL - 11644473600ULL;
+	}
 
 	// Move the ship's starting position randomly if it has been logged out in space.
 	void HyperJump::PlayerLaunch(unsigned int iShip, unsigned int iClientID)
@@ -1926,7 +1978,7 @@ namespace HyperJump
 		if (HkFLIniGet((const wchar_t*)Players.GetActiveCharacterName(iClientID), L"tstamp", wscTimeStamp) != HKE_OK)
 			return;
 
-		FILETIME ft; 
+		FILETIME ft;
 		ft.dwHighDateTime = strtoul(GetParam(wstos(wscTimeStamp), ',', 0).c_str(), 0, 10);
 		ft.dwLowDateTime = strtoul(GetParam(wstos(wscTimeStamp), ',', 1).c_str(), 0, 10);
 		time_t lastTime = filetime_to_timet(ft);
@@ -1944,7 +1996,7 @@ namespace HyperJump
 		if (drift > MAX_DRIFT)
 			drift = MAX_DRIFT;
 
-		drift *= ( (2.0f * rand() / (float)RAND_MAX) - 1.0f);
+		drift *= ((2.0f * rand() / (float)RAND_MAX) - 1.0f);
 		//if (wscRights.size())
 		//	ConPrint(L"drift=%0.0f currTime=%u lastTime=%u\n", drift, (uint)currTime, (uint)lastTime);
 
@@ -1965,7 +2017,7 @@ namespace HyperJump
 				mapSurvey[iClientID].curr_charge = 0;
 				mapSurvey[iClientID].charging_on = false;
 				PrintUserCmdText(iClientID, L"Hyperspace survey disrupted, restart required");
-			}			
+			}
 		}
 
 		//TEMPORARY: Allow JDs to be disrupted with CDs
@@ -1974,13 +2026,13 @@ namespace HyperJump
 			if (mapJumpDrives[iClientID].charging_on && mapJumpDrives[iClientID].arch.cd_disrupts_charge)
 			{
 				if (dmg->get_cause() == 6)
-				{				
-				mapJumpDrives[iClientID].charging_on = false;
-				PrintUserCmdText(iClientID, L"Jump drive disrupted. Charging failed.");
-				//PrintUserCmdText(iClientID, L"Jump drive disruption successful");
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
-				SetFuse(iClientID, 0);
-				StopChargeFuses(iClientID);
+				{
+					mapJumpDrives[iClientID].charging_on = false;
+					PrintUserCmdText(iClientID, L"Jump drive disrupted. Charging failed.");
+					//PrintUserCmdText(iClientID, L"Jump drive disruption successful");
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
+					SetFuse(iClientID, 0);
+					StopChargeFuses(iClientID);
 				}
 			}
 		}
@@ -1988,9 +2040,9 @@ namespace HyperJump
 
 	bool HyperJump::UserCmd_DeployBeacon(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
-		
+
 		HKPLAYERINFO p;
-		if (HkGetPlayerInfo((const wchar_t*) Players.GetActiveCharacterName(iClientID), p, false)!=HKE_OK || p.iShip==0)
+		if (HkGetPlayerInfo((const wchar_t*)Players.GetActiveCharacterName(iClientID), p, false) != HKE_OK || p.iShip == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Not in space");
 			return true;
@@ -2002,7 +2054,7 @@ namespace HyperJump
 			return true;
 		}
 
-		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i) 
+		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
 		{
 			if (i->first == iClientID)
 			{
@@ -2038,7 +2090,7 @@ namespace HyperJump
 				{
 					HkLightFuse((IObjRW*)obj, BeaconFuse, 0, BeaconTime, 0);
 				}
-				
+
 				BEACONTIMER bc;
 				bc.cooldown = BeaconCooldown;
 				bc.timeleft = BeaconTime;
@@ -2123,7 +2175,7 @@ namespace HyperJump
 
 			uint iShipTarget;
 			pub::Player::GetShip(iClientIDTarget, iShipTarget);
-				
+
 			uint iSystemID;
 			uint AllowedToWhiteListJump = 0;
 			pub::Player::GetSystem(iClientID, iSystemID);
@@ -2224,7 +2276,7 @@ namespace HyperJump
 				pub::Player::SendNNMessage(iTargetID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 				SetFuse(iTargetID, 0);
 				StopChargeFuses(iTargetID);
-			}			
+			}
 		}
 	}
 

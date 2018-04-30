@@ -220,14 +220,11 @@ bool UserCmd_NoDock(uint iClientID, const wstring &wscCmd, const wstring &wscPar
 	bool correctID = false;
 	uint noDocker; // The ID that preformed the nodock
 
-	for (auto& mapShip : mapShips)
+	auto i = mapShips.find(iClientID);
+	if(i != mapShips.end())
 	{
-		if(mapShip.first == iClientID)
-		{
-			correctID = true;
-			noDocker = mapShip.second;
-			break;
-		}
+		correctID = true;
+		noDocker = i->second;
 	}
 
 	if(correctID)
@@ -261,18 +258,16 @@ bool UserCmd_NoDock(uint iClientID, const wstring &wscCmd, const wstring &wscPar
 
 		wstring wscTargetCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientIDTarget);
 
-		for (auto& i : mapActiveNoDocks)
+		auto i = mapActiveNoDocks.find(iClientIDTarget);
+		if(i != mapActiveNoDocks.end())
 		{
-			if (i.first == iClientIDTarget)
+			PrintUserCmdText(iClientID, L"OK Removal of docking rights reset to %d seconds", duration);
+			PrintUserCmdText(iClientIDTarget, L"Removal of docking rights reset to %d seconds", duration);
+			for (auto& ii : i->second)
 			{
-				PrintUserCmdText(iClientID, L"OK Removal of docking rights reset to %d seconds", duration);
-				PrintUserCmdText(iClientIDTarget, L"Removal of docking rights reset to %d seconds", duration);
-				for(auto& ii : i.second)
-				{
-					ii.second = duration;
-				}
-				return true;
+				ii.second = duration;
 			}
+			return true;
 		}
 
 		mapActiveNoDocks[iClientIDTarget][noDocker] = duration;
@@ -325,7 +320,7 @@ bool NoDocked(uint iShipID, uint iTarget, uint iClientID)
 
 	bool noDocked = false; // By default no ship is "Nodocked"
 	uint iDockwithID; // Empty uint
-	pub::SpaceObj::GetDockingTarget(iTarget, iDockwithID); // 
+	pub::SpaceObj::GetDockingTarget(iTarget, iDockwithID); // Get the "Dock_With" element of the solar object
 
 	if (mapShips.find(iClientID) != mapShips.end())
 	{
@@ -440,13 +435,11 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int iClientID)
 		auto* i = &ii;
 		if(i->bMounted)
 		{
-			for (auto& iter : mapIDRestricted)
+			auto iter = mapIDRestricted.find(i->iArchID);
+			if(iter != mapIDRestricted.end())
 			{
-				if(iter.first == i->iArchID)
-				{
-					mapShips[iClientID] = i->iArchID;
-					return;
-				}
+				mapShips[iClientID] = i->iArchID;
+				return;
 			}
 		}
 	}

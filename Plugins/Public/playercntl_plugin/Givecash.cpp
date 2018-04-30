@@ -385,7 +385,7 @@ namespace GiveCash
 
 		// If the target player is online then send them a message saying
 		// telling them that they've received the cash.
-		wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + (bAnon ? L"anonymous" : wscCharname) + (!wscReason.empty() ? L"with the reason: " + wscReason : L".");
+		wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + (bAnon ? L"anonymous" : wscCharname) + (!wscReason.empty() ? L" with the reason: " + wscReason : L".");
 		if (targetClientId != -1 && !HkIsInCharSelectMenu(targetClientId))
 		{
 			PrintUserCmdText(targetClientId, L"%s", msg.c_str());
@@ -395,7 +395,7 @@ namespace GiveCash
 		// of the transfer. The ini is cleared when ever the character logs in.
 		else
 		{
-			wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + (bAnon ? L"anonymous" : wscCharname) + (!wscReason.empty() ? L"with the reason: " + wscReason : L".");
+			wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + (bAnon ? L"anonymous" : wscCharname) + (!wscReason.empty() ? L" with the reason: " + wscReason : L".");
 			LogTransfer(wscTargetCharname, msg);
 		}
 

@@ -540,7 +540,7 @@ namespace GiveCash
 		}
 
 		int secs = 0;
-		if ((err = HkGetOnLineTime(wscCharname, secs)) != HKE_OK) {
+		if ((err = HkGetOnLineTime(wscTargetCharname, secs)) != HKE_OK) {
 			PrintUserCmdText(iClientID, L"ERR: " + HkErrGetText(err));
 			return true;
 		}

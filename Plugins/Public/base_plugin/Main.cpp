@@ -2103,6 +2103,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	}
 	else if (args.find(L"testbase") == 0)
 	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		uint ship;

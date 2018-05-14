@@ -44,7 +44,10 @@ struct BayArch
 	uint droneRange = 10000;
 
 	// A list of available drone aliases usable by this bayarch
-	list<string> availableDrones;
+	vector<string> availableDrones;
+
+	// A list defining what allowed ships this bayarch can target
+	vector<int> validShipclassTargets;
 };
 
 struct DeployedDroneInfo

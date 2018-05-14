@@ -107,6 +107,10 @@ void LoadSettings()
 					{
 						bayArch.droneRange = ini.get_value_int(0);
 					}
+					else if(ini.is_value("validtarget"))
+					{
+						bayArch.validShipclassTargets.push_back(ini.get_value_int(0));
+					}
 				}
 				if(bayEquipId != 0)
 				{
@@ -302,7 +306,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 					PrintUserCmdText(info->iClientID, L"Deployment will interfere with cloaking devices. Aborting launch");
 					clientDroneInfo[info->iClientID].buildState = STATE_DRONE_OFF;
 					buildTimerMap.erase(info->iClientID);
-					free(data);
 					return;
 				}
 			}

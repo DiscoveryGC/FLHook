@@ -66,7 +66,7 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	const string reqDroneType = wstos(GetParam(wscParam, L' ', 0));
 
 	// Verify that the requested drone type is a member of the bay's available drones
-	if(availableDroneArch.find(reqDroneType) == availableDroneArch.end())
+	if(find(bayArch.availableDrones.begin(), bayArch.availableDrones.end(), reqDroneType) == bayArch.availableDrones.end())
 	{
 		PrintUserCmdText(iClientID, L"Your drone bay does not support this type of deployment");
 		return true;
@@ -116,9 +116,27 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 
 	if(!iTargetObj)
 	{
-		PrintUserCmdText(iClientID, L"Please target the vessel which the drones should be directed to");
+		PrintUserCmdText(iClientID, L"Please target the vessel which the drone should be directed to");
 		return true;
 	}
+
+	PrintUserCmdText(iClientID, L"Ooohh");
+
+	//Only allow the drone to target the targets specified in the configuration
+	const BayArch& clientBayArch = clientDroneInfo[iClientID].droneBay;
+	uint targetArchetype;
+	pub::SpaceObj::GetSolarArchetypeID(iTargetObj, targetArchetype);
+	Archetype::Ship* targetShiparch = Archetype::GetShip(targetArchetype);
+
+	//Validate that we're only engaging a shipclass that we're allowed to engage
+	const auto it = find(clientBayArch.validShipclassTargets.begin(), clientBayArch.validShipclassTargets.end(), targetShiparch->iShipClass);
+	if(it == clientBayArch.validShipclassTargets.end())
+	{
+		PrintUserCmdText(iClientID, L"Invalid target: This drone is not equipped to handle ships of that size");
+		return true;
+	}
+
+	PrintUserCmdText(iClientID, L"");
 
 	const uint droneObj = clientDroneInfo[iClientID].deployedInfo.deployedDroneObj;
 

@@ -14,11 +14,6 @@ Our current starport revision is #267.
 
 If you find old contributions you wish to refactor, you are welcome to do so
 
-IMPORTANT
--------
-We are currently in the process of restructuring the solution for ease of use. While it may compile, it is not yet fully finished and tested. We will let you know when we are sure everything works as expected.
-If you had an existing copy of the repository, it is very much recommended to start with a new copy and port your changes over as the changes in structure are so major you WILL run into issues.
-
 How to use
 -------
 

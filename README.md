@@ -3,6 +3,7 @@ FLHook Discovery 3.1.0
 
 This is the public repository for Discovery Freelancer's FLHook.
 The client hook and the server anticheat are not available due to their sensitivity.
+It's also currently missing ducktales and disabledock.
 
 The original SVN can be found here: http://forge.the-starport.net/projects/flhookplugin
 

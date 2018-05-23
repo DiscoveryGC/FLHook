@@ -198,6 +198,9 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 					pub::SpaceObj::Destroy(drone->second.deployedInfo.deployedDroneObj, DestroyType::FUSE);
 					clientDroneInfo.erase(drone->first);
 
+					// Erase any drones in the deployment queue
+					buildTimerMap.erase(drone->first);
+
 					PrintUserCmdText(drone->first, L"Drone has been destroyed.");
 
 				}
@@ -232,6 +235,9 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 
 		clientDroneInfo.erase(iClientID);
 	}
+
+	// Erase any drones in the deployment queue
+	buildTimerMap.erase(iClientID);
 }
 
 void __stdcall SetTarget_AFTER(uint client, const XSetTarget& target)

@@ -168,7 +168,7 @@ void ClearClientInfo(uint iClientID)
 	buildTimerMap.erase(iClientID);
 	droneDespawnMap.erase(iClientID);
 	clientDroneInfo.erase(iClientID);
-
+	droneAlertDebounceMap.erase(iClientID);
 
 }
 

@@ -335,9 +335,3 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 
 	return p;
 }
-
-uint Utility::rand_name()
-{
-	const int randomIndex = rand() % npcnames.size();
-	return npcnames.at(randomIndex);
-}

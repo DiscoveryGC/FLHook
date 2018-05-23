@@ -120,8 +120,6 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 		return true;
 	}
 
-	PrintUserCmdText(iClientID, L"Ooohh");
-
 	//Only allow the drone to target the targets specified in the configuration
 	const BayArch& clientBayArch = clientDroneInfo[iClientID].droneBay;
 	uint targetArchetype;

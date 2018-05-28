@@ -127,6 +127,11 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 	uint targetArchetype;
 	pub::SpaceObj::GetSolarArchetypeID(iTargetObj, targetArchetype);
 	Archetype::Ship* targetShiparch = Archetype::GetShip(targetArchetype);
+	if (!targetShiparch)
+	{
+		PrintUserCmdText(iClientID, L"Invalid target: Does not look like a ship");
+		return true;
+	}
 
 	//Validate that we're only engaging a shipclass that we're allowed to engage
 	const auto it = find(clientBayArch.validShipclassTargets.begin(), clientBayArch.validShipclassTargets.end(), targetShiparch->iShipClass);

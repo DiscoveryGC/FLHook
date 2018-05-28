@@ -8,11 +8,42 @@
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
-#include "ZoneUtilities.h"
 
+
+struct LOOTABLE_ZONE
+{
+	/** The zone nickname */
+	string zoneNick;
+
+	/** The id of the system for this lootable zone */
+	uint systemID;
+
+	/** The nickname and arch id of the loot dropped by the asteroids */
+	string lootNick;
+	uint iLootID;
+
+	/** The arch id of the crate the loot is dropped in */
+	uint iCrateID;
+
+	/** The minimum number of loot items to drop */
+	uint iMinLoot;
+
+	/** The maximum number of loot items to drop */
+	uint iMaxLoot;
+
+	/** The drop difficultly */
+	uint iLootDifficulty;
+
+	/** The lootable zone ellipsoid size */
+	Vector size;
+
+	/** The lootable zone position */
+	Vector pos;
+};
 typedef multimap<uint, LOOTABLE_ZONE, less<uint> >::value_type zone_map_pair_t;
 typedef multimap<uint, LOOTABLE_ZONE, less<uint> >::iterator zone_map_iter_t;
 typedef multimap<uint, LOOTABLE_ZONE, less<uint> > zone_map_t;
+
 
 /**
 Parse the specified ini file (usually in the data/solar/asteriods) and retrieve 
@@ -119,68 +150,6 @@ void ReadSystemLootableZones(zone_map_t &set_mmapZones, const string &systemNick
 	}
 }
 
-/** Multiply mat1 by mat2 and return the result */
-static TransformMatrix MultiplyMatrix(TransformMatrix &mat1, TransformMatrix &mat2)
-{
-	TransformMatrix result = { 0 };
-	for (int i = 0; i<4; i++)
-		for (int j = 0; j<4; j++)
-			for (int k = 0; k<4; k++)
-				result.d[i][j] += mat1.d[i][k] * mat2.d[k][j];
-	return result;
-}
-
-/** Setup of transformation matrix using the vector p and the rotation r */
-static TransformMatrix SetupTransform(Vector &p, Vector &r)
-{
-	// Convert degrees into radians
-#define PI (3.14159265358f)
-	float ax = r.x * (PI / 180);
-	float ay = r.y * (PI / 180);
-	float az = r.z * (PI / 180);
-
-	// Initial matrix
-	TransformMatrix smat = { 0 };
-	smat.d[0][0] = smat.d[1][1] = smat.d[2][2] = smat.d[3][3] = 1;
-
-	// Translation matrix
-	TransformMatrix tmat;
-	tmat.d[0][0] = 1;  tmat.d[0][1] = 0;  tmat.d[0][2] = 0;  tmat.d[0][3] = 0;
-	tmat.d[1][0] = 0;  tmat.d[1][1] = 1;  tmat.d[1][2] = 0;  tmat.d[1][3] = 0;
-	tmat.d[2][0] = 0;  tmat.d[2][1] = 0;  tmat.d[2][2] = 1;  tmat.d[2][3] = 0;
-	tmat.d[3][0] = -p.x; tmat.d[3][1] = -p.y; tmat.d[3][2] = -p.z; tmat.d[3][3] = 1;
-
-	// X-axis rotation matrix
-	TransformMatrix xmat;
-	xmat.d[0][0] = 1;        xmat.d[0][1] = 0;        xmat.d[0][2] = 0;        xmat.d[0][3] = 0;
-	xmat.d[1][0] = 0;        xmat.d[1][1] = cos(ax);  xmat.d[1][2] = sin(ax);  xmat.d[1][3] = 0;
-	xmat.d[2][0] = 0;        xmat.d[2][1] = -sin(ax); xmat.d[2][2] = cos(ax);  xmat.d[2][3] = 0;
-	xmat.d[3][0] = 0;        xmat.d[3][1] = 0;        xmat.d[3][2] = 0;        xmat.d[3][3] = 1;
-
-	// Y-axis rotation matrix
-	TransformMatrix ymat;
-	ymat.d[0][0] = cos(ay);  ymat.d[0][1] = 0;        ymat.d[0][2] = -sin(ay); ymat.d[0][3] = 0;
-	ymat.d[1][0] = 0;        ymat.d[1][1] = 1;        ymat.d[1][2] = 0;        ymat.d[1][3] = 0;
-	ymat.d[2][0] = sin(ay);  ymat.d[2][1] = 0;        ymat.d[2][2] = cos(ay);  ymat.d[2][3] = 0;
-	ymat.d[3][0] = 0;        ymat.d[3][1] = 0;        ymat.d[3][2] = 0;        ymat.d[3][3] = 1;
-
-	// Z-axis rotation matrix
-	TransformMatrix zmat;
-	zmat.d[0][0] = cos(az);  zmat.d[0][1] = sin(az);  zmat.d[0][2] = 0;        zmat.d[0][3] = 0;
-	zmat.d[1][0] = -sin(az); zmat.d[1][1] = cos(az);  zmat.d[1][2] = 0;        zmat.d[1][3] = 0;
-	zmat.d[2][0] = 0;        zmat.d[2][1] = 0;        zmat.d[2][2] = 1;        zmat.d[2][3] = 0;
-	zmat.d[3][0] = 0;        zmat.d[3][1] = 0;        zmat.d[3][2] = 0;        zmat.d[3][3] = 1;
-
-	TransformMatrix tm;
-	tm = MultiplyMatrix(smat, tmat);
-	tm = MultiplyMatrix(tm, xmat);
-	tm = MultiplyMatrix(tm, ymat);
-	tm = MultiplyMatrix(tm, zmat);
-
-
-	return tm;
-}
-
 /** Read the zone size/rotation and position information out of the
  specified file and calcuate the lootable zone transformation matrix */
 void ReadSystemZones(zone_map_t &set_mmapZones, const string &systemNick, const string &file)
@@ -218,9 +187,9 @@ void ReadSystemZones(zone_map_t &set_mmapZones, const string &systemNick, const 
 					}
 					else if (ini.is_value("rotate"))
 					{
-						rotation.x = 0 - ini.get_value_float(0);
-						rotation.y = 0 - ini.get_value_float(1);
-						rotation.z = 0 - ini.get_value_float(2);
+						rotation.x = 180 + ini.get_value_float(0);
+						rotation.y = 180 + ini.get_value_float(1);
+						rotation.z = 180 + ini.get_value_float(2);
 					}
 					else if (ini.is_value("size"))
 					{
@@ -249,7 +218,6 @@ void ReadSystemZones(zone_map_t &set_mmapZones, const string &systemNick, const 
 					{
 						i->second.pos = pos;
 						i->second.size = size;
-						i->second.transform = SetupTransform(pos, rotation);
 						break;
 					}
 				}
@@ -309,7 +277,7 @@ void ReadUniverse(zone_map_t &set_mmapZones)
 	}
 }
 
-void ZoneUtilities::PrintZones()
+void PrintZones()
 {
 	zone_map_t set_mmapZones;
 	ReadUniverse(set_mmapZones);
@@ -324,41 +292,4 @@ void ZoneUtilities::PrintZones()
 			i->second.size.x,i->second.size.y,i->second.size.z);
 	}
 	ConPrint(L"Zones=%d\n",set_mmapZones.size());
-}
-
-/**
-Return true if the ship location as specified by the position parameter is in a lootable zone.
-*/
-bool ZoneUtilities::InZone(uint system, const Vector &pos, LOOTABLE_ZONE &rlz)
-{
-	zone_map_t set_mmapZones;
-	ReadUniverse(set_mmapZones);
-
-	// For each zone in the system test that pos is inside the
-	// zone.
-	zone_map_iter_t start = set_mmapZones.lower_bound(system);
-	zone_map_iter_t end = set_mmapZones.upper_bound(system);
-	for (zone_map_iter_t i = start; i != end; i++)
-	{
-		const LOOTABLE_ZONE &lz = i->second;
-		/** Transform the point pos onto coordinate system defined by matrix m */
-		float x = pos.x*lz.transform.d[0][0] + pos.y*lz.transform.d[1][0]
-			+ pos.z*lz.transform.d[2][0] + lz.transform.d[3][0];
-		float y = pos.x*lz.transform.d[0][1] + pos.y*lz.transform.d[1][1]
-			+ pos.z*lz.transform.d[2][1] + lz.transform.d[3][1];
-		float z = pos.x*lz.transform.d[0][2] + pos.y*lz.transform.d[1][2]
-			+ pos.z*lz.transform.d[2][2] + lz.transform.d[3][2];
-
-		// If r is less than/equal to 1 then the point is inside the ellipsoid.
-		float result = sqrt(powf(x / lz.size.x, 2) + powf(y / lz.size.y, 2) + powf(z / lz.size.z, 2));
-		if (result <= 1)
-		{
-			rlz = lz;
-			return true;
-		}
-	}
-
-	// Return the iterator. If the iter is zones.end() then the point
-	// is not in a lootable zone.
-	return false;
 }

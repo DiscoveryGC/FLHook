@@ -64,7 +64,13 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	// Verify that the requested drone type is a member of the bay's available drones
 	if(find(bayArch.availableDrones.begin(), bayArch.availableDrones.end(), reqDroneType) == bayArch.availableDrones.end())
 	{
-		PrintUserCmdText(iClientID, L"Your drone bay does not support this type of deployment");
+		PrintUserCmdText(iClientID, L"Your drone bay does not support this type of deployment.");
+		PrintUserCmdText(iClientID, L"---Valid drones---");
+		for (const auto& bay : bayArch.availableDrones)
+		{
+			PrintUserCmdText(iClientID, stows(bay));
+		}
+		PrintUserCmdText(iClientID, L"------------------");
 		return true;
 	}
 

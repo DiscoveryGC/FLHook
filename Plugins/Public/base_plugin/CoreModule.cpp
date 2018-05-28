@@ -20,7 +20,7 @@ CoreModule::~CoreModule()
 {
 	if (space_obj)
 	{
-		pub::SpaceObj::Destroy(space_obj, (pub::SpaceObj::DestroyType)0); // use type 1 for fuses
+		pub::SpaceObj::Destroy(space_obj, DestroyType::VANISH); 
 		spaceobj_modules.erase(space_obj);
 		space_obj = 0;
 	}
@@ -472,7 +472,7 @@ bool CoreModule::Timer(uint time)
 
 			pub::SpaceObj::GetHealth(space_obj, base->base_health, base->max_base_health);
 
-			if (!dont_rust)
+			if (!dont_rust && ((time%set_damage_tick_time) == 0))
 			{
 				// Reduce hitpoints to reflect wear and tear. This will eventually
 				// destroy the base unless it is able to repair itself.

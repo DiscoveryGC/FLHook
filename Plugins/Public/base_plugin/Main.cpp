@@ -74,6 +74,9 @@ string set_status_path_json;
 /// Damage to the base every tick
 uint set_damage_per_tick = 600;
 
+// The seconds per damage tick
+uint set_damage_tick_time = 16;
+
 // The seconds per tick
 uint set_tick_time = 16;
 
@@ -382,6 +385,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("damage_per_tick"))
 					{
 						set_damage_per_tick = ini.get_value_int(0);
+					}
+					else if (ini.is_value("damage_tick_time"))
+					{
+						set_damage_tick_time = ini.get_value_int(0);
 					}
 					else if (ini.is_value("tick_time"))
 					{
@@ -2096,6 +2103,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	}
 	else if (args.find(L"testbase") == 0)
 	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		uint ship;

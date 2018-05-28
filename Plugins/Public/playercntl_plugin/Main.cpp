@@ -903,7 +903,8 @@ USERCMD UserCmds[] =
 	{ L"/pos",			MiscCmds::UserCmd_Pos,			L"Usage: /pos" },
 	{ L"/stuck",		MiscCmds::UserCmd_Stuck,		L"Usage: /stuck" },
 	{ L"/droprep",		MiscCmds::UserCmd_DropRep,		L"Usage: /droprep" },
-	{ L"/dice",			MiscCmds::UserCmd_Dice,			L"Usage: /dice [max]" },
+	{ L"/dice",			MiscCmds::UserCmd_Dice,			L"Usage: /dice 1d20 | 1d20+3 | etc."},
+	{ L"/roll",			MiscCmds::UserCmd_Dice,			L"Usage: /roll 1d20 | 1d20+3 | etc." },
 	{ L"/coin",			MiscCmds::UserCmd_Coin,			L"Usage: /coin" },
 	{ L"/pimpship",		PimpShip::UserCmd_PimpShip,		L"Usage: /pimpship" },
 	{ L"/showsetup",	PimpShip::UserCmd_ShowSetup,	L"Usage: /showsetup" },
@@ -915,13 +916,16 @@ USERCMD UserCmds[] =
 	{ L"/set movecharcode",	Rename::UserCmd_SetMoveCharCode,	L"Usage: /set movecharcode <code>" },
 	{ L"/restart",		Restart::UserCmd_Restart,		L"Usage: /restart <faction>" },
 	{ L"/showrestarts",	Restart::UserCmd_ShowRestarts,	L"Usage: /showrestarts" },
-	{ L"/givecash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon]" },
-	{ L"/givecasht",	GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon]" },
-	{ L"/givecasht*",	GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon]" },
+	{ L"/givecash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon] or /gc ..." },
+	{ L"/gc",			GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon] or /gc ..." },
+	{ L"/givecasht",	GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon] or /gct ..." },
+	{ L"/gct",			GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon] or /gct ..." },
 	{ L"/sendcash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon]"},
 	{ L"/set cashcode",	GiveCash::UserCmd_SetCashCode,	L"Usage: /set cashcode <code>"},
-	{ L"/showcash",		GiveCash::UserCmd_ShowCash,		L"Usage: /showcash <charname> <code>"},
-	{ L"/drawcash",		GiveCash::UserCmd_DrawCash,		L"Usage: /drawcash <charname> <code> <cash>"},
+	{ L"/showcash",		GiveCash::UserCmd_ShowCash,		L"Usage: /showcash <charname> <code> or /shc ..." },
+	{ L"/drc",		GiveCash::UserCmd_DrawCash,		L"Usage: /drawcash <charname> <code> <cash> or /drc ..." },
+	{ L"/shc",		GiveCash::UserCmd_ShowCash,		L"Usage: /showcash <charname> <code> or /shc ..." },
+	{ L"/drawcash",		GiveCash::UserCmd_DrawCash,		L"Usage: /drawcash <charname> <code> <cash> or /drc ..." },
 	{ L"/group",		Message::UserCmd_BuiltInCmdHelp, L"Usage: /group <message> or /g ..."},
 	{ L"/local",		Message::UserCmd_BuiltInCmdHelp, L"Usage: /local <message> or /l ...>"},
 	{ L"/system",		Message::UserCmd_BuiltInCmdHelp, L"Usage: /system <message> or /s ..."},
@@ -996,6 +1000,7 @@ USERCMD UserCmds[] =
 	{ L"/fi",			Message::UserCmd_FactionInvite, L"Usage: /factioninvite <tag> or /fi ..."},
 	{ L"/lastpm",       Message::UserCmd_ShowLastPMSender, L""},
 	{ L"/set chattime", Message::UserCmd_SetChatTime, L"Usage: /set chattime [on|off]"},
+	{ L"/set dietime",  Message::UserCmd_SetDeathTime, L"Usage: /set dietime [on|off]"},
 	{ L"/help",			Message::UserCmd_CustomHelp, L""},
 	{ L"/h",			Message::UserCmd_CustomHelp, L""},
 	{ L"/?",			Message::UserCmd_CustomHelp, L""},
@@ -1106,7 +1111,7 @@ void UserCmd_Help(uint iClientID, const wstring &wscParam)
 	PrintUserCmdText(iClientID, L"/pos");
 	PrintUserCmdText(iClientID, L"/stuck");
 	PrintUserCmdText(iClientID, L"/droprep");
-	PrintUserCmdText(iClientID, L"/dice [max]");
+	PrintUserCmdText(iClientID, L"/roll 1d20");
 	PrintUserCmdText(iClientID, L"/coin");
 
 	if (!set_bEnableRenameMe)

@@ -201,6 +201,9 @@ namespace Message
 		// Current chat time settings
 		bool bShowChatTime;
 
+		// Current chat time display on death settings
+		bool bShowChatDieTime;
+
 		// True if the login banner has been displayed.
 		bool bGreetingShown;
 
@@ -262,6 +265,7 @@ namespace Message
 	{
 		// Chat time settings.
 		mapInfo[iClientID].bShowChatTime = HookExt::IniGetB(iClientID, "msg.chat_time");
+		mapInfo[iClientID].bShowChatDieTime = HookExt::IniGetB(iClientID, "msg.chat_dietime");
 
 		if (!set_bSetMsg)
 			return;
@@ -352,19 +356,19 @@ namespace Message
 	Return false if tags cannot be replaced. */
 	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, wstring &wscMsg)
 	{
-		if (wscMsg.find(L"#t")!=-1)
+		if (wscMsg.find(L"#t") != -1)
 		{
-			if (clientData.uTargetClientID==-1)
+			if (clientData.uTargetClientID == -1)
 			{
 				PrintUserCmdText(iClientID, L"ERR Target not available");
-				return false;	
+				return false;
 			}
 
-			wstring wscTargetName = (const wchar_t*) Players.GetActiveCharacterName(clientData.uTargetClientID);
+			wstring wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#t", wscTargetName);
 		}
 
-		if (wscMsg.find(L"#c")!=-1)
+		if (wscMsg.find(L"#c") != -1)
 		{
 			wstring wscCurrLocation = GetLocation(iClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#c", wscCurrLocation.c_str());
@@ -372,7 +376,6 @@ namespace Message
 
 		return true;
 	}
-
 
 	/** Clean up when a client disconnects */
 	void Message::ClearClientInfo(uint iClientID)
@@ -808,6 +811,7 @@ namespace Message
 			return true;
 
 		SendSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10001, wscMsg);
 
 		return true;
 	}
@@ -839,6 +843,7 @@ namespace Message
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10002, wscMsg);
 
 		return true;
 	}
@@ -870,6 +875,7 @@ namespace Message
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10002, wscMsg);
 
 		return true;
 	}
@@ -901,6 +907,7 @@ namespace Message
 			return true;
 
 		SendGroupChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10003, wscMsg);
 		return true;
 	}
 
@@ -952,6 +959,7 @@ namespace Message
 
 		mapInfo[iter->second.ulastPmClientID].ulastPmClientID = iClientID;
 		SendPrivateChat(iClientID, iter->second.ulastPmClientID, wscMsg);
+		SendChatEvent(iClientID, iter->second.ulastPmClientID, wscMsg);
 		return true;
 	}
 
@@ -1003,6 +1011,7 @@ namespace Message
 
 		mapInfo[iter->second.uTargetClientID].ulastPmClientID = iClientID;
 		SendPrivateChat(iClientID, iter->second.uTargetClientID, wscMsg);
+		SendChatEvent(iClientID, iter->second.uTargetClientID, wscMsg);
 		return true;
 	}
 
@@ -1241,6 +1250,35 @@ namespace Message
 		return true;
 	}
 
+	bool Message::UserCmd_SetDeathTime(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		wstring wscParam1 = ToLower(GetParam(wscParam, ' ', 0));
+		bool bShowChatDieTime = false;
+		if (!wscParam1.compare(L"on"))
+			bShowChatDieTime = true;
+		else if (!wscParam1.compare(L"off"))
+			bShowChatDieTime = false;
+		else
+		{
+			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+			PrintUserCmdText(iClientID, usage);
+			return true;
+		}
+
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+
+		HookExt::IniSetB(iClientID, "msg.chat_dietime", bShowChatDieTime);
+
+		// Update the client cache.
+		map<uint, INFO>::iterator iter = mapInfo.find(iClientID);
+		if (iter != mapInfo.end())
+			iter->second.bShowChatDieTime = bShowChatDieTime;
+
+		// Send confirmation msg
+		PrintUserCmdText(iClientID, L"OK");
+		return true;
+	}
+
 	bool Message::UserCmd_Time(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		// Send time with gray color (BEBEBE) in small text (90) above the chat line.
@@ -1435,12 +1473,15 @@ namespace Message
 			uint iClientSystemID = 0;
 			pub::Player::GetSystem(iClientID, iClientSystemID);
 
+			bool timeSent = false;
+
 			if (mapInfo[iClientID].bShowChatTime)
 			{
 				// Send time with gray color (BEBEBE) in small text (90) above the chat line.
 				bSendingTime = true;
 				HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
 				bSendingTime = false;
+				timeSent = true;
 			}
 
 			char *szXMLBuf;
@@ -1470,11 +1511,39 @@ namespace Message
 
 			if(ClientInfo[iClientID].dieMsg == DIEMSG_NONE)
 				continue;
-			else if((ClientInfo[iClientID].dieMsg == DIEMSG_SYSTEM) && (iSystemID == iClientSystemID))  
+			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SYSTEM) && (iSystemID == iClientSystemID))
+			{
+				// Append the time information
+				if (mapInfo[iClientID].bShowChatDieTime && !timeSent)
+				{
+					bSendingTime = true;
+					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
+					bSendingTime = false;
+				}
+
 				HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-			else if((ClientInfo[iClientID].dieMsg == DIEMSG_SELF) && ((iClientID == iClientIDVictim) || (iClientID == iClientIDKiller)))
+			}
+			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SELF) && ((iClientID == iClientIDVictim) || (iClientID == iClientIDKiller)))
+			{
+				// Append the time information
+				if (mapInfo[iClientID].bShowChatDieTime && !timeSent)
+				{
+					bSendingTime = true;
+					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
+					bSendingTime = false;
+				}
+
 				HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-			else if(ClientInfo[iClientID].dieMsg == DIEMSG_ALL) {
+			}
+			else if(ClientInfo[iClientID].dieMsg == DIEMSG_ALL)
+			{
+				if (mapInfo[iClientID].bShowChatDieTime && !timeSent)
+				{
+					bSendingTime = true;
+					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
+					bSendingTime = false;
+				}
+
 				if(iSystemID == iClientSystemID)
 					HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
 				else

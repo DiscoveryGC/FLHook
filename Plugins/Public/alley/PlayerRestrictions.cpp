@@ -514,7 +514,7 @@ void AdminCmd_missiontest2(CCmds* cmds, wstring argument)
 			caption.begin_mad_lib(526999);
 			caption.end_mad_lib();
 
-			pub::Player::DisplayMissionMessage(iClientID, caption, pub::Player::MissionMessageType_Type1, true);
+			pub::Player::DisplayMissionMessage(iClientID, caption, MissionMessageType::MissionMessageType_Type1, true);
 		}
 		
 		cmds->Print(L"OK\n");
@@ -565,7 +565,7 @@ void AdminCmd_missiontest2b(CCmds* cmds, wstring argument)
 			caption.begin_mad_lib(526999);
 			caption.end_mad_lib();
 
-			pub::Player::DisplayMissionMessage(iClientID2, caption, pub::Player::MissionMessageType_Type1, true);
+			pub::Player::DisplayMissionMessage(iClientID2, caption, MissionMessageType::MissionMessageType_Type1, true);
 		}
 		
 			HkChangeIDSString(adminPlyr.iClientID, 526999, wszTargetName);
@@ -574,7 +574,7 @@ void AdminCmd_missiontest2b(CCmds* cmds, wstring argument)
 			caption.begin_mad_lib(526999);
 			caption.end_mad_lib();
 
-			pub::Player::DisplayMissionMessage(adminPlyr.iClientID, caption, pub::Player::MissionMessageType_Type1, true);
+			pub::Player::DisplayMissionMessage(adminPlyr.iClientID, caption, MissionMessageType::MissionMessageType_Type1, true);
 
 		cmds->Print(L"OK\n");
 
@@ -641,7 +641,7 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 		//Register all players informed of the mark
 		MarkUsageTimer.push_back(gm->iClientID);
 
-		pub::Player::DisplayMissionMessage(gm->iClientID, caption, pub::Player::MissionMessageType_Type2, true);
+		pub::Player::DisplayMissionMessage(gm->iClientID, caption, MissionMessageType::MissionMessageType_Type2, true);
 
 	}
 

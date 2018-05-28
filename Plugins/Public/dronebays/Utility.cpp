@@ -84,7 +84,8 @@ void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWra
 	if (!iShip)
 	{
 		PrintUserCmdText(iClientID, L"Info [DroneBays] :: You've docked and somehow managed to skip a Hook. Contact a dev-team FLHooker about this bug please!");
-		ConPrint(L"DRONEBAY: Player %s has triggered Utility::DeployDrone while docked! Report this to an FLHook dev");
+		ConPrint(L"DRONEBAY: Player %s has triggered Utility::DeployDrone while docked! Report this to an FLHook dev\n");
+		AddLog("DRONEBAY: Player %s has triggered Utility::DeployDrone while docked! Report this to an FLHook dev\n");
 		return;
 	}
 

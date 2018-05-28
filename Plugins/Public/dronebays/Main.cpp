@@ -111,6 +111,7 @@ void LoadSettings()
 				}
 			}
 		}
+		ini.close();
 	}
 	if (ini.open(File_FLHook.c_str(), false))
 	{
@@ -137,7 +138,7 @@ void LoadSettings()
 						if (availableDroneArch.count(droneArchName) == 0)
 						{
 							const wchar_t* wszDroneArchName = stows(droneArchName).c_str();
-							ConPrint(L"DRONEBAY: Ignoring BayArch availabledrone = %s line as there is no DroneArch section with aliasName = %s!", wszDroneArchName, wszDroneArchName);
+							ConPrint(L"DRONEBAY: Ignoring BayArch availabledrone = %s line as there is no DroneArch section with aliasName = %s!\n", wszDroneArchName, wszDroneArchName);
 						}
 						else
 						{

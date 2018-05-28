@@ -23,7 +23,7 @@ void Utility::SetRepHostile(uint clientObj, uint targetObj)
 
 uint Utility::CreateDroneNameInfocard(const uint& droneOwnerId)
 {
-	// Allow the plugin to use IDs range 550000 to 550500
+	// Allow the plugin to use IDs range 550100 to 550599
 	static int currInfocard = 550100;
 	if (currInfocard >= 550600)
 	{
@@ -70,9 +70,6 @@ void Utility::LogEvent(const char* szString, ...)
 
 void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWrapper)
 {
-	// Set the users client state to reflect a drone has been deployed
-	clientDroneInfo[iClientID].buildState = STATE_DRONE_LAUNCHED;
-
 	// Get the current system and location of the carrier
 	uint iShip;
 	Vector shipPos{};
@@ -87,6 +84,7 @@ void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWra
 	if (!iShip)
 	{
 		PrintUserCmdText(iClientID, L"Info [DroneBays] :: You've docked and somehow managed to skip a Hook. Contact a dev-team FLHooker about this bug please!");
+		ConPrint(L"DRONEBAY: Player %s has triggered Utility::DeployDrone while docked! Report this to an FLHook dev");
 		return;
 	}
 

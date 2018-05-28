@@ -1,14 +1,12 @@
-// Template for FLHookPlugin
-// February 2016 by BestDiscoveryHookDevs2016
-//
-// This is a template with the bare minimum to have a functional plugin.
+// DroneBays for FLHookPlugin
+// April 2018 by Conrad
 //
 // This is free software; you can redistribute it and/or modify it as
 // you wish without restriction. If you do then I would appreciate
 // being notified and/or mentioned somewhere.
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Includes
+// Includes
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <windows.h>
@@ -39,7 +37,6 @@ map<uint, ClientDroneInfo> clientDroneInfo;
 
 map<uint, BayArch> availableDroneBays;
 map<string, DroneArch> availableDroneArch;
-vector<uint> npcnames;
 map<uint, ChatDebounceStruct> droneAlertDebounceMap;
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -84,41 +81,7 @@ void LoadSettings()
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("BayArch"))
-			{
-				BayArch bayArch;
-				uint bayEquipId = 0;
-
-				while (ini.read_value())
-				{
-					if (ini.is_value("equipmentId"))
-					{
-						bayEquipId = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("launchtime"))
-					{
-						bayArch.iDroneBuildTime = ini.get_value_int(0);
-					}
-					else if (ini.is_value("availabledrone"))
-					{
-						bayArch.availableDrones.emplace_back(ini.get_value_string(0));
-					}
-					else if(ini.is_value("operationrange"))
-					{
-						bayArch.droneRange = ini.get_value_int(0);
-					}
-					else if(ini.is_value("validtarget"))
-					{
-						bayArch.validShipclassTargets.push_back(ini.get_value_int(0));
-					}
-				}
-				if(bayEquipId != 0)
-				{
-					availableDroneBays[bayEquipId] = bayArch;
-					loadedBays++;
-				}
-			}
-			else if (ini.is_header("DroneArch"))
+			if (ini.is_header("DroneArch"))
 			{
 				DroneArch droneArch;
 				string aliasName;
@@ -137,17 +100,72 @@ void LoadSettings()
 						droneArch.loadout = CreateID(ini.get_value_string(0));
 					}
 				}
-				if(!aliasName.empty())
+				if (aliasName.empty())
+				{
+					ConPrint(L"DRONEBAY: Configuration ERROR: Found DroneArch section missing aliasName.\n");
+				}
+				else
 				{
 					availableDroneArch[aliasName] = droneArch;
 					loadedDrones++;
 				}
 			}
 		}
+	}
+	if (ini.open(File_FLHook.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("BayArch"))
+			{
+				BayArch bayArch;
+				uint bayEquipId = 0;
+
+				while (ini.read_value())
+				{
+					if (ini.is_value("equipmentId"))
+					{
+						bayEquipId = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("launchtime"))
+					{
+						bayArch.iDroneBuildTime = ini.get_value_int(0);
+					}
+					else if (ini.is_value("availabledrone"))
+					{
+						string droneArchName = ini.get_value_string(0);
+						if (availableDroneArch.count(droneArchName) == 0)
+						{
+							const wchar_t* wszDroneArchName = stows(droneArchName).c_str();
+							ConPrint(L"DRONEBAY: Ignoring BayArch availabledrone = %s line as there is no DroneArch section with aliasName = %s!", wszDroneArchName, wszDroneArchName);
+						}
+						else
+						{
+							bayArch.availableDrones.emplace_back(droneArchName);
+						}
+					}
+					else if (ini.is_value("operationrange"))
+					{
+						bayArch.droneRange = ini.get_value_int(0);
+					}
+					else if (ini.is_value("validtarget"))
+					{
+						bayArch.validShipclassTargets.push_back(ini.get_value_int(0));
+					}
+				}
+				if (bayEquipId == 0)
+				{
+					ConPrint(L"DRONEBAY: Configuration ERROR: Found BayArch without valid equipmentId.\n");
+				}
+				else
+				{
+					availableDroneBays[bayEquipId] = bayArch;
+					loadedBays++;
+				}
+			}
+		}
 		ini.close();
 	}
-
-	//@@TODO: Verify that all of the aliased drone names with the bayarches match a drone config.
 
 	ConPrint(L"DRONEBAY: %i bayarches loaded.\n", loadedBays);
 	ConPrint(L"DRONEBAY: %i dronearches loaded.\n", loadedDrones);
@@ -187,7 +205,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 				// If so, clear the carriers map and alert them
 				clientDroneInfo.erase(drone->first);
 
-				PrintUserCmdText(drone->first, L"Drone has been destroyed.");
+				PrintUserCmdText(drone->first, L"Your drone has been destroyed.");
 			}
 
 			// If the carrier is being destroyed, destroy the drone as well
@@ -201,7 +219,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 					// Erase any drones in the deployment queue
 					buildTimerMap.erase(drone->first);
 
-					PrintUserCmdText(drone->first, L"Drone has been destroyed.");
+					PrintUserCmdText(drone->first, L"Your drone has been destroyed.");
 
 				}
 			}
@@ -227,7 +245,7 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// If the carrier changes systems, destroy any old drones
+	// If the carrier docks, destroy any drones
 	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
 	{
 		pub::SpaceObj::Destroy(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj, DestroyType::FUSE);

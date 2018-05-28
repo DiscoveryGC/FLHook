@@ -17,10 +17,6 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	bool foundBay = false;
 	for (auto& item : Players[iClientID].equipDescList.equip)
 	{
-		// Early exit from the loop if a bay has been found in the nested loop
-		if (foundBay)
-			break;
-
 		if (item.bMounted) 
 		{
 			if(availableDroneBays.find(item.iArchID) != availableDroneBays.end())
@@ -254,7 +250,7 @@ bool UserCommands::UserCmd_DroneStop(uint iClientID, const wstring& wscCmd, cons
 
 	// Send a stop directive to the drone
 	pub::AI::DirectiveCancelOp cancelOp;
-	SubmitDirective(droneObj, &cancelOp);
+	pub::AI::SubmitDirective(droneObj, &cancelOp);
 
 	PrintUserCmdText(iClientID, L"Drone operations aborted");
 
@@ -332,10 +328,6 @@ bool UserCommands::UserCmd_DroneBayAvailability(uint iClientID, const wstring& w
 	bool foundBay = false;
 	for (auto& item : Players[iClientID].equipDescList.equip)
 	{
-		// Early exit from the loop if a bay has been found in the nested loop
-		if (foundBay)
-			break;
-
 		if (item.bMounted)
 		{
 			if (availableDroneBays.find(item.iArchID) != availableDroneBays.end())

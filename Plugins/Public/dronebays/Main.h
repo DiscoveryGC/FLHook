@@ -69,9 +69,6 @@ struct ClientDroneInfo
 
 	// The carrier shipObj
 	uint carrierShipobj;
-
-	// Is the drone currently moving back to it's carrier?
-	bool isDroneReturning = false;
 };
 
 struct ChatDebounceStruct
@@ -113,8 +110,6 @@ extern map<string, DroneArch> availableDroneArch;
  */
 extern map<uint, ChatDebounceStruct> droneAlertDebounceMap;
 
-extern vector<uint> npcnames;
-
 namespace UserCommands
 {
 	bool UserCmd_Deploy(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
@@ -133,7 +128,6 @@ namespace Utility
 	float RandFloatRange(float a, float b);
 	void CreateNPC(uint iClientID, Vector pos, Matrix rot, uint iSystem, DroneArch drone);
 	pub::AI::SetPersonalityParams MakePersonality();
-	uint rand_name();
 	
 	void SetRepNeutral(uint clientObj, uint targetObj);
 	void SetRepHostile(uint clientObj, uint targetObj);

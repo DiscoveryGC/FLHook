@@ -53,8 +53,9 @@ void Timers::processDroneBuildRequests(map<uint, DroneBuildTimerWrapper>& buildL
 
 			// Log event
 			const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dt->first));
-			wstring logString = L"Player %s has launched a drone";
-			logString = ReplaceStr(logString, L"%s", charname);
+			wstring logString = L"Player %player has launched a drone in system %system";
+			logString = ReplaceStr(logString, L"%player", charname);
+			logString = ReplaceStr(logString, L"%system", stows(HkGetPlayerSystem));
 			Utility::LogEvent(wstos(logString).c_str());
 		}
 	}

@@ -5,7 +5,7 @@ The latest version in use is: https://sourceforge.net/projects/boost/files/boost
 
 In order to streamline the boost dependency in the project management, the arbitrary path for Boost is relative to the solution.
 
-Ex: C:\flhook_2015\boost
-Or even: D:\kittens\flhook_apples\boost
+Ex: C:\flhook_2015\dependencies\boost
+Or even: D:\kittens\flhook_apples\dependencies\boost
 
 For this purpose it has been excluded from git as it's too heavy. It's up to you to install it properly.

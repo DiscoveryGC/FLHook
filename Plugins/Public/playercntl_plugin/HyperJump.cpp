@@ -1697,7 +1697,7 @@ namespace HyperJump
 		if (coords.time < time(0))
 		{
 			PrintUserCmdText(iClientID, L"Warning old coordinates detected. Jump not recommended");
-			coords.accuracy *= rand()%7;
+			coords.accuracy *= rand()%6 + 1;
 		}
 		
 		jd.iTargetSystem = coords.system;

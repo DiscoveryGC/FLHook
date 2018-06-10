@@ -439,36 +439,58 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (!clients[client].admin)
+		bool isServerAdmin;
+
+		wstring rights;
+		if (HkGetAdmin((const wchar_t*)Players.GetActiveCharacterName(client), rights) == HKE_OK && rights.find(L"superadmin") != -1)
+		{
+			isServerAdmin = true;
+		}
+
+
+		if (!clients[client].admin && !isServerAdmin)
 		{
 			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
-		wstring arg= GetParam(args, ' ', 2);
+		wstring arg = GetParam(args, ' ', 2);
 		if (arg == L"clear")
 		{
-			//base->affiliation = 0;
-			base->Save();
-			PrintUserCmdText(client, L"ERR Cannot clear affiliation, please contact administration team");
+			if (isServerAdmin) {
+				base->affiliation = 0;
+				base->Save();
+				PrintUserCmdText(client, L"OK cleared base reputation");
+			}
+			else
+			{
+				PrintUserCmdText(client, L"ERR Cannot clear affiliation, please contact administration team");
+			}
 			return;
 		}
 
-		int rep;
-		pub::Player::GetRep(client, rep);
-
-		uint affiliation;
-		Reputation::Vibe::Verify(rep);
-		Reputation::Vibe::GetAffiliation(rep, affiliation, false);
-		if (affiliation==-1)
+		if (isServerAdmin || base->affiliation <= 0)
 		{
-			PrintUserCmdText(client, L"OK Player has no affiliation");
-			return;
-		}
+			int rep;
+			pub::Player::GetRep(client, rep);
 
-		base->affiliation = affiliation;
-		base->Save();
-		PrintUserCmdText(client, L"OK Affiliation set to %s", HkGetWStringFromIDS(Reputation::get_name(affiliation)).c_str());
+			uint affiliation;
+			Reputation::Vibe::Verify(rep);
+			Reputation::Vibe::GetAffiliation(rep, affiliation, false);
+			if (affiliation == -1)
+			{
+				PrintUserCmdText(client, L"OK Player has no affiliation");
+				return;
+			}
+
+			base->affiliation = affiliation;
+			base->Save();
+			PrintUserCmdText(client, L"OK Affiliation set to %s", HkGetWStringFromIDS(Reputation::get_name(affiliation)).c_str());
+		}
+		else
+		{
+			PrintUserCmdText(client, L"ERR Cannot set affiliation once it's been set, please contact administration team");
+		}
 	}
 
 	void BaseAddHostileTag(uint client, const wstring &args)

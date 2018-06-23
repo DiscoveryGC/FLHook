@@ -137,6 +137,7 @@ namespace HyperJump
 	void PlayerLaunch(unsigned int iShip, unsigned int iClientID);
 	void MissileTorpHit(uint iClientID, DamageList *dmg);
 	bool CheckForMatrix(uint iClientID);
+	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
 	
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);

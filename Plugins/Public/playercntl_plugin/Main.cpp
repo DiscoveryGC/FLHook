@@ -1551,6 +1551,19 @@ void __stdcall Elapse_Time(float delta)
 	}
 }
 
+void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (msg == CLIENT_CLOAK_INFO)
+	{
+		CLIENT_CLOAK_STRUCT* info = reinterpret_cast<CLIENT_CLOAK_STRUCT*>(data);
+
+		HyperJump::ClientCloakCallback(info);
+	}
+	return;
+}
+
 /** Functions to hook */
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
@@ -1605,6 +1618,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CmdHelp_Callback, PLUGIN_CmdHelp_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCB_MissileTorpHit, PLUGIN_HkCB_MissileTorpHit,0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&RequestBestPath, PLUGIN_HkIServerImpl_RequestBestPath, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 0));
 //	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPMunitionCollision, PLUGIN_HkIServerImpl_SPMunitionCollision, 0));
 	return p_PI;
 }

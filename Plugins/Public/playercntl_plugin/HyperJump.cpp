@@ -45,6 +45,20 @@ namespace HyperJump
 	// Ships restricted from jumping
 	static map<wstring, uint> mapRestrictedShips;
 
+	static set<uint> setCloakingClients;
+
+	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info)
+	{
+		if (info->isChargingCloak || info->isCloaked)
+		{
+			setCloakingClients.insert(info->iClientID);
+		}
+		else
+		{
+			setCloakingClients.erase(info->iClientID);
+		}
+	}
+
 	struct SYSTEM_JUMPLIST
 	{
 		uint nickname;
@@ -816,6 +830,15 @@ namespace HyperJump
 
 				if (jd.jump_timer > 0)
 				{
+					if (setCloakingClients.find(iClientID) != setCloakingClients.end())
+					{
+						PrintUserCmdText(iClientID, L"ERR Ship is cloaked.");
+						SetFuse(iClientID, 0);
+						StopChargeFuses(iClientID);
+						jd.jump_timer = 0;
+						continue;
+					}
+
 					jd.jump_timer--;
 					// Turn on the jumpdrive flash
 					if (jd.jump_timer == 7)
@@ -945,6 +968,16 @@ namespace HyperJump
 				{
 					// Use fuel to charge the jump drive's storage capacitors
 					jd.charging_on = false;
+
+
+					if (setCloakingClients.find(iClientID) != setCloakingClients.end())
+					{
+						PrintUserCmdText(iClientID, L"ERR Ship is cloaked.");
+						pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
+						SetFuse(iClientID, 0);
+						StopChargeFuses(iClientID);
+						continue;
+					}
 
 					for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 					{
@@ -1219,6 +1252,7 @@ namespace HyperJump
 		mapSurvey.erase(iClientID);
 		mapPlayerBeaconMatrix.erase(iClientID);
 		mapActiveBeacons.erase(iClientID);
+		setCloakingClients.erase(iClientID);
 	}
 
 	/** Chase a player. Works across systems but needs improvement of the path selection algorithm */

@@ -488,14 +488,6 @@ void HkTimerCheckKick()
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");	
 					SetState(iClientID, iShipID, STATE_CLOAK_OFF);	
 				}
-				else if (setJumpingClients.find(iClientID) != setJumpingClients.end())
-				{
-					PrintUserCmdText(iClientID, L"Cloaking device shutdown, jumping");
-					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
-
-					wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-					HkAddCheaterLog(wscCharname, L"Attempting to cloak charge while on list of clients currently jumping");
-				}
 				else if (info.arch.bDropShieldsOnUncloak && !info.bAdmin)
 				{
 					pub::SpaceObj::DrainShields(iShipID);

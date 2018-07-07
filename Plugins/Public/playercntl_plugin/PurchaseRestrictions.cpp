@@ -71,12 +71,12 @@ namespace PurchaseRestrictions
 	/// Log items of interest so we can see what cargo cheats people are using.
 	static void LogItemsOfInterest(uint iClientID, uint iGoodID, const string &details)
 	{
-		map<uint,string>::iterator iter = set_mapItemsOfInterest.find(iGoodID);
+		map<uint, string>::iterator iter = set_mapItemsOfInterest.find(iGoodID);
 		if (iter != set_mapItemsOfInterest.end())
 		{
-			wstring wscCharName = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+			wstring wscCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			AddLog("NOTICE: Item '%s' found in cargo of %s (%s) %s",
-				iter->second.c_str(), 
+				iter->second.c_str(),
 				wstos(wscCharName).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscCharName))).c_str(),
 				details.c_str());
 		}
@@ -89,7 +89,7 @@ namespace PurchaseRestrictions
 		set_bCheckTagRestrictions = IniGetB(scPluginCfgFile, "PurchaseRestrictions", "CheckTagRestrictions", false);
 		set_bCheckIDRestrictions = IniGetB(scPluginCfgFile, "PurchaseRestrictions", "CheckIDRestrictions", false);
 		set_bEnforceIDRestrictions = IniGetB(scPluginCfgFile, "PurchaseRestrictions", "EnforceIDRestrictions", false);
-		set_wscShipPurchaseDenied = stows(IniGetS(scPluginCfgFile, "PurchaseRestrictions", "ShipPurchaseDeniedMsg",  "ERR You cannot buy this ship because you do not have the correct ID."));
+		set_wscShipPurchaseDenied = stows(IniGetS(scPluginCfgFile, "PurchaseRestrictions", "ShipPurchaseDeniedMsg", "ERR You cannot buy this ship because you do not have the correct ID."));
 		set_wscGoodPurchaseDenied = stows(IniGetS(scPluginCfgFile, "PurchaseRestrictions", "GoodPurchaseDeniedMsg", "ERR You cannot buy this item because you do not have the correct ID."));
 
 		INI_Reader ini;
@@ -104,7 +104,7 @@ namespace PurchaseRestrictions
 					{
 						uint baseID = CreateID(ini.get_name_ptr());
 						uint goodID = CreateID(ini.get_value_string());
-						set_mapNoBuy.insert(mapnobuy_map_pair_t(baseID,goodID));
+						set_mapNoBuy.insert(mapnobuy_map_pair_t(baseID, goodID));
 					}
 				}
 				// Read the log items list (item-nick)
@@ -125,9 +125,9 @@ namespace PurchaseRestrictions
 					{
 						uint goodID = CreateID(ini.get_name_ptr());
 						uint itemID = CreateID(ini.get_value_string());
-						if (goodID!=-1 && itemID!=-1)
+						if (goodID != -1 && itemID != -1)
 						{
-							set_mapGoodItemRestrictions.insert(mapGoodItemRestrictions_map_pair_t(goodID,itemID));
+							set_mapGoodItemRestrictions.insert(mapGoodItemRestrictions_map_pair_t(goodID, itemID));
 						}
 					}
 				}
@@ -139,12 +139,12 @@ namespace PurchaseRestrictions
 						list<string> tagList; // A list to store the tags
 						uint goodID = CreateID(ini.get_name_ptr()); // Get the item we are restricting
 						string tags = ini.get_value_string(); // Get all the names that are allowed
-						for(int i = 0; i < count(tags.begin(), tags.end(), ','); i++)
+						for (int i = 0; i < count(tags.begin(), tags.end(), ','); i++)
 						{
 							string tag = Trim(GetParam(tags, ',', i)); // Remove spaces and split by ','
 							tagList.push_back(tag); // Add to list
 						}
-						
+
 						mapTagList[goodID] = tagList;
 					}
 				}
@@ -156,9 +156,9 @@ namespace PurchaseRestrictions
 					{
 						uint shipID = CreateID(ini.get_name_ptr());
 						uint itemID = CreateID(ini.get_value_string());
-						if (shipID!=-1 && itemID!=-1)
+						if (shipID != -1 && itemID != -1)
 						{
-							set_mapShipItemRestrictions.insert(mapGoodItemRestrictions_map_pair_t(shipID,itemID));
+							set_mapShipItemRestrictions.insert(mapGoodItemRestrictions_map_pair_t(shipID, itemID));
 						}
 					}
 				}
@@ -173,8 +173,8 @@ namespace PurchaseRestrictions
 	{
 		list<CARGO_INFO> lstCargo;
 		int iRemainingHoldSize;
-		HkEnumCargo((const wchar_t*) Players.GetActiveCharacterName(iClientID), lstCargo, iRemainingHoldSize);
-		foreach (lstCargo, CARGO_INFO, iter)
+		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iRemainingHoldSize);
+		foreach(lstCargo, CARGO_INFO, iter)
 		{
 			if (iter->bMounted)
 			{
@@ -182,7 +182,7 @@ namespace PurchaseRestrictions
 				mapGoodItemRestrictions_map_iter_t end = set_mapGoodItemRestrictions.upper_bound(iGoodID);
 				for (mapGoodItemRestrictions_map_iter_t i = start; i != end; ++i)
 				{
-					if (iter->iArchID==i->second)
+					if (iter->iArchID == i->second)
 					{
 						return true;
 					}
@@ -228,9 +228,9 @@ namespace PurchaseRestrictions
 		/// Check to see if this item is on the no buy list.
 		mapnobuy_map_iter_t start = set_mapNoBuy.lower_bound(gbi.iBaseID);
 		mapnobuy_map_iter_t end = set_mapNoBuy.upper_bound(gbi.iBaseID);
-		for (mapnobuy_map_iter_t i=start; i!=end; i++)
+		for (mapnobuy_map_iter_t i = start; i != end; i++)
 		{
-			if (gbi.iGoodID==i->second)
+			if (gbi.iGoodID == i->second)
 			{
 				mapInfo[iClientID].bSuppressBuy = true;
 				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
@@ -248,7 +248,7 @@ namespace PurchaseRestrictions
 			{
 				if (!CheckIDEquipRestrictions(iClientID, gbi.iGoodID))
 				{
-					AddLog("INFO: %s attempting to buy %u without correct ID", wstos((const wchar_t*) Players.GetActiveCharacterName(iClientID)).c_str(), gbi.iGoodID);
+					AddLog("INFO: %s attempting to buy %u without correct ID", wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(), gbi.iGoodID);
 					if (set_bEnforceIDRestrictions)
 					{
 						PrintUserCmdText(iClientID, set_wscGoodPurchaseDenied);
@@ -263,33 +263,24 @@ namespace PurchaseRestrictions
 		// Restrict things via player tag
 		if (set_bCheckTagRestrictions)
 		{
-			for (map<uint, list<string>>::iterator iter = mapTagList.begin(); iter != mapTagList.end(); iter++)
+			if (mapTagList.find(gbi.iGoodID) != mapTagList.end())
 			{
-				if (iter->first == gbi.iGoodID)
+				list<string> tags = mapTagList[gbi.iGoodID];
+				string scCharname = wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID));
+				bool validTag = find(tags.begin(), tags.end(), scCharname) != tags.end();
+
+				if (!validTag)
 				{
-					string wscCharname = wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID));
-					bool validTag = false;
-					for (list<string>::const_iterator i = iter->second.begin(); i != iter->second.end(); i++)
-					{
-						if (wscCharname.find(*i) != string::npos)
-						{
-							validTag = true;
-							break;
-						}
-					}
-					if (!validTag)
-					{
-						AddLog("INFO: %s attempting to buy %u without correct tag", wscCharname.c_str(), gbi.iGoodID);
-						PrintUserCmdText(iClientID, L"You do not have the correct tag to buy this item.");
-						pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
-						mapInfo[iClientID].bSuppressBuy = true;
-						return true;
-					}
+					AddLog("INFO: %s attempting to buy %u without correct tag", scCharname.c_str(), gbi.iGoodID);
+					PrintUserCmdText(iClientID, L"You do not have the correct tag to buy this item.");
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
+					mapInfo[iClientID].bSuppressBuy = true;
+					return true;
 				}
 			}
 		}
-		
-		
+
+
 
 		// Check for ship purchase restrictions.
 		if (set_bCheckIDRestrictions)
@@ -301,11 +292,11 @@ namespace PurchaseRestrictions
 				if (hullInfo->iType == 2)
 				{
 					mapShipItemRestrictions_map_iter_t iter2 = set_mapShipItemRestrictions.find(hullInfo->iShipGoodID);
-					if (iter2!=set_mapShipItemRestrictions.end())
+					if (iter2 != set_mapShipItemRestrictions.end())
 					{
 						if (!CheckIDEquipRestrictions(iClientID, hullInfo->iShipGoodID))
 						{
-							AddLog("INFO: %s attempting to buy %u without correct ID", wstos((const wchar_t*) Players.GetActiveCharacterName(iClientID)).c_str(), hullInfo->iShipGoodID );
+							AddLog("INFO: %s attempting to buy %u without correct ID", wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(), hullInfo->iShipGoodID);
 							if (set_bEnforceIDRestrictions)
 							{
 								PrintUserCmdText(iClientID, set_wscShipPurchaseDenied);
@@ -314,7 +305,7 @@ namespace PurchaseRestrictions
 								return true;
 							}
 						}
-					} 
+					}
 				}
 			}
 		}
@@ -333,7 +324,7 @@ namespace PurchaseRestrictions
 	}
 
 	/// Suppress the buying of goods.
-	bool PurchaseRestrictions::ReqChangeCash(int iMoneyDiff,unsigned int iClientID)
+	bool PurchaseRestrictions::ReqChangeCash(int iMoneyDiff, unsigned int iClientID)
 	{
 		if (mapInfo[iClientID].bSuppressBuy)
 		{
@@ -344,7 +335,7 @@ namespace PurchaseRestrictions
 	}
 
 	/// Suppress ship purchases
-	bool PurchaseRestrictions::ReqSetCash(int iMoney,unsigned int iClientID)
+	bool PurchaseRestrictions::ReqSetCash(int iMoney, unsigned int iClientID)
 	{
 		if (mapInfo[iClientID].bSuppressBuy)
 		{

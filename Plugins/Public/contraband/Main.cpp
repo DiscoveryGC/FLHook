@@ -203,9 +203,20 @@ static void CheckCargo(int iClientID, bool manualCargoCheck)
 		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iHoldSize); // Get all their cargo
 
 		// If we are currently entering a system that is not within the sector we were in before or if we are just entering a sector from a system that was not in a sector.
-		if (!manualCargoCheck && 
-			(mapHouseAndSystems[iSystemID] != mapHouseAndSystems[iClient_systems[iClientID]] || mapHouseAndSystems.find(iClient_systems[iClientID]) == mapHouseAndSystems.end())
-			|| manualCargoCheck && mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end())
+		if (
+			!manualCargoCheck &&
+			(
+				( mapHouseAndSystems[iSystemID] != mapHouseAndSystems[iClient_systems[iClientID]] )
+				||
+				( mapHouseAndSystems.find(iClient_systems[iClientID]) == mapHouseAndSystems.end() )
+			)
+			||
+			(
+				manualCargoCheck
+				&&
+				mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end()
+				)
+			)
 
 		{
 			string currentHouse = mapHouseAndSystems[iSystemID]; // What house/sector are we in?

@@ -166,8 +166,8 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.EvadeDodgeUse.evade_dodge_cone_angle = 90.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_interval_time = 2.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_time = 2.0f;
-	p.personality.EvadeDodgeUse.evade_dodge_distance = 500.0f;
-	p.personality.EvadeDodgeUse.evade_activate_range = 750.0f;
+	p.personality.EvadeDodgeUse.evade_dodge_distance = 800.0f;
+	p.personality.EvadeDodgeUse.evade_activate_range = 1000.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_roll_angle = 0.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_waggle_axis_cone_angle = 0.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_slide_throttle = 0.75f;
@@ -214,7 +214,7 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[1] = 0.33f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[2] = 0.33f;
 
-	p.personality.BuzzPassByUse.buzz_distance_to_pass_by = 900.0f;
+	p.personality.BuzzPassByUse.buzz_distance_to_pass_by = 1500.0f;
 	p.personality.BuzzPassByUse.buzz_pass_by_time = 1.0f;
 	p.personality.BuzzPassByUse.buzz_break_direction_cone_angle = 90.0f;
 	p.personality.BuzzPassByUse.buzz_break_turn_throttle = 1.0f;
@@ -233,7 +233,7 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.TrailUse.trail_max_turn_throttle = 1.0f;
 	p.personality.TrailUse.trail_distance = 300.0f;
 
-	p.personality.StrafeUse.strafe_run_away_distance = 600.0f;
+	p.personality.StrafeUse.strafe_run_away_distance = 1400.0f;
 	p.personality.StrafeUse.strafe_attack_throttle = 1.0f;
 
 	p.personality.EngineKillUse.engine_kill_search_time = 0.0f;
@@ -272,8 +272,8 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 
 	p.personality.MissileUse.missile_launch_interval_time = 1.0f;
 	p.personality.MissileUse.missile_launch_interval_variance_percent = 0.5f;
-	p.personality.MissileUse.missile_launch_range = 1250.0f;
-	p.personality.MissileUse.missile_launch_cone_angle = 30.0f;
+	p.personality.MissileUse.missile_launch_range = 1750.0f;
+	p.personality.MissileUse.missile_launch_cone_angle = 20.0f;
 	p.personality.MissileUse.missile_launch_allow_out_of_range = false;
 
 	p.personality.DamageReaction.evade_break_damage_trigger_percent = 1.0f;

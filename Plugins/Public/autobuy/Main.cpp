@@ -102,6 +102,7 @@ void LoadSettings()
 	string File_FLHook = "..\\exe\\flhook_plugins\\autobuy.cfg";
 	int iLoaded = 0;
 	int iLoaded2 = 0;
+	int iLoadedStackables = 0;
 
 	INI_Reader ini;
 	if (ini.open(File_Misc.c_str(), false))
@@ -220,6 +221,17 @@ void LoadSettings()
 						}
 					}
 				}
+				else if (ini.is_header("stackable"))
+				{
+					while (ini.read_value())
+					{
+						if (ini.is_value("weapon"))
+						{
+							mapStackableItems[CreateID(ini.get_value_string(0))] = true;
+							++iLoadedStackables;
+						}
+					}
+				}
 			}
 		ini.close();
 	}
@@ -227,11 +239,7 @@ void LoadSettings()
 
 	ConPrint(L"AUTOBUY: Loaded %u ammo limit entries\n", iLoaded);
 	ConPrint(L"AUTOBUY: Loaded %u FLHook extra items\n", iLoaded2);
-
-	//Very arbitrary for the time being, just hellfires
-	//This should use a list but I'll do that later
-
-	mapStackableItems[CreateID("torpedo03_mark01")] = true;
+	ConPrint(L"AUTOBUY: Loaded %u stackable launchers\n", iLoadedStackables);
 
 	pub::GetGoodID(iNanobotsID, "ge_s_repair_01");
 	pub::GetGoodID(iShieldBatsID, "ge_s_battery_01");
@@ -417,7 +425,7 @@ void CheckforStackables(uint iClientID)
 				if (item->iCount > (mapAmmolimits[ammo] * tempmap[ita->first]))
 				{
 					wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-					ConPrint(L"DEBUG: player %s, iCount %d, ammo %d, tempmap %d \n", wscCharname.c_str(), item->iCount, mapAmmolimits[ammo], tempmap[ita->first]);
+					//ConPrint(L"DEBUG: player %s, iCount %d, ammo %d, tempmap %d \n", wscCharname.c_str(), item->iCount, mapAmmolimits[ammo], tempmap[ita->first]);
 					PrintUserCmdText(iClientID, L"You have lost some ammo because you had more than you should have.");
 
 					pub::Player::RemoveCargo(iClientID, item->sID, (item->iCount - (mapAmmolimits[ammo] * tempmap[ita->first])) );
@@ -554,7 +562,16 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 			else if (eq_type == ET_TORPEDO)
 			{
 				if (mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps)
-					ADD_EQUIP_TO_CART(L"Torpedos")
+				{
+					if (mapStackableItems.find(eq->get_id()) != mapStackableItems.end())
+					{
+						ADD_EQUIP_TO_CART_STACKABLE(L"Torpedos")
+					}
+					else
+					{
+						ADD_EQUIP_TO_CART(L"Torpedos")
+					}
+				}
 			}
 			else if (eq_type == ET_CD)
 			{
@@ -564,28 +581,30 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 			else if (eq_type == ET_MISSILE)
 			{
 				if (mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles)
-					ADD_EQUIP_TO_CART(L"Missiles")
+				{
+					if (mapStackableItems.find(eq->get_id()) != mapStackableItems.end())
+					{
+						ADD_EQUIP_TO_CART_STACKABLE(L"Missiles")
+					}
+					else
+					{
+						ADD_EQUIP_TO_CART(L"Missiles")
+					}
+				}
 			}
 			else if (eq_type == ET_GUN)
 			{
-				/*
 				if (mapAutobuyPlayerInfo[iClientID].bAutobuyMunition)
 				{
-
 					if (mapStackableItems.find(eq->get_id()) != mapStackableItems.end())
 					{
 						ADD_EQUIP_TO_CART_STACKABLE(L"Munitions")
-						PrintUserCmdText(iClientID, L"DEBUG: Found %d Hellfire Pods", tempmap[eq->iArchID]);
 					}
 					else
 					{
 						ADD_EQUIP_TO_CART(L"Munitions")
 					}
-				}*/
-
-				if (mapAutobuyPlayerInfo[iClientID].bAutobuyMunition)
-						ADD_EQUIP_TO_CART(L"Munitions")
-		
+				}
 			}
 
 			//FLHook handling
@@ -800,7 +819,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
 	PLUGIN_INFO* p_PI = new PLUGIN_INFO();
-	p_PI->sName = "Autobuy by Alley and previous developers";
+	p_PI->sName = "Autobuy by Discovery Development Team";
 	p_PI->sShortName = "autobuy";
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;

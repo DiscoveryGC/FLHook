@@ -237,10 +237,10 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.StrafeUse.strafe_attack_throttle = 1.0f;
 
 	p.personality.EngineKillUse.engine_kill_search_time = 0.0f;
-	p.personality.EngineKillUse.engine_kill_face_time = 1.0f;
-	p.personality.EngineKillUse.engine_kill_use_afterburner = true;
-	p.personality.EngineKillUse.engine_kill_afterburner_time = 2.0f;
-	p.personality.EngineKillUse.engine_kill_max_target_distance = 100.0f;
+	p.personality.EngineKillUse.engine_kill_face_time = 0.0f;
+	p.personality.EngineKillUse.engine_kill_use_afterburner = false;
+	p.personality.EngineKillUse.engine_kill_afterburner_time = 0.0f;
+	p.personality.EngineKillUse.engine_kill_max_target_distance = 0.0f;
 
 	p.personality.RepairUse.use_shield_repair_pre_delay = 0.0f;
 	p.personality.RepairUse.use_shield_repair_post_delay = 1.0f;
@@ -273,7 +273,7 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.MissileUse.missile_launch_interval_time = 1.0f;
 	p.personality.MissileUse.missile_launch_interval_variance_percent = 0.5f;
 	p.personality.MissileUse.missile_launch_range = 1750.0f;
-	p.personality.MissileUse.missile_launch_cone_angle = 20.0f;
+	p.personality.MissileUse.missile_launch_cone_angle = 5.0f;
 	p.personality.MissileUse.missile_launch_allow_out_of_range = false;
 
 	p.personality.DamageReaction.evade_break_damage_trigger_percent = 1.0f;

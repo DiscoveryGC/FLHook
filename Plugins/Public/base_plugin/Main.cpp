@@ -273,46 +273,6 @@ void SyncReputationForClientShip(uint ship, uint client)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// HTML-encodes a string and returns the encoded string.
-wstring HtmlEncode(wstring text)
-{
-	wstring sb;
-    int len = text.size();
-    for (int i = 0; i < len; i++)
-    {
-        switch (text[i])
-        {
-            case L'<':
-                sb.append(L"&lt;");
-                break;
-            case L'>':
-                sb.append(L"&gt;");
-                break;
-            case L'"':
-                sb.append(L"&quot;");
-                break;
-            case L'&':
-                sb.append(L"&amp;");
-                break;
-            default:
-                if (text[i] > 159)
-                {
-                    sb.append(L"&#");
-                    sb.append(stows(itos((int)text[i])));
-                    sb.append(L";");
-                }
-                else
-				{
-                    sb.append(1, text[i]);
-				}
-                break;
-        }
-    }
-    return sb;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 /// Clear client info when a client connects.
 void ClearClientInfo(uint client)
 {

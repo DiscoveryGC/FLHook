@@ -576,8 +576,6 @@ extern float set_shield_damage_multiplier;
 /// Holiday mode
 extern bool set_holiday_mode;
 
-wstring HtmlEncode(wstring text);
-
 extern string set_status_path_html;
 extern string set_status_path_json;
 

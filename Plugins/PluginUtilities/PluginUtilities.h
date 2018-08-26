@@ -71,6 +71,8 @@ void TranslateX(Vector &pos, Matrix &rot, float x);
 void TranslateY(Vector &pos, Matrix &rot, float y);
 void TranslateZ(Vector &pos, Matrix &rot, float z);
 
+wstring HtmlEncode(wstring text);
+
 mstime GetTimeInMS();
 float degrees(float rad);
 

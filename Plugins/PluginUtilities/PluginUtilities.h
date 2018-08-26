@@ -63,9 +63,15 @@ Quaternion HkMatrixToQuaternion(Matrix m);
 
 void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &wscText, const wstring &wscTextColor);
 void ini_get_wstring(INI_Reader &ini, wstring &wscValue);
+wstring IniGetLongWS(const string &scFile, const string &scApp, const string &scKey, const wstring &wscDefault);
 void ini_write_wstring(FILE *file, const string &parmname, wstring &in);
 void PrintLocalUserCmdText(uint iClientID, const wstring &wscMsg, float fDistance);
 void SendGroupChat(uint iFromClientID, const wstring &wscText);
+
+string GetUserFilePath(const wstring &wscCharname, const string &scExtension);
+bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension);
+bool MailSend(const wstring &wscCharname, const string &scExtension, const wstring &wscMsg);
+
 void Rotate180(Matrix &rot);
 void TranslateX(Vector &pos, Matrix &rot, float x);
 void TranslateY(Vector &pos, Matrix &rot, float y);

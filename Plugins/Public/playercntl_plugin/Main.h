@@ -21,9 +21,6 @@ bool extern set_bEnableMoveChar;
 bool extern set_bLocalTime;
 float extern set_iLocalChatRange;
 
-bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension);
-string GetUserFilePath(const wstring &wscCharname, const string &extension);
-
 // Imports from freelancer libraries.
 namespace pub
 {

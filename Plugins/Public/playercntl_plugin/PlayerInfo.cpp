@@ -34,27 +34,6 @@ namespace PlayerInfo
 	#define MAX_PARAGRAPHS 5
 	#define MAX_CHARACTERS 1000
 
-	static wstring IniGetLongWS(const string &scFile, const string &scApp, const string &scKey, const wstring &wscDefault)
-	{
-		char szRet[0x10000];
-		GetPrivateProfileString(scApp.c_str(), scKey.c_str(), "", szRet, sizeof(szRet), scFile.c_str());
-		string scValue = szRet;
-		if(!scValue.length())
-			return wscDefault;
-
-		wstring wscValue = L"";
-		long lHiByte;
-		long lLoByte;
-		while(sscanf(scValue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
-		{
-			scValue = scValue.substr(4);
-			wchar_t wChar = (wchar_t)((lHiByte << 8) | lLoByte);
-			wscValue.append(1, wChar);
-		}
-
-		return wscValue;
-	}
-
 	bool PlayerInfo::UserCmd_ShowInfo(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		const wchar_t *wszTargetName = 0;

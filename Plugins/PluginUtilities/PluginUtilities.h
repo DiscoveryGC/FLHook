@@ -44,6 +44,8 @@ HMODULE GetModuleAddr(uint iAddr);
 
 int ToInt(const string &scStr);
 uint ToUInt(const wstring &wscStr);
+wstring Int64ToPrettyStr(INT64 iValue);
+wstring IntToStr(uint iValue);
 
 string itohexs(uint value);
 string HkGetPlayerSystemS(uint iClientID);

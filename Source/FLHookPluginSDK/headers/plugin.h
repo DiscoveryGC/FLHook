@@ -247,7 +247,8 @@ enum PLUGIN_MESSAGE
 	DSACE_SPEED_EXCEPTION = 41,
 	CUSTOM_BASE_BEAM = 42,
 	CUSTOM_BASE_IS_DOCKED = 43,
-	CLIENT_CLOAK_INFO = 44
+	CLIENT_CLOAK_INFO = 44,
+	CLIENT_RENAME = 45
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

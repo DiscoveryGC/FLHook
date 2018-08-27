@@ -675,6 +675,8 @@ namespace Rename
 		if (set_iRenameCost>0)
 			HkAddCash(wscCharname, 0-set_iRenameCost);
 
+		pair<wstring, wstring> pBountyCallbackInfo = { wscCharname, wscNewCharname }; // Store the old name and new name
+		Plugin_Communication(CLIENT_RENAME, &pBountyCallbackInfo); // Send them to the bounty plugin to be updated
 
 		RENAME o;
 		o.wscCharname = wscCharname;

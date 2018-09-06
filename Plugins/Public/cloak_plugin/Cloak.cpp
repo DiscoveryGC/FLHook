@@ -20,6 +20,7 @@
 #include <plugin.h>
 #include <PluginUtilities.h>
 #include "Cloak.h"
+#include <set>
 
 static int set_iPluginDebug = 0;
 
@@ -97,6 +98,7 @@ static map<uint, CLIENTCDSTRUCT> mapClientsCD;
 static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
 
+static set<uint> setJumpingClients;
 
 void LoadSettings();
 
@@ -224,6 +226,7 @@ void LoadSettings()
 void ClearClientInfo(uint iClientID)
 {
 	mapClientsCloak.erase(iClientID);
+	setJumpingClients.erase(iClientID);
 }
 
 void SetCloak(uint iClientID, uint iShipID, bool bOn)
@@ -241,16 +244,27 @@ void SetState(uint iClientID, uint iShipID, int iNewState)
 	{
 		mapClientsCloak[iClientID].iState = iNewState;
 		mapClientsCloak[iClientID].tmCloakTime = timeInMS();
+		CLIENT_CLOAK_STRUCT communicationInfo;
 		switch (iNewState)
 		{
 		case STATE_CLOAK_CHARGING:
 		{
+			communicationInfo.iClientID = iClientID;
+			communicationInfo.isChargingCloak = true;
+			communicationInfo.isCloaked = false;
+			Plugin_Communication(CLIENT_CLOAK_INFO, &communicationInfo);
+
 			PrintUserCmdText(iClientID, L"Preparing to cloak...");
 			break;
 		}
 
 		case STATE_CLOAK_ON:
 		{
+			communicationInfo.iClientID = iClientID;
+			communicationInfo.isChargingCloak = false;
+			communicationInfo.isCloaked = true;
+			Plugin_Communication(CLIENT_CLOAK_INFO, &communicationInfo);
+
 			PrintUserCmdText(iClientID, L" Cloaking device on");
 			SetCloak(iClientID, iShipID, true);
 			PrintUserCmdText(iClientID, L"Cloaking device on");
@@ -260,6 +274,11 @@ void SetState(uint iClientID, uint iShipID, int iNewState)
 		case STATE_CLOAK_OFF:
 		default:
 		{
+			communicationInfo.iClientID = iClientID;
+			communicationInfo.isChargingCloak = false;
+			communicationInfo.isCloaked = false;
+			Plugin_Communication(CLIENT_CLOAK_INFO, &communicationInfo);
+
 			PrintUserCmdText(iClientID, L" Cloaking device off");
 			SetCloak(iClientID, iShipID, false);
 			PrintUserCmdText(iClientID, L"Cloaking device off");
@@ -445,6 +464,14 @@ void HkTimerCheckKick()
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");	
 					SetState(iClientID, iShipID, STATE_CLOAK_OFF);	
 				}
+				else if (setJumpingClients.find(iClientID) != setJumpingClients.end())
+				{
+					PrintUserCmdText(iClientID, L"Cloaking device shutdown, jumping");
+					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
+
+					wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+					HkAddCheaterLog(wscCharname, L"Attempting to cloak charge while on list of clients currently jumping");
+				}
 				else if ((info.tmCloakTime + info.arch.iWarmupTime) < now)
 				{
 					SetState(iClientID, iShipID, STATE_CLOAK_ON);
@@ -621,7 +648,6 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 		PrintUserCmdText(iClientID, L"Cloaking Device Disrupted. Please wait %d seconds", mapClientsCloak[iClientID].DisruptTime);
 		return true;
 	}
-
 	
 	// If this cloaking device requires more power than the ship can provide
 	// no cloaking device is available.
@@ -843,6 +869,7 @@ void __stdcall JumpInComplete_AFTER(unsigned int iSystem, unsigned int iShip)
 {
 	returncode = DEFAULT_RETURNCODE;
 	uint iClientID = HkGetClientIDByShip(iShip);
+	setJumpingClients.erase(iClientID);
 
 		if (iClientID && mapClientsCloak[iClientID].iState == STATE_CLOAK_CHARGING)
 		{
@@ -864,6 +891,15 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 	uint client = HkGetClientIDByShip(iShip);
 	if (client)
 	{
+		if ((response == PROCEED_DOCK || response == DOCK) && iCancel == -1)
+		{
+			uint iTypeID;
+			pub::SpaceObj::GetType(iDockTarget, iTypeID);
+			if (iTypeID == OBJ_JUMP_GATE || iTypeID == OBJ_JUMP_HOLE)
+			{
+				setJumpingClients.erase(client);
+			}
+		}
 		if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
 		{
 			// If the last jump happened within 60 seconds then prohibit the docking
@@ -872,6 +908,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);
 			if (iTypeID == OBJ_JUMP_GATE || iTypeID == OBJ_JUMP_HOLE)
 			{
+				setJumpingClients.insert(client);
 				if (client && mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
 				{
 					SetState(client, iShip, STATE_CLOAK_OFF);
@@ -888,6 +925,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 
 	return 0;
 }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Functions to hook */

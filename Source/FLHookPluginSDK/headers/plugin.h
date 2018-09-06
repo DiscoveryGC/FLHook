@@ -246,7 +246,8 @@ enum PLUGIN_MESSAGE
 	DSACE_CHANGE_INFOCARD = 40,
 	DSACE_SPEED_EXCEPTION = 41,
 	CUSTOM_BASE_BEAM = 42,
-	CUSTOM_BASE_IS_DOCKED = 43
+	CUSTOM_BASE_IS_DOCKED = 43,
+	CLIENT_CLOAK_INFO = 44
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -321,6 +322,13 @@ struct CUSTOM_BASE_IS_DOCKED_STRUCT
 {
 	uint iClientID;
 	uint iDockedBaseID;
+};
+
+struct CLIENT_CLOAK_STRUCT
+{
+	uint iClientID;
+	bool isChargingCloak;
+	bool isCloaked;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

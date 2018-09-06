@@ -81,7 +81,7 @@ struct AUTOBUY_PLAYERINFO
 static map <uint, AUTOBUY_PLAYERINFO> mapAutobuyPlayerInfo;
 static map <uint, uint> mapAutobuyFLHookExtras;
 
-static map <uint, bool> mapStackableItems;
+static map <uint, int> mapStackableItems;
 
 uint iNanobotsID;
 uint iShieldBatsID;
@@ -221,13 +221,13 @@ void LoadSettings()
 						}
 					}
 				}
-				else if (ini.is_header("stackables"))
+				else if (ini.is_header("stackable"))
 				{
 					while (ini.read_value())
 					{
 						if (ini.is_value("weapon"))
 						{
-							mapStackableItems[CreateID(ini.get_value_string(0))] = true);
+							mapStackableItems[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
 							++iLoadedStackables;
 						}
 					}
@@ -521,7 +521,8 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 
 			if (mapStackableItems.find(it->iArchID) != mapStackableItems.end())
 			{
-				tempmap[it->iArchID] += 1;
+				if (tempmap[it->iArchID] < mapStackableItems[it->iArchID])
+					tempmap[it->iArchID] += 1;
 			}
 
 			bool bFound = false;
@@ -819,7 +820,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
 	PLUGIN_INFO* p_PI = new PLUGIN_INFO();
-	p_PI->sName = "Autobuy by Alley and previous developers";
+	p_PI->sName = "Autobuy by Discovery Development Team";
 	p_PI->sShortName = "autobuy";
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;

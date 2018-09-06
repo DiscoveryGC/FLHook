@@ -1520,7 +1520,7 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		const GoodInfo *gi = GoodList_get()->find_by_id(gsi.iArchID);
 		string gname = wstos(HtmlEncode(HkGetWStringFromIDS(gi->iIDSName)));
-		string msg = "Player " + wstos(charname) + "sold item " + gname + " x" + (char)count;
+		string msg = "Player " + wstos(charname) + " sold item " + gname + " x" + itos(count);
 		Log::LogBaseAction(wstos(base->basename), msg.c_str());
 
 		//Event plugin hooks
@@ -1643,7 +1643,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 		//build string and log the purchase
 		const GoodInfo *gi = GoodList_get()->find_by_id(gbi.iGoodID);
 		string gname = wstos(HtmlEncode(HkGetWStringFromIDS(gi->iIDSName)));
-		string msg = "Player " + wstos(charname) + "purchased item " + gname + " x" + (char)count;
+		string msg = "Player " + wstos(charname) + " purchased item " + gname + " x" + itos(count);
 		Log::LogBaseAction(wstos(base->basename), msg.c_str());
 
 		if (gi && gi->iType == GOODINFO_TYPE_SHIP)
@@ -2103,6 +2103,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	}
 	else if (args.find(L"testbase") == 0)
 	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		uint ship;

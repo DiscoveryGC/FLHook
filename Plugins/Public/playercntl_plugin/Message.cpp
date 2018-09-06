@@ -784,6 +784,24 @@ namespace Message
 		return true;
 	}
 
+	/** Send a message to system chat. */
+	bool Message::UserCmd_SystemMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+		wstring wscMsg = GetParamToEnd(wscParam, ' ', 0);
+
+		if (wscMsg.size() == 0)
+		{
+			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+			PrintUserCmdText(iClientID, usage);
+			return true;
+		}
+
+		SendSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10001, wscMsg);
+		return true;
+	}
+
 	/** Send an preset message to the system chat */
 	bool Message::UserCmd_SMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
@@ -848,6 +866,24 @@ namespace Message
 		return true;
 	}
 
+	/** Send a message to local system chat. */
+	bool Message::UserCmd_LocalMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+		wstring wscMsg = GetParamToEnd(wscParam, ' ', 0);
+
+		if (wscMsg.size() == 0)
+		{
+			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+			PrintUserCmdText(iClientID, usage);
+			return true;
+		}
+
+		SendLocalSystemChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10002, wscMsg);
+		return true;
+	}
+
 	/** Send an preset message to the local system chat */
 	bool Message::UserCmd_LMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
@@ -877,6 +913,24 @@ namespace Message
 		SendLocalSystemChat(iClientID, wscMsg);
 		SendChatEvent(iClientID, 0x10002, wscMsg);
 
+		return true;
+	}
+
+	/** Send a message to group chat. */
+	bool Message::UserCmd_GroupMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+		wstring wscMsg = GetParamToEnd(wscParam, ' ', 0);
+
+		if (wscMsg.size() == 0)
+		{
+			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+			PrintUserCmdText(iClientID, usage);
+			return true;
+		}
+
+		SendGroupChat(iClientID, wscMsg);
+		SendChatEvent(iClientID, 0x10003, wscMsg);
 		return true;
 	}
 

@@ -743,6 +743,7 @@ extern IMPORT char* OldClient;
 
 extern IMPORT uint	iDmgTo;
 extern IMPORT uint iDmgToSpaceID;
+extern IMPORT uint iDmgMunitionID;
 
 extern IMPORT bool g_bMsg;
 extern IMPORT bool g_bMsgS;

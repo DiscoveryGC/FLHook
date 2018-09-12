@@ -316,6 +316,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 	} catch(...) { LOG_EXCEPTION }
 
 	iDmgTo = iClientIDTarget;
+	iDmgMunitionID = ci.iProjectileArchID;
 	
 	CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SPMunitionCollision,__stdcall,(struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID),(ci,iClientID));
 

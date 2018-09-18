@@ -765,6 +765,7 @@ extern EXPORT char* OldClient;
 
 extern EXPORT uint iDmgTo;
 extern EXPORT uint iDmgToSpaceID;
+extern EXPORT uint iDmgMunitionID;
 
 extern EXPORT bool g_bMsg;
 extern EXPORT bool g_bMsgS;

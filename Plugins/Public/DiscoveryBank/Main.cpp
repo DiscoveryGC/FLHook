@@ -127,8 +127,8 @@ void LoadSettings()
 	{
 		do
 		{
-			string filepath = string(szCurDir) + R"(\Accts\MultiPlayer\player_bases\DiscoveryBank\)" + findfile.cFileName; // The first of the wildcard files we loaded
-			if (filepath == string(szCurDir) + R"(\Accts\MultiPlayer\player_bases\DiscoveryBank\)" + "__bank.ini") // If it's the bank file, ignore
+			string filepath = string(szCurDir) + R"(\Accts\MultiPlayer\DiscoveryBank\)" + findfile.cFileName; // The first of the wildcard files we loaded
+			if (filepath == string(szCurDir) + R"(\Accts\MultiPlayer\DiscoveryBank\)" + "__bank.ini") // If it's the bank file, ignore
 				continue;
 
 			INI_Reader ini; // Create a new ini reader instance to iterate over the transaction log

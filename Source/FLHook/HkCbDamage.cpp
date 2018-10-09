@@ -2,6 +2,7 @@
 
 EXPORT uint iDmgTo = 0;
 EXPORT uint iDmgToSpaceID = 0;
+EXPORT uint iDmgMunitionID = 0;
 DamageList	LastDmgList;
 
 bool g_gNonGunHitsBase = false;
@@ -147,6 +148,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 
 	iDmgTo = 0;
 	iDmgToSpaceID = 0;
+	iDmgMunitionID = 0;
 }
 
 __declspec(naked) void _HkCb_AddDmgEntry()

@@ -92,6 +92,8 @@ bool load_settings_required = true;
 /// holiday mode
 bool set_holiday_mode = false;
 
+bool require_crew = true;
+
 //pob sounds struct
 POBSOUNDS pbsounds;
 
@@ -408,6 +410,10 @@ void LoadSettingsActual()
 						uint quantity = ini.get_value_int(1);
 						construction_items[good] = quantity;
 					}
+
+					else if (ini.is_value("require_crew"))
+						require_crew = ini.get_value_bool(0);
+
 					else if (ini.is_value("base_crew_item"))
 					{
 						set_base_crew_type = CreateID(ini.get_value_string(0));

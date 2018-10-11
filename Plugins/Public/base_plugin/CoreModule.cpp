@@ -408,7 +408,7 @@ void CoreModule::RepairDamage(float max_base_health)
 	{
 		// Use water and oxygen.
 		uint ow_available = base->HasMarketItem(i->first);
-		if (ow_available >= 250)
+		if (ow_available >= 250 * base->base_level)
 		{
 			//HkMsgU(L"oxywater");
 			checkoxygenwater += 1;
@@ -420,7 +420,7 @@ void CoreModule::RepairDamage(float max_base_health)
 	i != set_base_crew_food_items.end(); ++i)
 	{
 		uint food_available = base->HasMarketItem(i->first);
-		if (food_available >= 250)
+		if (food_available >= 250 * base->base_level)
 		{
 			//HkMsgU(L"food");
 			checkfood += 1;
@@ -482,7 +482,7 @@ bool CoreModule::Timer(uint time)
 			// Repair damage if we have sufficient crew on the base.
 			base->repairing = false;
 			uint number_of_crew = base->HasMarketItem(set_base_crew_type);
-			if (number_of_crew >= (base->base_level * 200))
+			if (number_of_crew >= (base->base_level * 200) || !require_crew)
 				RepairDamage(base->max_base_health);
 
 			if (base->base_health > base->max_base_health)
@@ -499,24 +499,25 @@ bool CoreModule::Timer(uint time)
 					for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
 						i != set_base_crew_consumption_items.end(); ++i)
 					{
+						uint crew = 200 * base->base_level;
 						// Use water and oxygen.
-						if (base->HasMarketItem(i->first) >= number_of_crew)
+						if (base->HasMarketItem(i->first) >= crew)
 						{
-							base->RemoveMarketGood(i->first, number_of_crew);
+							base->RemoveMarketGood(i->first, crew);
 						}
 						// Insufficient water and oxygen, kill crew.
-						else
+						else if (require_crew)
 						{
 							base->RemoveMarketGood(set_base_crew_type, (number_of_crew >= 10) ? 10 : number_of_crew);
 						}
 					}
 
-					// Humans use food but may eat one of a number of types.
+					// Humans use food but may eat one of a number of types
 					uint crew_to_feed = number_of_crew;
 					for (map<uint, uint>::iterator i = set_base_crew_food_items.begin();
 						i != set_base_crew_food_items.end(); ++i)
 					{
-						if (!crew_to_feed)
+						if (require_crew && !crew_to_feed)
 							break;
 
 						uint food_available = base->HasMarketItem(i->first);
@@ -526,10 +527,13 @@ bool CoreModule::Timer(uint time)
 							base->RemoveMarketGood(i->first, food_to_use);
 							crew_to_feed -= food_to_use;
 						}
+
+						if (crew_to_feed == 0)
+							break;
 					}
 
 					// Insufficent food so kill crew.
-					if (crew_to_feed)
+					if (crew_to_feed && require_crew)
 					{
 						base->RemoveMarketGood(set_base_crew_type, (crew_to_feed >= 10) ? 10 : crew_to_feed);
 					}

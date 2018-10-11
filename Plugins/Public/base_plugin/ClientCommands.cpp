@@ -140,7 +140,8 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	base_status += L"<TEXT>Money: " + Int64ToPrettyStr(base->money) + L"</TEXT><PARA/>";
 	base_status += L"<TEXT>Hit Points: " + Int64ToPrettyStr((INT64)base->base_health) + L"</TEXT><PARA/>";
 	base_status += L"<TEXT>Max Hit Points: " + Int64ToPrettyStr((INT64)base->max_base_health) + L"</TEXT><PARA/>";
-	base_status += L"<TEXT>Population: " + Int64ToPrettyStr((INT64)base->HasMarketItem(set_base_crew_type)) + L"</TEXT><PARA/>";
+	if (require_crew)
+		base_status += L"<TEXT>Population: " + Int64ToPrettyStr((INT64)base->HasMarketItem(set_base_crew_type)) + L"</TEXT><PARA/>";
 	
 	if (base->affiliation)
 	{

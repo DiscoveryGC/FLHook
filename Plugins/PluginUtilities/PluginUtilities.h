@@ -9,6 +9,7 @@
 
 #define HAS_FLAG(a, b) ((a).wscFlags.find(b) != -1)
 
+size_t WstrInsensitiveFind(wstring haystack, wstring needle);
 bool IsInRange(uint iClientID, float fDistance);
 
 CAccount* HkGetAccountByClientID(uint iClientID);

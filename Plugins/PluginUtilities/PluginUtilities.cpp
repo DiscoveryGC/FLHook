@@ -7,6 +7,8 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string>
+#include <algorithm>
+#include <cwctype>
 #include <time.h>
 #include <math.h>
 #include <float.h>
@@ -30,6 +32,17 @@ struct LAUNCH_PACKET
 	float fRotate[4];
 	float fPos[3];
 };
+
+// christ can't believe I have to do this
+size_t WstrInsensitiveFind(wstring haystack, wstring needle)
+{
+	wstring wstrHaystackLower = haystack;
+	std::transform(wstrHaystackLower.begin(), wstrHaystackLower.end(), wstrHaystackLower.begin(), tolower);
+	wstring wstrNeedleLower = needle;
+	std::transform(wstrNeedleLower.begin(), wstrNeedleLower.end(), wstrNeedleLower.begin(), tolower);
+
+	return wstrHaystackLower.find(wstrNeedleLower);
+}
 
 // Return true if this player is within the specified distance of any other player.
 bool IsInRange(uint iClientID, float fDistance)

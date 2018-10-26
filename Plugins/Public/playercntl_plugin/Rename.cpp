@@ -154,14 +154,14 @@ namespace Rename
 			wstring wscCharname(si.wszCharname);
 			for (std::map<wstring, TAG_DATA>::iterator i = mapTagToPassword.begin(); i != mapTagToPassword.end(); ++i)
 			{
-				if (wscCharname.find(i->second.tag)==0
+				if (WstrInsensitiveFind(wscCharname, i->second.tag)==0
 					&& i->second.rename_password.size()!=0)
 				{
 					Server.CharacterInfoReq(iClientID, true);
 					return true;
 				}
 			}
-
+			
 			// If this ship name is too short, reject the request
 			if (wscCharname.size() < MIN_CHAR_TAG_LEN + 1)
 			{
@@ -592,7 +592,7 @@ namespace Rename
 
 			for (std::map<wstring, TAG_DATA>::iterator i = mapTagToPassword.begin(); i != mapTagToPassword.end(); ++i)
 			{
-				if (wscNewCharname.find(i->first)==0
+				if (WstrInsensitiveFind(wscNewCharname, i->first)==0
 					&& i->second.rename_password.size() != 0)
 				{
 					if (!wscPassword.length())

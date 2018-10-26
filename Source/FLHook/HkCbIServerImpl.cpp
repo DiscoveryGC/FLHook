@@ -1871,18 +1871,18 @@ void __stdcall SPRequestUseItem(struct SSPUseItem const &p1, unsigned int iClien
 /**************************************************************************************************************
 **************************************************************************************************************/
 
-void __stdcall SPScanCargo(unsigned int const &p1, unsigned int const &p2, unsigned int p3)
+void __stdcall SPScanCargo(unsigned int const &iScanInstigator, unsigned int const &iScanTarget, unsigned int iClientID)
 {
 	ISERVER_LOG();
-	ISERVER_LOGARG_UI(p1);
-	ISERVER_LOGARG_UI(p2);
-	ISERVER_LOGARG_UI(p3);
+	ISERVER_LOGARG_UI(iScanInstigator);
+	ISERVER_LOGARG_UI(iScanTarget);
+	ISERVER_LOGARG_UI(iClientID);
 
-	CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SPScanCargo,__stdcall,(unsigned int const &p1, unsigned int const &p2, unsigned int p3),(p1, p2, p3));
+	CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SPScanCargo,__stdcall,(unsigned int const &iScanInstigator, unsigned int const &iScanTarget, unsigned int iClientID),(iScanInstigator, iScanTarget, iClientID));
 
-	EXECUTE_SERVER_CALL(Server.SPScanCargo(p1, p2, p3));
+	EXECUTE_SERVER_CALL(Server.SPScanCargo(iScanInstigator, iScanTarget, iClientID));
 	
-	CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SPScanCargo_AFTER,__stdcall,(unsigned int const &p1, unsigned int const &p2, unsigned int p3),(p1, p2, p3));
+	CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SPScanCargo_AFTER,__stdcall,(unsigned int const &iScanInstigator, unsigned int const &iScanTarget, unsigned int iClientID),(iScanInstigator, iScanTarget, iClientID));
 }
 
 /**************************************************************************************************************

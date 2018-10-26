@@ -2397,6 +2397,20 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
 		return true;
 	}
+	else if (args.find(L"basedebugon") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		set_plugin_debug = 1;
+		cmd->Print(L"OK base debug is on, sure hope you know what you're doing here.\n");
+		return true;
+	}
+	else if (args.find(L"basedebugoff") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		set_plugin_debug = 1;
+		cmd->Print(L"OK base debug is off.\n");
+		return true;
+	}
 
     return false;
 }

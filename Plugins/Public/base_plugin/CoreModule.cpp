@@ -276,13 +276,17 @@ void CoreModule::Spawn()
 		{
 			_snprintf(archname, sizeof(archname), "dsy_playerbase_%02u", base->base_level);
 		}
+		else if (base->basesolar == "modern")
+		{
+			_snprintf(archname, sizeof(archname), "dsy_playerbase_modern_%02u", base->base_level);
+		}
 		else
 		{
 			_snprintf(archname, sizeof(archname), base->basesolar.c_str());
 		}
 		si.iArchID = CreateID(archname);
 
-		if (base->basesolar == "legacy")
+		if (base->basesolar == "legacy" || base->basesolar == "modern")
 		{
 			si.iLoadoutID = CreateID(archname);
 		}

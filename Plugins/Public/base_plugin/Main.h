@@ -564,6 +564,9 @@ extern uint set_damage_per_10sec;
 /// Damage to the base every tick
 extern uint set_damage_per_tick;
 
+/// How much damage to repair per cycle
+extern uint repair_per_repair_cycle;
+
 /// The seconds per damage tick
 extern uint set_damage_tick_time;
 

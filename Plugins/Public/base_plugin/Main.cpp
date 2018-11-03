@@ -81,7 +81,7 @@ uint set_damage_tick_time = 16;
 uint set_tick_time = 16;
 
 // How much damage do we heal per repair cycle?
-uint repair_per_repair_cycle = 60000
+uint repair_per_repair_cycle = 60000;
 
 /// If the shield is up then damage to the base is changed by this multiplier.
 float set_shield_damage_multiplier = 0.03f;

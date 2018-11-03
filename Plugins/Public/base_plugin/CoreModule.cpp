@@ -442,7 +442,7 @@ void CoreModule::RepairDamage(float max_base_health)
 				if (base->HasMarketItem(item->good) >= item->quantity)
 				{
 					base->RemoveMarketGood(item->good, item->quantity);
-					base->base_health += 60000;
+					base->base_health += repair_per_repair_cycle;
 					base->repairing = true;
 				}
 			}

@@ -80,6 +80,9 @@ uint set_damage_tick_time = 16;
 // The seconds per tick
 uint set_tick_time = 16;
 
+// How much damage do we heal per repair cycle?
+uint repair_per_repair_cycle = 60000
+
 /// If the shield is up then damage to the base is changed by this multiplier.
 float set_shield_damage_multiplier = 0.03f;
 
@@ -393,6 +396,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("tick_time"))
 					{
 						set_tick_time = ini.get_value_int(0);
+					}
+					else if (ini.is_value("health_to_heal_per_cycle"))
+					{
+						repair_per_repair_cycle = ini.get_value_int(0);
 					}
 					else if (ini.is_value("shield_damage_multiplier"))
 					{

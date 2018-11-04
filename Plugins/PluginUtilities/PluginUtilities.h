@@ -7,6 +7,8 @@
 #ifndef __PluginUtilities_H__
 #define __PluginUtilities_H__ 1
 
+#include <ZoneUtilities.h>
+
 #define HAS_FLAG(a, b) ((a).wscFlags.find(b) != -1)
 
 bool IsInRange(uint iClientID, float fDistance);

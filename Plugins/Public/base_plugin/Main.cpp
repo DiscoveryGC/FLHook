@@ -1836,6 +1836,20 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 				return;
 			}
 
+			// Ask the combat magic plugin if we need to do anything differently
+			COMBAT_DAMAGE_OVERRIDE_STRUCT info;
+			info.iMunitionID = iDmgMunitionID;
+			info.fDamage = 0.0f;
+			Plugin_Communication(COMBAT_DAMAGE_OVERRIDE, &info);
+
+			if (info.fDamage != 0.0f)
+			{
+				//ConPrint(L"base: Got a response back, info.fDamage = %0.0f\n", info.fDamage);
+				//ConPrint(L"base: Got a response back, changing damage = %0.0f -> ", damage);
+				damage = (curr - info.fDamage);
+				//ConPrint(L"%0.0f\n", damage);
+			}
+
 			// This call is for us, skip all plugins.		
 			float new_damage = i->second->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, damage);
 			returncode = SKIPPLUGINS;
@@ -1846,6 +1860,16 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 				if (set_plugin_debug)
 					ConPrint(L"HkCb_AddDmgEntry[3] suppressed - shield up - new_damage=%0.0f\n", new_damage);	
 				dmg->add_damage_entry(p1, new_damage, fate);
+				iDmgToSpaceID = 0;
+				return;
+			}
+			else
+			{
+				// Override it anyways to be compatible with combat magic
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				if (set_plugin_debug)
+					ConPrint(L"HkCb_AddDmgEntry[4] suppressed - doing it ourselves - new_damage=%0.0f\n", damage);
+				dmg->add_damage_entry(p1, damage, fate);
 				iDmgToSpaceID = 0;
 				return;
 			}

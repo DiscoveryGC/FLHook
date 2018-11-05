@@ -247,7 +247,8 @@ enum PLUGIN_MESSAGE
 	DSACE_SPEED_EXCEPTION = 41,
 	CUSTOM_BASE_BEAM = 42,
 	CUSTOM_BASE_IS_DOCKED = 43,
-	CLIENT_CLOAK_INFO = 44
+	CLIENT_CLOAK_INFO = 44,
+	COMBAT_DAMAGE_OVERRIDE = 45
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,6 +330,13 @@ struct CLIENT_CLOAK_STRUCT
 	uint iClientID;
 	bool isChargingCloak;
 	bool isCloaked;
+};
+
+struct COMBAT_DAMAGE_OVERRIDE_STRUCT
+{
+	uint iMunitionID;
+	uint iTargetTypeID;
+	float fDamage;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

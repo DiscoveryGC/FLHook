@@ -19,6 +19,12 @@
 #include <plugin.h>
 #include <hookext_exports.h>
 #include <math.h>
+#include <PluginUtilities.h>
+
+bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+
+typedef void(*wprintf_fp)(std::wstring format, ...);
+typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
 struct DamageAdjust {
 	float fighter;
@@ -29,14 +35,58 @@ struct DamageAdjust {
 	float battleship;
 };
 
+struct USERCMD
+{
+	wchar_t* wszCmd;
+	_UserCmdProc proc;
+	wchar_t* usage;
+};
+
+USERCMD UserCmds[] =
+{
+	{ L"/snacclassic", UserCmd_SnacClassic, L"Usage: /snacclassic" },
+};
+
 int set_iPluginDebug = 0;
 float set_fFighterOverkillAdjustment = 0.15f;
 int iLoadedDamageAdjusts = 0;
+
+LPTSTR szMailSlotName = TEXT("\\\\.\\mailslot\\KillposterMailslot");
+HANDLE hMailSlot = NULL;
 
 map<unsigned int, struct DamageAdjust> mapDamageAdjust;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
+
+BOOL OpenMailslot(void)
+{
+	hMailSlot = CreateFile(szMailSlotName, GENERIC_WRITE, FILE_SHARE_READ, (LPSECURITY_ATTRIBUTES)NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, (HANDLE)NULL);
+
+	if (!hMailSlot)
+		return FALSE;
+
+	return TRUE;
+}
+
+BOOL WriteMailslot(std::wstring szMessage)
+{
+	DWORD cbWritten;
+	std::string szMessageA = wstos(szMessage);
+
+	if (!hMailSlot)
+		return FALSE;
+
+	if (!WriteFile(hMailSlot, szMessageA.c_str(), (DWORD)(lstrlen(szMessageA.c_str()) + 1) * sizeof(TCHAR), &cbWritten, (LPOVERLAPPED)NULL))
+	{
+		CloseHandle(hMailSlot);
+		hMailSlot = false;
+		return FALSE;
+	}
+
+	FlushFileBuffers(hMailSlot);
+	return TRUE;
+}
 
 /// Clear client info when a client connects.
 void ClearClientInfo(uint iClientID)
@@ -99,20 +149,126 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
 		if (set_scCfgFile.length()>0)
-			LoadSettings();	
+			LoadSettings();
 	}
 	return true;
 }
 
-bool UserCmd_Process(uint client, const wstring &cmd)
+// Command-Option-X-O
+bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	uint baseID = 0;
+	pub::Player::GetBase(iClientID, baseID);
+	if (!baseID)
+	{
+		PrintUserCmdText(iClientID, L"ERR cannot engage time machine while undocked");
+		return true;
+	}
+
+	int iSNACs = 0;
+	int iRemHoldSize;
+	list<CARGO_INFO> lstCargo;
+	HkEnumCargo(ARG_CLIENTID(iClientID), lstCargo, iRemHoldSize);
+
+	foreach(lstCargo, CARGO_INFO, it)
+	{
+		if ((*it).bMounted)
+			continue;
+
+		if (it->iArchID == CreateID("dsy_snova_civ"))
+		{
+			iSNACs += it->iCount;
+			pub::Player::RemoveCargo(iClientID, it->iID, it->iCount);
+		}
+	}
+
+	if (iSNACs)
+	{
+		unsigned int good = CreateID("dsy_snova_classic");
+		pub::Player::AddCargo(iClientID, good, iSNACs, 1.0, false);
+		PrintUserCmdText(iClientID, L"The time machine ate %i modern-day SNACs and gave back old rusty ones from a bygone era.", iSNACs);
+	}
+	else
+	{
+		PrintUserCmdText(iClientID, L"The time machine was disappointed to find you had no unmounted SNACs to relinquish unto it");
+	}
+	return true;
+}
+
+/**
+This function is called by FLHook when a user types a chat string. We look at the
+string they've typed and see if it starts with one of the above commands. If it
+does we try to process it.
+*/
+bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
+
+	wstring wscCmdLineLower = ToLower(wscCmd);
+
+	// If the chat string does not match the USER_CMD then we do not handle the
+	// command, so let other plugins or FLHook kick in. We require an exact match
+	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
+	{
+		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
+		{
+			// Extract the parameters string from the chat string. It should
+			// be immediately after the command and a space.
+			wstring wscParam = L"";
+			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
+			{
+				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
+					continue;
+				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
+			}
+
+			// Dispatch the command to the appropriate processing function.
+			if (UserCmds[i].proc(iClientID, wscCmd, wscParam, UserCmds[i].usage))
+			{
+				// We handled the command tell FL hook to stop processing this
+				// chat string.
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL; // we handled the command, return immediatly
+				return true;
+			}
+		}
+	}
 	return false;
 }
-	
+
+bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (wscCmd.compare(L"balancemagic"))
+		return false;
+
+	if (!cmds->ArgStrToEnd(1).compare(L"reload"))
+	{
+		cmds->Print(L"BALANCEMAGIC: Live reload requested by %s.\n", cmds->GetAdminName());
+		LoadSettings();
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		cmds->Print(L"BALANCEMAGIC: Live reload completed; loaded %u damage adjusts.\n", iLoadedDamageAdjusts);
+		return true;
+	}
+	else
+	{
+		cmds->Print(L"Usage:\n");
+		cmds->Print(L"  .balancemagic reload -- Reloads balancemagic.cfg on the fly.\n");
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		return true;
+	}
+	return false;
+}
+
 void __stdcall CharacterSelect(struct CHARACTER_ID const &charid, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
+}
+
+void __stdcall ReqModifyItem(unsigned short iArchID, char const *Hardpoint, int count, float p4, bool bMounted, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	//PrintUserCmdText(iClientID, L"ReqModifyItem(iArchID = %u, Hardpoint = %s, count = %i, p4 = %f, bMounted = %b, iClientID = %u)", iArchID, Hardpoint, count, p4, bMounted, iClientID);
 }
 
 void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage, enum DamageEntry::SubObjFate fate)
@@ -146,7 +302,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 				pub::SpaceObj::GetShieldHealth(iDmgToSpaceID, curr, max, bShieldsUp);
 
 			/*PrintUserCmdText(iDmgFrom, L"HkCb_AddDmgEntry CORONA iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f damage=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
-				iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);*/
+			iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);*/
 
 			if (targetShipClass < 6)
 				adjustedDamage = curr - iter->second.fighter / (bShieldsUp ? 2 : 1);
@@ -165,11 +321,11 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 
 			if (set_iPluginDebug)
 				PrintUserCmdText(iDmgFrom, L"You hit a ship's hull (ID 0x%08X) with an 0x%08X for %f adjusted damage (%f -> %f) (p1 = %u, fate = %u).", uArchID, iDmgMunitionID, (curr - adjustedDamage), curr, adjustedDamage, p1, fate);
-			
+
 			iDmgTo = 0;
 			iDmgToSpaceID = 0;
 			iDmgMunitionID = 0;
-			
+
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		}
 		else
@@ -177,37 +333,41 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 	}
 }
 
-void __stdcall ShipDestroyed(DamageList *dmg, DWORD *ecx, uint iKill)
+void __stdcall SPScanCargo(unsigned int const &iInstigatorShip, unsigned int const &iTargetShip, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+}
+
+void HkTimerCheckKick()
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	/*uint iDmgFrom = HkGetClientIDByShip(dmg->get_inflictor_id());
-	if (iDmgToSpaceID && iDmgFrom && iDmgMunitionID == CreateID("torpedo01_mark022_ammo"))
+	uint curr_time = (uint)time(0);
+
+	/*if (!hMailSlot)
+		OpenMailslot();
+
+	WriteMailslot(L"Haha, it's a message.");*/
+}
+
+void Plugin_Communication_Callback(PLUGIN_MESSAGE msg, void* data)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (msg == COMBAT_DAMAGE_OVERRIDE)
 	{
-		float curr, max;
-		pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-
-		if (iKill) {
-			unsigned int uArchID = 0;
-			pub::SpaceObj::GetSolarArchetypeID(iDmgToSpaceID, uArchID);
-			Archetype::Ship* targetShiparch = Archetype::GetShip(uArchID);
-			uint targetShipClass = targetShiparch->iShipClass;
-
-			if (targetShipClass < 6)
-			{
-				float adjustedDamage = curr - (5000 * set_fFighterOverkillAdjustment);
-				//dmg->add_damage_entry(p1, adjustedDamage, fate);
-				if (adjustedDamage > 0)
-					returncode = NOFUNCTIONCALL;
-			}
+		returncode = SKIPPLUGINS;
+		COMBAT_DAMAGE_OVERRIDE_STRUCT* info = reinterpret_cast<COMBAT_DAMAGE_OVERRIDE_STRUCT*>(data);
+		map<unsigned int, struct DamageAdjust>::iterator iter = mapDamageAdjust.find(info->iMunitionID);
+		if (iter != mapDamageAdjust.end())
+		{
+			info->fDamage = iter->second.battleship;
+			//ConPrint(L"base: Got a request to override 0x%08X, info.fDamage = %0.0f\n", info->iMunitionID, info->fDamage);
 		}
 	}
-
-	if (dmg->get_hit_pts_left(1) > 0 || dmg->is_destroyed() == false)
-		returncode = NOFUNCTIONCALL;*/
-	//PrintUserCmdText(HkGetClientIdFromCharname(L"NO-F-Harold.Kane") , L"You destroyed a ship (dmg->get_hit_pts_left = %f).", dmg->get_hit_pts_left(1));
+	return;
 }
-	
+
 /** Functions to hook */
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
@@ -221,7 +381,12 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
-//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
+	//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqModifyItem, PLUGIN_HkIServerImpl_ReqModifyItem, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPScanCargo, PLUGIN_HkIServerImpl_SPScanCargo, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_Callback, PLUGIN_Plugin_Communication, 10));
 	return p_PI;
 }

@@ -2438,7 +2438,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	else if (args.find(L"basedebugoff") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		set_plugin_debug = 1;
+		set_plugin_debug = 0;
 		cmd->Print(L"OK base debug is off.\n");
 		return true;
 	}

@@ -9,25 +9,16 @@
 //Includes
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <windows.h>
-#include <stdio.h>
+#include <Windows.h>
+#include <cstdio>
 #include <string>
-#include <time.h>
-#include <math.h>
+#include <ctime>
 #include <list>
 #include <map>
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
-#include "Main.h"
-
-#include "../hookext_plugin/hookext_exports.h"
-
-#define POPUPDIALOG_BUTTONS_LEFT_YES 1
-#define POPUPDIALOG_BUTTONS_CENTER_NO 2
-#define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
-#define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
 static bool set_lawsEnabled;
 static bool set_lawsContrabandEnabled;
@@ -48,7 +39,7 @@ void LoadSettings();
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-	srand((uint)time(0));
+	srand(static_cast<uint>(time(nullptr)));
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
@@ -153,8 +144,8 @@ void LoadSettings()
 		{
 			if (ini.is_header("Commodity"))
 			{
-				uint ids_name;
-				uint nick_id;
+				uint ids_name = 0; // Just in case something goes very wrong
+				uint nick_id = 0;
 				while (ini.read_value())
 				{
 					if (ini.is_value("nickname"))
@@ -187,7 +178,7 @@ void ContrabandWarning(uint iClientID, wstring wscText, ...) // WE WANT BOLD RED
 	va_start(marker, wscText);
 	_vsnwprintf(wszBuf, sizeof(wszBuf) - 1, wscText.c_str(), marker);
 
-	wstring wscXML = L"<TRA data=\"65281\" mask=\"-1\"/><TEXT>" + XMLText(wszBuf) + L"</TEXT>";
+	const wstring wscXML = L"<TRA data=\"65281\" mask=\"-1\"/><TEXT>" + XMLText(wszBuf) + L"</TEXT>";
 	HkFMsg(iClientID, wscXML);
 }
 
@@ -200,46 +191,37 @@ static void CheckCargo(int iClientID, bool manualCargoCheck)
 
 		int iHoldSize;
 		list<CARGO_INFO> lstCargo;
-		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iHoldSize); // Get all their cargo
+		HkEnumCargo(reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID)), lstCargo, iHoldSize); // Get all their cargo
 
 		// If we are currently entering a system that is not within the sector we were in before or if we are just entering a sector from a system that was not in a sector.
-		if (
-			!manualCargoCheck &&
-			(
-				( mapHouseAndSystems[iSystemID] != mapHouseAndSystems[iClient_systems[iClientID]] )
-				||
-				( mapHouseAndSystems.find(iClient_systems[iClientID]) == mapHouseAndSystems.end() )
-			)
-			||
-			(
-				manualCargoCheck
-				&&
-				mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end()
-				)
-			)
-
+		if ((!manualCargoCheck && (mapHouseAndSystems[iSystemID] != mapHouseAndSystems[iClient_systems[iClientID]] 
+			||	mapHouseAndSystems.find(iClient_systems[iClientID]) == mapHouseAndSystems.end())) ||	
+			(manualCargoCheck && mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end()))
+			// If line 1 & line 2 is true - OR - if line three is true.
 		{
-			string currentHouse = mapHouseAndSystems[iSystemID]; // What house/sector are we in?
+			const string currentHouse = mapHouseAndSystems[iSystemID]; // What house/sector are we in?
 			if(mapHouseCargoList.find(currentHouse) != mapHouseCargoList.end()) // Is the system we are in currently declared as being in any particular sector?
 			{
 				list<uint> cfgCargoLst = mapHouseCargoList[currentHouse]; // Load in the cargo for the sector we are currently in
 				bool foundCargo = false;
-				for (list<CARGO_INFO>::iterator i = lstCargo.begin(); i != lstCargo.end(); ++i) // If we are carrying cargo we've declared illegal.
+				for (auto& i : lstCargo) // If we are carrying cargo we've declared illegal.
 				{
-					if(find(cfgCargoLst.begin(), cfgCargoLst.end(), i->iArchID) != cfgCargoLst.end()) // If we found some cargo
+					if(find(cfgCargoLst.begin(), cfgCargoLst.end(), i.iArchID) != cfgCargoLst.end()) // If we found some cargo
 					{
-						wstring illegalCargo = HkGetWStringFromIDS(mapItems[i->iArchID]); // Get the name of the cargo
+						wstring illegalCargo = HkGetWStringFromIDS(mapItems[i.iArchID]); // Get the name of the cargo
 						ContrabandWarning(iClientID, L"WARNING: You are carrying %s which is illegal in this sector.", illegalCargo.c_str()); // Inform the criminal scum
 						ContrabandWarning(iClientID, L"If you are caught carrying %s, the local authorities might fine or destroy you.", illegalCargo.c_str());
 						foundCargo = true;
 					}
 				}
+
 				if (!foundCargo && manualCargoCheck)
 				{
 					PrintUserCmdText(iClientID, L"You are not currently carrying any cargo that is considered illegal in this sector.");
 				}
 			}
 		}
+
 		if (manualCargoCheck && mapHouseAndSystems.find(iSystemID) == mapHouseAndSystems.end())
 		{
 			PrintUserCmdText(iClientID, L"The system you are in is not under the complete control of a single entity.");
@@ -252,8 +234,7 @@ static void CheckCargo(int iClientID, bool manualCargoCheck)
 //////////////////////////////////////////////
 bool UserCmd_ManualCargoCheck(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
 {
-	bool manualCargoCheck = true;
-	CheckCargo(iClientID, manualCargoCheck);
+	CheckCargo(iClientID, true);
 	return true;
 }
 
@@ -266,27 +247,27 @@ bool UserCmd_Laws(uint iClientID, const wstring & wscCmd, const wstring & wscPar
 
 		if (mapHouseAndSystems.find(getSystem) != mapHouseAndSystems.end()) // If our system is any house/sector
 		{
-			string currentHouse = mapHouseAndSystems[getSystem]; // Load in the data for that particular house
+			const string currentHouse = mapHouseAndSystems[getSystem]; // Load in the data for that particular house
 			if (mapHouseLawList.find(currentHouse) != mapHouseLawList.end()) // If we have the data for the laws of that house
 			{
-				wstring wscXML = mapHouseLawList[currentHouse]; // Load in the XML
-				wstring wscPlayerInfo = L"<RDL><PUSH/>" + wscXML + L"<PARA/><POP/></RDL>"; // Format
+				const wstring wscXML = mapHouseLawList[currentHouse]; // Load in the XML
+				const wstring wscPlayerInfo = L"<RDL><PUSH/>" + wscXML + L"<PARA/><POP/></RDL>"; // Format
 
 				HkChangeIDSString(iClientID, 500001, L"The Local Laws");
 				HkChangeIDSString(iClientID, 500000, wscPlayerInfo);
 
-				FmtStr caption(0, 0);
+				FmtStr caption(0, nullptr);
 				caption.begin_mad_lib(500001);
 				caption.end_mad_lib();
 
-				FmtStr message(0, 0);
+				FmtStr message(0, nullptr);
 				message.begin_mad_lib(500000);
 				message.end_mad_lib();
 
 				pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK); // Display
 			}
 		}
-		return false;
+		return true;
 	}
 	return true;
 }
@@ -297,8 +278,7 @@ bool UserCmd_Laws(uint iClientID, const wstring & wscCmd, const wstring & wscPar
 
 void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 {
-	bool manualCargoCheck = false;
-	CheckCargo(iClientID, manualCargoCheck);
+	CheckCargo(iClientID, false);
 	uint iSystemID;
 	pub::Player::GetSystem(iClientID, iSystemID);
 	iClient_systems[iClientID] = iSystemID; // Update it after everything else is done.
@@ -306,9 +286,8 @@ void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 
 void __stdcall JumpInComplete(unsigned int iSystemID, unsigned int ship)
 {
-	bool manualCargoCheck = false;
-	uint iClientID = HkGetClientIDByShip(ship);
-	CheckCargo(iClientID, manualCargoCheck);
+	const uint iClientID = HkGetClientIDByShip(ship);
+	CheckCargo(iClientID, false);
 	iClient_systems[iClientID] = iSystemID; // Update it after everything else is done.
 }
 
@@ -387,10 +366,10 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
 	
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JumpInComplete, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));
+	p_PI->lstHooks.emplace_back(reinterpret_cast<FARPROC*>(&LoadSettings), PLUGIN_LoadSettings, 0);
+	p_PI->lstHooks.emplace_back(reinterpret_cast<FARPROC*>(&UserCmd_Process), PLUGIN_UserCmd_Process, 0);
+	p_PI->lstHooks.emplace_back(reinterpret_cast<FARPROC*>(&PlayerLaunch_AFTER), PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0);
+	p_PI->lstHooks.emplace_back(reinterpret_cast<FARPROC*>(&JumpInComplete), PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0);
 
 	return p_PI;
 }

@@ -62,6 +62,18 @@ void LoadSettings()
 // Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+bool CheckIsInBase(uint iClientID)
+{
+	uint iBaseID;
+	pub::Player::GetBase(iClientID, iBaseID);
+	if (!iBaseID)
+	{
+		PrintUserCmdText(iClientID, L"You must be in a base to use this command.");
+		return false;
+	}
+
+	return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Command Functions
@@ -70,14 +82,8 @@ void LoadSettings()
 // /refresh - Updates the timestamps of the character file for all the ships on the account.
 bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
-	uint iBase;
-	pub::Player::GetBase(iClientID, iBase);
-
-	if (!iBase)
-	{
-		PrintUserCmdText(iClientID, L"You must be docked to use this command.");
+	if (!CheckIsInBase(iClientID))
 		return true;
-	}
 
 	FILETIME ft;
 	SYSTEMTIME st;
@@ -140,6 +146,23 @@ bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstrin
 	return true;
 }
 
+// /frelancer - gives the user a freelancer IFF
+bool UserCmd_FreelancerIFF(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	if (!CheckIsInBase(iClientID))
+		return true;
+
+	HK_ERROR err;
+	if ((err = HkSetRep(reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID)), L"fc_freelancer", 1.0f)) != HKE_OK)
+	{
+		PrintUserCmdText(iClientID, L"ERROR: %s", HkErrGetText(err).c_str());
+		return true;
+	}
+	
+	PrintUserCmdText(iClientID, L"Freelancer IFF granted. You may need to /droprep if your old IFF exists after logging out/in and undocking.");
+	return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Actual Code
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -167,6 +190,8 @@ USERCMD UserCmds[] =
 {
 	{ L"/refresh", UserCmd_RefreshAccounts, L"" },
 	{ L"/refresh*", UserCmd_RefreshAccounts, L"" },
+	{ L"/freelancer", UserCmd_FreelancerIFF, L"" },
+	{ L"/freelancer", UserCmd_FreelancerIFF, L"" },
 };
 
 /**

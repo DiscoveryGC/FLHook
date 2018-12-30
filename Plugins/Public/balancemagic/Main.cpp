@@ -7,7 +7,17 @@
 
 // includes 
 
+// Look, I have to do some crazy shit in this plugin
+// If you don't know what this does you probably don't want to look any
+// deeper into what this plugin actually does
+#define WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
+
+#ifndef byte
+typedef unsigned char byte;
+#endif
+
 #include <stdio.h>
 #include <string>
 #include <time.h>
@@ -20,6 +30,13 @@
 #include <hookext_exports.h>
 #include <math.h>
 #include <PluginUtilities.h>
+
+// I regret nothing
+#include <WinSock2.h>
+#include <Ws2tcpip.h>
+
+#pragma comment(lib, "Ws2_32.lib")
+
 
 bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 
@@ -42,6 +59,11 @@ struct USERCMD
 	wchar_t* usage;
 };
 
+struct CLIENT_DATA
+{
+
+};
+
 USERCMD UserCmds[] =
 {
 	{ L"/snacclassic", UserCmd_SnacClassic, L"Usage: /snacclassic" },
@@ -50,11 +72,19 @@ USERCMD UserCmds[] =
 int set_iPluginDebug = 0;
 float set_fFighterOverkillAdjustment = 0.15f;
 int iLoadedDamageAdjusts = 0;
+int iLoadedArmorScales = 0;
 
 LPTSTR szMailSlotName = TEXT("\\\\.\\mailslot\\KillposterMailslot");
 HANDLE hMailSlot = NULL;
 
+sockaddr_in sockaddrFLHook;
+sockaddr_in sockaddrKillposter;
+SOCKET sKillposterSocket = NULL;
+
+map<uint, CLIENT_DATA> mapKillmailData;
+
 map<unsigned int, struct DamageAdjust> mapDamageAdjust;
+map<unsigned int, float> mapArmorScale;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -88,9 +118,23 @@ BOOL WriteMailslot(std::wstring szMessage)
 	return TRUE;
 }
 
+BOOL WriteKillposterSocket(std::wstring szMessage)
+{
+	DWORD cbWritten;
+	std::string szMessageA = wstos(szMessage);
+
+	if (!sKillposterSocket)
+		return FALSE;
+
+	sendto(sKillposterSocket, szMessageA.c_str(), strlen(szMessageA.c_str()), 0, (sockaddr *)&sockaddrKillposter, sizeof(sockaddrKillposter));
+	return TRUE;
+}
+
+
 /// Clear client info when a client connects.
 void ClearClientInfo(uint iClientID)
 {
+	mapKillmailData.erase(iClientID);
 }
 
 /// Load the configuration
@@ -99,6 +143,7 @@ void LoadSettings()
 	returncode = DEFAULT_RETURNCODE;
 	mapDamageAdjust.clear();
 	iLoadedDamageAdjusts = 0;
+	iLoadedArmorScales = 0;
 
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
@@ -126,9 +171,20 @@ void LoadSettings()
 					stEntry.battleship = ini.get_value_float(5) ? ini.get_value_float(5) : stEntry.battlecruiser;
 					mapDamageAdjust[CreateID(ini.get_name_ptr())] = stEntry;
 					if (set_iPluginDebug)
-						ConPrint(L"%s (%u) = %f, %f, %f, %f, %f, %f\n", stows(ini.get_name_ptr()).c_str(), CreateID(ini.get_name_ptr()), \
+						ConPrint(L"DamageAdjust %s (%u) = %f, %f, %f, %f, %f, %f\n", stows(ini.get_name_ptr()).c_str(), CreateID(ini.get_name_ptr()), \
 							stEntry.fighter, stEntry.transport, stEntry.gunboat, stEntry.cruiser, stEntry.battlecruiser, stEntry.battleship);
 					++iLoadedDamageAdjusts;
+				}
+			}
+			if (ini.is_header("ArmorScale"))
+			{
+				while (ini.read_value())
+				{
+					mapArmorScale[CreateID(ini.get_name_ptr())] = ini.get_value_float(0);
+					if (set_iPluginDebug)
+						ConPrint(L"ArmorScale %s (%u) = %f\n", stows(ini.get_name_ptr()).c_str(), CreateID(ini.get_name_ptr()), \
+							ini.get_value_float(0));
+					++iLoadedArmorScales;
 				}
 			}
 		}
@@ -136,6 +192,7 @@ void LoadSettings()
 	}
 
 	ConPrint(L"BALANCEMAGIC: Loaded %u damage adjusts.\n", iLoadedDamageAdjusts);
+	ConPrint(L"BALANCEMAGIC: Loaded %u armor scales.\n", iLoadedArmorScales);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -150,6 +207,25 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		if (set_scCfgFile.length()>0)
 			LoadSettings();
+
+		WSAData data;
+		WSAStartup(MAKEWORD(2, 2), &data);
+
+		ULONG* srcAddr = new ULONG;
+		ULONG* destAddr = new ULONG;
+
+		sockaddrFLHook.sin_family = AF_INET;
+		inet_pton(AF_INET, "127.0.0.1", srcAddr);
+		sockaddrFLHook.sin_addr.s_addr = *srcAddr;
+		sockaddrFLHook.sin_port = htons(0);
+
+		sockaddrKillposter.sin_family = AF_INET;
+		inet_pton(AF_INET, "127.0.0.1", destAddr);
+		sockaddrKillposter.sin_addr.s_addr = *destAddr;
+		sockaddrKillposter.sin_port = htons(31337);
+
+		sKillposterSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		bind(sKillposterSocket, (sockaddr *)&sockaddrFLHook, sizeof(sockaddrFLHook));
 	}
 	return true;
 }
@@ -278,7 +354,31 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 	if (iDmgToSpaceID && iDmgFrom)
 	{
 		float curr, max;
-		float adjustedDamage = 0;
+		float adjustedDamage = damage;
+		
+		if (set_iPluginDebug && p1 != 65521)
+			PrintUserCmdText(iDmgFrom, L"Hull hit (p1 = %u).", p1);
+
+		/*if (p1 != 1 && p1 != 65521)
+		{
+			if (set_iPluginDebug)
+			{
+				unsigned int wtf = 0;
+				unsigned int iDunno = 0;
+
+				IObjInspectImpl *obj = NULL;
+				if (GetShipInspect(iDmgToSpaceID, obj, iDunno))
+				{
+					if (obj)
+					{
+						CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
+						CEquipManager* eqmanager = (CEquipManager*)((char*)cship + 0xE4);
+						CEquip *equip = eqmanager->FindByID(p1);
+						PrintUserCmdText(iDmgFrom, L"You hit a ship's possible subobj %u, and I think this is an 0x%08X of type %u.", p1, equip->archetype->iArchID, equip->GetType());
+					}
+				}
+			}
+		}*/
 
 		map<unsigned int, struct DamageAdjust>::iterator iter = mapDamageAdjust.find(iDmgMunitionID);
 		if (iter != mapDamageAdjust.end())
@@ -292,9 +392,31 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			if (uTargetType != OBJ_FIGHTER && uTargetType != OBJ_FREIGHTER)
 				return;
 
+			float fTargetArmorScale = 1.0f;
+
+			if (HkGetClientIDByShip(iDmgToSpaceID))
+			{
+				int iRemHoldSize;
+				list<CARGO_INFO> lstCargo;
+				HkEnumCargo(ARG_CLIENTID(HkGetClientIDByShip(iDmgToSpaceID)), lstCargo, iRemHoldSize);
+
+				foreach(lstCargo, CARGO_INFO, it)
+				{
+					if (!(*it).bMounted)
+						continue;
+
+					map<unsigned int, float>::iterator iter = mapArmorScale.find(it->iArchID);
+					if (iter != mapArmorScale.end())
+					{
+						fTargetArmorScale = iter->second;
+						break;
+					}
+				}
+			}
+
 			Archetype::Ship* targetShiparch = Archetype::GetShip(uArchID);
 			uint targetShipClass = targetShiparch->iShipClass;
-			bool bShieldsUp = true;
+			bool bShieldsUp = false;
 
 			if (p1 == 1)
 				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
@@ -304,18 +426,18 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			/*PrintUserCmdText(iDmgFrom, L"HkCb_AddDmgEntry CORONA iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f damage=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
 			iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);*/
 
-			if (targetShipClass < 6)
-				adjustedDamage = curr - iter->second.fighter / (bShieldsUp ? 2 : 1);
+			if (targetShipClass < 6 || targetShipClass == 19)
+				adjustedDamage = curr - iter->second.fighter / (bShieldsUp ? 2 : fTargetArmorScale);
 			else if (targetShipClass < 11)
-				adjustedDamage = curr - iter->second.transport / (bShieldsUp ? 2 : 1);
+				adjustedDamage = curr - iter->second.transport / (bShieldsUp ? 2 : fTargetArmorScale);
 			else if (targetShipClass < 13)
-				adjustedDamage = curr - iter->second.gunboat / (bShieldsUp ? 2 : 1);
+				adjustedDamage = curr - iter->second.gunboat / (bShieldsUp ? 2 : fTargetArmorScale);
 			else if (targetShipClass < 15)
-				adjustedDamage = curr - iter->second.cruiser / (bShieldsUp ? 2 : 1);
+				adjustedDamage = curr - iter->second.cruiser / (bShieldsUp ? 2 : fTargetArmorScale);
 			else if (targetShipClass < 16)
-				adjustedDamage = curr - iter->second.battlecruiser / (bShieldsUp ? 2 : 1);
+				adjustedDamage = curr - iter->second.battlecruiser / (bShieldsUp ? 2 : fTargetArmorScale);
 			else if (targetShipClass < 19)
-				adjustedDamage = curr - iter->second.battleship / (bShieldsUp ? 2 : 1);
+				adjustedDamage = curr - iter->second.battleship / (bShieldsUp ? 2 : fTargetArmorScale);
 
 			dmg->add_damage_entry(p1, adjustedDamage, fate);
 
@@ -343,11 +465,11 @@ void HkTimerCheckKick()
 	returncode = DEFAULT_RETURNCODE;
 
 	uint curr_time = (uint)time(0);
+	static int messageno = 1;
 
-	/*if (!hMailSlot)
-		OpenMailslot();
-
-	WriteMailslot(L"Haha, it's a message.");*/
+	wchar_t message[1024];
+	swprintf_s(message, L"Hi! I'm an FLHook plugin! This is message number %d.", messageno++);
+	//WriteKillposterSocket(message);
 }
 
 void Plugin_Communication_Callback(PLUGIN_MESSAGE msg, void* data)

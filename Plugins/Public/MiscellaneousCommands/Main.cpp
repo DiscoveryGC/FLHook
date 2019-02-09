@@ -128,7 +128,7 @@ bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstrin
 				break; // End the loop if the names match
 
 		iAccountsRefreshed++;
-		PrintUserCmdText(iClientID, L"Character: %s - Refreshed for 6 months.", wscCharacterName.c_str());
+		PrintUserCmdText(iClientID, L"Character: %s - Timestamps Refreshed", wscCharacterName.c_str());
 		if ((err = HkFLIniWrite(wscCharacterName, L"tstamp", stows(toWrite))) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERROR: %s", HkErrGetText(err).c_str());

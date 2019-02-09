@@ -673,7 +673,7 @@ void HkTest(int iArg, int iArg2, int iArg3);
 
 // HkFLIni
 EXPORT HK_ERROR HkFLIniGet(const wstring &wscCharname, const wstring &wscKey, wstring &wscRet);
-EXPORT HK_ERROR HkFLIniWrite(const wstring &wscCharname, const wstring &wscKey, wstring wscValue);
+EXPORT HK_ERROR HkFLIniWrite(const wstring &wscCharname, const wstring &wscKey, const wstring &wscValue);
 
 EXPORT wstring HkErrGetText(HK_ERROR hkErr);
 void ClearClientInfo(uint iClientID);

@@ -80,7 +80,7 @@ bool CheckIsInBase(uint iClientID)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // /refresh - Updates the timestamps of the character file for all the ships on the account.
-bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+bool UserCmd_RefreshCharacters(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
 	if (!CheckIsInBase(iClientID))
 		return true;
@@ -93,10 +93,10 @@ bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstrin
 	sprintf_s(toWrite, "%u,%u", ft.dwHighDateTime, ft.dwLowDateTime);
 	
 	CAccount *acc = HkGetAccountByClientID(iClientID);
-	CAccountListNode *accountList = acc->pFirstListNode;
-	PrintUserCmdText(iClientID, L"Refreshing Accounts:");
+	CAccountListNode *characterList = acc->pFirstListNode;
+	PrintUserCmdText(iClientID, L"Refreshing Characters:");
 	PrintUserCmdText(iClientID, L""); // Line break to make it look nice
-	int iAccountsRefreshed = 0; // Number to keep track of
+	int iCharactersRefreshed = 0; // Number to keep track of
 	HK_ERROR err; // If it errors we want to inform them
 
 	// Save the current char in case for whatever reason they haven't been saved already
@@ -105,21 +105,21 @@ bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstrin
 
 	// We need to keep track of the first character name lest it loops forever.
 	wstring wscFirstCharacterName;
-	while (accountList)
+	while (characterList)
 	{
-		// We need to make sure the character name is not null (which is is sometimes because FLHook?)
-		if (!accountList->wszCharname)
+		// We need to make sure the character name is not null (which it is sometimes because Freelancer?)
+		if (!characterList->wszCharname)
 		{
 			// Loop to the next one if this happens.
-			accountList = accountList->next;
+			characterList = characterList->next;
 			continue;
 		}
 
 		// The current name wont cause an exception, so lets use it
-		const wstring wscCharacterName = reinterpret_cast<const wchar_t*>(accountList->wszCharname);
+		const wstring wscCharacterName = reinterpret_cast<const wchar_t*>(characterList->wszCharname);
 
 		// Only store the first name
-		if (iAccountsRefreshed == 0)
+		if (iCharactersRefreshed == 0)
 			wscFirstCharacterName = wscCharacterName;
 
 		// If this isn't the first name, we need to check that we've not looped over the list again
@@ -127,7 +127,7 @@ bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstrin
 			if (wscCharacterName == wscFirstCharacterName)
 				break; // End the loop if the names match
 
-		iAccountsRefreshed++;
+		iCharactersRefreshed++;
 		PrintUserCmdText(iClientID, L"Character: %s - Timestamps Refreshed", wscCharacterName.c_str());
 		if ((err = HkFLIniWrite(wscCharacterName, L"tstamp", stows(toWrite))) != HKE_OK)
 		{
@@ -136,10 +136,10 @@ bool UserCmd_RefreshAccounts(uint iClientID, const wstring &wscCmd, const wstrin
 		}
 
 		// Loop again
-		accountList = accountList->next;
+		characterList = characterList->next;
 	}
-	// List the amount of accounts we've refreshed.
-	PrintUserCmdText(iClientID, L"Sucessfully refreshed %u accounts.", iAccountsRefreshed); 
+	// List the amount of characters we've refreshed.
+	PrintUserCmdText(iClientID, L"Sucessfully refreshed %u characters.", iCharactersRefreshed);
 
 	// Kick them as a way to prevent save data loss and ensure everything ticks over as intended.
 	HkKickReason(reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID)), L"Updating Character File, please wait 10 seconds before reconnecting.");
@@ -188,8 +188,8 @@ struct USERCMD
 
 USERCMD UserCmds[] =
 {
-	{ L"/refresh", UserCmd_RefreshAccounts, L"" },
-	{ L"/refresh*", UserCmd_RefreshAccounts, L"" },
+	{ L"/refresh", UserCmd_RefreshCharacters, L"" },
+	{ L"/refresh*", UserCmd_RefreshCharacters, L"" },
 	{ L"/freelancer", UserCmd_FreelancerIFF, L"" },
 	{ L"/freelancer", UserCmd_FreelancerIFF, L"" },
 };

@@ -115,8 +115,14 @@ bool UserCmd_RefreshCharacters(uint iClientID, const wstring &wscCmd, const wstr
 			continue;
 		}
 
-		// The current name wont cause an exception, so lets use it
-		const wstring wscCharacterName = reinterpret_cast<const wchar_t*>(characterList->wszCharname);
+		wstring wscCharacterName;
+		try {
+			wscCharacterName = reinterpret_cast<wchar_t*>(characterList->wszCharname);
+		} catch (...) {
+			// Loop to the next one if this happens.
+			characterList = characterList->next;
+			continue;
+		}
 
 		// Only store the first name
 		if (iCharactersRefreshed == 0)

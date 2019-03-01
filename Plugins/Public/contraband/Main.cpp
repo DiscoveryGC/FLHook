@@ -193,11 +193,13 @@ static void CheckCargo(int iClientID, bool manualCargoCheck)
 		list<CARGO_INFO> lstCargo;
 		HkEnumCargo(reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID)), lstCargo, iHoldSize); // Get all their cargo
 
-		// If we are currently entering a system that is not within the sector we were in before or if we are just entering a sector from a system that was not in a sector.
-		if ((!manualCargoCheck && (mapHouseAndSystems[iSystemID] != mapHouseAndSystems[iClient_systems[iClientID]] 
-			||	mapHouseAndSystems.find(iClient_systems[iClientID]) == mapHouseAndSystems.end())) ||	
-			(manualCargoCheck && mapHouseAndSystems.find(iSystemID) != mapHouseAndSystems.end()))
-			// If line 1 & line 2 is true - OR - if line three is true.
+		// Step 1: If this is not a manual cargo check and the system we are moving to is not within the sector we are currently in
+        // Step 2: If the system we are currently in is not within a sector
+        // Step 3: If it is a manual cargo check and we are currently within a sector.
+
+        // If will continue if 1 & 2 are true, or step 3 is true
+        if ((!manualCargoCheck && (mapSectors[iSysID] != mapSectors[mapSystems[iClientID]] || mapSectors.find(mapSystems[iClientID]) == mapSectors.end()))
+            ||    (manualCargoCheck && mapSectors.find(iSysID) != mapSectors.end()))
 		{
 			const string currentHouse = mapHouseAndSystems[iSystemID]; // What house/sector are we in?
 			if(mapHouseCargoList.find(currentHouse) != mapHouseCargoList.end()) // Is the system we are in currently declared as being in any particular sector?

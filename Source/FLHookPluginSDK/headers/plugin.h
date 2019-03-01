@@ -99,6 +99,8 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_HkIServerImpl_LocationInfoRequest_AFTER,
 	PLUGIN_HkIServerImpl_MissionResponse,
 	PLUGIN_HkIServerImpl_MissionResponse_AFTER,
+	PLUGIN_HkIServerImpl_PopupDialog,
+	PLUGIN_HkIServerImpl_PopupDialog_AFTER,
 	PLUGIN_HkIServerImpl_ReqAddItem,
 	PLUGIN_HkIServerImpl_ReqAddItem_AFTER,
 	PLUGIN_HkIServerImpl_ReqChangeCash,

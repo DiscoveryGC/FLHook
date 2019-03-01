@@ -1501,11 +1501,28 @@ void __stdcall MissionSaveB(unsigned int iClientID, unsigned long p2)
 }
 
 /**************************************************************************************************************
+ Called when someone responds to a button click from a PopupDialog, not used outside of FLHook
 **************************************************************************************************************/
 
-void __stdcall PopUpDialog(unsigned int p1, unsigned int p2)
+void __stdcall PopUpDialog(unsigned int iClientID, unsigned int iButtonValue)
 {
-	return; // not used
+	// iButtonValue always be any of the following values: 1, 2, 4, 8. If it's not, that is unexpected behaviour.
+	ISERVER_LOG();
+	ISERVER_LOGARG_UI(iClientID);
+	ISERVER_LOGARG_UI(iButtonValue);
+
+	switch (iButtonValue)
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+		{
+			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_PopupDialog, __stdcall, (unsigned int iClientID, unsigned int iButtonValue), (iClientID, iButtonValue));
+
+			EXECUTE_SERVER_CALL(Server.PopUpDialog(iClientID, iButtonValue));
+
+			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_PopupDialog_AFTER, __stdcall, (unsigned int iClientID, unsigned int iButtonValue), (iClientID, iButtonValue));
+		}
 }
 
 /**************************************************************************************************************

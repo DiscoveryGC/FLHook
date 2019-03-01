@@ -694,10 +694,13 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 						}
 						if (iLootCount == 0)
 						{
-							PrintUserCmdText(iClientID, L"%s's cargo is now full.", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iSendToClientID)));
-							PrintUserCmdText(iSendToClientID, L"Your cargo is now full.");
-							pub::Player::SendNNMessage(iClientID, CreateID("insufficient_cargo_space"));
-							pub::Player::SendNNMessage(iSendToClientID, CreateID("insufficient_cargo_space"));
+							if (iClientID != iSendToClientID) 
+							{
+								PrintUserCmdText(iClientID, L"%s's cargo is now full.", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iSendToClientID)));
+								PrintUserCmdText(iSendToClientID, L"Your cargo is now full.");
+								pub::Player::SendNNMessage(iClientID, CreateID("insufficient_cargo_space"));
+								pub::Player::SendNNMessage(iSendToClientID, CreateID("insufficient_cargo_space"));	
+							}
 							return;
 						}
 						pub::Player::AddCargo(iSendToClientID, iLootID, iLootCount, 1.0, false);

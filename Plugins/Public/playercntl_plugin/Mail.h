@@ -13,6 +13,7 @@ namespace Mail
 	void MailShow(const wstring &wscCharname, const string &scExtension, int iFirstMsg);
 	bool MailDel(const wstring &wscCharname, const string &scExtension, int iMsg);
 	void MailCheckLog(const wstring &wscCharname, const string &scExtension);
+	bool MailSend(const wstring &wscCharname, const string &scExtension, const wstring &wscMsg);
 }
 
 #endif

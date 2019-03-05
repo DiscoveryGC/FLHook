@@ -17,7 +17,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)PluginUtilities.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(MSBuildThisFileDirectory)minijson_writer.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\Public\base_plugin\minijson_writer.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)PluginUtilities.h" />
   </ItemGroup>
 </Project>

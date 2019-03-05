@@ -110,6 +110,34 @@ namespace Mail
 	}
 
 	/**
+	 Save a msg to disk so that we can inform the receiving character
+	 when they log in.
+	*/
+	bool MailSend(const wstring &wscCharname, const string &scExtension, const wstring &wscMsg)
+	{
+		// Get the target player's message file.
+		string scFilePath = GetUserFilePath(wscCharname, scExtension);
+		if (scFilePath.length()==0)
+			return false;
+		
+		// Move all mail up one slot starting at the end. We automatically
+		// discard the oldest messages.
+		for (int iMsgSlot = MAX_MAIL_MSGS-1; iMsgSlot>0; iMsgSlot--)
+		{
+			wstring wscTmpMsg = IniGetWS(scFilePath, "Msgs", itos(iMsgSlot), L"");
+			IniWriteW(scFilePath, "Msgs", itos(iMsgSlot+1), wscTmpMsg);
+
+			bool bTmpRead = IniGetB(scFilePath, "MsgsRead", itos(iMsgSlot), false);
+			IniWrite(scFilePath, "MsgsRead", itos(iMsgSlot+1), (bTmpRead?"yes":"no"));
+		}
+
+		// Write message into the slot
+		IniWriteW(scFilePath, "Msgs", "1", GetTimeString(set_bLocalTime) + L" " + wscMsg);
+		IniWrite(scFilePath, "MsgsRead", "1", "no");
+		return true;
+	}
+
+	/**
 		Delete a message
 	*/
 	bool MailDel(const wstring &wscCharname, const string &scExtension, int iMsg)

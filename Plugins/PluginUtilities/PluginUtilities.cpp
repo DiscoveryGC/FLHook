@@ -961,27 +961,6 @@ void ini_get_wstring(INI_Reader &ini, wstring &wscValue)
 	}
 }
 
-wstring IniGetLongWS(const string &scFile, const string &scApp, const string &scKey, const wstring &wscDefault)
-{
-	char szRet[0x10000];
-	GetPrivateProfileString(scApp.c_str(), scKey.c_str(), "", szRet, sizeof(szRet), scFile.c_str());
-	string scValue = szRet;
-	if (!scValue.length())
-		return wscDefault;
-
-	wstring wscValue = L"";
-	long lHiByte;
-	long lLoByte;
-	while (sscanf(scValue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
-	{
-		scValue = scValue.substr(4);
-		wchar_t wChar = (wchar_t)((lHiByte << 8) | lLoByte);
-		wscValue.append(1, wChar);
-	}
-
-	return wscValue;
-}
-
 void ini_write_wstring(FILE *file, const string &parmname, wstring &in)
 {
 	fprintf(file, "%s=", parmname.c_str());
@@ -1045,70 +1024,6 @@ void SendGroupChat(uint iFromClientID, const wstring &wscText)
 	{
 		FormatSendChat(g->iClientID, wscSender, wscText, L"FF7BFF");
 	}
-}
-
-// Determine the path name of a file in the charname account directory with the
-// provided extension. The resulting path is returned in the path parameter.
-bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension)
-{
-	// init variables
-	char szDataPath[MAX_PATH];
-	GetUserDataPath(szDataPath);
-	string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
-
-	wstring wscDir;
-	wstring wscFile;
-	if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
-		return false;
-	if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
-		return false;
-	path = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + extension;
-	return true;
-}
-
-string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
-{
-	// init variables
-	char szDataPath[MAX_PATH];
-	GetUserDataPath(szDataPath);
-	string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
-
-	wstring wscDir;
-	wstring wscFile;
-	if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
-		return "";
-	if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
-		return "";
-
-	return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + scExtension;
-}
-
-/**
-	Save a msg to disk so that we can inform the receiving character
-	when they log in.
-*/
-bool MailSend(const wstring &wscCharname, const string &scExtension, const wstring &wscMsg)
-{
-	// Get the target player's message file.
-	string scFilePath = GetUserFilePath(wscCharname, scExtension);
-	if (scFilePath.length() == 0)
-		return false;
-
-	// Move all mail up one slot starting at the end. We automatically
-	// discard the oldest messages.
-	for (int iMsgSlot = 40 - 1; iMsgSlot>0; iMsgSlot--)
-	{
-		wstring wscTmpMsg = IniGetWS(scFilePath, "Msgs", itos(iMsgSlot), L"");
-		IniWriteW(scFilePath, "Msgs", itos(iMsgSlot + 1), wscTmpMsg);
-
-		bool bTmpRead = IniGetB(scFilePath, "MsgsRead", itos(iMsgSlot), false);
-		IniWrite(scFilePath, "MsgsRead", itos(iMsgSlot + 1), (bTmpRead ? "yes" : "no"));
-	}
-
-	// Write message into the slot
-	IniWriteW(scFilePath, "Msgs", "1", GetTimeString(false) + L" " + wscMsg);
-	IniWrite(scFilePath, "MsgsRead", "1", "no");
-	return true;
 }
 
 void Rotate180(Matrix &rot)

@@ -242,6 +242,42 @@ static bool IsDockingAllowed(uint iShip, uint iDockTarget, uint iClientID)
 	return true;
 }
 
+// Determine the path name of a file in the charname account directory with the
+// provided extension. The resulting path is returned in the path parameter.
+bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension)
+{
+        // init variables
+        char szDataPath[MAX_PATH];
+        GetUserDataPath(szDataPath);
+        string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
+
+        wstring wscDir;
+        wstring wscFile;
+        if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
+                return false;
+        if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
+                return false;
+        path = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + extension;
+        return true;
+}
+
+string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
+{
+        // init variables
+        char szDataPath[MAX_PATH];
+        GetUserDataPath(szDataPath);
+        string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
+
+        wstring wscDir;
+        wstring wscFile;
+        if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
+                return "";
+        if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
+                return "";
+
+        return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + scExtension;
+}
+
 namespace HkIEngine
 {
 	int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)

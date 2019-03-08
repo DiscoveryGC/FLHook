@@ -486,8 +486,14 @@ bool CoreModule::Timer(uint time)
 			// Repair damage if we have sufficient crew on the base.
 			base->repairing = false;
 			uint number_of_crew = base->HasMarketItem(set_base_crew_type);
-			if (number_of_crew >= (base->base_level * 200))
+			if (number_of_crew >= (base->base_level * 200)) {
 				RepairDamage(base->max_base_health);
+				if (dont_eat) {
+					// We won't save base health below, so do it here
+					float rhealth = base->base_health / base->max_base_health;
+					pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+				}
+			}
 
 			if (base->base_health > base->max_base_health)
 				base->base_health = base->max_base_health;

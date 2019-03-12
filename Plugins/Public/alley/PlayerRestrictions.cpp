@@ -227,9 +227,6 @@ void PMLogging(const char *szString, ...)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-map<uint, float> healingMultipliers;
-map<uint, uint> healingAdditions;
-
 void LoadSettings()
 {
 	PMLogging("-------------------- starting server --------------------");
@@ -255,41 +252,6 @@ void LoadSettings()
 					}				
 				}
 			}
-		ini.close();
-	}
-
-	string scHealingCfgFile = string(szCurDir) + "\\..\\DATA\\EQUIPMENT\\healingrates.cfg";
-	if (ini.open(scHealingCfgFile.c_str(), false))
-	{
-		while (ini.read_header())
-		{
-			if (ini.is_header("HealingRate"))
-			{
-				list<uint> shipclasses;
-				float multiplier = 1.0f;
-				uint addition = 0;
-				while (ini.read_value())
-				{
-					if (ini.is_value("target_shipclass"))
-					{
-						shipclasses.push_back(ini.get_value_int(0));
-					}
-					else if (ini.is_value("addition"))
-					{
-						addition = ini.get_value_int(0);
-					}
-					else if (ini.is_value("multiplier"))
-					{
-						multiplier = ini.get_value_float(0);
-					}
-				}
-				foreach(shipclasses, uint, shipclass)
-				{
-					healingMultipliers[*shipclass] = multiplier;
-					healingAdditions[*shipclass] = addition;
-				}
-			}
-		}
 		ini.close();
 	}
 
@@ -1039,64 +1001,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float damage, enum DamageEntry::SubObjFate fate)
-{
-	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())
-	{	
-		uint client = HkGetClientIDByShip(iDmgToSpaceID);
-		if (client)
-		{
-			uint ShootingClient = dmg->get_inflictor_owner_player();
-			Archetype::Ship* TheShipArch = Archetype::GetShip(Players[ShootingClient].iShipArchetype);
-
-			if (TheShipArch->iShipClass == 19)
-			{
-				float curr, max;
-				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-				float expecteddmg = (float)1;
-				float projecteddamage = curr - damage;
-
-				//If a repair gun heals the ship but this doesn't show up, it's because it's hitting the shield.
-				//HkMsgU(L"DEBUG: damage by repair ship, is it healing?");					
-				//PrintUserCmdText(client, L"Projected damage: %f", projecteddamage);
-
-				if ((projecteddamage <= 1) && (projecteddamage > 0))
-				{
-					//Handle the healing.
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-
-					Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
-					float amounttoheal = curr;
-
-					if (healingMultipliers.find(TheShipArchHealed->iShipClass) == healingMultipliers.end())
-					{
-						return;
-					}
-					// no need to check healingAdditions here as it is set at the same time as healingMultipliers
-					amounttoheal = max / 100 * healingMultipliers[TheShipArchHealed->iShipClass] + healingAdditions[TheShipArchHealed->iShipClass];
-
-					float testhealth = curr + amounttoheal;
-
-
-					if (testhealth > max)
-					{
-						//HkMsgU(L"DEBUG: Health would be superior to max");
-						dmg->add_damage_entry(1, max, (DamageEntry::SubObjFate)0);
-						return;
-					}
-					else
-					{
-						//HkMsgU(L"DEBUG: Health less max");
-						dmg->add_damage_entry(1, testhealth, (DamageEntry::SubObjFate)0);
-						return;
-					}				
-				}
-				//else do nothing, means it isn't a healing call.
-			}
-		}
-	}
-}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Actual Code
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1343,7 +1247,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry_AFTER, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JettisonCargo, PLUGIN_HkIServerImpl_JettisonCargo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddTradeEquip, PLUGIN_HkIServerImpl_AddTradeEquip, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));

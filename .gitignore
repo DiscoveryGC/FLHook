@@ -24,3 +24,6 @@ _ReSharper*/
 [Dd]sacesrv_discovery*/
 .vs/
 [Pp]rivate*/
+
+*.dll
+*.pdb

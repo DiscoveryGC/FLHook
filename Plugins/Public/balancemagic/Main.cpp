@@ -410,8 +410,8 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort p1, float damage, enum D
 					return;
 
 				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-				PrintUserCmdText(iDmgFrom, L"Current Health: %0f.", curr);
-				PrintUserCmdText(iDmgFrom, L"Max Health: %0f.", max);
+				//PrintUserCmdText(iDmgFrom, L"Current Health: %0f.", curr);
+				//PrintUserCmdText(iDmgFrom, L"Max Health: %0f.", max);
 
 				//Handle the healing.
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -429,13 +429,13 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort p1, float damage, enum D
 				// Their health would be above the max value
 				if (curr + fAmountToHeal > max)
 				{
-					PrintUserCmdText(iDmgFrom, L"You healed the client to full health.");
+					//PrintUserCmdText(iDmgFrom, L"You healed the client to full health.");
 					dmg->add_damage_entry(1, max, static_cast<DamageEntry::SubObjFate>(0));
 					return;
 				}
 
 				// Health is less than max value
-				PrintUserCmdText(iDmgFrom, L"You healed the client to %u from %u.", curr + fAmountToHeal, curr);
+				//PrintUserCmdText(iDmgFrom, L"You healed the client to %u from %u.", curr + fAmountToHeal, curr);
 				dmg->add_damage_entry(1, fAmountToHeal + curr, static_cast<DamageEntry::SubObjFate>(0));
 				return;
 			}

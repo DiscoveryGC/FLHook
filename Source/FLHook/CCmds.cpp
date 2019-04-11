@@ -77,7 +77,7 @@ void CCmds::CmdAddCashSec(const wstring &wscCharname, int iAmountCheck, int iAmo
 
 void CCmds::CmdKick(const wstring &wscCharname, const wstring &wscReason)
 {
-	RIGHT_CHECK(RIGHT_KICKBAN);
+	RIGHT_CHECK(RIGHT_KICK);
 
 	if(HKSUCCESS(HkKickReason(wscCharname, wscReason)))
 		Print(L"OK\n");
@@ -89,7 +89,7 @@ void CCmds::CmdKick(const wstring &wscCharname, const wstring &wscReason)
 
 void CCmds::CmdBan(const wstring &wscCharname)
 {
-	RIGHT_CHECK(RIGHT_KICKBAN);
+	RIGHT_CHECK(RIGHT_BAN);
 
 	if(HKSUCCESS(HkBan(wscCharname, true)))
 		Print(L"OK\n");
@@ -101,7 +101,7 @@ void CCmds::CmdBan(const wstring &wscCharname)
 
 void CCmds::CmdUnban(const wstring &wscCharname)
 {
-	RIGHT_CHECK(RIGHT_KICKBAN);
+	RIGHT_CHECK(RIGHT_BAN);
 
 	if(HKSUCCESS(HkBan(wscCharname, false)))
 		Print(L"OK\n");
@@ -113,7 +113,8 @@ void CCmds::CmdUnban(const wstring &wscCharname)
 
 void CCmds::CmdKickBan(const wstring &wscCharname, const wstring &wscReason)
 {
-	RIGHT_CHECK(RIGHT_KICKBAN);
+	RIGHT_CHECK(RIGHT_KICK);
+	RIGHT_CHECK(RIGHT_BAN);
 
 	if(!HKSUCCESS(HkBan(wscCharname, true)))
 	{
@@ -1224,7 +1225,11 @@ void CCmds::SetRightsByString(const string &scRights)
 	if(scRightStr.find("cash") != -1)
 		rights |= RIGHT_CASH;
 	if(scRightStr.find("kickban") != -1)
-		rights |= RIGHT_KICKBAN;
+		rights |= RIGHT_KICK | RIGHT_BAN;
+	if (scRightStr.find("kick") != -1)
+		rights |= RIGHT_KICK;
+	if (scRightStr.find("ban") != -1)
+		rights |= RIGHT_BAN;
 	if(scRightStr.find("beamkill") != -1)
 		rights |= RIGHT_BEAMKILL;
 	if(scRightStr.find("msg") != -1)

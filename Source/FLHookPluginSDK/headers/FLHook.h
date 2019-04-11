@@ -586,7 +586,7 @@ enum CCMDS_RIGHTS
 	RIGHT_NOTHING		= 0,
 	RIGHT_SUPERADMIN	= 0xFFFFFFFF,
 	RIGHT_MSG			= (1 << 0),
-	RIGHT_KICKBAN		= (1 << 1),
+	RIGHT_BAN			= (1 << 1),
 	RIGHT_EVENTMODE		= (1 << 2),
 	RIGHT_CASH			= (1 << 3),
 	RIGHT_BEAMKILL		= (1 << 4),
@@ -599,6 +599,7 @@ enum CCMDS_RIGHTS
 	RIGHT_SPECIAL1		= (1 << 11),
 	RIGHT_SPECIAL2		= (1 << 12),
 	RIGHT_SPECIAL3		= (1 << 13),
+	RIGHT_KICK			= (1 << 14),
 };
 
 class CTimer

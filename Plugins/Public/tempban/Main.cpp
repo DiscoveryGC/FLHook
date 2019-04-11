@@ -145,7 +145,7 @@ void CmdTempBan(CCmds* classptr, const wstring &wscCharname, uint iDuration)
 {
 
 	// right check
-	if(!(classptr->rights & RIGHT_KICKBAN)) { classptr->Print(L"ERR No permission\n"); return;}
+	if(!(classptr->rights & RIGHT_BAN)) { classptr->Print(L"ERR No permission\n"); return;}
 
 	if(((classptr->hkLastErr = HkTempBan(wscCharname,iDuration)) == HKE_OK)) // hksuccess 
 		classptr->Print(L"OK\n");

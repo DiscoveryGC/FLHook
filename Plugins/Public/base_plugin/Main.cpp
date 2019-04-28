@@ -1497,9 +1497,13 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 
 		int iCurrMoney;
 		pub::Player::InspectCash(client, iCurrMoney);
-		if (fValue + price > 2100000000 || iCurrMoney + price > 2100000000)
+
+		long long lNewMoney = iCurrMoney;
+		lNewMoney += price;
+
+		if (fValue + price > 2100000000 || lNewMoney > 2100000000)
 		{
-			PrintUserCmdText(client, L"ERR: Base will not accept goods");
+			PrintUserCmdText(client, L"ERR: Character too valuable.");
 			clients[client].reverse_sell = true;
 			return;
 		}

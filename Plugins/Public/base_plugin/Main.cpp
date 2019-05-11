@@ -130,6 +130,21 @@ PlayerBase *GetPlayerBaseForClient(uint client)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+PlayerBase *GetLastPlayerBaseForClient(uint client)
+{
+	map<uint, CLIENT_DATA>::iterator j = clients.find(client);
+	if (j == clients.end())
+		return 0;
+
+	map<uint, PlayerBase*>::iterator i = player_bases.find(j->second.last_player_base);
+	if (i == player_bases.end())
+		return 0;
+
+	return i->second;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Logging(const char *szString, ...)
 {
 	char szBufString[1024];
@@ -2474,6 +2489,16 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		{
 			returncode = SKIPPLUGINS;
 			info->iDockedBaseID = base->base;
+		}
+	}
+	else if (msg == CUSTOM_BASE_LAST_DOCKED)
+	{
+		CUSTOM_BASE_LAST_DOCKED_STRUCT* info = reinterpret_cast<CUSTOM_BASE_LAST_DOCKED_STRUCT*>(data);
+		PlayerBase *base = GetLastPlayerBaseForClient(info->iClientID);
+		if (base)
+		{
+			returncode = SKIPPLUGINS;
+			info->iLastDockedBaseID = base->base;
 		}
 	}
 	return; 

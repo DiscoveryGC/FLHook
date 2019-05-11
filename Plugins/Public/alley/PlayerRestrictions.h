@@ -49,6 +49,9 @@ namespace SCI
 	void CheckOwned(unsigned int iClientID);
 	void UpdatePlayerID(unsigned int iClientID);
 	bool CanDock(uint iDockTarget, uint iClientID);
+	uint GetCustomLastBaseForClient(unsigned int client);
+	void MoveClient(unsigned int client, unsigned int targetBase);
+	void StoreReturnPointForClient(unsigned int client);
 }
 
 namespace REP

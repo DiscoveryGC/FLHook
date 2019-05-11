@@ -63,6 +63,8 @@ list<uint> shipclasses;
 //first uint will be the ID hash
 map <uint, iddockinfo> iddock;
 
+map<uint, uint> player_last_base;
+
 void SCI::LoadSettings()
 {
 	// The path to the configuration file.
@@ -222,6 +224,7 @@ void SCI::CheckItems(unsigned int iClientID)
 										wscMsg = ReplaceStr(wscMsg, L"%item", itemnames.find(iter->first)->second.c_str());
 										wscMsg = ReplaceStr(wscMsg, L"%shipclass", classname.c_str());								
 										owned[iClientID] = wscMsg;
+										StoreReturnPointForClient(iClientID);
 										return;
 									}
 									// check for non-stackable items
@@ -251,6 +254,7 @@ void SCI::CheckItems(unsigned int iClientID)
 															wscMsg = ReplaceStr(wscMsg, L"%item", itemnames.find(iter->first)->second.c_str());
 															wscMsg = ReplaceStr(wscMsg, L"%second", itemnames.find(itemstack->iArchID)->second.c_str());								
 															owned[iClientID] = wscMsg;
+															StoreReturnPointForClient(iClientID);
 															return;
 												}
 											}
@@ -268,11 +272,56 @@ void SCI::CheckItems(unsigned int iClientID)
 			{
 				wstring wscMsg = L"ERR You have no ID on your ship. You must have one.";							
 				owned[iClientID] = wscMsg;
+				StoreReturnPointForClient(iClientID);
 			}
 
 
-	
 	return;
+}
+
+// based on conn plugin
+void SCI::StoreReturnPointForClient(unsigned int client)
+{
+	// Use *LAST* player base rather than current one because base's BaseExit handler
+	// could have run before us and killed the record of being docked on a POB before
+	// we got to run CheckItems and StoreReturnPointForClient
+	uint base = GetCustomLastBaseForClient(client);
+	// It's not docked at a custom base, check for a regular base
+	if (!base) {
+		pub::Player::GetBase(client, base);
+	}
+	if (!base) {
+		return;
+	}
+
+	player_last_base[client] = base;
+}
+
+// based on conn plugin
+uint SCI::GetCustomLastBaseForClient(unsigned int client)
+{
+	// Pass to plugins incase this ship is docked at a custom base.
+	CUSTOM_BASE_LAST_DOCKED_STRUCT info;
+	info.iClientID = client;
+	info.iLastDockedBaseID = 0;
+	Plugin_Communication(CUSTOM_BASE_LAST_DOCKED, &info);
+	return info.iLastDockedBaseID;
+}
+
+// based on conn plugin
+void SCI::MoveClient(unsigned int client, unsigned int targetBase)
+{
+	// Ask that another plugin handle the beam.
+	CUSTOM_BASE_BEAM_STRUCT info;
+	info.iClientID = client;
+	info.iTargetBaseID = targetBase;
+	info.bBeamed = false;
+	Plugin_Communication(CUSTOM_BASE_BEAM, &info);
+	if (info.bBeamed)
+		return;
+
+	// No plugin handled it, do it ourselves.
+	pub::Player::ForceLand(client, targetBase); // beam
 }
 
 void SCI::CheckOwned(unsigned int iClientID)
@@ -286,9 +335,10 @@ void SCI::CheckOwned(unsigned int iClientID)
 	else
 	{
 		PrintUserCmdText(iClientID, owned.find(iClientID)->second.c_str());
-		pub::Player::ForceLand(iClientID, Players[iClientID].iLastBaseID); // beam
+		MoveClient(iClientID, player_last_base[iClientID]);
 		//PrintUserCmdText(iClientID, L"DEBUG: Owned. Sending you back to base.");
 		owned.erase(iClientID);
+		player_last_base.erase(iClientID);
 	}
 }
 

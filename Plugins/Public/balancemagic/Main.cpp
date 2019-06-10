@@ -45,6 +45,7 @@ typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_
 
 struct DamageAdjust {
 	float fighter;
+	float freighter;
 	float transport;
 	float gunboat;
 	float cruiser;
@@ -59,9 +60,16 @@ struct USERCMD
 	wchar_t* usage;
 };
 
+struct AmmoGenerator
+{
+	unsigned int ammo;
+	unsigned int count;
+	mstime timestamp;
+};
+
 struct CLIENT_DATA
 {
-
+	map<ushort, AmmoGenerator> mapBurstFills;
 };
 
 USERCMD UserCmds[] =
@@ -73,6 +81,7 @@ int set_iPluginDebug = 0;
 float set_fFighterOverkillAdjustment = 0.15f;
 int iLoadedDamageAdjusts = 0;
 int iLoadedArmorScales = 0;
+int iLoadedBurstFires = 0;
 
 LPTSTR szMailSlotName = TEXT("\\\\.\\mailslot\\KillposterMailslot");
 HANDLE hMailSlot = NULL;
@@ -81,10 +90,11 @@ sockaddr_in sockaddrFLHook;
 sockaddr_in sockaddrKillposter;
 SOCKET sKillposterSocket = NULL;
 
-map<uint, CLIENT_DATA> mapKillmailData;
+CLIENT_DATA aClientData[250];
 
 map<unsigned int, struct DamageAdjust> mapDamageAdjust;
 map<unsigned int, float> mapArmorScale;
+map<unsigned int, struct AmmoGenerator> mapBurstFire;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -134,7 +144,9 @@ BOOL WriteKillposterSocket(std::wstring szMessage)
 /// Clear client info when a client connects.
 void ClearClientInfo(uint iClientID)
 {
-	mapKillmailData.erase(iClientID);
+	ConPrint(L"BURSTFIRE: Clearing client info for client %u... ", iClientID);
+	aClientData[iClientID].mapBurstFills.clear();
+	ConPrint(L"cleared.\n", iClientID);
 }
 
 /// Load the configuration
@@ -144,6 +156,7 @@ void LoadSettings()
 	mapDamageAdjust.clear();
 	iLoadedDamageAdjusts = 0;
 	iLoadedArmorScales = 0;
+	iLoadedBurstFires = 0;
 
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
@@ -164,15 +177,16 @@ void LoadSettings()
 				{
 					struct DamageAdjust stEntry = { 0.0f };
 					stEntry.fighter = ini.get_value_float(0);
-					stEntry.transport = ini.get_value_float(1) ? ini.get_value_float(1) : stEntry.fighter;
-					stEntry.gunboat = ini.get_value_float(2) ? ini.get_value_float(2) : stEntry.transport;
-					stEntry.cruiser = ini.get_value_float(3) ? ini.get_value_float(3) : stEntry.gunboat;
-					stEntry.battlecruiser = ini.get_value_float(4) ? ini.get_value_float(4) : stEntry.cruiser;
-					stEntry.battleship = ini.get_value_float(5) ? ini.get_value_float(5) : stEntry.battlecruiser;
+					stEntry.freighter = ini.get_value_float(1) ? ini.get_value_float(1) : stEntry.fighter;
+					stEntry.transport = ini.get_value_float(2) ? ini.get_value_float(2) : stEntry.freighter;
+					stEntry.gunboat = ini.get_value_float(3) ? ini.get_value_float(3) : stEntry.transport;
+					stEntry.cruiser = ini.get_value_float(4) ? ini.get_value_float(4) : stEntry.gunboat;
+					stEntry.battlecruiser = ini.get_value_float(5) ? ini.get_value_float(5) : stEntry.cruiser;
+					stEntry.battleship = ini.get_value_float(6) ? ini.get_value_float(6) : stEntry.battlecruiser;
 					mapDamageAdjust[CreateID(ini.get_name_ptr())] = stEntry;
 					if (set_iPluginDebug)
-						ConPrint(L"DamageAdjust %s (%u) = %f, %f, %f, %f, %f, %f\n", stows(ini.get_name_ptr()).c_str(), CreateID(ini.get_name_ptr()), \
-							stEntry.fighter, stEntry.transport, stEntry.gunboat, stEntry.cruiser, stEntry.battlecruiser, stEntry.battleship);
+						ConPrint(L"DamageAdjust %s (%u) = %f, %f, %f, %f, %f, %f, %f\n", stows(ini.get_name_ptr()).c_str(), CreateID(ini.get_name_ptr()), \
+							stEntry.fighter, stEntry.freighter, stEntry.transport, stEntry.gunboat, stEntry.cruiser, stEntry.battlecruiser, stEntry.battleship);
 					++iLoadedDamageAdjusts;
 				}
 			}
@@ -187,12 +201,28 @@ void LoadSettings()
 					++iLoadedArmorScales;
 				}
 			}
+			if (ini.is_header("BurstFire"))
+			{
+				while (ini.read_value())
+				{
+					struct AmmoGenerator stEntry;
+					stEntry.ammo = CreateID(ini.get_value_string(0));
+					stEntry.count = ini.get_value_int(1);
+					stEntry.timestamp = ini.get_value_int(2);
+					mapBurstFire[CreateID(ini.get_name_ptr())] = stEntry;
+					if (set_iPluginDebug)
+						ConPrint(L"BurstFire %s (%u) = %d x %s after %llu ms\n", stows(ini.get_name_ptr()).c_str(), CreateID(ini.get_name_ptr()), \
+							ini.get_value_string(0), stEntry.count, stEntry.timestamp);
+					++iLoadedBurstFires;
+				}
+			}
 		}
 		ini.close();
 	}
 
 	ConPrint(L"BALANCEMAGIC: Loaded %u damage adjusts.\n", iLoadedDamageAdjusts);
 	ConPrint(L"BALANCEMAGIC: Loaded %u armor scales.\n", iLoadedArmorScales);
+	ConPrint(L"BALANCEMAGIC: Loaded %u burst fire weapons.\n", iLoadedBurstFires);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -426,8 +456,10 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			/*PrintUserCmdText(iDmgFrom, L"HkCb_AddDmgEntry CORONA iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f damage=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
 			iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);*/
 
-			if (targetShipClass < 6 || targetShipClass == 19)
+			if (targetShipClass == 0 || targetShipClass == 1 || targetShipClass == 3)
 				adjustedDamage = curr - iter->second.fighter / (bShieldsUp ? 2 : fTargetArmorScale);
+			else if (targetShipClass == 2 || targetShipClass == 4 || targetShipClass == 5 || targetShipClass == 19)
+				adjustedDamage = curr - iter->second.freighter / (bShieldsUp ? 2 : fTargetArmorScale);
 			else if (targetShipClass < 11)
 				adjustedDamage = curr - iter->second.transport / (bShieldsUp ? 2 : fTargetArmorScale);
 			else if (targetShipClass < 13)
@@ -455,9 +487,92 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 	}
 }
 
+void __stdcall FireWeapon(unsigned int iClientID, struct XFireWeaponInfo const &wpn)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (!iLoadedBurstFires)
+		return;
+
+	IObjInspectImpl *obj = HkGetInspect(iClientID);
+	if (obj)
+	{
+		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
+
+		for (short* slot = wpn.sArray1; slot != wpn.sArray2; slot++)
+		{
+			CEquipManager* eqmanager = (CEquipManager*)((char*)cship + 0xE4);
+			CEquip *equip = eqmanager->FindByID(*slot);
+			if (CEGun::cast(equip))
+			{
+				CEGun* cgun = (CEGun*)equip;
+				map<unsigned int, struct AmmoGenerator>::iterator iter = mapBurstFire.find(cgun->GunArch()->iArchID);
+				if (iter != mapBurstFire.end())
+				{
+					aClientData[iClientID].mapBurstFills[*slot].ammo = iter->second.ammo;
+					aClientData[iClientID].mapBurstFills[*slot].count++;
+					aClientData[iClientID].mapBurstFills[*slot].timestamp = GetTimeInMS() + iter->second.timestamp;
+					ConPrint(L"BURSTFIRE: Client %u fired a round of 0x%08X from slot %u.\n", iClientID, iter->second.ammo, *slot);
+				}
+				//PrintUserCmdText(iClientID, L"FireWeapon: 0x%08X", cgun->GunArch()->iArchID);
+			}
+		}
+	}
+}
+
 void __stdcall SPScanCargo(unsigned int const &iInstigatorShip, unsigned int const &iTargetShip, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
+}
+
+void __stdcall PlayerLaunch_AFTER(unsigned int iShipID, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (!iLoadedBurstFires)
+		return;
+
+	aClientData[iClientID].mapBurstFills.clear();
+	int i = 0;
+
+	IObjInspectImpl *obj = HkGetInspect(iClientID);
+	if (obj)
+	{
+		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
+		CEquipManager* eqmanager = (CEquipManager*)((char*)cship + 0xE4);
+		CEquipTraverser tr(-1);
+		CEquip *equip = eqmanager->Traverse(tr);
+		while (equip)
+		{
+			if (CEGun::cast(equip))
+			{
+				CEGun* cgun = (CEGun*)equip;
+				map<unsigned int, struct AmmoGenerator>::iterator iter = mapBurstFire.find(cgun->GunArch()->iArchID);
+				if (iter != mapBurstFire.end())
+				{
+					ConPrint(L"BURSTFIRE: PlayerLaunch_AFTER - Iteration %d for client %u, removing 200 units of 0x%08X.\n", i, iClientID, iter->second.ammo);
+					//HkRemoveCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), iter->second.ammo, 2000);	// better safe than sorry
+					aClientData[iClientID].mapBurstFills[i].ammo = iter->second.ammo;
+					aClientData[iClientID].mapBurstFills[i].count = iter->second.count;
+					aClientData[iClientID].mapBurstFills[i].timestamp = 0;
+					i++;
+				}
+			}
+			equip = eqmanager->Traverse(tr);
+		}
+	}
+
+	list<CARGO_INFO> lstCargo;
+	int iRemainingHoldSize = 0;
+	if (HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, iRemainingHoldSize) == HKE_OK)
+	{
+		foreach(lstCargo, CARGO_INFO, item)
+		{
+			for (map<unsigned int, struct AmmoGenerator>::iterator iter = mapBurstFire.begin(); iter != mapBurstFire.end(); ++iter)
+				if (item->iArchID == iter->second.ammo)
+					HkRemoveCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), item->iID, item->iCount);
+		}
+	}
 }
 
 void HkTimerCheckKick()
@@ -465,11 +580,56 @@ void HkTimerCheckKick()
 	returncode = DEFAULT_RETURNCODE;
 
 	uint curr_time = (uint)time(0);
-	static int messageno = 1;
+	/*static int messageno = 1;
 
 	wchar_t message[1024];
-	swprintf_s(message, L"Hi! I'm an FLHook plugin! This is message number %d.", messageno++);
+	swprintf_s(message, L"Hi! I'm an FLHook plugin! This is message number %d.", messageno++);*/
 	//WriteKillposterSocket(message);
+}
+
+void HkTimerNPCAndF1Check()
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (!iLoadedBurstFires)
+		return;
+
+	mstime curr_mstime = GetTimeInMS();
+	//ConPrint(L"BURSTFIRE: Tick %llu.\n", curr_mstime);
+	for (int i = 0; i < 250; i++)
+	{
+		if (aClientData[i].mapBurstFills.size())
+		{
+			map<uint, uint> ammogenerator;
+			//ConPrint(L"BURSTFIRE: Tick - Doing work for client %u.\n", i);
+			for (map<ushort, struct AmmoGenerator>::iterator iter = aClientData[i].mapBurstFills.begin(); iter != aClientData[i].mapBurstFills.end(); ++iter)
+			{
+				if (curr_mstime >= iter->second.timestamp)
+				{
+					ammogenerator[iter->second.ammo] += iter->second.count;
+					aClientData[i].mapBurstFills.erase(iter->first);
+				}
+			}
+
+			for (map<uint, uint>::iterator iter = ammogenerator.begin(); iter != ammogenerator.end(); ++iter)
+			{
+				HkAddCargo((const wchar_t*)Players.GetActiveCharacterName(i), iter->first, iter->second, false);
+				ConPrint(L"BURSTFIRE: Tick - Gave client %u %u rounds of 0x%08X.\n", i, iter->second, iter->first);
+			}
+
+			list<CARGO_INFO> lstCargo;
+			int iRemainingHoldSize = 0;
+			if (HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(i), lstCargo, iRemainingHoldSize) == HKE_OK)
+			{
+				foreach(lstCargo, CARGO_INFO, item)
+				{
+					for (map<unsigned int, struct AmmoGenerator>::iterator iter = mapBurstFire.begin(); iter != mapBurstFire.end(); ++iter)
+						if (item->iArchID == iter->second.ammo)
+							HkRemoveCargo((const wchar_t*)Players.GetActiveCharacterName(i), item->iID, item->iCount);
+				}
+			}
+		}
+	}
 }
 
 void Plugin_Communication_Callback(PLUGIN_MESSAGE msg, void* data)
@@ -502,13 +662,16 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 9));
 	//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqModifyItem, PLUGIN_HkIServerImpl_ReqModifyItem, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&FireWeapon, PLUGIN_HkIServerImpl_FireWeapon, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPScanCargo, PLUGIN_HkIServerImpl_SPScanCargo, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerNPCAndF1Check, PLUGIN_HkTimerNPCAndF1Check, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_Callback, PLUGIN_Plugin_Communication, 10));
 	return p_PI;
 }

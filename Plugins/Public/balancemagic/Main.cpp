@@ -90,7 +90,7 @@ sockaddr_in sockaddrFLHook;
 sockaddr_in sockaddrKillposter;
 SOCKET sKillposterSocket = NULL;
 
-CLIENT_DATA aClientData[250];
+CLIENT_DATA aClientData[MAX_CLIENT_ID+1];
 
 map<unsigned int, struct DamageAdjust> mapDamageAdjust;
 map<unsigned int, float> mapArmorScale;
@@ -144,9 +144,13 @@ BOOL WriteKillposterSocket(std::wstring szMessage)
 /// Clear client info when a client connects.
 void ClearClientInfo(uint iClientID)
 {
-	ConPrint(L"BURSTFIRE: Clearing client info for client %u... ", iClientID);
+	if (set_iPluginDebug > 2)
+		ConPrint(L"BURSTFIRE: Clearing client info for client %u... ", iClientID);
+
 	aClientData[iClientID].mapBurstFills.clear();
-	ConPrint(L"cleared.\n", iClientID);
+
+	if (set_iPluginDebug > 2)
+		ConPrint(L"cleared.\n", iClientID);
 }
 
 /// Load the configuration
@@ -512,7 +516,8 @@ void __stdcall FireWeapon(unsigned int iClientID, struct XFireWeaponInfo const &
 					aClientData[iClientID].mapBurstFills[*slot].ammo = iter->second.ammo;
 					aClientData[iClientID].mapBurstFills[*slot].count++;
 					aClientData[iClientID].mapBurstFills[*slot].timestamp = GetTimeInMS() + iter->second.timestamp;
-					ConPrint(L"BURSTFIRE: Client %u fired a round of 0x%08X from slot %u.\n", iClientID, iter->second.ammo, *slot);
+					if (set_iPluginDebug > 2)
+						ConPrint(L"BURSTFIRE: Client %u fired a round of 0x%08X from slot %u.\n", iClientID, iter->second.ammo, *slot);
 				}
 				//PrintUserCmdText(iClientID, L"FireWeapon: 0x%08X", cgun->GunArch()->iArchID);
 			}
@@ -550,7 +555,8 @@ void __stdcall PlayerLaunch_AFTER(unsigned int iShipID, unsigned int iClientID)
 				map<unsigned int, struct AmmoGenerator>::iterator iter = mapBurstFire.find(cgun->GunArch()->iArchID);
 				if (iter != mapBurstFire.end())
 				{
-					ConPrint(L"BURSTFIRE: PlayerLaunch_AFTER - Iteration %d for client %u, removing 200 units of 0x%08X.\n", i, iClientID, iter->second.ammo);
+					if (set_iPluginDebug > 2)
+						ConPrint(L"BURSTFIRE: PlayerLaunch_AFTER - Iteration %d for client %u, removing 200 units of 0x%08X.\n", i, iClientID, iter->second.ammo);
 					//HkRemoveCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), iter->second.ammo, 2000);	// better safe than sorry
 					aClientData[iClientID].mapBurstFills[i].ammo = iter->second.ammo;
 					aClientData[iClientID].mapBurstFills[i].count = iter->second.count;
@@ -596,7 +602,7 @@ void HkTimerNPCAndF1Check()
 
 	mstime curr_mstime = GetTimeInMS();
 	//ConPrint(L"BURSTFIRE: Tick %llu.\n", curr_mstime);
-	for (int i = 0; i < 250; i++)
+	for (int i = 0; i < MAX_CLIENT_ID; i++)
 	{
 		if (aClientData[i].mapBurstFills.size())
 		{
@@ -614,7 +620,8 @@ void HkTimerNPCAndF1Check()
 			for (map<uint, uint>::iterator iter = ammogenerator.begin(); iter != ammogenerator.end(); ++iter)
 			{
 				HkAddCargo((const wchar_t*)Players.GetActiveCharacterName(i), iter->first, iter->second, false);
-				ConPrint(L"BURSTFIRE: Tick - Gave client %u %u rounds of 0x%08X.\n", i, iter->second, iter->first);
+				if (set_iPluginDebug > 2)
+					ConPrint(L"BURSTFIRE: Tick - Gave client %u %u rounds of 0x%08X.\n", i, iter->second, iter->first);
 			}
 
 			list<CARGO_INFO> lstCargo;

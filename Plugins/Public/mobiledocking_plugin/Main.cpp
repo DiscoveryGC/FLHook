@@ -45,6 +45,8 @@ void HkTimerCheckKick()
 					PrintUserCmdText(checkCarrierClientID, L"Ship jettisoned.");
 				}
 			}
+
+			jettisonList.erase(it);
 		}
 	}
 }

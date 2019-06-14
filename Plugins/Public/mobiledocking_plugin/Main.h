@@ -1,5 +1,4 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__ 1
+#pragma once
 
 #include <windows.h>
 #include <stdio.h>
@@ -8,149 +7,78 @@
 #include <math.h>
 #include <list>
 #include <map>
-#include <algorithm>
 #include <thread>
+#include <chrono>
+#include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
 
-#include <chrono>
-#include <mutex>
-
 struct CLIENT_DATA
 {
 	uint iDockingModulesInstalled = 0;
-	vector<wstring> dockedShips = vector<wstring>();
+	int iDockingModulesAvailable = 0;
+	map<wstring, wstring> mapDockedShips;
 
-	// The name of the carrier.
-	wstring wscDockedWithCharname = L"";
+	// True if currently docked on a carrier
+	bool mobileDocked;
 
-	// The last real base this ship was on.
-	uint iLastBaseID = 0;
+	// The name of the carrier
+	wstring wscDockedWithCharname;
 
-	// The proxy base this ship is on. 0 if not docked, -1 if undocking, other values if docked.
+	// The last real base this ship was on
+	uint iLastBaseID;
+
+	// Proxy base in which the ship currently placed. 0 if not.
 	uint proxyBaseID = 0;
 
-	Vector carrierPos = Vector { 0, 0, -100000 };
-	Matrix carrierRot = Matrix();
+	Vector carrierPos;
+	Matrix carrierRot;
+	uint carrierSystem;
 
-	// The system in which current ship is. -1 if changing.
-	uint carrierSystem = 0;
+	// A base pointer used to teleport the ship into a base on undock
+	Universe::IBase *undockBase;
+	
+	// A flag denoting that the above base should be used as an undock point
+	bool baseUndock = false;
 };
 
-struct SHIP_LOCATION
-{
-	uint baseID = 0;
-	uint systemID = 0;
-	Vector pos = Vector { 0, 0, -100000 };
-	Vector rot = Vector { 0, 0, 0 };
-};
-
-typedef bool(*_UserCmdProc)(uint, const wstring &);
-
-struct USERCMD
-{
-	wchar_t *wszCmd;
-	_UserCmdProc proc;
-};
-
-struct AMMO
-{
-	uint ammoID;
-	uint ammoLimit;
-	bool stackable = false;
-};
-
-struct SUPPLY
-{
-	int efficiency;
-	int type;
-};
-
-struct SUPPLY_INFO
-{
-	bool hasAmmoSup = false;
-	bool hasHullSup = false;
-	bool hasShieldSup = false;
-	bool hasCloakSup = false;
-};
-
-struct Task
+struct DelayedAction
 {
 	function<void()> Function;
 	chrono::system_clock::time_point expiryTime;
+};
 
-	Task(int timeSeconds, function<void()> task)
+extern vector<DelayedAction> TaskScheduler;
+
+
+struct Task
+{
+	// Easy create of delayed actions.
+	Task(int delayTimeSeconds, function<void()> work)
 	{
-		Function = task;
-		expiryTime = chrono::system_clock::now() + chrono::seconds(timeSeconds);
+		DelayedAction action;
+		action.Function = work;
+		action.expiryTime = chrono::system_clock::now() + chrono::seconds(delayTimeSeconds);
+		TaskScheduler.push_back(action);
 	}
 };
 
-extern vector<Task> TaskScheduler;
+void LoadShip(string shipFileName);
+void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
+void SaveDockInfoCarried(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
 
-// SaveFiles.cpp
-string GetSavePath(wstring& charname, bool isCarrier);
-string GetSavePath(string& shipFileName, bool isCarrier);
-string GetFLAccPath(wstring& charname); 
-void LoadShip(string& shipFileName, uint shipClientId);
-void SaveDockInfoCarrier(wstring& charname, uint clientID, const CLIENT_DATA& client);
-void SaveDockInfoCarried(wstring& charname, uint clientID, const CLIENT_DATA& client);
-SHIP_LOCATION GetCarrierPosOffline(uint dockedClientID, wstring charname = L"");
-void JettisonShipOffline(uint carrierClientID, wstring dockedCharname);
-void JettisonShipOffline(wstring dockedCharname, wstring carrierCharname);
-void UpdateLastBaseOffline(wstring& dockedCharname, uint lastBaseID);
-void ThrowCargoOffline(wstring charname, Vector carrierPos, uint carrierSystemID, uint moveToBaseID);
-void UpdateDyingCarrierPos(wstring& charname, Vector carrierPos, Matrix carrierOrnt, uint carrierSystem);
-bool EditFLFile(vector<string> *linesToDelete, vector<string> *linesToAdd, map<string, vector<string>> *linesToReplace, string& path, bool createNew = false, bool compareHard = false);
-bool ReadFLFile(map<string, vector<string>> &fields, string& path);
-wstring HkGetCharnameFromCharFile(string charFile, CAccount* acc);
-
-// Main.cpp
-void JettisonShip(uint carrierClientID, wstring dockedCharname, bool eraseFromList = true);
-void DockShip(uint carrierShip, uint carrierClientID, uint dockingClientID);
-int CheckIfResupplyingAvailable(uint carrierClientID, uint dockedClientID, SUPPLY_INFO& info, bool notify);
-wstring EnumerateDockedShips(uint carrierClientID);
-Vector GetUndockingPosition(Vector carrierPos, Matrix carrierRot);
-uint GetProxyBaseForClient(uint clientID);
-uint GetProxyBaseForSystem(uint systemID);
-uint UpdateAvailableModules(uint clientID);
-
-// ClientCommands.cpp
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);
 
-// PlayerCommands.cpp
-bool CMD_listdocked(uint client, const wstring& wscCmd);
-bool CMD_conn(uint client, const wstring& wscCmd);
-bool CMD_return(uint client, const wstring& wscCmd);
-bool CMD_renameme(uint client, const wstring& wscCmd);
-bool CMD_jettisonship(uint client, const wstring& wscCmd);
-bool CMD_jettisonallships(uint client, const wstring& wscCmd);
-bool CMD_allowdock(uint client, const wstring& wscCmd);
-bool CMD_dockatbase(uint client, const wstring& wscCmd);
-bool CMD_loadsupplies(uint client, const wstring& wscCmd);
+// Is debug mode running
+static int set_iPluginDebug = 1;
+
+// The distance to undock from the carrier
+static int set_iMobileDockOffset = 100;
 
 extern map<uint, CLIENT_DATA> mobiledockClients;
 
 // A map of all docking requests pending approval by the carrier
 extern map<uint, uint> mapPendingDockingRequests;
-extern uint dockingModuleEquipmentID;
 
-extern int cargoCapacityLimit;
-extern int jettisonKickTime;
-extern int groupDockDelay;
-extern float dockDistance;
-extern int undockDistance;
-extern int crewMinimum;
-extern int crewEfficienyConst;
-
-extern uint crewGoodID;
-extern map<uint, AMMO> mapAmmo;
-extern map<uint, uint> mapBatteries;
-extern uint nanobotsID;
-extern uint batteriesID;
-extern vector<uint> boostedAmmo;
-extern map<uint, SUPPLY> mapSupplies;
-
-#endif

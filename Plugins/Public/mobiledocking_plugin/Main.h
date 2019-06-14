@@ -27,6 +27,9 @@ struct CLIENT_DATA
 	// The last real base this ship was on
 	uint iLastBaseID;
 
+	// Proxy base in which the ship currently placed. 0 if not.
+	uint proxyBaseID = 0;
+
 	Vector carrierPos;
 	Matrix carrierRot;
 	uint carrierSystem;
@@ -38,18 +41,26 @@ struct CLIENT_DATA
 	bool baseUndock = false;
 };
 
-struct DEFERREDJUMPS
+struct ActionJettison
 {
-	uint system;
-	Vector pos;
-	Matrix rot;
+	int timeLeft;
+	wstring carrierCharname;
+	wstring dockedCharname;
 };
 
-static map<uint, DEFERREDJUMPS> mapDeferredJumps;
+extern vector<ActionJettison> jettisonList;
 
-void LoadShip(string shipFileName);
-void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
-void SaveDockInfoCarried(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
+struct DelayedJettison
+{
+	DelayedJettison(int delayTimeSecond, wstring carrierCharname, wstring dockedCharname)
+	{
+		ActionJettison action;
+		action.timeLeft = delayTimeSecond;
+		action.carrierCharname = carrierCharname;
+		action.dockedCharname = dockedCharname;
+		jettisonList.push_back(action);
+	}
+};
 
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);

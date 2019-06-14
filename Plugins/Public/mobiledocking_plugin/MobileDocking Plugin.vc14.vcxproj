@@ -132,7 +132,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
   <ItemGroup>
     <ClCompile Include="ClientCommands.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="SaveFiles.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Source\FLHook.vcxproj">
@@ -144,6 +143,9 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ProjectReference Include="..\JSONBuddy\JSONBuddy.vcxproj">
       <Project>{097bffbb-2bbe-4e16-b2fb-3ed8e90ecbd7}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Main.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

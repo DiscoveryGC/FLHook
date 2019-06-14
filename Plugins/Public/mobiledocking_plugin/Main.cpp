@@ -311,6 +311,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 			// Remove charname from carrier's mapDockedShips.
 			mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
+			mobiledockClients[carrier_client].iDockingModulesAvailable++;
 		}
 		// If not - redirect to proxy base in carrier's system.
 		else
@@ -387,7 +388,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		uint iBaseID;
 		if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
 		{
-			PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please.");
+			PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
 			return;
 		}
 
@@ -652,7 +653,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		uint iBaseID;
 		if(pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
 		{
-			PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please.");
+			PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
 			return true;
 		}
 

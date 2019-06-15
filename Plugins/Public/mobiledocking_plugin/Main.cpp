@@ -27,7 +27,7 @@ void HkTimerCheckKick()
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	for (vector<ActionJettison>::iterator it = jettisonList.begin(); it != jettisonList.end(); it++)
+	for (vector<ActionJettison>::iterator it = jettisonList.begin(); it != jettisonList.end();)
 	{
 		it->timeLeft--;
 		if (it->timeLeft == 0)
@@ -38,15 +38,22 @@ void HkTimerCheckKick()
 			// If both carrier and docked ship are still at server.
 			if (checkDockedClientID != -1 && checkCarrierClientID != -1)
 			{
-				if (mobiledockClients[checkDockedClientID].wscDockedWithCharname == it->carrierCharname)
+				// If the client is still docked
+				if (mobiledockClients[checkDockedClientID].mobileDocked)
 				{
-					mobiledockClients[checkCarrierClientID].mapDockedShips.erase(it->dockedCharname);
-					HkKick(HkGetAccountByClientID(checkDockedClientID));
-					PrintUserCmdText(checkCarrierClientID, L"Ship jettisoned.");
+					HkKickReason(ARG_CLIENTID(checkDockedClientID), L"Forced undocking.");
+
+					// If wscDockedWithCharname, that does mean that carrier died and next message is not required.
+					if(!mobiledockClients[checkDockedClientID].wscDockedWithCharname.empty())
+					PrintUserCmdText(checkCarrierClientID, L"Jettisoning ship...");
 				}
 			}
 
 			jettisonList.erase(it);
+		}
+		else
+		{
+			it++;
 		}
 	}
 }
@@ -58,7 +65,7 @@ void JettisonShip(uint carrierClientID, uint dockedClientID)
 
 	if (dockedClientID != -1)
 	{
-		PrintUserCmdText(carrierClientID, L"Ship warned. If it won't undock in %i seconds, it will be kicked by force.", jettisonKickTime);
+		PrintUserCmdText(carrierClientID, L"Ship warned. If it doesn't undock in %i seconds, it will be kicked by force.", jettisonKickTime);
 		PrintUserCmdText(dockedClientID, L"Carrier wants to jettison your ship. Undock willingly or you will be kicked after %i seconds.", jettisonKickTime);
 		pub::Audio::PlaySoundEffect(dockedClientID, CreateID("rtc_klaxon_loop"));
 
@@ -98,27 +105,14 @@ void LogCheater(uint client, const wstring &reason)
 	}
 }
 
-bool IsShipDockedOnCarrier(wstring &carrier_charname, wstring &docked_charname)
-{
-	const uint client = HkGetClientIdFromCharname(carrier_charname);
-	if (client != -1)
-	{
-		return mobiledockClients[client].mapDockedShips.find(docked_charname) != mobiledockClients[client].mapDockedShips.end();
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip) 
+void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip)
 {
 
 	// Prepare references to the docked ship's copy of the carrierShip's position and rotation for manipulation
 	Vector& carrierPos = mobiledockClients[dockedClientId].carrierPos;
 	Matrix& carrierRot = mobiledockClients[dockedClientId].carrierRot;
 
-		
+
 	// If the carrier is out in space, simply set the undock location to where the carrier is currently
 	pub::SpaceObj::GetSystem(carrierShip, mobiledockClients[dockedClientId].carrierSystem);
 	pub::SpaceObj::GetLocation(carrierShip, carrierPos, carrierRot);
@@ -172,23 +166,23 @@ void LoadSettings()
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\dockingmodules.cfg";
-	
+
 	int dockingModAmount = 0;
 	INI_Reader ini;
-	if(ini.open(scPluginCfgFile.c_str(), false))
+	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
-		while(ini.read_header())
+		while (ini.read_header())
 		{
-			if(ini.is_header("Config"))
+			if (ini.is_header("Config"))
 			{
-				while(ini.read_value())
+				while (ini.read_value())
 				{
-					if(ini.is_value("allowedmodule"))
+					if (ini.is_value("allowedmodule"))
 					{
 						dockingModuleEquipmentIds.push_back(CreateID(ini.get_value_string()));
 						dockingModAmount++;
 					}
-					else if(ini.is_value("cargo_capacity_limit"))
+					else if (ini.is_value("cargo_capacity_limit"))
 					{
 						cargoCapacityLimit = ini.get_value_int(0);
 					}
@@ -206,12 +200,14 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	mobiledockClients[iClientID].iDockingModulesInstalled = 0;
+
 	// Check to see if the vessel undocking currently has a docking module equipped
-	for(list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
-		if(find(dockingModuleEquipmentIds.begin(), dockingModuleEquipmentIds.end(), item->iArchID) != dockingModuleEquipmentIds.end())
+		if (find(dockingModuleEquipmentIds.begin(), dockingModuleEquipmentIds.end(), item->iArchID) != dockingModuleEquipmentIds.end())
 		{
-			if(item->bMounted)
+			if (item->bMounted)
 			{
 				mobiledockClients[iClientID].iDockingModulesInstalled++;
 			}
@@ -222,11 +218,10 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 	mobiledockClients[iClientID].iDockingModulesAvailable = (mobiledockClients[iClientID].iDockingModulesInstalled - mobiledockClients[iClientID].mapDockedShips.size());
 
 	// If this is a ship which is currently docked, clear the market
-	if(mobiledockClients[iClientID].mobileDocked)
+	if (mobiledockClients[iClientID].mobileDocked)
 	{
 		SendResetMarketOverride(iClientID);
 	}
-
 }
 
 // Temporary storage for client data to be handled in LaunchPosHook.
@@ -234,7 +229,6 @@ CLIENT_DATA undockingShip;
 
 void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 {
-
 	returncode = DEFAULT_RETURNCODE;
 
 	uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
@@ -243,11 +237,38 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 	if (mobiledockClients[client].mobileDocked)
 	{
-
 		returncode = SKIPPLUGINS;
 
+		// Set last base to last real base this ship was on. If this was POB... well, base plugin should export more functions to work with.
+		Players[client].iLastBaseID = mobiledockClients[client].iLastBaseID;
 
-		if (carrier_client == -1)
+		// If client mobiledocked, but wscDockedWithCharname empty, that means that carrier ship on which the client was on died.
+		if (mobiledockClients[client].wscDockedWithCharname.empty())
+		{
+			// If died carrier and docked ship are in same system.
+			if (Players[client].iSystemID == mobiledockClients[client].carrierSystem)
+			{
+				// Now that the data is prepared, send the player to the carrier's location
+				undockingShip = mobiledockClients[client];
+
+				// Clear the client out of the mobiledockClients now that it's no longer docked
+				mobiledockClients.erase(client);
+			}
+			// If not - redirect to proxy base in carrier's system.
+			else
+			{
+				wstring scProxyBase = HkGetSystemNickByID(mobiledockClients[client].carrierSystem) + L"_proxy_base";
+				if (pub::GetBaseID(mobiledockClients[client].proxyBaseID, (wstos(scProxyBase)).c_str()) == -4)
+				{
+					PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %ws", scProxyBase);
+					return;
+				}
+
+				mobiledockClients[client].carrierSystem = -1;
+			}
+			return;
+		}
+		else if (carrier_client == -1)
 		{
 			// If the carrier doesn't exist for some reason, force the client to dock on it's last known base
 			uint iBaseID = mobiledockClients[client].iLastBaseID;
@@ -255,9 +276,8 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 			mobiledockClients[client].baseUndock = true;
 
 			return;
-
 		}
-		
+
 		//Get the carrier ship information
 		uint carrierShip;
 		pub::Player::GetShip(carrier_client, carrierShip);
@@ -266,7 +286,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		pub::Player::GetShip(client, clientShip);
 
 		// Check to see if the carrier is currently in a base. If so, force the client to dock on that base.
-		if(!carrierShip)
+		if (!carrierShip)
 		{
 			uint iBaseID;
 			pub::Player::GetBase(carrier_client, iBaseID);
@@ -275,26 +295,10 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 			{
 				// Set the flags which the PlayerLaunch_AFTER uses to handle teleporting to the carriers base
 				mobiledockClients[client].undockBase = Universe::get_base(iBaseID);
+				mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
 				mobiledockClients[client].baseUndock = true;
+				return;
 			}
-			else
-			{
-				// If died carrier and docked ship are in same system.
-				if (Players[client].iSystemID == mobiledockClients[client].carrierSystem)
-				{
-					// Now that the data is prepared, send the player to the carrier's location
-					undockingShip = mobiledockClients[client];
-
-					// Clear the client out of the mobiledockClients now that it's no longer docked
-					mobiledockClients.erase(client);
-				}
-				// If not - redirect to proxy base in carrier's system.
-				else
-				{
-					mobiledockClients[client].carrierSystem = -1;
-				}
-			}
-			return;
 		}
 
 		// If carrier and docked ship are in same system.
@@ -375,7 +379,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 
 	// Is the client flagged to dock at a base after exiting?
-	if(mobiledockClients[client].baseUndock)
+	if (mobiledockClients[client].baseUndock)
 	{
 		pub::Player::ForceLand(client, mobiledockClients[client].undockBase->iBaseID);
 		mobiledockClients.erase(client);
@@ -384,18 +388,19 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	// Land ship to proxy base in carrier's system if they are in different systems.
 	if (mobiledockClients[client].carrierSystem == -1)
 	{
-		string scProxyBase = HkGetPlayerSystemS(HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname)) + "_proxy_base";
-		uint iBaseID;
-		if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
+		if (!mobiledockClients[client].wscDockedWithCharname.empty())
 		{
-			PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
-			return;
+			string scProxyBase = HkGetPlayerSystemS(HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname)) + "_proxy_base";
+			if (pub::GetBaseID(mobiledockClients[client].proxyBaseID, scProxyBase.c_str()) == -4)
+			{
+				PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
+				return;
+			}
 		}
 
-		pub::Player::ForceLand(client, iBaseID);
-		PrintUserCmdText(client, L"Navmap updated succesfully.");
+		pub::Player::ForceLand(client, mobiledockClients[client].proxyBaseID);
+		PrintUserCmdText(client, L"Navmap updated successfully.");
 		mobiledockClients[client].carrierSystem = Players[client].iSystemID;
-		mobiledockClients[client].proxyBaseID = iBaseID;
 	}
 }
 
@@ -489,35 +494,21 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 				{
 					uint iDockedClientID = HkGetClientIdFromCharname(i->second);
 
-					// Make sure that each docked ship agrees that it's docked before sending a teleport order
-					if(!mobiledockClients[iDockedClientID].mobileDocked)
-					{
-						mobiledockClients[client].mapDockedShips.erase(i->first);
-						continue;
-					}
-
 					// Update the coordinates the given ship should launch to.
 					UpdateCarrierLocationInformation(iDockedClientID, cship->get_position(), cship->get_orientation());
+
+					// Carrier is no more. Remove character name.
+					mobiledockClients[iDockedClientID].wscDockedWithCharname.clear();
 
 					// Due to the carrier not existing anymore, we have to pull the system information from the carriers historical location.
 					mobiledockClients[iDockedClientID].carrierSystem = cship->iSystem;
 
-					if (iDockedClientID)
-					{
-						JettisonShip(client, iDockedClientID);
-					}
+					JettisonShip(client, iDockedClientID);
 				}
 
 				// Clear the carrier from the list
 				mobiledockClients[client].mapDockedShips.clear();
 				mobiledockClients[client].iDockingModulesAvailable = mobiledockClients[client].iDockingModulesInstalled;
-			}
-			// If this was last docked at a carrier then set the last base to the to
-			// last real base the ship docked at.
-			else if (mobiledockClients[client].iLastBaseID)
-			{
-				Players[client].iLastBaseID = mobiledockClients[client].iLastBaseID;
-				mobiledockClients[client].iLastBaseID = 0;
 			}
 		}
 	}
@@ -528,36 +519,36 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if(wscCmd.find(L"/listdocked") == 0)
+	if (wscCmd.find(L"/listdocked") == 0)
 	{
-		if(mobiledockClients[client].mapDockedShips.empty())
+		if (mobiledockClients[client].mapDockedShips.empty())
 		{
 			PrintUserCmdText(client, L"No ships currently docked");
 		}
 		else
 		{
 			PrintUserCmdText(client, L"Docked ships:");
-			for(map<wstring, wstring>::iterator i = mobiledockClients[client].mapDockedShips.begin();
+			for (map<wstring, wstring>::iterator i = mobiledockClients[client].mapDockedShips.begin();
 				i != mobiledockClients[client].mapDockedShips.end(); ++i)
 			{
 				PrintUserCmdText(client, i->first);
 			}
 		}
 	}
-	else if(wscCmd.find(L"/conn") == 0)
+	else if (wscCmd.find(L"/conn") == 0)
 	{
 		// This plugin always runs before the Conn Plugin runs it's /conn function. Verify that there are no docked ships.
-		if(!mobiledockClients[client].mapDockedShips.empty())
+		if (!mobiledockClients[client].mapDockedShips.empty())
 		{
 			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked with you!");
 			returncode = SKIPPLUGINS;
 		}
 	}
-	else if(wscCmd.find(L"/jettisonship") == 0)
+	else if (wscCmd.find(L"/jettisonship") == 0)
 	{
 		// Get the supposed ship we should be ejecting from the command parameters
 		wstring charname = Trim(GetParam(wscCmd, ' ', 1));
-		if(charname.empty())
+		if (charname.empty())
 		{
 			PrintUserCmdText(client, L"Usage: /jettisonship <charname>");
 			return true;
@@ -566,7 +557,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		// Only allow jettisonning a ship if the carrier is undocked
 		uint carrierShip;
 		pub::Player::GetShip(client, carrierShip);
-		if(!carrierShip)
+		if (!carrierShip)
 		{
 			PrintUserCmdText(client, L"You can only jettison a vessel if you are in space.");
 			return true;
@@ -574,7 +565,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 
 		// Check to see if the user listed is actually docked with the carrier at the moment
-		if(mobiledockClients[client].mapDockedShips.find(charname) == mobiledockClients[client].mapDockedShips.end())
+		if (mobiledockClients[client].mapDockedShips.find(charname) == mobiledockClients[client].mapDockedShips.end())
 		{
 			PrintUserCmdText(client, L"%s is not docked with you!", charname);
 			return true;
@@ -582,24 +573,19 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 		// The player exists. Remove him from the docked list, and kick him into space
 		const uint iDockedClientID = HkGetClientIdFromCharname(charname);
-		if(iDockedClientID)
+		if (iDockedClientID)
 		{
-			uint carrierShip;
-			pub::Player::GetShip(client, carrierShip);
-
 			// Update the client with the current carrier location
 			UpdateCarrierLocationInformation(iDockedClientID, carrierShip);
 
-			//Force the docked ship to launch. The teleport coordinates have been set by the previous method
-			const CLIENT_DATA& dockedShipData = mobiledockClients[iDockedClientID];
-			mobiledockClients[client].iDockingModulesAvailable++;
+			// Force the docked ship to launch. The teleport coordinates have been set by the previous method
 			JettisonShip(client, iDockedClientID);
 		}
 
 		return true;
 
 	}
-	else if(wscCmd.find(L"/allowdock")==0)
+	else if (wscCmd.find(L"/allowdock") == 0)
 	{
 		//If we're not in space, then ignore the request
 		uint iShip;
@@ -639,7 +625,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		// Check if we're in conn. If so, reject the request
 		uint clientSystem;
 		pub::SpaceObj::GetSystem(client, clientSystem);
-		if(clientSystem == connSystemID)
+		if (clientSystem == connSystemID)
 		{
 			mapPendingDockingRequests.erase(iTargetClientID);
 			PrintUserCmdText(client, L"You cannot dock in Connecticut.");
@@ -651,7 +637,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 		string scProxyBase = HkGetPlayerSystemS(client) + "_proxy_base";
 		uint iBaseID;
-		if(pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
+		if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
 		{
 			PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
 			return true;
@@ -687,7 +673,7 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 	returncode = DEFAULT_RETURNCODE;
 
 	// If the ship was docked to someone, erase it from docked ship list.
-	if (!mobiledockClients[iClientID].wscDockedWithCharname.empty())
+	if (mobiledockClients[iClientID].mobileDocked)
 	{
 		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
 
@@ -696,13 +682,9 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 		{
 			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
+			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
 		}
-
-		// Redirect client to last real base.
-		Players[iClientID].iBaseID = mobiledockClients[iClientID].iLastBaseID;
-		Players[iClientID].iLastBaseID = mobiledockClients[iClientID].iLastBaseID;
 	}
-
 
 	// Erase all client data from plugin workset
 	mapPendingDockingRequests.erase(iClientID);
@@ -717,7 +699,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// calls load settings on FLHook startup and .rehash.
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)

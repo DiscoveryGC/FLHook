@@ -14,15 +14,15 @@
 
 struct CLIENT_DATA
 {
-	uint iDockingModulesInstalled = 0;
 	int iDockingModulesAvailable = 0;
+	uint iDockingModulesInstalled = 0;
 	map<wstring, wstring> mapDockedShips;
 
 	// True if currently docked on a carrier
-	bool mobileDocked;
+	bool mobileDocked = false;
 
 	// The name of the carrier
-	wstring wscDockedWithCharname;
+	wstring wscDockedWithCharname = L"";
 
 	// The last real base this ship was on
 	uint iLastBaseID;
@@ -64,9 +64,6 @@ struct DelayedJettison
 
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);
-
-// Is debug mode running
-static int set_iPluginDebug = 1;
 
 // The distance to undock from the carrier
 static int set_iMobileDockOffset = 100;

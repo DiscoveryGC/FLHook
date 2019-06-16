@@ -112,7 +112,7 @@ void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip)
 	Vector& carrierPos = mobiledockClients[dockedClientId].carrierPos;
 	Matrix& carrierRot = mobiledockClients[dockedClientId].carrierRot;
 
-			
+		
 	// If the carrier is out in space, simply set the undock location to where the carrier is currently
 	pub::SpaceObj::GetSystem(carrierShip, mobiledockClients[dockedClientId].carrierSystem);
 	pub::SpaceObj::GetLocation(carrierShip, carrierPos, carrierRot);
@@ -166,7 +166,7 @@ void LoadSettings()
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\dockingmodules.cfg";
-		
+	
 	int dockingModAmount = 0;
 	INI_Reader ini;
 	if(ini.open(scPluginCfgFile.c_str(), false))
@@ -222,6 +222,7 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 	{
 		SendResetMarketOverride(iClientID);
 	}
+
 }
 
 // Temporary storage for client data to be handled in LaunchPosHook.
@@ -280,7 +281,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 			return;
 
 		}
-				
+		
 		//Get the carrier ship information
 		uint carrierShip;
 		pub::Player::GetShip(carrier_client, carrierShip);
@@ -291,10 +292,11 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		// Check to see if the carrier is currently in a base. If so, force the client to dock on that base.
 		if(!carrierShip)
 		{
+
 			uint iBaseID;
 			pub::Player::GetBase(carrier_client, iBaseID);
 
-			if (iBaseID)
+			if(iBaseID)
 			{
 				// Set the flags which the PlayerLaunch_AFTER uses to handle teleporting to the carriers base
 				mobiledockClients[client].undockBase = Universe::get_base(iBaseID);
@@ -673,6 +675,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 {
+
 	returncode = DEFAULT_RETURNCODE;
 
 	// If the ship was docked to someone, erase it from docked ship list.

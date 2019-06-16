@@ -14,8 +14,8 @@
 
 struct CLIENT_DATA
 {
-	int iDockingModulesAvailable = 0;
 	uint iDockingModulesInstalled = 0;
+	int iDockingModulesAvailable = 0;
 	map<wstring, wstring> mapDockedShips;
 
 	// True if currently docked on a carrier
@@ -39,6 +39,9 @@ struct CLIENT_DATA
 	
 	// A flag denoting that the above base should be used as an undock point
 	bool baseUndock = false;
+
+	// This shows you if the character is on died carrier right now.
+	bool carrierDied = false;
 };
 
 struct ActionJettison

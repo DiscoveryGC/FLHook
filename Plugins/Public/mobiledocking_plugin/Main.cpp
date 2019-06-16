@@ -39,13 +39,13 @@ void HkTimerCheckKick()
 			if (checkDockedClientID != -1 && checkCarrierClientID != -1)
 			{
 				// If the client is still docked
-				if (mobiledockClients[checkDockedClientID].mobileDocked)
+				if (mobiledockClients[checkDockedClientID].wscDockedWithCharname == it->carrierCharname)
 				{
 					HkKickReason(ARG_CLIENTID(checkDockedClientID), L"Forced undocking.");
 
-					// If wscDockedWithCharname, that does mean that carrier died and next message is not required.
-					if(!mobiledockClients[checkDockedClientID].wscDockedWithCharname.empty())
-					PrintUserCmdText(checkCarrierClientID, L"Jettisoning ship...");
+					// If carrier died, we don't need this message.
+					if(!mobiledockClients[checkDockedClientID].carrierDied)
+						PrintUserCmdText(checkCarrierClientID, L"Jettisoning ship...");
 				}
 			}
 
@@ -65,8 +65,15 @@ void JettisonShip(uint carrierClientID, uint dockedClientID)
 
 	if (dockedClientID != -1)
 	{
-		PrintUserCmdText(carrierClientID, L"Ship warned. If it doesn't undock in %i seconds, it will be kicked by force.", jettisonKickTime);
-		PrintUserCmdText(dockedClientID, L"Carrier wants to jettison your ship. Undock willingly or you will be kicked after %i seconds.", jettisonKickTime);
+		if (!mobiledockClients[dockedClientID].carrierDied)
+		{
+			PrintUserCmdText(carrierClientID, L"Ship warned. If it doesn't undock in %i seconds, it will be kicked by force.", jettisonKickTime);
+			PrintUserCmdText(dockedClientID, L"Carrier wants to jettison your ship. Undock willingly or you will be kicked after %i seconds.", jettisonKickTime);
+		}
+		else
+		{
+			PrintUserCmdText(dockedClientID, L"ALERT! Carrier ship is being destroyed. Launch ship or you will die in explosion.");
+		}
 		pub::Audio::PlaySoundEffect(dockedClientID, CreateID("rtc_klaxon_loop"));
 
 		// Create delayed action.
@@ -245,8 +252,8 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		// Set last base to last real base this ship was on. If this was POB... well, base plugin should export more functions to work with.
 		Players[client].iLastBaseID = mobiledockClients[client].iLastBaseID;
 
-		// If client mobiledocked, but wscDockedWithCharname empty, that means that carrier ship on which the client was on died.
-		if (mobiledockClients[client].wscDockedWithCharname.empty())
+		// Check if carrier died.
+		if (mobiledockClients[client].carrierDied)
 		{
 			// If died carrier and docked ship are in same system.
 			if (Players[client].iSystemID == mobiledockClients[client].carrierSystem)
@@ -393,7 +400,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	// Land ship to proxy base in carrier's system if they are in different systems.
 	if (mobiledockClients[client].carrierSystem == -1)
 	{
-		if (!mobiledockClients[client].wscDockedWithCharname.empty())
+		if (!mobiledockClients[client].carrierDied)
 		{
 			string scProxyBase = HkGetPlayerSystemS(HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname)) + "_proxy_base";
 			if (pub::GetBaseID(mobiledockClients[client].proxyBaseID, scProxyBase.c_str()) == -4)
@@ -404,6 +411,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		}
 
 		pub::Player::ForceLand(client, mobiledockClients[client].proxyBaseID);
+		// Send the message because if carrier goes to another system, docked ships remain in previous with outdated system navmap. We notify client about it is being updated.
 		PrintUserCmdText(client, L"Navmap updated successfully.");
 		mobiledockClients[client].carrierSystem = Players[client].iSystemID;
 	}
@@ -502,8 +510,8 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 					// Update the coordinates the given ship should launch to.
 					UpdateCarrierLocationInformation(iDockedClientID, cship->get_position(), cship->get_orientation());
 
-					// Carrier is no more. Remove character name.
-					mobiledockClients[iDockedClientID].wscDockedWithCharname.clear();
+					// Carrier is no more. Set the flag.
+					mobiledockClients[iDockedClientID].carrierDied = true;
 
 					// Due to the carrier not existing anymore, we have to pull the system information from the carriers historical location.
 					mobiledockClients[iDockedClientID].carrierSystem = cship->iSystem;
@@ -684,7 +692,7 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
 
 		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
-		if (carrierClientID != -1)
+		if (carrierClientID != -1 && !mobiledockClients[iClientID].carrierDied)
 		{
 			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);

@@ -27,7 +27,7 @@ void HkTimerCheckKick()
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	for (vector<ActionJettison>::iterator it = jettisonList.begin(); it != jettisonList.end();)
+	for (vector<ActionJettison>::iterator it = jettisonList.begin(); it != jettisonList.end(); )
 	{
 		it->timeLeft--;
 		if (it->timeLeft == 0)
@@ -249,7 +249,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 		returncode = SKIPPLUGINS;
 
-		// Set last base to last real base this ship was on. If this was POB... well, base plugin should export more functions to work with.
+		// Set last base to last real base this ship was on. POB support will be added in 0.9.X version.
 		Players[client].iLastBaseID = mobiledockClients[client].iLastBaseID;
 
 		// Check if carrier died.
@@ -699,11 +699,6 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
 		}
 	}
-
-
-	// Erase all client data from plugin workset
-	mapPendingDockingRequests.erase(iClientID);
-	mobiledockClients.erase(iClientID);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -756,5 +751,4 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 
 	return p_PI;
-
 }

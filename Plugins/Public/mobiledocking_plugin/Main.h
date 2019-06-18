@@ -53,18 +53,6 @@ struct ActionJettison
 
 extern vector<ActionJettison> jettisonList;
 
-struct DelayedJettison
-{
-	DelayedJettison(int delayTimeSecond, wstring carrierCharname, wstring dockedCharname)
-	{
-		ActionJettison action;
-		action.timeLeft = delayTimeSecond;
-		action.carrierCharname = carrierCharname;
-		action.dockedCharname = dockedCharname;
-		jettisonList.push_back(action);
-	}
-};
-
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);
 
@@ -75,4 +63,3 @@ extern map<uint, CLIENT_DATA> mobiledockClients;
 
 // A map of all docking requests pending approval by the carrier
 extern map<uint, uint> mapPendingDockingRequests;
-

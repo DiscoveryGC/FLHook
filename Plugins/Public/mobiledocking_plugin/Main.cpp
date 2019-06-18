@@ -49,13 +49,23 @@ void HkTimerCheckKick()
 				}
 			}
 
-			jettisonList.erase(it);
+			it = jettisonList.erase(it);
 		}
 		else
 		{
 			it++;
 		}
 	}
+}
+
+// Easy creation of delayed action.
+void DelayedJettison(int delayTimeSecond, wstring carrierCharname, wstring dockedCharname)
+{
+	ActionJettison action;
+	action.timeLeft = delayTimeSecond;
+	action.carrierCharname = carrierCharname;
+	action.dockedCharname = dockedCharname;
+	jettisonList.push_back(action);
 }
 
 void JettisonShip(uint carrierClientID, uint dockedClientID)
@@ -746,7 +756,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LaunchPosHook, PLUGIN_LaunchPosHook, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LaunchPosHook, PLUGIN_LaunchPosHook, -1));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 

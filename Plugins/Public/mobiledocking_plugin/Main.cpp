@@ -91,6 +91,26 @@ void JettisonShip(uint carrierClientID, uint dockedClientID)
 	}
 }
 
+// Returns count of installed docking modules on ship of specific client.
+uint GetInstalledModules(uint iClientID)
+{
+	uint modules = 0;
+
+	// Check to see if the vessel undocking currently has a docking module equipped
+	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		if (find(dockingModuleEquipmentIds.begin(), dockingModuleEquipmentIds.end(), item->iArchID) != dockingModuleEquipmentIds.end())
+		{
+			if (item->bMounted)
+			{
+				modules++;
+			}
+		}
+	}
+
+	return modules;
+}
+
 void LogCheater(uint client, const wstring &reason)
 {
 	CAccount *acc = Players.FindAccountFromClientID(client);
@@ -217,19 +237,7 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	mobiledockClients[iClientID].iDockingModulesInstalled = 0;
-
-	// Check to see if the vessel undocking currently has a docking module equipped
-	for(list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
-	{
-		if(find(dockingModuleEquipmentIds.begin(), dockingModuleEquipmentIds.end(), item->iArchID) != dockingModuleEquipmentIds.end())
-		{
-			if(item->bMounted)
-			{
-				mobiledockClients[iClientID].iDockingModulesInstalled++;
-			}
-		}
-	}
+	mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 
 	// Normalize the docking modules available, with the number of people currently docked
 	mobiledockClients[iClientID].iDockingModulesAvailable = (mobiledockClients[iClientID].iDockingModulesInstalled - mobiledockClients[iClientID].mapDockedShips.size());
@@ -693,7 +701,6 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 {
-
 	returncode = DEFAULT_RETURNCODE;
 
 	// If the ship was docked to someone, erase it from docked ship list.
@@ -709,6 +716,16 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
 		}
 	}
+}
+
+void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
+{
+	// Erase all plugin info associated with the client in case if the person has switched characters to prevent any bugs.
+	DisConnect(iClientID, EFLConnection());
+	ClearClientInfo(iClientID);
+
+	// Update count of installed modules in case if client left his ship in open space before.
+	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -748,6 +765,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));

@@ -146,6 +146,7 @@ namespace MiscCmds
 	/** Move a ship a little if it is stuck in the base */
 	bool MiscCmds::UserCmd_Stuck(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
+		float fTradeLaneRingRadiusSafeDistance = 245.0f;
 		wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
 
 		HKPLAYERINFO p;
@@ -167,9 +168,34 @@ namespace MiscCmds
 		Vector pos;
 		Matrix rot;
 		pub::SpaceObj::GetLocation(p.iShip, pos, rot);
-		pos.x += 15;
-		pos.y += 15;
-		pos.z += 15;
+
+		// Try to figure out if we're stuck in a lane or just stuck in general
+		uint iTarget, iTargetType;
+		Vector tpos;
+		Matrix trot;
+		pub::SpaceObj::GetTarget(p.iShip, iTarget);
+		if (iTarget)
+		{
+			pub::SpaceObj::GetType(iTarget, iTargetType);
+			if (iTargetType == OBJ_TRADELANE_RING)
+			{
+				pub::SpaceObj::GetHardpoint(iTarget, "HpLeftLane", &tpos, &trot);
+				if (HkDistance3D(pos, tpos) < fTradeLaneRingRadiusSafeDistance)
+					pos = tpos;
+				else
+				{
+					pub::SpaceObj::GetHardpoint(iTarget, "HpRightLane", &tpos, &trot);
+					if (HkDistance3D(pos, tpos) < fTradeLaneRingRadiusSafeDistance)
+						pos = tpos;
+				}
+			}
+		}
+		else
+		{
+			pos.x += 15;
+			pos.y += 15;
+			pos.z += 15;
+		}
 		HkRelocateClient(iClientID, pos, rot);
 
 		wstring wscMsg = set_wscStuckMsg;

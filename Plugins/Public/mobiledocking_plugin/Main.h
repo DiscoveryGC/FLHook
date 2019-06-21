@@ -19,13 +19,16 @@ struct CLIENT_DATA
 	map<wstring, wstring> mapDockedShips;
 
 	// True if currently docked on a carrier
-	bool mobileDocked;
+	bool mobileDocked = false;
 
 	// The name of the carrier
-	wstring wscDockedWithCharname;
+	wstring wscDockedWithCharname = L"";
 
 	// The last real base this ship was on
 	uint iLastBaseID;
+
+	// Proxy base in which the ship currently placed. 0 if not.
+	uint proxyBaseID = 0;
 
 	Vector carrierPos;
 	Matrix carrierRot;
@@ -36,26 +39,22 @@ struct CLIENT_DATA
 	
 	// A flag denoting that the above base should be used as an undock point
 	bool baseUndock = false;
+
+	// This shows you if the character is on died carrier right now.
+	bool carrierDied = false;
 };
 
-struct DEFERREDJUMPS
+struct ActionJettison
 {
-	uint system;
-	Vector pos;
-	Matrix rot;
+	int timeLeft;
+	wstring carrierCharname;
+	wstring dockedCharname;
 };
 
-static map<uint, DEFERREDJUMPS> mapDeferredJumps;
-
-void LoadShip(string shipFileName);
-void SaveDockInfoCarrier(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
-void SaveDockInfoCarried(const wstring& shipFileName, uint clientID, const CLIENT_DATA& client);
+extern vector<ActionJettison> jettisonList;
 
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);
-
-// Is debug mode running
-static int set_iPluginDebug = 1;
 
 // The distance to undock from the carrier
 static int set_iMobileDockOffset = 100;
@@ -64,4 +63,3 @@ extern map<uint, CLIENT_DATA> mobiledockClients;
 
 // A map of all docking requests pending approval by the carrier
 extern map<uint, uint> mapPendingDockingRequests;
-

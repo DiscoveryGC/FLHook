@@ -156,30 +156,12 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 
 }
 
-void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
-{
-	returncode = DEFAULT_RETURNCODE;
-
-	// If the ship was docked to someone, erase it from docked ship list.
-	if (mobiledockClients[iClientID].mobileDocked)
-	{
-		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
-
-		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
-		if (carrierClientID != -1)
-		{
-			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
-			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
-		}
-	}
-}
-
 // Temporary storage for client data to be handled in LaunchPosHook.
 CLIENT_DATA undockingShip;
 
 void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 {
+
 	returncode = DEFAULT_RETURNCODE;
 
 	uint carrier_client = HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname);
@@ -479,7 +461,10 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			// Force the docked ship to launch.
 			UpdateCarrierLocationInformation(iDockedClientID, carrierShip);
 			ForceLaunch(iDockedClientID);
-			DisConnect(iDockedClientID, EFLConnection());
+
+			// Remove charname from carrier's mapDockedShips.
+			mobiledockClients[client].mapDockedShips.erase(charname);
+			mobiledockClients[client].iDockingModulesAvailable++;
 		}
 
 		return true;
@@ -556,6 +541,25 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		return true;
 	}
 	return false;
+}
+
+void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	// If the ship was docked to someone, erase it from docked ship list.
+	if (mobiledockClients[iClientID].mobileDocked)
+	{
+		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
+
+		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
+		if (carrierClientID != -1)
+		{
+			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
+			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
+		}
+	}
 }
 
 void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)

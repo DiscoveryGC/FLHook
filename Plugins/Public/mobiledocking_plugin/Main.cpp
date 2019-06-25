@@ -173,9 +173,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 		returncode = SKIPPLUGINS;
 
-		// Set last base to last real base this ship was on. POB support will be added in 0.9.X version.
-		Players[client].iLastBaseID = mobiledockClients[client].iLastBaseID;
-
 		// Check if carrier jettisons this ship.
 		if (mobiledockClients[client].forceUndocking)
 		{

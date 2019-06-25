@@ -36,20 +36,22 @@ struct CLIENT_DATA
 
 	// A base pointer used to teleport the ship into a base on undock
 	Universe::IBase *undockBase;
-	
+
 	// A flag denoting that the above base should be used as an undock point
 	bool baseUndock = false;
 
-	// This shows you if the character is being kicked from carrier by force.
-	bool forceUndocking = false;
+	// This shows you if the character is on died carrier right now.
+	bool carrierDied = false;
 };
 
-struct DEFERREDJUMPS
+struct ActionJettison
 {
-	uint system;
-	Vector pos;
-	Matrix ornt;
+	int timeLeft;
+	wstring carrierCharname;
+	wstring dockedCharname;
 };
+
+extern vector<ActionJettison> jettisonList;
 
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);

@@ -15,7 +15,81 @@ vector<uint> dockingModuleEquipmentIds;
 // Above how much cargo capacity, should a ship be rejected as a docking user?
 int cargoCapacityLimit = 275;
 
-map<uint, DEFERREDJUMPS> mapDeferredJumps;
+// How much time will player be given before kick if carrier wants to jettison him.
+int jettisonKickTime = 15;
+
+uint connSystemID = CreateID("li06");
+
+// Delayed actions, which need to be done. Look at HkTimerCheckKick().
+vector<ActionJettison> jettisonList;
+
+void HkTimerCheckKick()
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	for (vector<ActionJettison>::iterator it = jettisonList.begin(); it != jettisonList.end(); )
+	{
+		it->timeLeft--;
+		if (it->timeLeft == 0)
+		{
+			uint checkCarrierClientID = HkGetClientIdFromCharname(it->carrierCharname);
+			uint checkDockedClientID = HkGetClientIdFromCharname(it->dockedCharname);
+
+			// If both carrier and docked ship are still at server.
+			if (checkDockedClientID != -1 && checkCarrierClientID != -1)
+			{
+				// If the client is still docked
+				if (mobiledockClients[checkDockedClientID].wscDockedWithCharname == it->carrierCharname)
+				{
+					HkKickReason(ARG_CLIENTID(checkDockedClientID), L"Forced undocking.");
+
+					// If carrier died, we don't need this message.
+					if(!mobiledockClients[checkDockedClientID].carrierDied)
+						PrintUserCmdText(checkCarrierClientID, L"Jettisoning ship...");
+				}
+			}
+
+			it = jettisonList.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
+}
+
+// Easy creation of delayed action.
+void DelayedJettison(int delayTimeSecond, wstring carrierCharname, wstring dockedCharname)
+{
+	ActionJettison action;
+	action.timeLeft = delayTimeSecond;
+	action.carrierCharname = carrierCharname;
+	action.dockedCharname = dockedCharname;
+	jettisonList.push_back(action);
+}
+
+void JettisonShip(uint carrierClientID, uint dockedClientID)
+{
+	const wchar_t* carrierCharname = (const wchar_t*)Players.GetActiveCharacterName(carrierClientID);
+	const wchar_t* dockedCharname = (const wchar_t*)Players.GetActiveCharacterName(dockedClientID);
+
+	if (dockedClientID != -1)
+	{
+		if (!mobiledockClients[dockedClientID].carrierDied)
+		{
+			PrintUserCmdText(carrierClientID, L"Ship warned. If it doesn't undock in %i seconds, it will be kicked by force.", jettisonKickTime);
+			PrintUserCmdText(dockedClientID, L"Carrier wants to jettison your ship. Undock willingly or you will be kicked after %i seconds.", jettisonKickTime);
+		}
+		else
+		{
+			PrintUserCmdText(dockedClientID, L"ALERT! Carrier ship is being destroyed. Launch ship or you will die in explosion.");
+		}
+		pub::Audio::PlaySoundEffect(dockedClientID, CreateID("rtc_klaxon_loop"));
+
+		// Create delayed action.
+		DelayedJettison(jettisonKickTime, carrierCharname, dockedCharname);
+	}
+}
 
 // Returns count of installed docking modules on ship of specific client.
 uint GetInstalledModules(uint iClientID)
@@ -35,17 +109,6 @@ uint GetInstalledModules(uint iClientID)
 	}
 
 	return modules;
-}
-
-void ForceLaunch(uint client)
-{
-	mobiledockClients[client].forceUndocking = true;
-
-	mapDeferredJumps[client].system = mobiledockClients[client].carrierSystem;
-	mapDeferredJumps[client].pos = mobiledockClients[client].carrierPos;
-	mapDeferredJumps[client].ornt = mobiledockClients[client].carrierRot;
-
-	PrintUserCmdText(client, L" ChangeSys %u", mobiledockClients[client].carrierSystem);
 }
 
 void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip)
@@ -173,15 +236,30 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 		returncode = SKIPPLUGINS;
 
-		// Check if carrier jettisons this ship.
-		if (mobiledockClients[client].forceUndocking)
+		// Check if carrier died.
+		if (mobiledockClients[client].carrierDied)
 		{
-			// Now that the data is prepared, send the player to the carrier's location
-			undockingShip = mobiledockClients[client];
+			// If died carrier and docked ship are in same system.
+			if (Players[client].iSystemID == mobiledockClients[client].carrierSystem)
+			{
+				// Now that the data is prepared, send the player to the carrier's location
+				undockingShip = mobiledockClients[client];
 
-			// Clear the client out of the mobiledockClients now that it's no longer docked
-			mobiledockClients.erase(client);
-			
+				// Clear the client out of the mobiledockClients now that it's no longer docked
+				mobiledockClients.erase(client);
+			}
+			// If not - redirect to proxy base in carrier's system.
+			else
+			{
+				wstring scProxyBase = HkGetSystemNickByID(mobiledockClients[client].carrierSystem) + L"_proxy_base";
+				if (pub::GetBaseID(mobiledockClients[client].proxyBaseID, (wstos(scProxyBase)).c_str()) == -4)
+				{
+					PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %ws", scProxyBase);
+					return;
+				}
+
+				mobiledockClients[client].carrierSystem = -1;
+			}
 			return;
 		}
 		else if (carrier_client == -1)
@@ -273,11 +351,14 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	// Land ship to proxy base in carrier's system if they are in different systems.
 	if (mobiledockClients[client].carrierSystem == -1)
 	{
-		string scProxyBase = HkGetPlayerSystemS(HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname)) + "_proxy_base";
-		if (pub::GetBaseID(mobiledockClients[client].proxyBaseID, scProxyBase.c_str()) == -4)
+		if (!mobiledockClients[client].carrierDied)
 		{
-			PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
-			return;
+			string scProxyBase = HkGetPlayerSystemS(HkGetClientIdFromCharname(mobiledockClients[client].wscDockedWithCharname)) + "_proxy_base";
+			if (pub::GetBaseID(mobiledockClients[client].proxyBaseID, scProxyBase.c_str()) == -4)
+			{
+				PrintUserCmdText(client, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
+				return;
+			}
 		}
 
 		pub::Player::ForceLand(client, mobiledockClients[client].proxyBaseID);
@@ -380,10 +461,13 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 					// Update the coordinates the given ship should launch to.
 					UpdateCarrierLocationInformation(iDockedClientID, cship->get_position(), cship->get_orientation());
 
+					// Carrier is no more. Set the flag.
+					mobiledockClients[iDockedClientID].carrierDied = true;
+
 					// Due to the carrier not existing anymore, we have to pull the system information from the carriers historical location.
 					mobiledockClients[iDockedClientID].carrierSystem = cship->iSystem;
 
-					ForceLaunch(iDockedClientID);
+					JettisonShip(client, iDockedClientID);
 				}
 
 				// Clear the carrier from the list
@@ -455,13 +539,11 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		const uint iDockedClientID = HkGetClientIdFromCharname(charname);
 		if(iDockedClientID)
 		{
-			// Force the docked ship to launch.
+			// Update the client with the current carrier location
 			UpdateCarrierLocationInformation(iDockedClientID, carrierShip);
-			ForceLaunch(iDockedClientID);
 
-			// Remove charname from carrier's mapDockedShips.
-			mobiledockClients[client].mapDockedShips.erase(charname);
-			mobiledockClients[client].iDockingModulesAvailable++;
+			// Force the docked ship to launch. The teleport coordinates have been set by the previous method
+			JettisonShip(client, iDockedClientID);
 		}
 
 		return true;
@@ -501,6 +583,16 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		{
 			mapPendingDockingRequests.erase(iTargetClientID);
 			PrintUserCmdText(client, L"No free docking modules available.");
+			return true;
+		}
+
+		// Check if we're in conn. If so, reject the request
+		uint clientSystem;
+		pub::SpaceObj::GetSystem(client, clientSystem);
+		if(clientSystem == connSystemID)
+		{
+			mapPendingDockingRequests.erase(iTargetClientID);
+			PrintUserCmdText(client, L"You cannot dock in Connecticut.");
 			return true;
 		}
 
@@ -550,7 +642,7 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
 
 		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
-		if (carrierClientID != -1)
+		if (carrierClientID != -1 && !mobiledockClients[iClientID].carrierDied)
 		{
 			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
@@ -568,70 +660,6 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 }
-
-void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
-{
-	if (mapDeferredJumps.find(iClientID) == mapDeferredJumps.end())
-		return;
-
-	static PBYTE SwitchOut = 0;
-
-	if (!SwitchOut)
-	{
-		SwitchOut = (PBYTE)hModServer + 0xf600;
-
-		DWORD dummy;
-		VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
-	}
-
-	// Patch the system switch out routine to put the ship in a system of our choosing.
-
-	SwitchOut[0x0d7] = 0xeb;				// ignore exit object
-	SwitchOut[0x0d8] = 0x40;
-	SwitchOut[0x119] = 0xbb;				// set the destination system
-	*(PDWORD)(SwitchOut + 0x11a) = mapDeferredJumps[iClientID].system;
-	SwitchOut[0x266] = 0x45;				// don't generate warning
-	*(float*)(SwitchOut + 0x2b0) = mapDeferredJumps[iClientID].pos.z;		// set entry location
-	*(float*)(SwitchOut + 0x2b8) = mapDeferredJumps[iClientID].pos.y;
-	*(float*)(SwitchOut + 0x2c0) = mapDeferredJumps[iClientID].pos.x;
-	*(float*)(SwitchOut + 0x2c8) = mapDeferredJumps[iClientID].ornt.data[2][2];
-	*(float*)(SwitchOut + 0x2d0) = mapDeferredJumps[iClientID].ornt.data[1][1];
-	*(float*)(SwitchOut + 0x2d8) = mapDeferredJumps[iClientID].ornt.data[0][0];
-	*(float*)(SwitchOut + 0x2e0) = mapDeferredJumps[iClientID].ornt.data[2][1];
-	*(float*)(SwitchOut + 0x2e8) = mapDeferredJumps[iClientID].ornt.data[2][0];
-	*(float*)(SwitchOut + 0x2f0) = mapDeferredJumps[iClientID].ornt.data[1][2];
-	*(float*)(SwitchOut + 0x2f8) = mapDeferredJumps[iClientID].ornt.data[1][0];
-	*(float*)(SwitchOut + 0x300) = mapDeferredJumps[iClientID].ornt.data[0][2];
-	*(float*)(SwitchOut + 0x308) = mapDeferredJumps[iClientID].ornt.data[0][1];
-	*(PDWORD)(SwitchOut + 0x388) = 0x03ebc031;		// ignore entry object
-
-	mapDeferredJumps.erase(iClientID);
-	pub::SpaceObj::SetInvincible(iShip, false, false, 0);
-	Server.SystemSwitchOutComplete(iShip, iClientID);
-
-	SwitchOut[0x0d7] = 0x0f;
-	SwitchOut[0x0d8] = 0x84;
-	SwitchOut[0x119] = 0x87;
-	*(PDWORD)(SwitchOut + 0x11a) = 0x1b8;
-	*(PDWORD)(SwitchOut + 0x25d) = 0x1cf7f;
-	SwitchOut[0x266] = 0x1a;
-	*(float*)(SwitchOut + 0x2b0) =
-		*(float*)(SwitchOut + 0x2b8) =
-		*(float*)(SwitchOut + 0x2c0) = 0;
-	*(float*)(SwitchOut + 0x2c8) =
-		*(float*)(SwitchOut + 0x2d0) =
-		*(float*)(SwitchOut + 0x2d8) = 1;
-	*(float*)(SwitchOut + 0x2e0) =
-		*(float*)(SwitchOut + 0x2e8) =
-		*(float*)(SwitchOut + 0x2f0) =
-		*(float*)(SwitchOut + 0x2f8) =
-		*(float*)(SwitchOut + 0x300) =
-		*(float*)(SwitchOut + 0x308) = 0;
-	*(PDWORD)(SwitchOut + 0x388) = 0xcf8b178b;
-
-	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-}
-
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
@@ -673,7 +701,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 3));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));

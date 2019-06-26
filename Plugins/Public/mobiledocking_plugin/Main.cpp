@@ -111,37 +111,6 @@ uint GetInstalledModules(uint iClientID)
 	return modules;
 }
 
-void LogCheater(uint client, const wstring &reason)
-{
-	CAccount *acc = Players.FindAccountFromClientID(client);
-
-	if (!HkIsValidClientID(client) || !acc)
-	{
-		AddLog("ERROR: invalid parameter in log cheater, clientid=%u acc=%08x reason=%s", client, acc, wstos(reason).c_str());
-		return;
-	}
-
-	// Set the kick timer to kick this player. We do this to break potential
-	// stack corruption.
-	HkDelayedKick(client, 1);
-
-	// Ban the account.
-	flstr *flStr = CreateWString(acc->wszAccID);
-	Players.BanAccount(*flStr, true);
-	FreeWString(flStr);
-
-	// Overwrite the ban file so that it contains the ban reason
-	wstring wscDir;
-	HkGetAccountDirName(acc, wscDir);
-	string scBanPath = scAcctPath + wstos(wscDir) + "\\banned";
-	FILE *file = fopen(scBanPath.c_str(), "wbe");
-	if (file)
-	{
-		fprintf(file, "Autobanned by Docking Module\n");
-		fclose(file);
-	}
-}
-
 void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip)
 {
 
@@ -267,9 +236,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 		returncode = SKIPPLUGINS;
 
-		// Set last base to last real base this ship was on. POB support will be added in 0.9.X version.
-		Players[client].iLastBaseID = mobiledockClients[client].iLastBaseID;
-
 		// Check if carrier died.
 		if (mobiledockClients[client].carrierDied)
 		{
@@ -351,39 +317,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 		else
 		{
 			mobiledockClients[client].carrierSystem = -1;
-		}
-
-		//Conn exploiting check
-		if (Players[client].iSystemID == connSystemID)
-		{
-			wstring playerName = (const wchar_t*)Players.GetActiveCharacterName(client);
-			list<CARGO_INFO> cargo;
-			int holdSize = 0;
-
-			HkEnumCargo(playerName, cargo, holdSize);
-
-			for (list<CARGO_INFO>::const_iterator it = cargo.begin(); it != cargo.end(); ++it)
-			{
-				const CARGO_INFO & item = *it;
-
-				bool flag = false;
-				pub::IsCommodity(item.iArchID, flag);
-
-				// Some commodity present.
-				if (flag)
-				{
-					pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-					wstring wscMsgU = L"MF: %name has been banned. (Type 6)";
-					wscMsgU = ReplaceStr(wscMsgU, L"%name", playerName.c_str());
-
-					HkMsgU(wscMsgU);
-
-					wstring wscMsgLog = L"<%sender> was banned for undocking from a carrier in conn with cargo.";
-					wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", playerName.c_str());
-
-					LogCheater(client, wscMsgLog);
-				}
-			}
 		}
 	}
 }

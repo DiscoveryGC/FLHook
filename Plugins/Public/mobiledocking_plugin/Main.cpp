@@ -18,8 +18,6 @@ int cargoCapacityLimit = 275;
 // How much time will player be given before kick if carrier wants to jettison him.
 int jettisonKickTime = 15;
 
-uint connSystemID = CreateID("li06");
-
 // Delayed actions, which need to be done. Look at HkTimerCheckKick().
 vector<ActionJettison> jettisonList;
 
@@ -236,6 +234,9 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 
 		returncode = SKIPPLUGINS;
 
+		// Set last base to last real base this ship was on. POB support will be added in 0.9.X version.
+		Players[client].iLastBaseID = mobiledockClients[client].iLastBaseID;
+
 		// Check if carrier died.
 		if (mobiledockClients[client].carrierDied)
 		{
@@ -362,9 +363,23 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		}
 
 		pub::Player::ForceLand(client, mobiledockClients[client].proxyBaseID);
+
 		// Send the message because if carrier goes to another system, docked ships remain in previous with outdated system navmap. We notify client about it is being updated.
 		PrintUserCmdText(client, L"Navmap updated successfully.");
-		mobiledockClients[client].carrierSystem = Players[client].iSystemID;
+
+		// Update current system stat in player list to be displayed relevantly.
+		Server.BaseEnter(mobiledockClients[client].proxyBaseID, client);
+		Server.BaseExit(mobiledockClients[client].proxyBaseID, client);
+		wstring wscCharFileName;
+		HkGetCharFileName((const wchar_t*)Players.GetActiveCharacterName(client), wscCharFileName);
+		wscCharFileName += L".fl";
+		CHARACTER_ID cID;
+		strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+		Server.CharacterSelect(cID, client);
+
+		// Update current system stat in plugin data.
+		Universe::IBase* base = Universe::get_base(mobiledockClients[client].proxyBaseID);
+		mobiledockClients[client].carrierSystem = base->iSystemID;
 	}
 }
 
@@ -499,7 +514,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			}
 		}
 	}
-	else if(wscCmd.find(L"/conn") == 0)
+	else if(wscCmd.find(L"/conn") == 0 || wscCmd.find(L"/return") == 0)
 	{
 		// This plugin always runs before the Conn Plugin runs it's /conn function. Verify that there are no docked ships.
 		if(!mobiledockClients[client].mapDockedShips.empty())
@@ -583,16 +598,6 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		{
 			mapPendingDockingRequests.erase(iTargetClientID);
 			PrintUserCmdText(client, L"No free docking modules available.");
-			return true;
-		}
-
-		// Check if we're in conn. If so, reject the request
-		uint clientSystem;
-		pub::SpaceObj::GetSystem(client, clientSystem);
-		if(clientSystem == connSystemID)
-		{
-			mapPendingDockingRequests.erase(iTargetClientID);
-			PrintUserCmdText(client, L"You cannot dock in Connecticut.");
 			return true;
 		}
 

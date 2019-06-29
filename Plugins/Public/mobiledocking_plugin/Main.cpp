@@ -116,7 +116,7 @@ void UpdateCarrierLocationInformation(uint dockedClientId, uint carrierShip)
 	Vector& carrierPos = mobiledockClients[dockedClientId].carrierPos;
 	Matrix& carrierRot = mobiledockClients[dockedClientId].carrierRot;
 
-			
+		
 	// If the carrier is out in space, simply set the undock location to where the carrier is currently
 	pub::SpaceObj::GetSystem(carrierShip, mobiledockClients[dockedClientId].carrierSystem);
 	pub::SpaceObj::GetLocation(carrierShip, carrierPos, carrierRot);
@@ -170,7 +170,7 @@ void LoadSettings()
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\dockingmodules.cfg";
-		
+	
 	int dockingModAmount = 0;
 	INI_Reader ini;
 	if(ini.open(scPluginCfgFile.c_str(), false))
@@ -273,7 +273,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 			return;
 
 		}
-				
+		
 		//Get the carrier ship information
 		uint carrierShip;
 		pub::Player::GetShip(carrier_client, carrierShip);

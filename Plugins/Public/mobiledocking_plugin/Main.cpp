@@ -514,7 +514,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			}
 		}
 	}
-	else if(wscCmd.find(L"/conn") == 0)
+	else if(wscCmd.find(L"/conn") == 0 || wscCmd.find(L"/return") == 0)
 	{
 		// This plugin always runs before the Conn Plugin runs it's /conn function. Verify that there are no docked ships.
 		if(!mobiledockClients[client].mapDockedShips.empty())

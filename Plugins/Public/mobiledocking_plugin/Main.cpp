@@ -141,14 +141,37 @@ void UpdateCarrierLocationInformation(uint dockedClientId, Vector pos, Matrix ro
 	carrierPos.z += carrierRot.data[2][1] * set_iMobileDockOffset;
 }
 
+inline void EraseClientInfo(uint client)
+{
+	mobiledockClients.erase(client);
+	mapPendingDockingRequests.erase(client);
+}
+
+inline void UndockShip(uint iClientID)
+{
+	// If the ship was docked to someone, erase it from docked ship list.
+	if (mobiledockClients[iClientID].mobileDocked)
+	{
+		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
+
+		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
+		if (carrierClientID != -1 && !mobiledockClients[iClientID].carrierDied)
+		{
+			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
+			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Clear client info when a client disconnects.
 void ClearClientInfo(uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	mobiledockClients.erase(client);
-	mapPendingDockingRequests.erase(client);
+
+	EraseClientInfo(client);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,6 +317,7 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 				mobiledockClients[client].undockBase = Universe::get_base(iBaseID);
 				mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
 				mobiledockClients[client].baseUndock = true;
+
 				return;
 			}
 		}
@@ -326,7 +350,6 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// Redirect the ship to carrier's position. Can bug with POB plugin, changes may be required.
 	if (undockingShip.proxyBaseID == space_obj)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -513,6 +536,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 				PrintUserCmdText(client, i->first);
 			}
 		}
+		return true;
 	}
 	else if(wscCmd.find(L"/conn") == 0 || wscCmd.find(L"/return") == 0)
 	{
@@ -521,6 +545,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		{
 			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked with you!");
 			returncode = SKIPPLUGINS;
+			return true;
 		}
 	}
 	else if(wscCmd.find(L"/jettisonship") == 0)
@@ -552,7 +577,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 		// The player exists. Remove him from the docked list, and kick him into space
 		const uint iDockedClientID = HkGetClientIdFromCharname(charname);
-		if(iDockedClientID)
+		if(iDockedClientID != -1)
 		{
 			// Update the client with the current carrier location
 			UpdateCarrierLocationInformation(iDockedClientID, carrierShip);
@@ -615,9 +640,6 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		// Save the carrier info
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iTargetClientID);
 		mobiledockClients[client].mapDockedShips[charname] = charname;
-		pub::SpaceObj::GetSystem(iShip, mobiledockClients[client].carrierSystem);
-		if (mobiledockClients[client].iLastBaseID != 0)
-			mobiledockClients[client].iLastBaseID = Players[client].iLastBaseID;
 
 		// Save the docking ship info
 		mobiledockClients[iTargetClientID].mobileDocked = true;
@@ -641,26 +663,16 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// If the ship was docked to someone, erase it from docked ship list.
-	if (mobiledockClients[iClientID].mobileDocked)
-	{
-		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
-
-		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
-		if (carrierClientID != -1 && !mobiledockClients[iClientID].carrierDied)
-		{
-			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
-			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
-		}
-	}
+	UndockShip(iClientID);
 }
 
 void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	// Erase all plugin info associated with the client in case if the person has switched characters to prevent any bugs.
-	DisConnect(iClientID, EFLConnection());
-	ClearClientInfo(iClientID);
+	UndockShip(iClientID);
+	EraseClientInfo(iClientID);
 
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);

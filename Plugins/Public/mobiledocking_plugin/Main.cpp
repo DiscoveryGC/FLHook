@@ -317,7 +317,6 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 				mobiledockClients[client].undockBase = Universe::get_base(iBaseID);
 				mobiledockClients[carrier_client].mapDockedShips.erase(clientName);
 				mobiledockClients[client].baseUndock = true;
-
 				return;
 			}
 		}

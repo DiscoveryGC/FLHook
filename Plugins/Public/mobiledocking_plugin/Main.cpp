@@ -6,6 +6,7 @@
  */
 
 #include "Main.h"
+#include <ctime>
 
 PLUGIN_RETURNCODE returncode;
 map<uint, CLIENT_DATA> mobiledockClients;
@@ -141,14 +142,24 @@ void UpdateCarrierLocationInformation(uint dockedClientId, Vector pos, Matrix ro
 	carrierPos.z += carrierRot.data[2][1] * set_iMobileDockOffset;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Clear client info when a client disconnects.
-void ClearClientInfo(uint client)
+inline void UndockShip(uint iClientID)
 {
-	returncode = DEFAULT_RETURNCODE;
-	mobiledockClients.erase(client);
-	mapPendingDockingRequests.erase(client);
+	// If the ship was docked to someone, erase it from docked ship list.
+	if (mobiledockClients[iClientID].mobileDocked)
+	{
+		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
+
+		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
+		if (carrierClientID != -1 && !mobiledockClients[iClientID].carrierDied)
+		{
+			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
+			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
+		}
+	}
+
+	mobiledockClients.erase(iClientID);
+	mapPendingDockingRequests.erase(iClientID);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -513,6 +524,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 				PrintUserCmdText(client, i->first);
 			}
 		}
+		return true;
 	}
 	else if(wscCmd.find(L"/conn") == 0 || wscCmd.find(L"/return") == 0)
 	{
@@ -521,6 +533,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		{
 			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked with you!");
 			returncode = SKIPPLUGINS;
+			return true;
 		}
 	}
 	else if(wscCmd.find(L"/jettisonship") == 0)
@@ -552,7 +565,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 		// The player exists. Remove him from the docked list, and kick him into space
 		const uint iDockedClientID = HkGetClientIdFromCharname(charname);
-		if(iDockedClientID)
+		if(iDockedClientID != -1)
 		{
 			// Update the client with the current carrier location
 			UpdateCarrierLocationInformation(iDockedClientID, carrierShip);
@@ -641,26 +654,15 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// If the ship was docked to someone, erase it from docked ship list.
-	if (mobiledockClients[iClientID].mobileDocked)
-	{
-		uint carrierClientID = HkGetClientIdFromCharname(mobiledockClients[iClientID].wscDockedWithCharname);
-
-		// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
-		if (carrierClientID != -1 && !mobiledockClients[iClientID].carrierDied)
-		{
-			wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-			mobiledockClients[carrierClientID].mapDockedShips.erase(charname);
-			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
-		}
-	}
+	UndockShip(iClientID);
 }
 
 void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	// Erase all plugin info associated with the client in case if the person has switched characters to prevent any bugs.
-	DisConnect(iClientID, EFLConnection());
-	ClearClientInfo(iClientID);
+	UndockShip(iClientID);
 
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
@@ -683,6 +685,194 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	return true;
 }
 
+#define IS_CMD(a) !wscCmd.compare(L##a)
+
+bool ExecuteCommandString_Callback(CCmds* classptr, const wstring &wscCmd)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (IS_CMD("logactivity"))
+	{
+		// Log current time in file name.
+		std::time_t rawtime;
+		std::tm* timeinfo;
+		char buffer[80];
+
+		std::time(&rawtime);
+		timeinfo = std::localtime(&rawtime);
+
+		std::strftime(buffer, 80, "[%Y-%m-%d]%H-%M-%S", timeinfo);
+
+		string path = "./flhook_logs/logactivity " + string(buffer) + ".log";
+
+		// Lines list to add in new file.
+		vector<string> Lines;
+
+		Lines.push_back("DOCK: mobiledockClients | Size = " + to_string(mobiledockClients.size()));
+
+		vector<wstring> DOCKcharnames;
+		for (map<uint, CLIENT_DATA>::iterator it = mobiledockClients.begin(); it != mobiledockClients.end(); ++it)
+		{
+			wstring charname;
+
+			try
+			{
+				charname = (const wchar_t*)Players.GetActiveCharacterName(it->first);
+			}
+			catch (...)
+			{
+				charname = L"<Error>";
+			}
+
+			string ID = to_string(it->first);
+			string Charname = wstos(charname);
+			string Type = it->second.iDockingModulesInstalled == 0 ? "Docked" : "Carrier";
+			if (Type == "Carrier")
+			{
+				wstring docked = L"";
+				for (map<wstring, wstring>::iterator cit = it->second.mapDockedShips.begin(); cit != it->second.mapDockedShips.end(); cit++)
+				{
+					if (docked != L"")
+						docked += L" | ";
+					docked += cit->first;
+				}
+
+				Type += "[" + to_string(it->second.iDockingModulesInstalled) + "](" + wstos(docked) + ")";
+			}
+			else
+			{
+
+				if (it->second.wscDockedWithCharname.empty())
+				{
+					if (!it->second.mobileDocked)
+						continue;
+					Type += "[" + wstos(L"<Error>") + "]";
+				}
+				else
+					Type += "[" + wstos(it->second.wscDockedWithCharname) + "]";
+			}
+			string State = "";
+
+			if (it->first == 0 || it->first > MAX_CLIENT_ID)
+				State += "Out of range";
+
+			if (find(DOCKcharnames.begin(), DOCKcharnames.end(), charname) != DOCKcharnames.end())
+			{
+				if (State != "")
+					State += " | ";
+				State += "Doubled";
+			}
+
+			if (State == "")
+				State = "Fine";
+
+			if(charname != L"<Error>")
+				DOCKcharnames.push_back(charname);
+
+			Lines.push_back(ID + " " + Charname + " " + Type + " " + State);
+		}
+
+		Lines.push_back("");
+
+
+		vector<string> SERVERlines;
+
+		vector<wstring> SERVERcharnames;
+		vector<uint> IDs;
+		struct PlayerData *pPD = 0;
+		while (pPD = Players.traverse_active(pPD))
+		{
+			uint clientID;
+			try
+			{
+				clientID = HkGetClientIdFromPD(pPD);
+			}
+			catch (...)
+			{
+				clientID = 0;
+			}
+
+			string ID;
+
+			if (clientID == 0)
+				ID = "<Error>";
+			else
+				ID = to_string(clientID);
+
+			wstring charname;
+			wstring wscIP;
+
+			try
+			{
+				charname = (const wchar_t*)Players.GetActiveCharacterName(clientID);
+			}
+			catch (...)
+			{
+				charname = L"<NotLogged>";
+			}
+
+			try
+			{
+				HkGetPlayerIP(clientID, wscIP);
+			}
+			catch (...)
+			{
+				wscIP = L"<Error>";
+			}
+
+			string Charname = wstos(charname);
+			string State = "";
+
+			if (clientID > MAX_CLIENT_ID)
+				State += "Out of range";
+
+
+			if (find(SERVERcharnames.begin(), SERVERcharnames.end(), charname) != SERVERcharnames.end())
+			{
+				if (State != "")
+					State += " | ";
+				State += "DoubledName";
+			}
+
+			if (find(IDs.begin(), IDs.end(), clientID) != IDs.end())
+			{
+				if (State != "")
+					State += " | ";
+				State += "DoubledID";
+			}
+
+			if (State == "")
+				State = "Fine";
+
+			if (charname != L"<NotLogged>")
+				SERVERcharnames.push_back(charname);
+			IDs.push_back(clientID);
+
+			SERVERlines.push_back(ID + " " + Charname + " " + wstos(wscIP) + " " + State);
+		}
+
+		Lines.push_back("SERVER: PlayersDB | Size = " + to_string(SERVERlines.size()));
+		Lines.insert(Lines.end(), SERVERlines.begin(), SERVERlines.end());
+
+		// Create new file.
+		FILE *newfile = fopen(path.c_str(), "w");
+		if (newfile)
+		{
+			for (vector<string>::iterator it = Lines.begin(); it != Lines.end(); ++it)
+			{
+				fprintf(newfile, (*it + "\n").c_str());
+			}
+
+			fclose(newfile);
+		}
+
+		ConPrint(L"Saved to: " + stows(path) + L"\n");
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		return true;
+	}
+	return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
@@ -700,8 +890,8 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));

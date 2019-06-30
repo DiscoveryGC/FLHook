@@ -356,8 +356,23 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	// Is the client flagged to dock at a base after exiting?
 	if(mobiledockClients[client].baseUndock)
 	{
+		uint systemID = Players[client].iSystemID;
+		
 		pub::Player::ForceLand(client, mobiledockClients[client].undockBase->iBaseID);
 		mobiledockClients.erase(client);
+		
+		if (mobiledockClients[client].undockBase->iSystemID != systemID)
+		{
+			// Update current system stat in player list to be displayed relevantly.
+			Server.BaseEnter(mobiledockClients[client].undockBase->iBaseID, client);
+			Server.BaseExit(mobiledockClients[client].undockBase->iBaseID, client);
+			wstring wscCharFileName;
+			HkGetCharFileName((const wchar_t*)Players.GetActiveCharacterName(client), wscCharFileName);
+			wscCharFileName += L".fl";
+			CHARACTER_ID cID;
+			strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+			Server.CharacterSelect(cID, client);
+		}
 	}
 
 	// Land ship to proxy base in carrier's system if they are in different systems.

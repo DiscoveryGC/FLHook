@@ -337,6 +337,7 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	// Redirect the ship to carrier's position. Can bug with POB plugin, changes may be required.
 	if (undockingShip.proxyBaseID == space_obj)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -627,6 +628,9 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		// Save the carrier info
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iTargetClientID);
 		mobiledockClients[client].mapDockedShips[charname] = charname;
+		pub::SpaceObj::GetSystem(iShip, mobiledockClients[client].carrierSystem);
+		if (mobiledockClients[client].iLastBaseID != 0)
+			mobiledockClients[client].iLastBaseID = Players[client].iLastBaseID;
 
 		// Save the docking ship info
 		mobiledockClients[iTargetClientID].mobileDocked = true;

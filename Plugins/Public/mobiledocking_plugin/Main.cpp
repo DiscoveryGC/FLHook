@@ -359,7 +359,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		uint systemID = Players[client].iSystemID;
 		
 		pub::Player::ForceLand(client, mobiledockClients[client].undockBase->iBaseID);
-		mobiledockClients.erase(client);
 		
 		if (mobiledockClients[client].undockBase->iSystemID != systemID)
 		{
@@ -373,6 +372,8 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
 			Server.CharacterSelect(cID, client);
 		}
+
+		mobiledockClients.erase(client);
 	}
 
 	// Land ship to proxy base in carrier's system if they are in different systems.

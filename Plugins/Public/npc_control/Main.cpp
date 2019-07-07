@@ -25,6 +25,7 @@
 #include "Main.h"
 #include <sstream>
 #include <iostream>
+#include <random>
 
 static int set_iPluginDebug = 0;
 
@@ -60,6 +61,10 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //STRUCTURES AND DEFINITIONS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+uint ServerLoad_DisableSpawn = 1000;
+vector<uint> npcDisableExeptions_Ships;
+vector<uint> npcDisableExeptions_Systems;
 
 vector<const char*> listgraphs;
 
@@ -346,6 +351,24 @@ void LoadNPCInfo()
 					if (ini.is_value("name"))
 					{
 						npcnames.push_back(ini.get_value_int(0));
+					}
+				}
+			}
+			else if (ini.is_header("disable"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("ServerLoad_DisableSpawn"))
+					{
+						ServerLoad_DisableSpawn = ini.get_value_int(0);
+					}
+					else if (ini.is_value("Exception_ShipArch"))
+					{
+						npcDisableExeptions_Ships.push_back(CreateID(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("Exception_System"))
+					{
+						npcDisableExeptions_Systems.push_back(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -852,6 +875,35 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHIP& shipInfo)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (g_iServerLoad > ServerLoad_DisableSpawn)
+	{
+		// Distinguish player ships from NPC ships to avoid unpleasant cases.
+		if (HkGetClientIDByShip(shipInfo.iSpaceID))
+			return true;
+
+		if (find(npcDisableExeptions_Ships.begin(), npcDisableExeptions_Ships.end(), shipInfo.iShipArch) != npcDisableExeptions_Ships.end())
+			return true;
+
+		uint iSystemID;
+		pub::SpaceObj::GetSystem(shipInfo.iSpaceID, iSystemID);
+
+		if (find(npcDisableExeptions_Systems.begin(), npcDisableExeptions_Systems.end(), iSystemID) != npcDisableExeptions_Systems.end())
+			return true;
+
+		// If the ship is not present in exception list, prevent it from being created.
+		pub::SpaceObj::Destroy(shipInfo.iSpaceID, VANISH); // Prevent server-side spawning.
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // Prevent client-side spawning.
+	}
+
+	return true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Functions to hook
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -868,6 +920,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	//p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Send_FLPACKET_SERVER_CREATESHIP, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATESHIP, 0));
 
 	return p_PI;
 }

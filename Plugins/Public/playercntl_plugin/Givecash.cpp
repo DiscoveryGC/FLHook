@@ -445,7 +445,7 @@ namespace GiveCash
 		if (bAnon)
 			msg += L" anonymously";
 		if (wscComment.size())
-			msg += L" with attached commentary";
+			msg += L" with comment";
 
 		// Grammar nazi.
 		msg += L".";

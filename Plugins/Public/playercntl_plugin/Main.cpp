@@ -920,7 +920,7 @@ USERCMD UserCmds[] =
 	{ L"/gc",			GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon] [commentary] or /gc ..." },
 	{ L"/givecasht",	GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon] [commentary] or /gct ..." },
 	{ L"/gct",			GiveCash::UserCmd_GiveCashTarget,		L"Usage: /givecasht <cash> [anon] [commentary] or /gct ..." },
-	{ L"/sendcash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon] [commentary]"},
+	{ L"/sendcash",		GiveCash::UserCmd_GiveCash,		L"Usage: /givecash <charname> <cash> [anon] [comment]"},
 	{ L"/set cashcode",	GiveCash::UserCmd_SetCashCode,	L"Usage: /set cashcode <code>"},
 	{ L"/showcash",		GiveCash::UserCmd_ShowCash,		L"Usage: /showcash <charname> <code> or /shc ..." },
 	{ L"/drc",		GiveCash::UserCmd_DrawCash,		L"Usage: /drawcash <charname> <code> <cash> or /drc ..." },

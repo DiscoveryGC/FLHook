@@ -434,7 +434,7 @@ void CheckforStackables(uint iClientID)
 		}
 	}
 
-	
+
 
 	foreach(lstCargo, CARGO_INFO, it)
 	{
@@ -450,6 +450,179 @@ void CheckforStackables(uint iClientID)
 
 }
 
+void PlayerAutoRepair(uint iClientID)
+{
+	// TODO: compare all of this against HkGetShipValue
+
+	float shh;
+	pub::Player::GetRelativeHealth(iClientID, shh);
+	PrintUserCmdText(iClientID, L"shh: %f", shh);
+	float shp;
+
+	float* fShipResaleFactor = (float*)((char*)hModServer + 0x8AE78);
+	PrintUserCmdText(iClientID, L"fShipResaleFactor: %f", *fShipResaleFactor);
+
+	float* fCommodityResaleFactor = (float*)((char*)hModServer + 0x8AE7C);
+	PrintUserCmdText(iClientID, L"fCommodityResaleFactor: %f", *fCommodityResaleFactor);
+
+	const GoodInfo *gi = GoodList_get()->find_by_ship_arch(Players[iClientID].iShipArchetype);
+	if (gi)
+	{
+		gi = GoodList::find_by_id(gi->iArchID);
+		if (gi)
+		{
+			shp = gi->fPrice;
+			PrintUserCmdText(iClientID, L"shp: %f", shp); // TODO
+		}
+		else {
+			PrintUserCmdText(iClientID, L"inner gi fail"); // TODO
+		}
+	}
+	else {
+		PrintUserCmdText(iClientID, L"outer gi fail"); // TODO
+	}
+
+	PrintUserCmdText(iClientID, L"Ship arch ID: %u, repair price: %f", Players[iClientID].iShipArchetype, shp * (*fShipResaleFactor) * (1 - shh) / 1000);
+	// TODO: deduct price
+	// TODO: correct price
+
+	//DamageList dmlist;
+	//dmlist.add_damage_entry(1, 1, (DamageEntry::SubObjFate)0);
+	uint itemBufSize = 0;
+
+	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		string hp = wstos(stows(item->szHardPoint.value));
+		itemBufSize += sizeof(SETEQUIPMENT_ITEM);
+		uint len = hp.length();
+		if (len && hp != "BAY") {
+			itemBufSize += len + 1;
+		}
+	}
+	ConPrint(L"itemBufSize: %u\n", itemBufSize);
+
+	FLPACKET_SETEQUIPMENT pSetEquipment;
+	pSetEquipment.count = 0;
+	pSetEquipment.items = (byte*)malloc(itemBufSize);
+
+	uint index = 0;
+	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		float p;
+		pub::Market::GetNominalPrice(item->iArchID, p);
+		if (item->fHealth < 1) {
+			PrintUserCmdText(iClientID, L"Item arch ID: %u, repair price: %f", item->iArchID, p * (*fCommodityResaleFactor) * (1 - item->fHealth));
+			item->fHealth = 1.0f;
+		}
+
+		SETEQUIPMENT_ITEM setEquipItem;
+		setEquipItem.iDunno1 = item->iCount; // TODO possibly iCount or iOwner from EquipDesc? looks like always 1
+		setEquipItem.fHealth = item->fHealth;
+		setEquipItem.iArchID = item->iArchID;
+		setEquipItem.iDunno2 = item->sID; // TODO possibly sID or iDunno from EquipDesc? probably sID looking at packet
+		setEquipItem.bEquip = item->bMounted;
+		setEquipItem.bMission = item->bMission;
+		string hp = wstos(stows(item->szHardPoint.value));
+		uint len = hp.length();
+		if (len && hp != "BAY") {
+			setEquipItem.szHardPointLen = len + 1; // add 1 for the null - char* is a null-terminated string in C++
+		} else {
+			setEquipItem.szHardPointLen = 0;
+		}
+		pSetEquipment.count++;
+
+		ConPrint(L"%s = %u, %s, %d, %g, %u, %u\n",
+			item->bMounted ? stows("equip").c_str() : stows("cargo").c_str(),
+			item->iArchID,
+			(setEquipItem.szHardPointLen == 0) ? L"" : stows(hp).c_str(),
+			item->iCount,
+			item->fHealth,
+			item->bMission,
+			item->sID
+		);
+
+		byte* buf = (byte*)&setEquipItem;
+		for (int i = 0; i < sizeof(SETEQUIPMENT_ITEM); i++) {
+			pSetEquipment.items[index++] = buf[i];
+		}
+
+		byte* szHardPoint = (byte*)hp.c_str();
+		for (int i = 0; i < setEquipItem.szHardPointLen; i++) {
+			pSetEquipment.items[index++] = szHardPoint[i];
+		}
+	}
+
+	/*union cPtrs_t
+	{
+		const BYTE*	b;
+		const char*	c;
+		const short*	s;
+		const WORD*	w;
+		const int*	i;
+		const long*	l;
+		const DWORD*	d;
+		const float*	f;
+		const double* D;
+	};
+
+	union cPtrs_t data;
+	DWORD count = pSetEquipment.count;
+	data.b = pSetEquipment.items;
+	ConPrint(L"Got count: %u\n", count);
+	for (int len = pSetEquipment.count; len != 0; --len)
+	{
+		BYTE equip = data.b[14];
+		DWORD archid = data.d[2];
+		WORD hardpoint_len = data.w[8];
+		const char* hardpoint = data.c + 18;
+		int count = *data.i;
+		float health = data.f[1];
+		BYTE mission = data.b[15];
+		WORD slotid = data.w[6];
+
+		ConPrint(L"Got: %s = %u, %s, %d, %g, %u, %u\n",
+			equip ? L"equip" : L"cargo",
+			archid,
+			(hardpoint_len == 0) ? L"" : stows(hardpoint).c_str(),
+			count,
+			health,
+			mission,
+			slotid
+		);
+		data.b += 18 + hardpoint_len;
+	}*/
+
+	PrintUserCmdText(iClientID, L"sending equip packet!");
+	GetClientInterface()->Send_FLPACKET_SERVER_SETEQUIPMENT(iClientID, pSetEquipment);
+	PrintUserCmdText(iClientID, L"sent equip packet!");
+
+	free(pSetEquipment.items);
+
+	int iRank;
+	PrintUserCmdText(iClientID, L"getting rank");
+	pub::Player::GetRank(iClientID, iRank);
+	PrintUserCmdText(iClientID, L"got rank %u", iRank);
+	GetClientInterface()->Send_FLPACKET_SERVER_MISCOBJUPDATE_3(iClientID, iClientID, iRank);
+	PrintUserCmdText(iClientID, L"sent miscobjupdate_3");
+	/*
+	16:35:14.999: FLPACKET_SERVER_MISCOBJUPDATE, offset = 0x2A702, size = 8
+              To: 1 "Testun"
+	flag    = 0x0044
+	player  = 1 "Testun"
+	rank    = 90
+	*/
+	// TODO: handle price where count of equipment item is > 1
+
+
+	uint iShipObj;
+	pub::Player::GetShip(iClientID, iShipObj);
+	
+	float curr, max;
+	pub::SpaceObj::GetHealth(iShipObj, curr, max);
+
+	pub::SpaceObj::SetRelativeHealth(iShipObj, max);
+	//GetClientInterface()->Send_FLPACKET_SERVER_DAMAGEOBJECT(Players[iClientID].iOnlineID, iShipObj, dmlist);
+}
 
 void PlayerAutobuy(uint iClientID, uint iBaseID)
 {
@@ -745,6 +918,7 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
 	pub::Player::GetBase(iClientID, iBaseID);
 	PlayerAutobuy(iClientID, iBaseID);
+	PlayerAutoRepair(iClientID);
 }
 
 void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)

@@ -49,6 +49,25 @@ struct FLPACKET_SETREPUTATION
 	// there is more (FMTStr? - object name?)
 };
 
+#pragma pack(push, 1)
+struct SETEQUIPMENT_ITEM
+{
+	int iDunno1; // possibly iCount or iOwner from EquipDesc?
+	float fHealth;
+	int iArchID;
+	WORD iDunno2; // possibly sID or iDunno from EquipDesc?
+	BYTE bEquip; // true for equip (mounted), false for cargo
+	BYTE bMission;
+	WORD szHardPointLen;
+};
+#pragma pack(pop)
+
+struct FLPACKET_SETEQUIPMENT
+{
+	WORD count;
+	byte* items; // A series of SETEQUIPMENT_ITEM structs, each followed by any hardpoint string
+};
+
 struct FLPACKET_LAUNCH
 {
 	uint iShip;
@@ -146,7 +165,7 @@ public:
 	virtual bool Send_FLPACKET_SERVER_SETSHIPARCH(uint iClientID, uint iShipArch);
 	virtual bool Send_FLPACKET_SERVER_SETHULLSTATUS(uint iClientID, float fStatus);
 	virtual bool Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(uint iClientID, FLPACKET_UNKNOWN& pDunno);
-	virtual bool Send_FLPACKET_SERVER_SETEQUIPMENT(uint iClientID, FLPACKET_UNKNOWN& pDunno);
+	virtual bool Send_FLPACKET_SERVER_SETEQUIPMENT(uint iClientID, FLPACKET_SETEQUIPMENT& pSetEquipment);
 	virtual void unknown_26(uint iClientID, uint iDunno);
 	virtual bool Send_FLPACKET_SERVER_SETADDITEM(uint iClientID, FLPACKET_UNKNOWN& pDunno, FLPACKET_UNKNOWN& pDunno2);
 	virtual void unknown_28(uint iClientID, uint iDunno, uint iDunno2, uint iDunno3);

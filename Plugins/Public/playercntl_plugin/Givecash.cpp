@@ -247,7 +247,7 @@ namespace GiveCash
 		}
 
 		bool bAnon = false;
-		if (wscAnon == L"anon")
+		if (wscAnon==L"anon")
 			bAnon = true;
 		else if (wscAnon.size())
 			wscComment = wscAnon + L" " + wscComment;

@@ -16,6 +16,7 @@
 #include <math.h>
 #include <list>
 #include <set>
+#include <ctime>
 
 #include <PluginUtilities.h>
 #include "Main.h"
@@ -201,11 +202,12 @@ namespace GiveCash
 
 		wstring wscCash = GetParam(wscParam, L' ', 0);
 		wstring wscAnon = GetParam(wscParam, L' ', 1);
+		wstring wscComment = GetParamToEnd(wscParam, L' ', 2);
 		wscCash = ReplaceStr(wscCash, L".", L"");
 		wscCash = ReplaceStr(wscCash, L",", L"");
 		wscCash = ReplaceStr(wscCash, L"$", L"");
 		int cash = ToInt(wscCash);
-		if ((!wscTargetCharname.length() || cash <= 0) || (wscAnon.size() && wscAnon != L"anon"))
+		if (!wscTargetCharname.length() || cash <= 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR: Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
@@ -215,8 +217,10 @@ namespace GiveCash
 		bool bAnon = false;
 		if (wscAnon == L"anon")
 			bAnon = true;
+		else if (wscAnon.size())
+			wscComment = wscAnon + L" " + wscComment;
 
-		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon);
+		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon, wscComment);
 		return true;
 	}
 
@@ -230,11 +234,12 @@ namespace GiveCash
 		wstring wscTargetCharname = GetParam(wscParam, L' ', 0);
 		wstring wscCash = GetParam(wscParam, L' ', 1);
 		wstring wscAnon = GetParam(wscParam, L' ', 2);
+		wstring wscComment = GetParamToEnd(wscParam, L' ', 3);
 		wscCash = ReplaceStr(wscCash, L".", L"");
 		wscCash = ReplaceStr(wscCash, L",", L"");
 		wscCash = ReplaceStr(wscCash, L"$", L"");
 		int cash = ToInt(wscCash);
-		if ((!wscTargetCharname.length() || cash<=0) || (wscAnon.size() && wscAnon!=L"anon"))
+		if (!wscTargetCharname.length() || cash<=0)
 		{
 			PrintUserCmdText(iClientID, L"ERR: Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
@@ -242,14 +247,16 @@ namespace GiveCash
 		}
 
 		bool bAnon = false;
-		if (wscAnon==L"anon")
+		if (wscAnon == L"anon")
 			bAnon = true;
+		else if (wscAnon.size())
+			wscComment = wscAnon + L" " + wscComment;
 
-		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon);
+		GiveCash::GiveCashCombined(iClientID, cash, wscTargetCharname, wscCharname, bAnon, wscComment);
 		return true;
 	}
 
-	bool GiveCash::GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon)
+	bool GiveCash::GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon, const wstring &wscComment)
 	{
 		HK_ERROR err;
 
@@ -401,9 +408,20 @@ namespace GiveCash
 			return true;
 		}
 
+		// Get current time
+		time_t rawtime;
+		tm* timeinfo;
+
+		time(&rawtime);
+		timeinfo = localtime(&rawtime);
+
+		char buffer[21];
+		strftime(buffer, 21, "[%Y-%m-%d]%H:%M:%S", timeinfo);
+		wstring time = stows((string)buffer);
+
 		// If the target player is online then send them a message saying
 		// telling them that they've received the cash.
-		wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + ((bAnon) ? L"anonymous" : wscCharname);
+		wstring msg = time + L" You have received " + ToMoneyStr(cash) + L" credits from " + ((bAnon) ? L"anonymous" : wscCharname) + (wscComment.size() ? L" | " + wscComment : L"");
 		if (targetClientId != -1 && !HkIsInCharSelectMenu(targetClientId))
 		{
 			PrintUserCmdText(targetClientId, L"%s", msg.c_str());
@@ -413,19 +431,25 @@ namespace GiveCash
 		// of the transfer. The ini is cleared when ever the character logs in.
 		else
 		{
-			wstring msg = L"You have received " + ToMoneyStr(cash) + L" credits from " + ((bAnon) ? L"anonymous" : wscCharname);
 			LogTransfer(wscTargetCharname, msg);
 		}
 
-		AddLog("NOTICE: Send %s credits from %s (%s) to %s (%s)",
+		AddLog("NOTICE: Send %s credits from %s (%s) to %s (%s) %s %s",
 			wstos(ToMoneyStr(cash)).c_str(),
 			wstos(wscCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscCharname))).c_str(),
-			wstos(wscTargetCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscTargetCharname))).c_str());
+			wstos(wscTargetCharname).c_str(), wstos(HkGetAccountID(HkGetAccountByCharname(wscTargetCharname))).c_str(),
+			wscComment.size() ? "| With comment:" : "", wstos(wscComment).c_str());
 
 		// A friendly message explaining the transfer.
-		msg = L"You have sent " + ToMoneyStr(cash) + L" credits to " + wscTargetCharname;
+		msg = time + L" You have sent " + ToMoneyStr(cash) + L" credits to " + wscTargetCharname;
 		if (bAnon)
 			msg += L" anonymously";
+		if (wscComment.size())
+			msg += L" with attached commentary";
+
+		// Grammar nazi.
+		msg += L".";
+
 		PrintUserCmdText(iClientID, L"%s", msg.c_str());
 		return true;
 	}

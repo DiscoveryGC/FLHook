@@ -206,7 +206,7 @@ namespace GiveCash
 	bool UserCmd_SetCashCode(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_DrawCash(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_GiveCashTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon);
+	bool GiveCashCombined(uint iClientID, const int &cash, const wstring &wscTargetCharname, const wstring &wscCharname, const bool &bAnon, const wstring &wscComment);
 }
 
 namespace Message

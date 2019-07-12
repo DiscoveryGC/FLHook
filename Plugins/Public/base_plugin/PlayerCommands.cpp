@@ -399,7 +399,7 @@ namespace PlayerCommands
 
 		// Logging
 		wstring thecharname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		wstring wscMsg = L": \"%sender\" added \"%victim\" to whitelist of base \"%base\"";
+		wstring wscMsg = L": \"%sender\" removed \"%victim\" from whitelist of base \"%base\"";
 		wscMsg = ReplaceStr(wscMsg, L"%sender", thecharname.c_str());
 		wscMsg = ReplaceStr(wscMsg, L"%victim", tag);
 		wscMsg = ReplaceStr(wscMsg, L"%base", base->basename);

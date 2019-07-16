@@ -61,6 +61,10 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 //STRUCTURES AND DEFINITIONS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+uint ServerLoad_DisableSpawn = 1000;
+vector<uint> npcDisableExceptions_Ships;
+vector<uint> npcDisableExceptions_Systems;
+
 vector<const char*> listgraphs;
 
 vector<uint> npcnames;
@@ -346,6 +350,24 @@ void LoadNPCInfo()
 					if (ini.is_value("name"))
 					{
 						npcnames.push_back(ini.get_value_int(0));
+					}
+				}
+			}
+			else if (ini.is_header("disable"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("ServerLoad_DisableSpawn"))
+					{
+						ServerLoad_DisableSpawn = ini.get_value_int(0);
+					}
+					else if (ini.is_value("Exception_ShipArch"))
+					{
+						npcDisableExceptions_Ships.push_back(CreateID(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("Exception_System"))
+					{
+						npcDisableExceptions_Systems.push_back(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -852,6 +874,50 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHIP& shipInfo)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (g_iServerLoad > ServerLoad_DisableSpawn)
+	{
+		// Tell FLHook that we disable NPCs. Needed for .serverinfo command.
+		set_iDisableNPCSpawns = true;
+
+		// Distinguish player ships from NPC ships to avoid unpleasant cases.
+		if (HkGetClientIDByShip(shipInfo.iSpaceID))
+			return true;
+
+		pub::AI::Personality pers;
+		CShip* ship = reinterpret_cast<CShip*>(CObject::Find(shipInfo.iSpaceID, CObject::CSHIP_OBJECT));
+		ship->get_behavior_interface()->get_personality(pers);
+
+		// Distinguish mission NPCs from regular to avoid unpleasant cases.
+		if (pers.Job.field_targeting == 2)
+			return true;
+
+		// Distinguish FLHook NPCs from regular to avoid unpleasant cases.
+		if (find(npcs.begin(), npcs.end(), shipInfo.iSpaceID) != npcs.end())
+			return true;
+
+		if (find(npcDisableExceptions_Ships.begin(), npcDisableExceptions_Ships.end(), shipInfo.iShipArch) != npcDisableExceptions_Ships.end())
+			return true;
+
+		uint iSystemID;
+		pub::SpaceObj::GetSystem(shipInfo.iSpaceID, iSystemID);
+
+		if (find(npcDisableExceptions_Systems.begin(), npcDisableExceptions_Systems.end(), iSystemID) != npcDisableExceptions_Systems.end())
+			return true;
+
+		// If the ship is not present in exception list, prevent it from being created.
+		pub::SpaceObj::Destroy(shipInfo.iSpaceID, VANISH); // Prevent server-side spawning.
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // Prevent client-side spawning.
+	}
+
+	return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Functions to hook
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -868,6 +934,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	//p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Send_FLPACKET_SERVER_CREATESHIP, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATESHIP, 0));
 
 	return p_PI;
 }

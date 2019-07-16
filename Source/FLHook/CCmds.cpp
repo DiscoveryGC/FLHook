@@ -599,7 +599,7 @@ void CCmds::CmdServerInfo()
 	swprintf(wszUptime, L"%.1u:%.2u:%.2u:%.2u", iDays, iHours, iMinutes, iSeconds);
 	
 	// print
-	Print(L"serverload=%d npcspawn=%s uptime=%s\nOK\n", g_iServerLoad, g_bNPCDisabled ? L"disabled" : L"enabled", wszUptime);
+	Print(L"serverload=%d npcspawn=%s uptime=%s\nOK\n", g_iServerLoad, set_iDisableNPCSpawns ? L"disabled" : L"enabled", wszUptime);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

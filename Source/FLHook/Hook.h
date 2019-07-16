@@ -664,6 +664,7 @@ EXPORT HK_ERROR HkGetConnectionStats(uint iClientID, DPN_CONNECTION_INFO &ci);
 EXPORT HK_ERROR HkSetAdmin(const wstring &wscCharname, const wstring &wscRights);
 EXPORT HK_ERROR HkGetAdmin(const wstring &wscCharname, wstring &wscRights);
 EXPORT HK_ERROR HkDelAdmin(const wstring &wscCharname);
+EXPORT HK_ERROR HkChangeNPCSpawn(bool bDisable);
 EXPORT HK_ERROR HkGetBaseStatus(const wstring &wscBasename, float &fHealth, float &fMaxHealth);
 EXPORT Fuse* HkGetFuseFromID(uint iFuseID);
 EXPORT bool __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float fDelay=0, float fLifetime=0, float fSkip=-1.0f);

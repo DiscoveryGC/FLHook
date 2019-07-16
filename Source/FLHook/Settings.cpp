@@ -18,7 +18,7 @@ uint			set_iDisconnectDelay;
 uint			set_iReservedSlots;
 float			set_fTorpMissileBaseDamageMultiplier;
 uint			set_iMaxGroupSize;
-uint			set_iDisableNPCSpawns;
+bool			set_iDisableNPCSpawns;
 
 // log
 bool			set_bDebug;
@@ -115,7 +115,6 @@ void LoadSettings()
 	set_bDieMsg = IniGetB(set_scCfgFile, "General", "EnableDieMsg", false);
 	set_bDisableCharfileEncryption = IniGetB(set_scCfgFile, "General", "DisableCharfileEncryption", false);
 	set_bChangeCruiseDisruptorBehaviour = IniGetB(set_scCfgFile, "General", "ChangeCruiseDisruptorBehaviour", false);
-	set_iDisableNPCSpawns = IniGetI(set_scCfgFile, "General", "DisableNPCSpawns", 0);
 	set_iAntiF1 = IniGetI(set_scCfgFile, "General", "AntiF1", 0);
 	set_iDisconnectDelay = IniGetI(set_scCfgFile, "General", "DisconnectDelay", 0);
 	set_iReservedSlots = IniGetI(set_scCfgFile, "General", "ReservedSlots", 0);

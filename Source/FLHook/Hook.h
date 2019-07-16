@@ -788,7 +788,6 @@ extern EXPORT CLIENT_INFO ClientInfo[MAX_CLIENT_ID+1];
 extern EXPORT CDPServer *cdpSrv;
 extern EXPORT uint g_iServerLoad;
 extern EXPORT uint g_iPlayerCount;
-extern EXPORT bool g_bNPCDisabled;
 extern EXPORT char *g_FLServerDataPtr;
 
 extern EXPORT bool g_bPlugin_nofunctioncall;

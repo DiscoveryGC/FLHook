@@ -220,35 +220,6 @@ HK_ERROR HkDelAdmin(const wstring &wscCharname)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool g_bNPCDisabled = false;
-
-HK_ERROR HkChangeNPCSpawn(bool bDisable)
-{
-	if(g_bNPCDisabled && bDisable)
-		return HKE_OK;
-	else if(!g_bNPCDisabled && !bDisable)
-		return HKE_OK;
-
-	char szJump[1];
-	char szCmp[1];
-	if(bDisable) {
-		szJump[0] = '\xEB';
-		szCmp[0] = '\xFF';
-	} else {
-		szJump[0] = '\x75';
-		szCmp[0] = '\xF9';
-	}
-
-	void *pAddress = CONTENT_ADDR(ADDR_DISABLENPCSPAWNS1);
-	WriteProcMem(pAddress, &szJump, 1);
-	pAddress = CONTENT_ADDR(ADDR_DISABLENPCSPAWNS2);
-	WriteProcMem(pAddress, &szCmp, 1);
-	g_bNPCDisabled = bDisable;
-	return HKE_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 HK_ERROR HkGetBaseStatus(const wstring &wscBasename, float &fHealth, float &fMaxHealth)
 {
 	uint iBaseID = 0;

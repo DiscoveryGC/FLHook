@@ -402,10 +402,6 @@ void UnloadHookExports()
 		}
 	}
 
-
-	// reset npc spawn setting
-	HkChangeNPCSpawn(false);
-
 	// restore other hooks
 	RestorePatch(piFLServerEXE);
 	RestorePatch(piContentDLL);

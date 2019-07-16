@@ -914,6 +914,12 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 		pub::SpaceObj::Destroy(shipInfo.iSpaceID, VANISH); // Prevent server-side spawning.
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // Prevent client-side spawning.
 	}
+	else
+	{
+		// Tell FLHook that we enable NPCs. Needed for .serverinfo command.
+		set_iDisableNPCSpawns = false;
+	}
+
 
 	return false;
 }

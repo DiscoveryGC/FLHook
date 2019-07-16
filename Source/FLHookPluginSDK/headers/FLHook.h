@@ -529,7 +529,6 @@ IMPORT HK_ERROR HkGetConnectionStats(uint iClientID, DPN_CONNECTION_INFO &ci);
 IMPORT HK_ERROR HkSetAdmin(const wstring &wscCharname, const wstring &wscRights);
 IMPORT HK_ERROR HkGetAdmin(const wstring &wscCharname, wstring &wscRights);
 IMPORT HK_ERROR HkDelAdmin(const wstring &wscCharname);
-IMPORT HK_ERROR HkChangeNPCSpawn(bool bDisable);
 IMPORT HK_ERROR HkGetBaseStatus(const wstring &wscBasename, float &fHealth, float &fMaxHealth);
 
 // HkFLIni
@@ -791,7 +790,7 @@ extern IMPORT bool	set_bUserCmdSetDieMsg;
 extern IMPORT bool	set_bUserCmdSetChatFont;
 extern IMPORT bool	set_bUserCmdIgnore;
 extern IMPORT bool	set_bUserCmdHelp;
-extern IMPORT uint	set_iDisableNPCSpawns;
+extern IMPORT bool	set_iDisableNPCSpawns;
 extern IMPORT int	set_iPort;
 extern IMPORT int	set_iWPort;
 extern IMPORT wstring set_wscKickMsg;

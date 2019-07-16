@@ -39,9 +39,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -60,6 +60,10 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //STRUCTURES AND DEFINITIONS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+uint ServerLoad_DisableSpawn = 1000;
+vector<uint> npcDisableExeptions_Ships;
+vector<uint> npcDisableExeptions_Systems;
 
 vector<const char*> listgraphs;
 
@@ -308,7 +312,7 @@ void LoadNPCInfo()
 						setnpcstruct.Loadout = CreateID(ini.get_value_string(2));
 
 						//IFF calc
-						 pub::Reputation::GetReputationGroup(setnpcstruct.IFF, ini.get_value_string(3));
+						pub::Reputation::GetReputationGroup(setnpcstruct.IFF, ini.get_value_string(3));
 
 						//Selected graph
 						setnpcstruct.Graph = ini.get_value_int(4);
@@ -349,12 +353,30 @@ void LoadNPCInfo()
 					}
 				}
 			}
+			else if (ini.is_header("disable"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("ServerLoad_DisableSpawn"))
+					{
+						ServerLoad_DisableSpawn = ini.get_value_int(0);
+					}
+					else if (ini.is_value("Exception_ShipArch"))
+					{
+						npcDisableExeptions_Ships.push_back(CreateID(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("Exception_System"))
+					{
+						npcDisableExeptions_Systems.push_back(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
 		}
 		ini.close();
 	}
 
 
-	
+
 }
 
 void LoadSettings()
@@ -399,7 +421,6 @@ bool IsFLHookNPC(CShip* ship)
 	// if it's a player do nothing
 	if (ship->is_player() == true)
 	{
-		//HkMsgU(L"Death: was a player");
 		return false;
 	}
 
@@ -410,7 +431,6 @@ bool IsFLHookNPC(CShip* ship)
 		if (*iter == ship->get_id())
 		{
 			ship->clear_equip_and_cargo();
-			//ConPrint(L"Death: FLHook NPC\n");
 			npcs.erase(iter);
 
 			return true;
@@ -419,7 +439,6 @@ bool IsFLHookNPC(CShip* ship)
 		iter++;
 	}
 
-	//ConPrint(L"Death: was not an FLHook NPC\n");
 	return false;
 }
 
@@ -433,32 +452,6 @@ void Log_CreateNPC(wstring name)
 	Logging("%s", scText.c_str());
 }
 
-/*
-void Notify_TradeEvent_Exit(uint iClientID, string eventname, string reason)
-{
-	//internal log
-	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	wstring wscMsgLog = L"<%player> has been unregistered from the event <%eventname>, reason: <%reason>";
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%player", wscCharname.c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%eventname", stows(eventname).c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%reason", stows(reason).c_str());
-	string scText = wstos(wscMsgLog);
-	Logging("%s", scText.c_str());
-}
-
-void Notify_TradeEvent_Completed(uint iClientID, string eventname, int iCargoCount, int iBonus)
-{
-	//internal log
-	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	wstring wscMsgLog = L"<%player> has completed the event <%eventname> and delivered <%units> for a bonus of <%bonus> credits";
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%player", wscCharname.c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%eventname", stows(eventname).c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%units", stows(itos(iCargoCount)).c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%bonus", stows(itos(iBonus)).c_str());
-	string scText = wstos(wscMsgLog);
-	Logging("%s", scText.c_str());
-}
-*/
 
 void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 {
@@ -472,52 +465,52 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 
 void CreateNPC(wstring name, Vector pos, Matrix rot, uint iSystem)
 {
-		NPC_ARCHTYPESSTRUCT arch = mapNPCArchtypes[name];
+	NPC_ARCHTYPESSTRUCT arch = mapNPCArchtypes[name];
 
-		pub::SpaceObj::ShipInfo si;
-		memset(&si, 0, sizeof(si));
-		si.iFlag = 1;
-		si.iSystem = iSystem;
-		si.iShipArchetype = arch.Shiparch;
-		si.vPos = pos;
-		si.vPos.x = pos.x + rand_FloatRange(0, 1000);
-		si.vPos.y = pos.y + rand_FloatRange(0, 1000);
-		si.vPos.z = pos.z + rand_FloatRange(0, 2000);
-		si.mOrientation = rot;
-		si.iLoadout = arch.Loadout;
-		si.iLook1 = CreateID("li_newscaster_head_gen_hat");
-		si.iLook2 = CreateID("pl_female1_journeyman_body");
-		si.iComm = CreateID("comm_br_darcy_female");
-		si.iPilotVoice = CreateID("pilot_f_leg_f01a");
-		si.iHealth = -1;
-		si.iLevel = 19;
+	pub::SpaceObj::ShipInfo si;
+	memset(&si, 0, sizeof(si));
+	si.iFlag = 1;
+	si.iSystem = iSystem;
+	si.iShipArchetype = arch.Shiparch;
+	si.vPos = pos;
+	si.vPos.x = pos.x + rand_FloatRange(0, 1000);
+	si.vPos.y = pos.y + rand_FloatRange(0, 1000);
+	si.vPos.z = pos.z + rand_FloatRange(0, 2000);
+	si.mOrientation = rot;
+	si.iLoadout = arch.Loadout;
+	si.iLook1 = CreateID("li_newscaster_head_gen_hat");
+	si.iLook2 = CreateID("pl_female1_journeyman_body");
+	si.iComm = CreateID("comm_br_darcy_female");
+	si.iPilotVoice = CreateID("pilot_f_leg_f01a");
+	si.iHealth = -1;
+	si.iLevel = 19;
 
-		// Define the string used for the scanner name. Because the
-		// following entry is empty, the pilot_name is used. This
-		// can be overriden to display the ship type instead.
-		FmtStr scanner_name(0, 0);
-		scanner_name.begin_mad_lib(0);
-		scanner_name.end_mad_lib();
+	// Define the string used for the scanner name. Because the
+	// following entry is empty, the pilot_name is used. This
+	// can be overriden to display the ship type instead.
+	FmtStr scanner_name(0, 0);
+	scanner_name.begin_mad_lib(0);
+	scanner_name.end_mad_lib();
 
-		// Define the string used for the pilot name. The example
-		// below shows the use of multiple part names.
-		FmtStr pilot_name(0, 0);
-		pilot_name.begin_mad_lib(16163); // ids of "%s0 %s1"
-		pilot_name.append_string(rand_name());  // ids that replaces %s0
-		pilot_name.append_string(rand_name()); // ids that replaces %s1
-		pilot_name.end_mad_lib();
+	// Define the string used for the pilot name. The example
+	// below shows the use of multiple part names.
+	FmtStr pilot_name(0, 0);
+	pilot_name.begin_mad_lib(16163); // ids of "%s0 %s1"
+	pilot_name.append_string(rand_name());  // ids that replaces %s0
+	pilot_name.append_string(rand_name()); // ids that replaces %s1
+	pilot_name.end_mad_lib();
 
-		pub::Reputation::Alloc(si.iRep, scanner_name, pilot_name);
-		pub::Reputation::SetAffiliation(si.iRep, arch.IFF);
+	pub::Reputation::Alloc(si.iRep, scanner_name, pilot_name);
+	pub::Reputation::SetAffiliation(si.iRep, arch.IFF);
 
-		uint iSpaceObj;
+	uint iSpaceObj;
 
-		pub::SpaceObj::Create(iSpaceObj, si);
+	pub::SpaceObj::Create(iSpaceObj, si);
 
-		pub::AI::SetPersonalityParams pers = HkMakePersonality(arch.Graph);
-		pub::AI::SubmitState(iSpaceObj, &pers);
+	pub::AI::SetPersonalityParams pers = HkMakePersonality(arch.Graph);
+	pub::AI::SubmitState(iSpaceObj, &pers);
 
-		npcs.push_back(iSpaceObj);
+	npcs.push_back(iSpaceObj);
 
 	return;
 }
@@ -692,7 +685,7 @@ void AdminCmd_ListNPCFleets(CCmds* cmds)
 
 	cmds->Print(L"Available fleets: %d\n", mapNPCFleets.size());
 	for (map<wstring, NPC_FLEETSTRUCT>::iterator i = mapNPCFleets.begin();
-	i != mapNPCFleets.end(); ++i)
+		i != mapNPCFleets.end(); ++i)
 	{
 		cmds->Print(L"|%s\n", i->first.c_str());
 	}
@@ -739,68 +732,6 @@ void AdminCmd_AIFleet(CCmds* cmds, wstring FleetName)
 	cmds->Print(L"OK fleet spawned\n");
 	return;
 }
-
-/*
-typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
-
-struct USERCMD
-{
-	wchar_t *wszCmd;
-	_UserCmdProc proc;
-	wchar_t *usage;
-};
-
-USERCMD UserCmds[] =
-{
-	{ L"/autobuy", UserCmd_AutoBuy, L"Usage: /autobuy" },
-	{ L"/autobuy*", UserCmd_AutoBuy, L"Usage: /autobuy" },
-};
-*/
-
-/*
-This function is called by FLHook when a user types a chat string. We look at the
-string they've typed and see if it starts with one of the above commands. If it
-does we try to process it.
-*/
-
-/*
-bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
-{
-	returncode = DEFAULT_RETURNCODE;
-
-	wstring wscCmdLineLower = ToLower(wscCmd);
-
-	// If the chat string does not match the USER_CMD then we do not handle the
-	// command, so let other plugins or FLHook kick in. We require an exact match
-	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
-	{
-
-		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
-		{
-			// Extract the parameters string from the chat string. It should
-			// be immediately after the command and a space.
-			wstring wscParam = L"";
-			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
-			{
-				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
-					continue;
-				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
-			}
-
-			// Dispatch the command to the appropriate processing function.
-			if (UserCmds[i].proc(iClientID, wscCmd, wscParam, UserCmds[i].usage))
-			{
-				// We handled the command tell FL hook to stop processing this
-				// chat string.
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL; // we handled the command, return immediatly
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-*/
 
 #define IS_CMD(a) !wscCmd.compare(L##a)
 
@@ -852,6 +783,50 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHIP& shipInfo)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (g_iServerLoad > ServerLoad_DisableSpawn)
+	{
+		// Tell FLHook that we disable NPCs. Needed for .serverinfo command.
+		set_iDisableNPCSpawns = true;
+
+		// Distinguish player ships from NPC ships to avoid unpleasant cases.
+		if (HkGetClientIDByShip(shipInfo.iSpaceID))
+			return true;
+
+		pub::AI::Personality pers;
+		CShip* ship = reinterpret_cast<CShip*>(CObject::Find(shipInfo.iSpaceID, CObject::CSHIP_OBJECT));
+		ship->get_behavior_interface()->get_personality(pers);
+
+		// Distinguish mission NPCs from regular to avoid unpleasant cases.
+		if (pers.Job.field_targeting == 2)
+			return true;
+
+		// Distinguish FLHook NPCs from regular to avoid unpleasant cases.
+		if (find(npcs.begin(), npcs.end(), shipInfo.iSpaceID) != npcs.end())
+			return true;
+
+		if (find(npcDisableExeptions_Ships.begin(), npcDisableExeptions_Ships.end(), shipInfo.iShipArch) != npcDisableExeptions_Ships.end())
+			return true;
+
+		uint iSystemID;
+		pub::SpaceObj::GetSystem(shipInfo.iSpaceID, iSystemID);
+
+		if (find(npcDisableExeptions_Systems.begin(), npcDisableExeptions_Systems.end(), iSystemID) != npcDisableExeptions_Systems.end())
+			return true;
+
+		// If the ship is not present in exception list, prevent it from being created.
+		pub::SpaceObj::Destroy(shipInfo.iSpaceID, VANISH); // Prevent server-side spawning.
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // Prevent client-side spawning.
+	}
+
+	return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Functions to hook
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -863,11 +838,11 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->sShortName = "npc";
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
-	p_PI->ePluginReturnCode = &returncode;	
+	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
-	//p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Send_FLPACKET_SERVER_CREATESHIP, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATESHIP, 0));
 
 	return p_PI;
 }

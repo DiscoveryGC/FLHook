@@ -415,8 +415,8 @@ namespace GiveCash
 		time(&rawtime);
 		timeinfo = localtime(&rawtime);
 
-		char buffer[21];
-		strftime(buffer, 21, "[%Y-%m-%d]%H:%M:%S", timeinfo);
+		char buffer[22];
+		strftime(buffer, 22, "[%Y-%m-%d] %H:%M:%S", timeinfo);
 		wstring time = stows((string)buffer);
 
 		// If the target player is online then send them a message saying

@@ -762,19 +762,6 @@ void AdminCmd_AIFleet(CCmds* cmds, wstring FleetName)
 	return;
 }
 
-/* Set limit */
-void AdminCmd_SetNPClimit(CCmds* cmds)
-{
-	if (!(cmds->rights & RIGHT_SUPERADMIN))
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
-
-	set_iDisableNPCSpawns = 0;
-	cmds->Print(L"OK");
-}
-
 /*
 typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
@@ -882,12 +869,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		AdminCmd_ListNPCFleets(cmds);
-		return true;
-	}
-	else if (IS_CMD("setnpclimit"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		AdminCmd_SetNPClimit(cmds);
 		return true;
 	}
 	return false;

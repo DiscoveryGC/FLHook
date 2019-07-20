@@ -910,7 +910,6 @@ USERCMD UserCmds[] =
 	{ L"/showsetup",	PimpShip::UserCmd_ShowSetup,	L"Usage: /showsetup" },
 	{ L"/showitems",	PimpShip::UserCmd_ShowItems,	L"Usage: /showitems" },
 	{ L"/setitem",		PimpShip::UserCmd_ChangeItem,	L"Usage: /setitem" },
-	{ L"/buynow",		PimpShip::UserCmd_BuyNow,		L"Usage: /buynow" },
 	{ L"/renameme",		Rename::UserCmd_RenameMe,		L"Usage: /renameme <charname> [password]" },
 	{ L"/movechar",		Rename::UserCmd_MoveChar,		L"Usage: /movechar <charname> <code>" },
 	{ L"/set movecharcode",	Rename::UserCmd_SetMoveCharCode,	L"Usage: /set movecharcode <code>" },

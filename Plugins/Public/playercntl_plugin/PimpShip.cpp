@@ -42,11 +42,10 @@ namespace PimpShip
 	// Item of equipment for a single client.
 	struct EQ_HARDPOINT
 	{
-		EQ_HARDPOINT() : sID(0), iArchID(0), iOrigArchID(0) {}
+		EQ_HARDPOINT() : sID(0), iArchID(0) {}
 
 		uint sID;
 		uint iArchID;
-		uint iOrigArchID;
 		wstring wscHardPoint;
 	};
 
@@ -168,15 +167,32 @@ namespace PimpShip
 		if (!set_bEnablePimpShip)
 			return;
 
-		if (set_mapDealers.find(iLocationID)==set_mapDealers.end())
+		if (set_mapDealers.find(iLocationID) == set_mapDealers.end())
 		{
 			uint iBaseID = 0;
 			pub::Player::GetBase(iClientID, iBaseID);
-			if (set_mapDealers.find(iBaseID)==set_mapDealers.end())
+			if (set_mapDealers.find(iBaseID) == set_mapDealers.end())
 			{
 				mapInfo[iClientID].bInPimpDealer = false;
 				mapInfo[iClientID].mapCurrEquip.clear();
 				return;
+			}
+		}
+
+		mapInfo[iClientID].bInPimpDealer = true;
+
+		// Build the equipment list.
+		int iSlotID = 1;
+
+		list<EquipDesc> &eqLst = Players[iClientID].equipDescList.equip;
+		for (list<EquipDesc>::iterator eq = eqLst.begin(); eq != eqLst.end(); eq++)
+		{
+			if (IsItemArchIDAvailable(eq->iArchID))
+			{
+				mapInfo[iClientID].mapCurrEquip[iSlotID].sID = eq->sID;
+				mapInfo[iClientID].mapCurrEquip[iSlotID].iArchID = eq->iArchID;
+				mapInfo[iClientID].mapCurrEquip[iSlotID].wscHardPoint = stows(eq->szHardPoint.value);
+				iSlotID++;
 			}
 		}
 
@@ -192,58 +208,35 @@ namespace PimpShip
 		if (!set_bEnablePimpShip)
 			return false;
 
-		uint iLocationID = 0;
-		pub::Player::GetLocation(iClientID, iLocationID);
-		if (set_mapDealers.find(iLocationID)==set_mapDealers.end())
+		if (!mapInfo[iClientID].bInPimpDealer)
 		{
-			uint iBaseID = 0;
-			pub::Player::GetBase(iClientID, iBaseID);
-			if (set_mapDealers.find(iBaseID)==set_mapDealers.end())
-			{
-				mapInfo[iClientID].bInPimpDealer = false;
-				mapInfo[iClientID].mapCurrEquip.clear();
-				PrintUserCmdText(iClientID, L"ERR ship pimping facilities not available at this base.");
-				return false;
-			}
+			PrintUserCmdText(iClientID, L"ERR Pimpship facilities are not available here");
+			return true;
 		}
 
-		mapInfo[iClientID].mapCurrEquip.clear();
-		mapInfo[iClientID].bInPimpDealer = true;
-
 		PrintUserCmdText(iClientID, L"Available ship pimping commands:");
+		PrintUserCmdText(iClientID, L"This facility costs " + ToMoneyStr(set_iCost) + L" credits to use per one item.");
 
 		PrintUserCmdText(iClientID, L"/showsetup");
 		PrintUserCmdText(iClientID, L"|     Display current ship setup.");
 
-		PrintUserCmdText(iClientID, L"/showitems");
+		PrintUserCmdText(iClientID, L"/showitems [from]-[to]");
 		PrintUserCmdText(iClientID, L"|     Display items that may be added to your ship.");
 
-		PrintUserCmdText(iClientID, L"/setitem <hardpoint id> <new item id>");
-		PrintUserCmdText(iClientID, L"|     Change the item at <hp id> to <item id>.");
-		PrintUserCmdText(iClientID, L"|     <hi id>s are shown by typing /show setup.");
+		PrintUserCmdText(iClientID, L"/setitem <hardpoint id> <item id>");
+		PrintUserCmdText(iClientID, L"|     Change the item at <hardpoint id> to <item id>.");
+		PrintUserCmdText(iClientID, L"|     <hardpoint id>s are shown by typing /show setup.");
 		PrintUserCmdText(iClientID, L"|     <item id>s are shown by typing /show items.");
+		PrintUserCmdText(iClientID, L"|     Allowed to print item name instead of ID.");
 
-		PrintUserCmdText(iClientID, L"/buynow");
-		PrintUserCmdText(iClientID, L"|     Confirms the changes.");
-		PrintUserCmdText(iClientID, L"This facility costs " + ToMoneyStr(set_iCost) + L" credits to use.");
+		PrintUserCmdText(iClientID, L"/setitem [hp1]-[hp-2] <item id>");
+		PrintUserCmdText(iClientID, L"|     Change items at hardpoints in range of <hp1>-<hp2> to <item id>.");
 
-		wstring wscCharName = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+		PrintUserCmdText(iClientID, L"/setitem [hp-begin]*<every-n>*[hp-end] <item id>");
+		PrintUserCmdText(iClientID, L"|     Change every n hardpoint to <item id>.");
+		PrintUserCmdText(iClientID, L"|     Changing begins from [hp-begin] if the parameter is determined, otherwise begins from first hardpoint.");
+		PrintUserCmdText(iClientID, L"|     Changing ends at [hp-end] if the parameter is determined, otherwise ends at last hardpoint.");
 
-		// Build the equipment list.
-		int iSlotID = 1;
-
-		list<EquipDesc> &eqLst = Players[iClientID].equipDescList.equip;
-		for (list<EquipDesc>::iterator eq = eqLst.begin(); eq != eqLst.end(); eq++)
-		{
-			if (IsItemArchIDAvailable(eq->iArchID))
-			{
-				mapInfo[iClientID].mapCurrEquip[iSlotID].sID = eq->sID;
-				mapInfo[iClientID].mapCurrEquip[iSlotID].iArchID = eq->iArchID;
-				mapInfo[iClientID].mapCurrEquip[iSlotID].iOrigArchID = eq->iArchID;
-				mapInfo[iClientID].mapCurrEquip[iSlotID].wscHardPoint = stows(eq->szHardPoint.value);
-				iSlotID++;
-			}
-		}
 		return true;
 	}
 
@@ -271,10 +264,60 @@ namespace PimpShip
 		if (!mapInfo[iClientID].bInPimpDealer || !set_bEnablePimpShip)
 			return false;
 
-		PrintUserCmdText(iClientID, L"Available items: %d", mapAvailableItems.size());
-		for (map<uint, ITEM_INFO>::iterator iter = mapAvailableItems.begin(); iter != mapAvailableItems.end(); iter++)
+		int beginFrom = 1;
+		int endAt = mapAvailableItems.size();
+
+		ushort index = 0;
+		for (wstring::const_iterator it = wscParam.begin(); it != wscParam.end(); it++)
 		{
-			PrintUserCmdText(iClientID, L"|     %.2d:  %s", iter->first, iter->second.wscDescription.c_str());
+			index++;
+
+			if (*it == '-')
+			{
+				if (it == wscParam.begin() && it == wscParam.end() - 1)
+				{
+					beginFrom = 1;
+					endAt = mapInfo[iClientID].mapCurrEquip.size();
+				}
+				else if (it == wscParam.end() - 1)
+				{
+					beginFrom = ToInt(wscParam.substr(0, index));
+					endAt = mapInfo[iClientID].mapCurrEquip.size();
+				}
+				else if (it == wscParam.begin())
+				{
+					beginFrom = 1;
+					endAt = ToInt(wscParam.substr(index));
+
+					if (endAt < beginFrom)
+						swap(endAt, beginFrom);
+				}
+				else
+				{
+					beginFrom = ToInt(wscParam.substr(0, index));
+					endAt = ToInt(wscParam.substr(index));
+
+					if (endAt < beginFrom)
+						swap(endAt, beginFrom);
+				}
+
+				break;
+			}
+		}
+
+		if (endAt > mapAvailableItems.size())
+			endAt = mapAvailableItems.size();
+
+		if (beginFrom == 0)
+			beginFrom = 1;
+
+		if (beginFrom > endAt)
+			beginFrom = endAt + 1;
+
+		PrintUserCmdText(iClientID, L"Showed %i/%u items:", endAt - beginFrom + 1, mapAvailableItems.size());
+		for (int i = beginFrom; i != endAt + 1; i++)
+		{
+			PrintUserCmdText(iClientID, L"|     %.2d:  %s", i, mapAvailableItems[i].wscDescription.c_str());
 		}
 		PrintUserCmdText(iClientID, L"OK");
 
@@ -287,69 +330,207 @@ namespace PimpShip
 		if (!mapInfo[iClientID].bInPimpDealer || !set_bEnablePimpShip)
 			return false;
 
-		int iHardPointID = ToInt(GetParam(wscParam, ' ', 0));
-		int iSelectedItemID = ToInt(GetParam(wscParam, ' ', 1));
+		int beginFrom = 0;
+		int endAt = 0;
+		int everyN = 1;
 
-		if (mapInfo[iClientID].mapCurrEquip.find(iHardPointID)
-			== mapInfo[iClientID].mapCurrEquip.end())
+		wstring firstArg = GetParam(wscParam, ' ', 0);
+		wstring secondArg = GetParam(wscParam, ' ', 1);
+
+		uint itemID = ToInt(secondArg);
+
+		if (!itemID)
 		{
-			PrintUserCmdText(iClientID, L"ERR Invalid hard point ID");
-			return true;
+			for (map<uint, ITEM_INFO>::iterator it = mapAvailableItems.begin(); it != mapAvailableItems.end(); it++)
+			{
+				if (it->second.wscNickname == secondArg)
+				{
+					itemID = it->first;
+					break;
+				}
+			}
 		}
 
-		if (mapAvailableItems.find(iSelectedItemID) == mapAvailableItems.end())
+		if (mapAvailableItems.find(itemID) == mapAvailableItems.end())
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid item ID");
 			return true;
 		}
 
-		mapInfo[iClientID].mapCurrEquip[iHardPointID].iArchID = mapAvailableItems[iSelectedItemID].iArchID;
+		ushort index = 0;
+		for (wstring::iterator it = firstArg.begin(); it != firstArg.end(); it++)
+		{
+			index++;
+
+			if (*it >= '0' && *it <= '9') {}
+			else if (*it == '-')
+			{
+				if (it == firstArg.begin() && it == firstArg.end() - 1)
+				{
+					beginFrom = 1;
+					endAt = mapInfo[iClientID].mapCurrEquip.size();
+				}
+				else if (it == firstArg.end() - 1)
+				{
+					beginFrom = ToInt(firstArg.substr(0, index));
+					endAt = mapInfo[iClientID].mapCurrEquip.size();
+				}
+				else if (it == firstArg.begin())
+				{
+					beginFrom = 1;
+					endAt = ToInt(firstArg.substr(index));
+
+					if (endAt < beginFrom)
+						swap(endAt, beginFrom);
+				}
+				else
+				{
+					beginFrom = ToInt(firstArg.substr(0, index));
+					endAt = ToInt(firstArg.substr(index));
+
+					if (endAt < beginFrom)
+						swap(endAt, beginFrom);
+				}
+
+				break;
+			}
+			else if (*it == '*')
+			{
+				if (beginFrom == 0)
+				{
+					endAt = mapInfo[iClientID].mapCurrEquip.size();
+
+					if (it == firstArg.begin())
+					{
+						beginFrom = 1;
+						everyN = ToInt(firstArg.substr(index));
+					}
+					else if (it == firstArg.end() - 1)
+					{
+						beginFrom = 1;
+						everyN = ToInt(firstArg.substr(0, index));
+					}
+					else
+					{
+						beginFrom = ToInt(firstArg.substr(0, index));
+						everyN = ToInt(firstArg.substr(index));
+
+						if (beginFrom == 0)
+							beginFrom = -1;
+					}
+				}
+				else
+				{
+					if (it == firstArg.end() - 1)
+						endAt = mapInfo[iClientID].mapCurrEquip.size();
+					else
+					{
+						endAt = ToInt(firstArg.substr(index));
+
+						if (endAt < beginFrom)
+							swap(endAt, beginFrom);
+					}
+
+					break;
+				}
+			}
+			else
+			{
+				PrintUserCmdText(iClientID, L"ERR Invalid syntax");
+				return true;
+			}
+		}
+
+		if (beginFrom == 0 && endAt == 0)
+		{
+			beginFrom = endAt = ToInt(firstArg);
+			if (beginFrom == 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
+			{
+				PrintUserCmdText(iClientID, L"ERR hardpoint index is out of bounds");
+				return true;
+			}
+		}
+
+		if (beginFrom <= 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
+		{
+			PrintUserCmdText(iClientID, L"ERR Beginning is out of bounds");
+			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);
+			if (everyN == 1)
+				PrintUserCmdText(iClientID, L"/setitem -%i %u", endAt, itemID);
+			else
+				PrintUserCmdText(iClientID, L"/setitem *%i*%i %u", everyN, endAt, itemID);
+
+			return true;
+		}
+
+		if (endAt > mapInfo[iClientID].mapCurrEquip.size())
+		{
+			PrintUserCmdText(iClientID, L"ERR Ending is out of bounds");
+			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from %u to end:", beginFrom);
+			if (everyN == 1)
+				PrintUserCmdText(iClientID, L"/setitem %i- %u", beginFrom, itemID);
+			else
+				PrintUserCmdText(iClientID, L"/setitem %i*%i* %u", beginFrom, everyN, itemID);
+			return true;
+		}
+
+		if (everyN == 0)
+		{
+			PrintUserCmdText(iClientID, L"ERR Zero advancement");
+			return true;
+		}
+
+		int totalCost = 0;
+		map<uint, EQ_HARDPOINT>& info = mapInfo[iClientID].mapCurrEquip;
+		uint newItem = mapAvailableItems[itemID].iArchID;
+		for (int i = beginFrom; i < endAt + 1; i += everyN)
+		{
+			if (info[i].iArchID != newItem)
+				totalCost += set_iCost;
+		}
+
+		if (totalCost == 0)
+		{
+			PrintUserCmdText(iClientID, L"You already have this light mounted at selected hardpoints.");
+			return true;
+		}
+
+		int iCash = 0;
+		wstring wscCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+		HkGetCash(wscCharName, iCash);
+
+		if (iCash < totalCost)
+		{
+			PrintUserCmdText(iClientID, L"ERR Insufficient credits");
+			return true;
+		}
+
+		list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
+		for (list<EquipDesc>::iterator it = equip.begin(); it != equip.end(); it++)
+		{
+			for (int i = beginFrom; i < endAt + 1; i += everyN)
+			{
+				if (it->sID == info[i].sID)
+				{
+					it->iArchID = newItem;
+					info[i].iArchID = newItem;
+					break;
+				}
+			}
+		}
+
+		HkSetEquip(iClientID, equip);
+		HkAddCash(wscCharName, 0 - totalCost);
+		PrintUserCmdText(iClientID, L"Ship pimping complete. You bought %i item%ws.", endAt - beginFrom + 1, endAt == beginFrom ? L"" : L"s");
+
+		if (beginFrom == 1 && endAt == mapInfo[iClientID].mapCurrEquip.size() && firstArg != L"-")
+		{
+			PrintUserCmdText(iClientID, L"Next time you may want to use following syntax to select all hardpoints:");
+			PrintUserCmdText(iClientID, L"/setitem - %u", itemID);
+		}
+
+		pub::Audio::PlaySoundEffect(iClientID, CreateID("ui_execute_transaction"));
+
 		return UserCmd_ShowSetup(iClientID, wscCmd, wscParam, usage);
-	}
-
-	bool PimpShip::UserCmd_BuyNow(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		HK_ERROR err; 
-
-		wstring wscCharName = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
-
-		// Check the that player is in a ship dealer.
-		if (!mapInfo[iClientID].bInPimpDealer)
-			return false;
-
-		// Charge for the equipment pimp.
-		if (set_iCost > 0)
-		{
-			int iCash = 0;
-			if ((err = HkGetCash(wscCharName, iCash)) != HKE_OK)
-			{
-				PrintUserCmdText(iClientID, L"ERR %s", HkErrGetText(err).c_str());
-				return true;
-			}
-			if (iCash<0 && iCash<set_iCost)
-			{
-				PrintUserCmdText(iClientID, L"ERR Insufficient credits");
-				return true;
-			}
-			HkAddCash(wscCharName, 0-set_iCost);
-		}
-
-		// Remove all lights.
-		for (map<uint, EQ_HARDPOINT>::iterator i = mapInfo[iClientID].mapCurrEquip.begin();
-			i != mapInfo[iClientID].mapCurrEquip.end(); ++i)
-		{
-			pub::Player::RemoveCargo(iClientID, i->second.sID, 1);
-		}
-
-		// Re-add all lights so that the order is kept the same
-		for (map<uint, EQ_HARDPOINT>::iterator i = mapInfo[iClientID].mapCurrEquip.begin();
-			i != mapInfo[iClientID].mapCurrEquip.end(); ++i)
-		{
-			HkAddEquip(wscCharName, i->second.iArchID, wstos(i->second.wscHardPoint));
-		}
-
-		PrintUserCmdText(iClientID, L"OK Ship pimp complete. Please wait 10 seconds and reconnect.");
-		HkDelayedKick(iClientID, 5);
-		return true;
 	}
 }

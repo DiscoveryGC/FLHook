@@ -883,7 +883,7 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 	if (g_iServerLoad > ServerLoad_DisableSpawn)
 	{
 		// Tell FLHook that we disable NPCs. Needed for .serverinfo command.
-		set_iDisableNPCSpawns = true;
+		g_bNPCDisabled = true;
 
 		// Distinguish player ships from NPC ships to avoid unpleasant cases.
 		if (HkGetClientIDByShip(shipInfo.iSpaceID))
@@ -917,7 +917,7 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 	else
 	{
 		// Tell FLHook that we enable NPCs. Needed for .serverinfo command.
-		set_iDisableNPCSpawns = false;
+		g_bNPCDisabled = false;
 	}
 
 

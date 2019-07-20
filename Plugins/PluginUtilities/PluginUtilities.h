@@ -79,4 +79,23 @@ CEqObj * __stdcall HkGetEqObjFromObjRW(struct IObjRW *objRW);
 void __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float fDelay, float fLifetime, float fSkip);
 void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno);
 
+#pragma pack(push, 1)
+struct SETEQUIPMENT_ITEM
+{
+	int iCount;
+	float fHealth;
+	int iArchID;
+	ushort sID;
+	byte bMounted;
+	byte bMission;
+	ushort szHardPointLen;
+};
+#pragma pack(pop)
+
+struct FLPACKET_SETEQUIPMENT
+{
+	ushort count;
+	byte items[1];
+};
+
 #endif

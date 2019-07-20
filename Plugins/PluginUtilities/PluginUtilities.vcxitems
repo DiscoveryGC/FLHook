@@ -17,6 +17,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)PluginUtilities.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)DynPacket.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)PluginUtilities.h" />
   </ItemGroup>
 </Project>

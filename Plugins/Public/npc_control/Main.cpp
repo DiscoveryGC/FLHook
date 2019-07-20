@@ -893,7 +893,7 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 		CShip* ship = reinterpret_cast<CShip*>(CObject::Find(shipInfo.iSpaceID, CObject::CSHIP_OBJECT));
 		ship->get_behavior_interface()->get_personality(pers);
 
-		// Distinguish mission NPCs from regular to avoid unpleasant cases.
+		// Distinguish mission NPCs from regular - we want to disable random spawns, never mission NPCs
 		if (pers.Job.field_targeting == 2)
 			return true;
 

@@ -897,7 +897,7 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 		if (pers.Job.field_targeting == 2)
 			return true;
 
-		// Distinguish FLHook NPCs from regular to avoid unpleasant cases.
+		// Distinguish FLHook NPCs from regular - we want to disable random spawns, never FLHook NPCs
 		if (find(npcs.begin(), npcs.end(), shipInfo.iSpaceID) != npcs.end())
 			return true;
 

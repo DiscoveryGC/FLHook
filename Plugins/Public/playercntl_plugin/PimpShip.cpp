@@ -305,7 +305,7 @@ namespace PimpShip
 			}
 		}
 
-		if (endAt > mapAvailableItems.size())
+		if ((uint)endAt > mapAvailableItems.size())
 			endAt = mapAvailableItems.size();
 
 		if (beginFrom == 0)
@@ -444,14 +444,14 @@ namespace PimpShip
 		if (beginFrom == 0 && endAt == 0)
 		{
 			beginFrom = endAt = ToInt(firstArg);
-			if (beginFrom == 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
+			if (beginFrom == 0 || (uint)beginFrom > mapInfo[iClientID].mapCurrEquip.size())
 			{
 				PrintUserCmdText(iClientID, L"ERR hardpoint index is out of bounds");
 				return true;
 			}
 		}
 
-		if (beginFrom <= 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
+		if (beginFrom <= 0 || (uint)beginFrom > mapInfo[iClientID].mapCurrEquip.size())
 		{
 			PrintUserCmdText(iClientID, L"ERR Beginning is out of bounds");
 			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);
@@ -463,7 +463,7 @@ namespace PimpShip
 			return true;
 		}
 
-		if (endAt > mapInfo[iClientID].mapCurrEquip.size())
+		if ((uint)endAt > mapInfo[iClientID].mapCurrEquip.size())
 		{
 			PrintUserCmdText(iClientID, L"ERR Ending is out of bounds");
 			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from %u to end:", beginFrom);

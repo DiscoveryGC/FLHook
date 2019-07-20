@@ -17,6 +17,7 @@ CAccount* HkGetAccountByClientID(uint iClientID);
 float HkDistance3D(Vector v1, Vector v2);
 float HkDistance3DByShip(uint iShip1, uint iShip2);
 
+bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip);
 HK_ERROR HkAddEquip(const wstring &wscCharname, uint iGoodID, const string &scHardpoint);
 HK_ERROR HkAntiCheat(uint iClientID);
 HK_ERROR HkDeleteCharacter(CAccount *acc, wstring &wscCharname);

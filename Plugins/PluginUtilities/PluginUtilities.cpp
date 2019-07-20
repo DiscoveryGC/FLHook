@@ -154,7 +154,7 @@ bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
 		setEquipItem.fHealth = item->fHealth;
 		setEquipItem.iArchID = item->iArchID;
 		setEquipItem.sID = item->sID;
-		setEquipItem.bEquip = item->bMounted;
+		setEquipItem.bMounted = item->bMounted;
 		setEquipItem.bMission = item->bMission;
 		string hp = wstos(stows(item->szHardPoint.value));
 

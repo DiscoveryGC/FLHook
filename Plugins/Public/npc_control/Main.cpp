@@ -61,7 +61,7 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 //STRUCTURES AND DEFINITIONS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint ServerLoad_DisableSpawn = 1000;
+uint ServerLoad_DisableSpawn = -1;
 vector<uint> npcDisableExceptions_Ships;
 vector<uint> npcDisableExceptions_Systems;
 
@@ -880,34 +880,34 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	if (ServerLoad_DisableSpawn == -1)
+		return true;
+
 	if (g_iServerLoad > ServerLoad_DisableSpawn)
 	{
 		// Tell FLHook that we disable NPCs. Needed for .serverinfo command.
 		g_bNPCDisabled = true;
 
-		// Distinguish player ships from NPC ships to avoid unpleasant cases.
-		if (HkGetClientIDByShip(shipInfo.iSpaceID))
-			return true;
-
 		pub::AI::Personality pers;
 		CShip* ship = reinterpret_cast<CShip*>(CObject::Find(shipInfo.iSpaceID, CObject::CSHIP_OBJECT));
 		ship->get_behavior_interface()->get_personality(pers);
 
-		// Distinguish mission NPCs from regular - we want to disable random spawns, never mission NPCs
+		// Distinguish player ships from NPC ships to avoid unpleasant cases.
+		if (ship->is_player())
+			return true;
+
+		// Distinguish mission NPCs from regular to avoid unpleasant cases.
 		if (pers.Job.field_targeting == 2)
 			return true;
 
-		// Distinguish FLHook NPCs from regular - we want to disable random spawns, never FLHook NPCs
+		// Distinguish FLHook NPCs from regular to avoid unpleasant cases.
 		if (find(npcs.begin(), npcs.end(), shipInfo.iSpaceID) != npcs.end())
 			return true;
 
 		if (find(npcDisableExceptions_Ships.begin(), npcDisableExceptions_Ships.end(), shipInfo.iShipArch) != npcDisableExceptions_Ships.end())
 			return true;
 
-		uint iSystemID;
-		pub::SpaceObj::GetSystem(shipInfo.iSpaceID, iSystemID);
-
-		if (find(npcDisableExceptions_Systems.begin(), npcDisableExceptions_Systems.end(), iSystemID) != npcDisableExceptions_Systems.end())
+		if (find(npcDisableExceptions_Systems.begin(), npcDisableExceptions_Systems.end(), ship->iSystem) != npcDisableExceptions_Systems.end())
 			return true;
 
 		// If the ship is not present in exception list, prevent it from being created.
@@ -920,8 +920,7 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 		g_bNPCDisabled = false;
 	}
 
-
-	return false;
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

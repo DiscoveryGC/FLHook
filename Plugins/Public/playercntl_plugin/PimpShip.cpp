@@ -229,7 +229,7 @@ namespace PimpShip
 		PrintUserCmdText(iClientID, L"|     <item id>s are shown by typing /show items.");
 		PrintUserCmdText(iClientID, L"|     Allowed to print item name instead of ID.");
 
-		PrintUserCmdText(iClientID, L"/setitem [hp1]-[hp-2] <item id>");
+		PrintUserCmdText(iClientID, L"/setitem [hp1]-[hp2] <item id>");
 		PrintUserCmdText(iClientID, L"|     Change items at hardpoints in range of <hp1>-<hp2> to <item id>.");
 
 		PrintUserCmdText(iClientID, L"/setitem [hp-begin]*<every-n>*[hp-end] <item id>");

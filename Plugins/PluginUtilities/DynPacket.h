@@ -1,6 +1,6 @@
 #include "FLHook.h"
 
-// Use the class to create and send packets of inconstant size
+// Use the class to create and send packets of inconstant size.
 #pragma pack(push, 1)
 class FLPACKET
 {
@@ -253,7 +253,7 @@ public:
 		return packet;
 	}
 
-	// Returns true if sent succesfully, false if not.
+	// Returns true if sent succesfully, false if not. Frees memory allocated for packet.
 	bool SendTo(uint iClientID)
 	{
 		CDPClientProxy *cdpClient = g_cClientProxyArray[iClientID - 1];

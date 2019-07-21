@@ -281,21 +281,21 @@ namespace PimpShip
 				}
 				else if (it == wscParam.end() - 1)
 				{
-					beginFrom = ToInt(wscParam.substr(0, index));
+					beginFrom = ToUInt(wscParam.substr(0, index));
 					endAt = mapInfo[iClientID].mapCurrEquip.size();
 				}
 				else if (it == wscParam.begin())
 				{
 					beginFrom = 1;
-					endAt = ToInt(wscParam.substr(index));
+					endAt = ToUInt(wscParam.substr(index));
 
 					if (endAt < beginFrom)
 						swap(endAt, beginFrom);
 				}
 				else
 				{
-					beginFrom = ToInt(wscParam.substr(0, index));
-					endAt = ToInt(wscParam.substr(index));
+					beginFrom = ToUInt(wscParam.substr(0, index));
+					endAt = ToUInt(wscParam.substr(index));
 
 					if (endAt < beginFrom)
 						swap(endAt, beginFrom);
@@ -337,7 +337,7 @@ namespace PimpShip
 		wstring firstArg = GetParam(wscParam, ' ', 0);
 		wstring secondArg = GetParam(wscParam, ' ', 1);
 
-		uint iSelectedItemID = ToInt(secondArg);
+		uint iSelectedItemID = ToUInt(secondArg);
 
 		if (!iSelectedItemID)
 		{
@@ -372,21 +372,21 @@ namespace PimpShip
 				}
 				else if (it == firstArg.end() - 1)
 				{
-					beginFrom = ToInt(firstArg.substr(0, index));
+					beginFrom = ToUInt(firstArg.substr(0, index));
 					endAt = mapInfo[iClientID].mapCurrEquip.size();
 				}
 				else if (it == firstArg.begin())
 				{
 					beginFrom = 1;
-					endAt = ToInt(firstArg.substr(index));
+					endAt = ToUInt(firstArg.substr(index));
 
 					if (endAt < beginFrom)
 						swap(endAt, beginFrom);
 				}
 				else
 				{
-					beginFrom = ToInt(firstArg.substr(0, index));
-					endAt = ToInt(firstArg.substr(index));
+					beginFrom = ToUInt(firstArg.substr(0, index));
+					endAt = ToUInt(firstArg.substr(index));
 
 					if (endAt < beginFrom)
 						swap(endAt, beginFrom);
@@ -403,17 +403,17 @@ namespace PimpShip
 					if (it == firstArg.begin())
 					{
 						beginFrom = 1;
-						everyN = ToInt(firstArg.substr(index));
+						everyN = ToUInt(firstArg.substr(index));
 					}
 					else if (it == firstArg.end() - 1)
 					{
 						beginFrom = 1;
-						everyN = ToInt(firstArg.substr(0, index));
+						everyN = ToUInt(firstArg.substr(0, index));
 					}
 					else
 					{
-						beginFrom = ToInt(firstArg.substr(0, index));
-						everyN = ToInt(firstArg.substr(index));
+						beginFrom = ToUInt(firstArg.substr(0, index));
+						everyN = ToUInt(firstArg.substr(index));
 
 						if (beginFrom == 0)
 							break;
@@ -425,7 +425,7 @@ namespace PimpShip
 						endAt = mapInfo[iClientID].mapCurrEquip.size();
 					else
 					{
-						endAt = ToInt(firstArg.substr(index));
+						endAt = ToUInt(firstArg.substr(index));
 
 						if (endAt < beginFrom)
 							swap(endAt, beginFrom);
@@ -449,7 +449,7 @@ namespace PimpShip
 
 		if ((beginFrom == 0) && endAt == 0)
 		{
-			beginFrom = endAt = ToInt(firstArg);
+			beginFrom = endAt = ToUInt(firstArg);
 			if (beginFrom == 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
 			{
 				PrintUserCmdText(iClientID, L"ERR hardpoint index is out of bounds");

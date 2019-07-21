@@ -167,11 +167,11 @@ namespace PimpShip
 		if (!set_bEnablePimpShip)
 			return;
 
-		if (set_mapDealers.find(iLocationID) == set_mapDealers.end())
+		if (set_mapDealers.find(iLocationID)==set_mapDealers.end())
 		{
 			uint iBaseID = 0;
 			pub::Player::GetBase(iClientID, iBaseID);
-			if (set_mapDealers.find(iBaseID) == set_mapDealers.end())
+			if (set_mapDealers.find(iBaseID)==set_mapDealers.end())
 			{
 				mapInfo[iClientID].bInPimpDealer = false;
 				mapInfo[iClientID].mapCurrEquip.clear();

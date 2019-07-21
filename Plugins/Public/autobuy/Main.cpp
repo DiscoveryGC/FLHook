@@ -76,6 +76,7 @@ struct AUTOBUY_PLAYERINFO
 	bool bAutobuyBB;
 	bool bAutobuyCloak;
 	bool bAutobuyMunition;
+	bool bAutoRepair;
 };
 
 static map <uint, AUTOBUY_PLAYERINFO> mapAutobuyPlayerInfo;
@@ -294,6 +295,7 @@ void AutobuyInfo(uint iClientID)
 	PrintUserCmdText(iClientID, L"   cd - enable/disable autobuy for cruise disruptors");
 	PrintUserCmdText(iClientID, L"   cm - enable/disable autobuy for countermeasures");
 	PrintUserCmdText(iClientID, L"   reload - enable/disable autobuy for nanobots/shield batteries");
+	PrintUserCmdText(iClientID, L"   repair - enable/disable auto-repair");
 	PrintUserCmdText(iClientID, L"   all: enable/disable autobuy for all of the above");
 	PrintUserCmdText(iClientID, L"Examples:");
 	PrintUserCmdText(iClientID, L"\"/autobuy missiles on\" enable autobuy for missiles");
@@ -322,6 +324,7 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 		PrintUserCmdText(iClientID, L"Munitions: %s", mapAutobuyPlayerInfo[iClientID].bAutobuyMunition ? L"On" : L"Off");
 		PrintUserCmdText(iClientID, L"Cloak Batteries: %s", mapAutobuyPlayerInfo[iClientID].bAutobuyCloak ? L"On" : L"Off");
 		PrintUserCmdText(iClientID, L"Nanobots/Shield Batteries: %s", mapAutobuyPlayerInfo[iClientID].bAutobuyBB ? L"On" : L"Off");
+		PrintUserCmdText(iClientID, L"Repair: %s", mapAutobuyPlayerInfo[iClientID].bAutoRepair ? L"On" : L"Off");
 		return true;
 	}
 
@@ -343,6 +346,7 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles = bEnable;	
 		mapAutobuyPlayerInfo[iClientID].bAutobuyMunition = bEnable;
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps = bEnable;
+		mapAutobuyPlayerInfo[iClientID].bAutoRepair = bEnable;
 		
 		HookExt::IniSetB(iClientID, "autobuy.bb", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.cd", bEnable ? true : false);
@@ -352,6 +356,7 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 		HookExt::IniSetB(iClientID, "autobuy.missiles", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.munition", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.torps", bEnable ? true : false);
+		HookExt::IniSetB(iClientID, "autobuy.repair", bEnable ? true : false);
 	}
 	else if (!wscType.compare(L"missiles")) {
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles = bEnable;
@@ -384,6 +389,10 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 	else if (!wscType.compare(L"cloak")) {
 		mapAutobuyPlayerInfo[iClientID].bAutobuyCloak = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.cloak", bEnable);
+	}
+	else if (!wscType.compare(L"repair")) {
+		mapAutobuyPlayerInfo[iClientID].bAutoRepair = bEnable;
+		HookExt::IniSetB(iClientID, "autobuy.repair", bEnable);
 	}
 	else
 		AutobuyInfo(iClientID);
@@ -450,6 +459,86 @@ void CheckforStackables(uint iClientID)
 
 }
 
+void PlayerAutorepair(uint iClientID)
+{
+	int repairCost = (int)floor(Archetype::GetShip(Players[iClientID].iShipArchetype)->fHitPoints * (1 - Players[iClientID].fRelativeHealth) / 100 * 33);
+
+	vector<ushort> sIDs;
+	list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
+	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
+	{
+		if (!item->bMounted || item->fHealth == 1)
+			continue;
+
+		const GoodInfo *info = GoodList_get()->find_by_archetype(item->iArchID);
+		if (info == nullptr)
+			continue;
+
+		repairCost += (int)floor(info->fPrice * (1 - item->fHealth) / 10 * 3);
+		sIDs.push_back(item->sID);
+	}
+
+	int iCash = 0;
+	wstring wscCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	HkGetCash(wscCharName, iCash);
+
+	if (iCash < repairCost)
+	{
+		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): FAILED! Insufficient Credits");
+		return;
+	}
+
+	Players[iClientID].collisionGroupDesc.count;
+
+	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
+		if (find(sIDs.begin(), sIDs.end(), item->sID) != sIDs.end())
+			item->fHealth = 1;
+
+	if (!sIDs.empty())
+		HkSetEquip(iClientID, equip);
+
+	if (Players[iClientID].fRelativeHealth != 1)
+	{
+		GetClientInterface()->Send_FLPACKET_SERVER_SETHULLSTATUS(iClientID, 1);
+		Players[iClientID].fRelativeHealth = 1;
+	}
+
+	// Repair all collision groups.
+	if (Players[iClientID].collisionGroupDesc.count)
+	{	
+		// Calculate packet size. First two bytes reserved for count of groups.
+		uint groupBufSize = 2;
+		for (int i = 0; i != Players[iClientID].collisionGroupDesc.count; i++)
+		{
+			groupBufSize += 6;
+		}
+
+		FLPACKET* packet = FLPACKET::Create(groupBufSize, FLPACKET::FLPACKET_SERVER_SETCOLLISIONGROUPS);
+		FLPACKET_SETEQUIPMENT* pSetEquipment = (FLPACKET_SETEQUIPMENT*)packet->content;
+
+		// Add groups to packet.
+		uint index = 0;
+		for (int i = 0; i != Players[iClientID].collisionGroupDesc.count; i++)
+		{
+			pSetEquipment->count++;
+
+			COLLISION_GROUP group;
+			group.sID = i + 4;
+			group.fHealth = 1;
+
+			byte* buf = (byte*)&group;
+			for (int i = 0; i < sizeof(COLLISION_GROUP); i++)
+				pSetEquipment->items[index++] = buf[i];
+		}
+
+		packet->SendTo(iClientID);
+	}
+
+	if (repairCost)
+		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): Costed %i$", repairCost);
+
+	return;
+}
 
 void PlayerAutobuy(uint iClientID, uint iBaseID)
 {
@@ -738,6 +827,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned
 	mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles = HookExt::IniGetB(iClientID, "autobuy.missiles");
 	mapAutobuyPlayerInfo[iClientID].bAutobuyMunition = HookExt::IniGetB(iClientID, "autobuy.munition");
 	mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps = HookExt::IniGetB(iClientID, "autobuy.torps");
+	mapAutobuyPlayerInfo[iClientID].bAutoRepair = HookExt::IniGetB(iClientID, "autobuy.repair");
 	
 }
 
@@ -745,6 +835,9 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
 	pub::Player::GetBase(iClientID, iBaseID);
 	PlayerAutobuy(iClientID, iBaseID);
+
+	if (mapAutobuyPlayerInfo[iClientID].bAutoRepair)
+		PlayerAutorepair(iClientID);
 }
 
 void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)

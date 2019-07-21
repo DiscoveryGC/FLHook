@@ -264,8 +264,8 @@ namespace PimpShip
 		if (!mapInfo[iClientID].bInPimpDealer || !set_bEnablePimpShip)
 			return false;
 
-		int beginFrom = 1;
-		int endAt = mapAvailableItems.size();
+		uint beginFrom = 1;
+		uint endAt = mapAvailableItems.size();
 
 		ushort index = 0;
 		for (wstring::const_iterator it = wscParam.begin(); it != wscParam.end(); it++)
@@ -305,7 +305,7 @@ namespace PimpShip
 			}
 		}
 
-		if ((uint)endAt > mapAvailableItems.size())
+		if (endAt > mapAvailableItems.size())
 			endAt = mapAvailableItems.size();
 
 		if (beginFrom == 0)
@@ -314,7 +314,7 @@ namespace PimpShip
 		if (beginFrom > endAt)
 			beginFrom = endAt + 1;
 
-		PrintUserCmdText(iClientID, L"Showed %i/%u items:", endAt - beginFrom + 1, mapAvailableItems.size());
+		PrintUserCmdText(iClientID, L"Showed %u/%u items:", endAt - beginFrom + 1, mapAvailableItems.size());
 		for (int i = beginFrom; i != endAt + 1; i++)
 		{
 			PrintUserCmdText(iClientID, L"|     %.2d:  %s", i, mapAvailableItems[i].wscDescription.c_str());
@@ -330,28 +330,28 @@ namespace PimpShip
 		if (!mapInfo[iClientID].bInPimpDealer || !set_bEnablePimpShip)
 			return false;
 
-		int beginFrom = 0;
-		int endAt = 0;
-		int everyN = 1;
+		uint beginFrom = 0;
+		uint endAt = 0;
+		uint everyN = 1;
 
 		wstring firstArg = GetParam(wscParam, ' ', 0);
 		wstring secondArg = GetParam(wscParam, ' ', 1);
 
-		uint itemID = ToInt(secondArg);
+		uint iSelectedItemID = ToInt(secondArg);
 
-		if (!itemID)
+		if (!iSelectedItemID)
 		{
 			for (map<uint, ITEM_INFO>::iterator it = mapAvailableItems.begin(); it != mapAvailableItems.end(); it++)
 			{
 				if (it->second.wscNickname == secondArg)
 				{
-					itemID = it->first;
+					iSelectedItemID = it->first;
 					break;
 				}
 			}
 		}
 
-		if (mapAvailableItems.find(itemID) == mapAvailableItems.end())
+		if (mapAvailableItems.find(iSelectedItemID) == mapAvailableItems.end())
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid item ID");
 			return true;
@@ -416,7 +416,7 @@ namespace PimpShip
 						everyN = ToInt(firstArg.substr(index));
 
 						if (beginFrom == 0)
-							beginFrom = -1;
+							break;
 					}
 				}
 				else
@@ -441,49 +441,49 @@ namespace PimpShip
 			}
 		}
 
-		if (beginFrom == 0 && endAt == 0)
-		{
-			beginFrom = endAt = ToInt(firstArg);
-			if (beginFrom == 0 || (uint)beginFrom > mapInfo[iClientID].mapCurrEquip.size())
-			{
-				PrintUserCmdText(iClientID, L"ERR hardpoint index is out of bounds");
-				return true;
-			}
-		}
-
-		if (beginFrom <= 0 || (uint)beginFrom > mapInfo[iClientID].mapCurrEquip.size())
-		{
-			PrintUserCmdText(iClientID, L"ERR Beginning is out of bounds");
-			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);
-			if (everyN == 1)
-				PrintUserCmdText(iClientID, L"/setitem -%i %u", endAt, itemID);
-			else
-				PrintUserCmdText(iClientID, L"/setitem *%i*%i %u", everyN, endAt, itemID);
-
-			return true;
-		}
-
-		if ((uint)endAt > mapInfo[iClientID].mapCurrEquip.size())
-		{
-			PrintUserCmdText(iClientID, L"ERR Ending is out of bounds");
-			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from %u to end:", beginFrom);
-			if (everyN == 1)
-				PrintUserCmdText(iClientID, L"/setitem %i- %u", beginFrom, itemID);
-			else
-				PrintUserCmdText(iClientID, L"/setitem %i*%i* %u", beginFrom, everyN, itemID);
-			return true;
-		}
-
 		if (everyN == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Zero advancement");
 			return true;
 		}
 
+		if ((beginFrom == 0) && endAt == 0)
+		{
+			beginFrom = endAt = ToInt(firstArg);
+			if (beginFrom == 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
+			{
+				PrintUserCmdText(iClientID, L"ERR hardpoint index is out of bounds");
+				return true;
+			}
+		}
+
+		if (beginFrom == 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
+		{
+			PrintUserCmdText(iClientID, L"ERR Beginning is out of bounds");
+			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);
+			if (everyN == 1)
+				PrintUserCmdText(iClientID, L"/setitem -%u %u", endAt, iSelectedItemID);
+			else
+				PrintUserCmdText(iClientID, L"/setitem *%u*%u %u", everyN, endAt, iSelectedItemID);
+
+			return true;
+		}
+
+		if (endAt > mapInfo[iClientID].mapCurrEquip.size())
+		{
+			PrintUserCmdText(iClientID, L"ERR Ending is out of bounds");
+			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from %u to end:", beginFrom);
+			if (everyN == 1)
+				PrintUserCmdText(iClientID, L"/setitem %u- %u", beginFrom, iSelectedItemID);
+			else
+				PrintUserCmdText(iClientID, L"/setitem %u*%u* %u", beginFrom, everyN, iSelectedItemID);
+			return true;
+		}
+
 		int totalCost = 0;
 		map<uint, EQ_HARDPOINT>& info = mapInfo[iClientID].mapCurrEquip;
-		uint newItem = mapAvailableItems[itemID].iArchID;
-		for (int i = beginFrom; i < endAt + 1; i += everyN)
+		uint newItem = mapAvailableItems[iSelectedItemID].iArchID;
+		for (uint i = beginFrom; i < endAt + 1; i += everyN)
 		{
 			if (info[i].iArchID != newItem)
 				totalCost += set_iCost;
@@ -508,7 +508,7 @@ namespace PimpShip
 		list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
 		for (list<EquipDesc>::iterator it = equip.begin(); it != equip.end(); it++)
 		{
-			for (int i = beginFrom; i < endAt + 1; i += everyN)
+			for (uint i = beginFrom; i < endAt + 1; i += everyN)
 			{
 				if (it->sID == info[i].sID)
 				{
@@ -521,12 +521,18 @@ namespace PimpShip
 
 		HkSetEquip(iClientID, equip);
 		HkAddCash(wscCharName, 0 - totalCost);
-		PrintUserCmdText(iClientID, L"Ship pimping complete. You bought %i item%ws.", endAt - beginFrom + 1, endAt == beginFrom ? L"" : L"s");
+		PrintUserCmdText(iClientID, L"Ship pimping complete. You bought %u item%ws.", totalCost/set_iCost, endAt == beginFrom ? L"" : L"s");
 
-		if (beginFrom == 1 && endAt == mapInfo[iClientID].mapCurrEquip.size() && firstArg != L"-")
+		if (beginFrom == 1 && endAt == mapInfo[iClientID].mapCurrEquip.size() && everyN == 1 && firstArg != L"-")
 		{
 			PrintUserCmdText(iClientID, L"Next time you may want to use following syntax to select all hardpoints:");
-			PrintUserCmdText(iClientID, L"/setitem - %u", itemID);
+			PrintUserCmdText(iClientID, L"/setitem - %u", iSelectedItemID);
+		}
+
+		if (beginFrom == 1 && endAt == mapInfo[iClientID].mapCurrEquip.size() && everyN > 1 && *firstArg.begin() != '*' && *(firstArg.end() - 1) != '*')
+		{
+			PrintUserCmdText(iClientID, L"Next time you may want to use following syntax to select every %u hardpoint:", everyN);
+			PrintUserCmdText(iClientID, L"/setitem *%u %u", everyN, iSelectedItemID);
 		}
 
 		pub::Audio::PlaySoundEffect(iClientID, CreateID("ui_execute_transaction"));

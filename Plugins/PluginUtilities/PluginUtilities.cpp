@@ -135,7 +135,7 @@ bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
 	if (&equip != &Players[iClientID].equipDescList.equip)
 		Players[iClientID].equipDescList.equip = equip;
 
-	// Calculate packet size. First two bytes reserver for items count.
+	// Calculate packet size. First two bytes reserved for items count.
 	uint itemBufSize = 2;
 	for (list<EquipDesc>::const_iterator item = equip.begin(); item != equip.end(); item++)
 	{
@@ -145,7 +145,7 @@ bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
 	FLPACKET* packet = FLPACKET::Create(itemBufSize, FLPACKET::FLPACKET_SERVER_SETEQUIPMENT);
 	FLPACKET_SETEQUIPMENT* pSetEquipment = (FLPACKET_SETEQUIPMENT*)packet->content;
 
-	// Add items to packet as array of variable size of items of variable size.
+	// Add items to packet as array of variable size.
 	uint index = 0;
 	for (list<EquipDesc>::const_iterator item = equip.begin(); item != equip.end(); item++)
 	{
@@ -156,10 +156,9 @@ bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
 		setEquipItem.sID = item->sID;
 		setEquipItem.bMounted = item->bMounted;
 		setEquipItem.bMission = item->bMission;
-		string hp = wstos(stows(item->szHardPoint.value));
 
-		uint len = hp.length();
-		if (len && hp != "BAY") {
+		uint len = strlen(item->szHardPoint.value);
+		if (len && item->szHardPoint.value != "BAY") {
 			setEquipItem.szHardPointLen = len + 1; // add 1 for the null - char* is a null-terminated string in C++
 		}
 		else {
@@ -171,7 +170,7 @@ bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
 		for (int i = 0; i < sizeof(SETEQUIPMENT_ITEM); i++)
 			pSetEquipment->items[index++] = buf[i];
 
-		byte* szHardPoint = (byte*)hp.c_str();
+		byte* szHardPoint = (byte*)item->szHardPoint.value;
 		for (int i = 0; i < setEquipItem.szHardPointLen; i++)
 			pSetEquipment->items[index++] = szHardPoint[i];
 	}

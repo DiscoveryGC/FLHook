@@ -488,8 +488,6 @@ void PlayerAutorepair(uint iClientID)
 		return;
 	}
 
-	Players[iClientID].collisionGroupDesc.count;
-
 	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
 		if (find(sIDs.begin(), sIDs.end(), item->sID) != sIDs.end())
 			item->fHealth = 1;
@@ -509,9 +507,7 @@ void PlayerAutorepair(uint iClientID)
 		// Calculate packet size. First two bytes reserved for count of groups.
 		uint groupBufSize = 2;
 		for (int i = 0; i != Players[iClientID].collisionGroupDesc.count; i++)
-		{
-			groupBufSize += 6;
-		}
+			groupBufSize += sizeof(COLLISION_GROUP);
 
 		FLPACKET* packet = FLPACKET::Create(groupBufSize, FLPACKET::FLPACKET_SERVER_SETCOLLISIONGROUPS);
 		FLPACKET_SETEQUIPMENT* pSetEquipment = (FLPACKET_SETEQUIPMENT*)packet->content;

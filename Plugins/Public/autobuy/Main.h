@@ -15,6 +15,7 @@
 
 using namespace std;
 
+
 #pragma pack(push, 1)
 struct COLLISION_GROUP
 {

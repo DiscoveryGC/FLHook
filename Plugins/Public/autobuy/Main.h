@@ -15,6 +15,12 @@
 
 using namespace std;
 
-
+#pragma pack(push, 1)
+struct COLLISION_GROUP
+{
+	ushort sID;
+	float fHealth;
+};
+#pragma pack(pop)
 
 #endif

@@ -488,6 +488,8 @@ void PlayerAutorepair(uint iClientID)
 		return;
 	}
 
+	HkAddCash(wscCharName, -repairCost);
+
 	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
 		if (find(sIDs.begin(), sIDs.end(), item->sID) != sIDs.end())
 			item->fHealth = 1;
@@ -505,9 +507,7 @@ void PlayerAutorepair(uint iClientID)
 	if (Players[iClientID].collisionGroupDesc.count)
 	{	
 		// Calculate packet size. First two bytes reserved for count of groups.
-		uint groupBufSize = 2;
-		for (int i = 0; i != Players[iClientID].collisionGroupDesc.count; i++)
-			groupBufSize += sizeof(COLLISION_GROUP);
+		uint groupBufSize = 2 + sizeof(COLLISION_GROUP) * Players[iClientID].collisionGroupDesc.count;
 
 		FLPACKET* packet = FLPACKET::Create(groupBufSize, FLPACKET::FLPACKET_SERVER_SETCOLLISIONGROUPS);
 		FLPACKET_SETEQUIPMENT* pSetEquipment = (FLPACKET_SETEQUIPMENT*)packet->content;
@@ -531,7 +531,7 @@ void PlayerAutorepair(uint iClientID)
 	}
 
 	if (repairCost)
-		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): Costed %i$", repairCost);
+		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): Cost %ws$", ToMoneyStr(repairCost).c_str());
 
 	return;
 }

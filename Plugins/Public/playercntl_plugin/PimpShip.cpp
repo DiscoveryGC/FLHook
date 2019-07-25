@@ -159,6 +159,25 @@ namespace PimpShip
 		WriteProcMem((char*)0x62660F2, &patch1, 2);
 	}
 
+	void BuildEquipmentList(uint iClientID)
+	{
+		// Build the equipment list.
+		int iSlotID = 1;
+
+		mapInfo[iClientID].mapCurrEquip.clear();
+		list<EquipDesc> &eqLst = Players[iClientID].equipDescList.equip;
+		for (list<EquipDesc>::iterator eq = eqLst.begin(); eq != eqLst.end(); eq++)
+		{
+			if (IsItemArchIDAvailable(eq->iArchID))
+			{
+				mapInfo[iClientID].mapCurrEquip[iSlotID].sID = eq->sID;
+				mapInfo[iClientID].mapCurrEquip[iSlotID].iArchID = eq->iArchID;
+				mapInfo[iClientID].mapCurrEquip[iSlotID].wscHardPoint = stows(eq->szHardPoint.value);
+				iSlotID++;
+			}
+		}
+	}
+
 	// On entering a room check to see if we're in a valid ship dealer room (or base if a 
 	// ShipDealer is not defined). If we are then print the intro text otherwise do
 	// nothing.
@@ -180,27 +199,22 @@ namespace PimpShip
 		}
 
 		mapInfo[iClientID].bInPimpDealer = true;
-
-		// Build the equipment list.
-		int iSlotID = 1;
-
-		list<EquipDesc> &eqLst = Players[iClientID].equipDescList.equip;
-		for (list<EquipDesc>::iterator eq = eqLst.begin(); eq != eqLst.end(); eq++)
-		{
-			if (IsItemArchIDAvailable(eq->iArchID))
-			{
-				mapInfo[iClientID].mapCurrEquip[iSlotID].sID = eq->sID;
-				mapInfo[iClientID].mapCurrEquip[iSlotID].iArchID = eq->iArchID;
-				mapInfo[iClientID].mapCurrEquip[iSlotID].wscHardPoint = stows(eq->szHardPoint.value);
-				iSlotID++;
-			}
-		}
+		BuildEquipmentList(iClientID);
 
 		if (set_wscIntroMsg1.length() > 0)
 			PrintUserCmdText(iClientID, L"%s", set_wscIntroMsg1.c_str());
 
 		if (set_wscIntroMsg2.length() > 0)
 			PrintUserCmdText(iClientID, L"%s", set_wscIntroMsg2.c_str());
+	}
+
+	// Rebuild equipment list if client purchases new ship.
+	void ReqShipArch_AFTER(unsigned int iArchID, unsigned int iClientID)
+	{
+		if (!set_bEnablePimpShip || !mapInfo[iClientID].bInPimpDealer)
+			return;
+
+		BuildEquipmentList(iClientID);
 	}
 
 	bool PimpShip::UserCmd_PimpShip(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
@@ -218,24 +232,25 @@ namespace PimpShip
 		PrintUserCmdText(iClientID, L"This facility costs " + ToMoneyStr(set_iCost) + L" credits to use per one item.");
 
 		PrintUserCmdText(iClientID, L"/showsetup");
-		PrintUserCmdText(iClientID, L"|     Display current ship setup.");
+		PrintUserCmdText(iClientID, L"|     Display current ship setup: hardpoints, their IDs and lights mounted on them.");
 
 		PrintUserCmdText(iClientID, L"/showitems [from]-[to]");
-		PrintUserCmdText(iClientID, L"|     Display items that may be added to your ship.");
+		PrintUserCmdText(iClientID, L"|     Display items that may be added to your ship in range of [from]-[to] IDs.");
+		PrintUserCmdText(iClientID, L"|     Use /showitems without additional paramaters to display all items.");
 
-		PrintUserCmdText(iClientID, L"/setitem <hardpoint id> <item id>");
-		PrintUserCmdText(iClientID, L"|     Change the item at <hardpoint id> to <item id>.");
-		PrintUserCmdText(iClientID, L"|     <hardpoint id>s are shown by typing /show setup.");
-		PrintUserCmdText(iClientID, L"|     <item id>s are shown by typing /show items.");
-		PrintUserCmdText(iClientID, L"|     Allowed to print item name instead of ID.");
+		PrintUserCmdText(iClientID, L"/setitem <hardpoint id> <item>");
+		PrintUserCmdText(iClientID, L"|     Change the item at <hardpoint id> to <item>.");
+		PrintUserCmdText(iClientID, L"|     <hardpoint id>s are shown by typing /showsetup.");
+		PrintUserCmdText(iClientID, L"|     <item>s are shown by typing /showitems.");
+		PrintUserCmdText(iClientID, L"|     Allowed to print name of light instead of ID.");
 
-		PrintUserCmdText(iClientID, L"/setitem [hp1]-[hp2] <item id>");
-		PrintUserCmdText(iClientID, L"|     Change items at hardpoints in range of <hp1>-<hp2> to <item id>.");
+		PrintUserCmdText(iClientID, L"/setitem [hpID1]-[hpID2] <item>");
+		PrintUserCmdText(iClientID, L"|     Change items at hardpoints in range of <hpID1>-<hpID2> to <item>.");
 
-		PrintUserCmdText(iClientID, L"/setitem [hp-begin]*<every-n>*[hp-end] <item id>");
-		PrintUserCmdText(iClientID, L"|     Change every n hardpoint to <item id>.");
-		PrintUserCmdText(iClientID, L"|     Changing begins from [hp-begin] if the parameter is determined, otherwise begins from first hardpoint.");
-		PrintUserCmdText(iClientID, L"|     Changing ends at [hp-end] if the parameter is determined, otherwise ends at last hardpoint.");
+		PrintUserCmdText(iClientID, L"/setitem [hp-begin]*<every-n>*[hp-end] <item>");
+		PrintUserCmdText(iClientID, L"|     Change every n hardpoint to <item>.");
+		PrintUserCmdText(iClientID, L"|     Changing begins from [hp-begin] if the parameter is given, otherwise begins from first hardpoint.");
+		PrintUserCmdText(iClientID, L"|     Changing ends at [hp-end] if the parameter is given, otherwise ends at last hardpoint.");
 
 		return true;
 	}
@@ -329,6 +344,12 @@ namespace PimpShip
 	{
 		if (!mapInfo[iClientID].bInPimpDealer || !set_bEnablePimpShip)
 			return false;
+
+		if (mapInfo[iClientID].mapCurrEquip.empty())
+		{
+			PrintUserCmdText(iClientID, L"ERR Impossible, no hardpoints for lights available");
+			return true;
+		}
 
 		uint beginFrom = 0;
 		uint endAt = 0;
@@ -505,6 +526,8 @@ namespace PimpShip
 			return true;
 		}
 
+		HkAddCash(wscCharName, -totalCost);
+
 		list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
 		for (list<EquipDesc>::iterator it = equip.begin(); it != equip.end(); it++)
 		{
@@ -520,7 +543,6 @@ namespace PimpShip
 		}
 
 		HkSetEquip(iClientID, equip);
-		HkAddCash(wscCharName, 0 - totalCost);
 		PrintUserCmdText(iClientID, L"Ship pimping complete. You bought %u item%ws.", totalCost/set_iCost, endAt == beginFrom ? L"" : L"s");
 
 		if (beginFrom == 1 && endAt == mapInfo[iClientID].mapCurrEquip.size() && everyN == 1 && firstArg != L"-")

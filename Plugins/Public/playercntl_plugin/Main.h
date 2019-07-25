@@ -163,6 +163,7 @@ namespace PimpShip
 {
 	void LoadSettings(const string &scPluginCfgFile);
 	void LocationEnter(unsigned int locationID, unsigned int iClientID);
+	void ReqShipArch_AFTER(unsigned int iArchID, unsigned int iClientID);
 
 	bool UserCmd_PimpShip(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ShowSetup(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);

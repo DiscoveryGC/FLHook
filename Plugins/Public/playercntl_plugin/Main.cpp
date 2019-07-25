@@ -761,6 +761,12 @@ namespace HkIServerImpl
 		}
 	}
 
+	void __stdcall ReqShipArch_AFTER(unsigned int iArchID, unsigned int iClientID)
+	{
+		returncode = DEFAULT_RETURNCODE;
+		PimpShip::ReqShipArch_AFTER(iArchID, iClientID);
+	}
+
 	map<uint, mstime> mapSaveTimes;
 
 	void Timer()
@@ -1602,6 +1608,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqEquipment, PLUGIN_HkIServerImpl_ReqEquipment, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqHullStatus, PLUGIN_HkIServerImpl_ReqHullStatus, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqShipArch, PLUGIN_HkIServerImpl_ReqShipArch, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqShipArch_AFTER, PLUGIN_HkIServerImpl_ReqShipArch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::TractorObjects, PLUGIN_HkIServerImpl_TractorObjects_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::JettisonCargo, PLUGIN_HkIServerImpl_JettisonCargo_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SetTarget, PLUGIN_HkIServerImpl_SetTarget, 0));

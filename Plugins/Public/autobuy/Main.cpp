@@ -531,7 +531,7 @@ void PlayerAutorepair(uint iClientID)
 	}
 
 	if (repairCost)
-		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): Cost %ws$", ToMoneyStr(repairCost).c_str());
+		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): Cost %s$", ToMoneyStr(repairCost).c_str());
 
 	return;
 }

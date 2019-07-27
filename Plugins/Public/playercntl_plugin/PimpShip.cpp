@@ -329,7 +329,7 @@ namespace PimpShip
 		if (beginFrom > endAt)
 			beginFrom = endAt + 1;
 
-		PrintUserCmdText(iClientID, L"Showed %u/%u items:", endAt - beginFrom + 1, mapAvailableItems.size());
+		PrintUserCmdText(iClientID, L"Showing %u/%u items:", endAt - beginFrom + 1, mapAvailableItems.size());
 		for (int i = beginFrom; i != endAt + 1; i++)
 		{
 			PrintUserCmdText(iClientID, L"|     %.2d:  %s", i, mapAvailableItems[i].wscDescription.c_str());

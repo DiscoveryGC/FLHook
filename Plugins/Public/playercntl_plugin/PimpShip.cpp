@@ -501,16 +501,16 @@ namespace PimpShip
 			return true;
 		}
 
-		int totalCost = 0;
+		int count = 0;
 		map<uint, EQ_HARDPOINT>& info = mapInfo[iClientID].mapCurrEquip;
 		uint newItem = mapAvailableItems[iSelectedItemID].iArchID;
 		for (uint i = beginFrom; i < endAt + 1; i += everyN)
 		{
 			if (info[i].iArchID != newItem)
-				totalCost += set_iCost;
+				count++;
 		}
 
-		if (totalCost == 0)
+		if (count == 0)
 		{
 			PrintUserCmdText(iClientID, L"You already have this light mounted at selected hardpoints.");
 			return true;
@@ -520,13 +520,13 @@ namespace PimpShip
 		wstring wscCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 		HkGetCash(wscCharName, iCash);
 
-		if (iCash < totalCost)
+		if (iCash < count * set_iCost)
 		{
 			PrintUserCmdText(iClientID, L"ERR Insufficient credits");
 			return true;
 		}
 
-		HkAddCash(wscCharName, -totalCost);
+		HkAddCash(wscCharName, -(count * set_iCost));
 
 		list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
 		for (list<EquipDesc>::iterator it = equip.begin(); it != equip.end(); it++)
@@ -543,7 +543,7 @@ namespace PimpShip
 		}
 
 		HkSetEquip(iClientID, equip);
-		PrintUserCmdText(iClientID, L"Ship pimping complete. You bought %u item%ws.", totalCost/set_iCost, endAt == beginFrom ? L"" : L"s");
+		PrintUserCmdText(iClientID, L"Ship pimping complete. You bought %i item%ws.", count, endAt == beginFrom ? L"" : L"s");
 
 		if (beginFrom == 1 && endAt == mapInfo[iClientID].mapCurrEquip.size() && everyN == 1 && firstArg != L"-")
 		{

@@ -481,7 +481,6 @@ namespace PimpShip
 		if (beginFrom == 0 || beginFrom > mapInfo[iClientID].mapCurrEquip.size())
 		{
 			PrintUserCmdText(iClientID, L"ERR Beginning is out of bounds");
-			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);
 			if (everyN == 1)
 			{
 				PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);

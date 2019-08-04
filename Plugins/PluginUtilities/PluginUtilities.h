@@ -9,6 +9,8 @@
 
 #define HAS_FLAG(a, b) ((a).wscFlags.find(b) != -1)
 
+#include "DynPacket.h"
+
 size_t WstrInsensitiveFind(wstring haystack, wstring needle);
 bool IsInRange(uint iClientID, float fDistance);
 
@@ -17,6 +19,7 @@ CAccount* HkGetAccountByClientID(uint iClientID);
 float HkDistance3D(Vector v1, Vector v2);
 float HkDistance3DByShip(uint iShip1, uint iShip2);
 
+bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip);
 HK_ERROR HkAddEquip(const wstring &wscCharname, uint iGoodID, const string &scHardpoint);
 HK_ERROR HkAntiCheat(uint iClientID);
 HK_ERROR HkDeleteCharacter(CAccount *acc, wstring &wscCharname);
@@ -77,5 +80,24 @@ CEqObj * __stdcall HkGetEqObjFromObjRW(struct IObjRW *objRW);
 
 void __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float fDelay, float fLifetime, float fSkip);
 void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno);
+
+#pragma pack(push, 1)
+struct SETEQUIPMENT_ITEM
+{
+	int iCount;
+	float fHealth;
+	int iArchID;
+	ushort sID;
+	byte bMounted;
+	byte bMission;
+	ushort szHardPointLen;
+};
+#pragma pack(pop)
+
+struct FLPACKET_SETEQUIPMENT
+{
+	ushort count;
+	byte items[1];
+};
 
 #endif

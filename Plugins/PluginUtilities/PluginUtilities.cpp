@@ -126,6 +126,58 @@ float HkDistance3DByShip(uint iShip1, uint iShip2)
 	return sqrt(sq1*sq1 + sq2*sq2 + sq3*sq3);
 }
 
+bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
+{
+	// Update FLHook's lists to make anticheat pleased.
+	if (&equip != &Players[iClientID].lShadowEquipDescList.equip)
+		Players[iClientID].lShadowEquipDescList.equip = equip;
+
+	if (&equip != &Players[iClientID].equipDescList.equip)
+		Players[iClientID].equipDescList.equip = equip;
+
+	// Calculate packet size. First two bytes reserved for items count.
+	uint itemBufSize = 2;
+	for (list<EquipDesc>::const_iterator item = equip.begin(); item != equip.end(); item++)
+	{
+		itemBufSize += sizeof(SETEQUIPMENT_ITEM) + strlen(item->szHardPoint.value) + 1;
+	}
+
+	FLPACKET* packet = FLPACKET::Create(itemBufSize, FLPACKET::FLPACKET_SERVER_SETEQUIPMENT);
+	FLPACKET_SETEQUIPMENT* pSetEquipment = (FLPACKET_SETEQUIPMENT*)packet->content;
+
+	// Add items to packet as array of variable size.
+	uint index = 0;
+	for (list<EquipDesc>::const_iterator item = equip.begin(); item != equip.end(); item++)
+	{
+		SETEQUIPMENT_ITEM setEquipItem;
+		setEquipItem.iCount = item->iCount;
+		setEquipItem.fHealth = item->fHealth;
+		setEquipItem.iArchID = item->iArchID;
+		setEquipItem.sID = item->sID;
+		setEquipItem.bMounted = item->bMounted;
+		setEquipItem.bMission = item->bMission;
+
+		uint len = strlen(item->szHardPoint.value);
+		if (len && item->szHardPoint.value != "BAY") {
+			setEquipItem.szHardPointLen = len + 1; // add 1 for the null - char* is a null-terminated string in C++
+		}
+		else {
+			setEquipItem.szHardPointLen = 0;
+		}
+		pSetEquipment->count++;
+
+		byte* buf = (byte*)&setEquipItem;
+		for (int i = 0; i < sizeof(SETEQUIPMENT_ITEM); i++)
+			pSetEquipment->items[index++] = buf[i];
+
+		byte* szHardPoint = (byte*)item->szHardPoint.value;
+		for (int i = 0; i < setEquipItem.szHardPointLen; i++)
+			pSetEquipment->items[index++] = szHardPoint[i];
+	}
+
+	return packet->SendTo(iClientID);
+}
+
 HK_ERROR HkAddEquip(const wstring &wscCharname, uint iGoodID, const string &scHardpoint)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);

@@ -483,9 +483,15 @@ namespace PimpShip
 			PrintUserCmdText(iClientID, L"ERR Beginning is out of bounds");
 			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);
 			if (everyN == 1)
+			{
+				PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from beginning to %u:", endAt);
 				PrintUserCmdText(iClientID, L"/setitem -%u %u", endAt, iSelectedItemID);
+			}
 			else
+			{
+				PrintUserCmdText(iClientID, L"You may want to use following syntax to select hardpoints from beginning to %u:", endAt);
 				PrintUserCmdText(iClientID, L"/setitem *%u*%u %u", everyN, endAt, iSelectedItemID);
+			}
 
 			return true;
 		}
@@ -493,11 +499,16 @@ namespace PimpShip
 		if (endAt > mapInfo[iClientID].mapCurrEquip.size())
 		{
 			PrintUserCmdText(iClientID, L"ERR Ending is out of bounds");
-			PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from %u to end:", beginFrom);
 			if (everyN == 1)
+			{
+				PrintUserCmdText(iClientID, L"You may want to use following syntax to select all hardpoints from %u to end:", beginFrom);
 				PrintUserCmdText(iClientID, L"/setitem %u- %u", beginFrom, iSelectedItemID);
+			}
 			else
+			{
+				PrintUserCmdText(iClientID, L"You may want to use following syntax to select hardpoints from %u to end:", beginFrom);
 				PrintUserCmdText(iClientID, L"/setitem %u*%u* %u", beginFrom, everyN, iSelectedItemID);
+			}
 			return true;
 		}
 

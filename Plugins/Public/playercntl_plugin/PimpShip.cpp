@@ -505,7 +505,7 @@ namespace PimpShip
 			}
 			else
 			{
-				PrintUserCmdText(iClientID, L"You may want to use following syntax to select hardpoints from %u to end:", beginFrom);
+				PrintUserCmdText(iClientID, L"You may want to use following syntax to select every %u hardpoints from %u to end:", everyN, beginFrom);
 				PrintUserCmdText(iClientID, L"/setitem %u*%u* %u", beginFrom, everyN, iSelectedItemID);
 			}
 			return true;

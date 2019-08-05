@@ -912,6 +912,7 @@ bool __stdcall Send_FLPACKET_SERVER_CREATESHIP(uint ClientID, FLPACKET_CREATESHI
 
 		// If the ship is not present in exception list, prevent it from being created.
 		pub::SpaceObj::Destroy(shipInfo.iSpaceID, VANISH); // Prevent server-side spawning.
+		// TODO: Why does the Destroy call above seem to cause crashes for servers running natively on Windows 7/10/2k19, but work under compatibility mode? Why does it seem to work better if we defer to an HkTimerCheckKick to run this?
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // Prevent client-side spawning.
 	}
 	else

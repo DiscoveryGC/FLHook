@@ -461,6 +461,7 @@ void CheckforStackables(uint iClientID)
 
 void PlayerAutorepair(uint iClientID)
 {
+	// Magic factor of 0.33
 	int repairCost = (int)floor(Archetype::GetShip(Players[iClientID].iShipArchetype)->fHitPoints * (1 - Players[iClientID].fRelativeHealth) / 100 * 33);
 
 	vector<ushort> sIDs;
@@ -474,6 +475,7 @@ void PlayerAutorepair(uint iClientID)
 		if (info == nullptr)
 			continue;
 
+		// Magic factor of 0.3
 		repairCost += (int)floor(info->fPrice * (1 - item->fHealth) / 10 * 3);
 		sIDs.push_back(item->sID);
 	}
@@ -490,10 +492,12 @@ void PlayerAutorepair(uint iClientID)
 
 	HkAddCash(wscCharName, -repairCost);
 
+	// Not doing this in the above loop because we need to ensure the player has the credits for it.
 	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
 		if (find(sIDs.begin(), sIDs.end(), item->sID) != sIDs.end())
 			item->fHealth = 1;
 
+	// TODO: Why does DynPacket stuff in HkSetEquip and for SETCOLLISIONGROUPS below seem to require the server to be running in compatibility mode with an older OS?
 	if (!sIDs.empty())
 		HkSetEquip(iClientID, equip);
 
@@ -519,6 +523,7 @@ void PlayerAutorepair(uint iClientID)
 			pSetEquipment->count++;
 
 			COLLISION_GROUP group;
+			// Group IDs seem to begin at 4
 			group.sID = i + 4;
 			group.fHealth = 1;
 

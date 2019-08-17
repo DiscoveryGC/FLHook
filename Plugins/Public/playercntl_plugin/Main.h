@@ -89,6 +89,7 @@ namespace MiscCmds
 	bool UserCmd_DropRep(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_Coin(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 
+	EXPORT void ExportSetLights(uint iClientID);
 	bool UserCmd_Lights(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_SelfDestruct(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_Shields(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);

@@ -316,6 +316,8 @@ void LoadNPCInfo()
 						setnpcstruct.Graph = ini.get_value_int(4);
 
 						// Infocard
+						setnpcstruct.Infocard = 0;
+						setnpcstruct.Infocard2 = 0;
 						setnpcstruct.Infocard = ini.get_value_int(5);
 						setnpcstruct.Infocard2 = ini.get_value_int(6);
 

@@ -1379,7 +1379,15 @@ namespace HyperJump
 			return true;
 		}
 
+
 		JUMPDRIVE &jd = mapJumpDrives[iClientID];
+
+		if (jd.jump_timer)
+		{
+			PrintUserCmdText(iClientID, L"Unable to change coordinates during jump.");
+			return true;
+		}
+
 		jd.iTargetSystem = 0;
 
 		string sbuf = wstos(ReplaceStr(GetParam(wscParam, L' ', 0), L"-", L""));

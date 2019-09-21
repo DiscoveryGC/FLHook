@@ -26,6 +26,11 @@ typedef unsigned char byte;
 #include <plugin.h>
 #include <math.h>
 
+bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+
+typedef void(*wprintf_fp)(std::wstring format, ...);
+typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
+
 struct DamageMultiplier {
 	float fighter;
 	float freighter;
@@ -35,6 +40,18 @@ struct DamageMultiplier {
 	float battlecruiser;
 	float battleship;
 	float solar;
+};
+
+struct USERCMD
+{
+	wchar_t* wszCmd;
+	_UserCmdProc proc;
+	wchar_t* usage;
+};
+
+USERCMD UserCmds[] =
+{
+	{ L"/snacclassic", UserCmd_SnacClassic, L"Usage: /snacclassic" },
 };
 
 int iLoadedDamageAdjusts = 0;
@@ -97,6 +114,88 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			LoadSettings();
 	}
 	return true;
+}
+
+
+// Command-Option-X-O
+bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	uint baseID = 0;
+	pub::Player::GetBase(iClientID, baseID);
+	if (!baseID)
+	{
+		PrintUserCmdText(iClientID, L"ERR cannot engage time machine while undocked");
+		return true;
+	}
+
+	int iSNACs = 0;
+	int iRemHoldSize;
+	list<CARGO_INFO> lstCargo;
+	HkEnumCargo(ARG_CLIENTID(iClientID), lstCargo, iRemHoldSize);
+
+	foreach(lstCargo, CARGO_INFO, it)
+	{
+		if ((*it).bMounted)
+			continue;
+
+		if (it->iArchID == CreateID("dsy_snova_civ"))
+		{
+			iSNACs += it->iCount;
+			pub::Player::RemoveCargo(iClientID, it->iID, it->iCount);
+		}
+	}
+
+	if (iSNACs)
+	{
+		unsigned int good = CreateID("dsy_snova_classic");
+		pub::Player::AddCargo(iClientID, good, iSNACs, 1.0, false);
+		PrintUserCmdText(iClientID, L"The time machine ate %i modern-day SNACs and gave back old rusty ones from a bygone era.", iSNACs);
+	}
+	else
+	{
+		PrintUserCmdText(iClientID, L"The time machine was disappointed to find you had no unmounted SNACs to relinquish unto it");
+	}
+	return true;
+}
+
+/**
+This function is called by FLHook when a user types a chat string. We look at the
+string they've typed and see if it starts with one of the above commands. If it
+does we try to process it.
+*/
+bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	wstring wscCmdLineLower = ToLower(wscCmd);
+
+	// If the chat string does not match the USER_CMD then we do not handle the
+	// command, so let other plugins or FLHook kick in. We require an exact match
+	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
+	{
+		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
+		{
+			// Extract the parameters string from the chat string. It should
+			// be immediately after the command and a space.
+			wstring wscParam = L"";
+			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
+			{
+				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
+					continue;
+				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
+			}
+
+			// Dispatch the command to the appropriate processing function.
+			if (UserCmds[i].proc(iClientID, wscCmd, wscParam, UserCmds[i].usage))
+			{
+				// We handled the command tell FL hook to stop processing this
+				// chat string.
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL; // we handled the command, return immediatly
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float setHealth, DamageEntry::SubObjFate fate)
@@ -194,6 +293,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 9));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_Callback, PLUGIN_Plugin_Communication, 10));
 	return p_PI;
 }

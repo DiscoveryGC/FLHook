@@ -188,7 +188,7 @@ namespace HyperJump
 		{
 			if (p > set_scEncryptKey.length())
 				p = 0;
-			obuf[i] = ibuf[i] ^ set_scEncryptKey[p];
+			obuf[i] = ibuf[i]^set_scEncryptKey[p];
 		}
 	}
 
@@ -221,7 +221,7 @@ namespace HyperJump
 		GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 		string scCfgFile = string(szCurDir) + "\\flhook_plugins\\jump.cfg";
 		string scCfgFileSystemList = string(szCurDir) + "\\flhook_plugins\\jump_allowedsystems.cfg";
-			
+
 		int iItemID = 1;
 
 		INI_Reader ini;
@@ -484,7 +484,7 @@ namespace HyperJump
 		wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
 
 		PrintUserCmdText(iClientID, L"Space kitteh knows you are in %s !", wscSysName.c_str());
-				
+
 		if (JumpWhiteListEnabled == 1)
 		{
 			for (map<uint, SYSTEM_JUMPLIST>::iterator iter = mapJumpSystems.begin(); iter!=mapJumpSystems.end(); iter++)
@@ -629,7 +629,7 @@ namespace HyperJump
 		for (map<uint, SURVEY>::iterator iter = mapSurvey.begin(); iter!=mapSurvey.end(); iter++)
 		{
 			uint iClientID = iter->first;
-						
+
 			uint iShip;
 			pub::Player::GetShip(iClientID, iShip);
 			if (iShip==0)
@@ -728,7 +728,7 @@ namespace HyperJump
 		for (map<uint, JUMPDRIVE>::iterator iter = mapJumpDrives.begin(); iter!=mapJumpDrives.end(); iter++)
 		{
 			uint iClientID = iter->first;
-						
+
 			uint iShip;
 			pub::Player::GetShip(iClientID, iShip);
 			if (iShip==0)
@@ -927,7 +927,7 @@ namespace HyperJump
 					{
 						jd.charge_status = expected_charge_status;
 						PrintUserCmdText(iClientID, L"Jump drive charge %0.0f%%", (jd.curr_charge/jd.arch.can_jump_charge)*100.0f);
-												
+
 						// Find the currently expected charge fuse
 						uint charge_fuse_idx = (uint)((jd.curr_charge/jd.arch.can_jump_charge) * (jd.arch.charge_fuse.size() - 1));
 						if (charge_fuse_idx >= jd.arch.charge_fuse.size())
@@ -1496,7 +1496,7 @@ namespace HyperJump
 		{
 			if (jd.iTargetSystem == 0)
 			{
-				PrintUserCmdText(iClientID, L"WARNING NO JUMP COORDINATES");
+				PrintUserCmdText(iClientID, L"WARNING NO JUMP COORDINATES");			
 				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_blind_jump_warning"));
 			}
 			////////////////////////// System limit restriction ///////////////////////////////////////

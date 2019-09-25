@@ -1,5 +1,6 @@
 #include "Main.h"
 
+static const PBYTE SwitchOut = (PBYTE)hModServer + 0xf600;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Helper functions
@@ -13,7 +14,7 @@ ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, 
 	ErrorMessage errorMsg = TOO_LARGE;
 	float holdSize = Archetype::GetShip(Players[dockingClientID].iShipArchetype)->fHoldSize;
 
-	for (vector<MODULE_CACHE>::iterator it = Modules.begin(); it != Modules.end(); it++)
+	for (vector<MODULE_CACHE>::iterator it = Modules.begin(); it != Modules.end(); ++it)
 	{
 		MODULE_ARCH module = Watcher.moduleArchInfo[it->archID];
 
@@ -65,13 +66,14 @@ ErrorMessage TryDockInSpace(vector<MODULE_CACHE> &Modules, uint dockingClientID,
 
 	// Check if there is place in queue.
 	vector<MODULE_CACHE> checkModules = Modules;
-	for (vector<ActionDocking>::iterator it = dockingQueues[carrierClientID].begin(); it != dockingQueues[carrierClientID].end(); it++)
+	vector<ActionDocking> &queue = dockingQueues[carrierClientID];
+	for (vector<ActionDocking>::iterator qit = queue.begin(); qit != queue.end(); ++qit)
 	{
-		for (vector<MODULE_CACHE>::iterator mit = checkModules.begin(); mit != checkModules.end(); mit++)
+		for (vector<MODULE_CACHE>::iterator cit = checkModules.begin(); cit != checkModules.end(); ++cit)
 		{
-			if (mit->occupiedBy.empty() && it->moduleArch == mit->archID)
+			if (cit->occupiedBy.empty() && qit->moduleArch == cit->archID)
 			{
-				checkModules.erase(mit);
+				checkModules.erase(cit);
 				break;
 			}
 		}
@@ -83,7 +85,7 @@ ErrorMessage TryDockInSpace(vector<MODULE_CACHE> &Modules, uint dockingClientID,
 	float distance = HkDistance3DByShip(dockingShip, carrierShip);
 
 	// For each module check if it is suitable for the ship.
-	for (vector<MODULE_CACHE>::iterator it = checkModules.begin(); it != checkModules.end(); it++)
+	for (vector<MODULE_CACHE>::iterator it = checkModules.begin(); it != checkModules.end(); ++it)
 	{
 		MODULE_ARCH module = Watcher.moduleArchInfo[it->archID];
 
@@ -139,7 +141,7 @@ void CancelRequest(uint dockingClientID)
 	{
 		MiscCmds::ExportSetLights(dockingClientID);
 		vector<ActionDocking> &queue = dockingQueues[mapDockingClients[dockingClientID]];
-		for (vector<ActionDocking>::iterator it = queue.begin(); it != queue.end(); it++)
+		for (vector<ActionDocking>::iterator it = queue.begin(); it != queue.end(); ++it)
 		{
 			if (it->dockingClientID == dockingClientID)
 			{
@@ -213,14 +215,8 @@ void Jettison(vector<MODULE_CACHE>::iterator it, uint dockedClientID, uint carri
 }
 
 void SwitchSystem(uint iClientID, uint iShip)
-{	
+{
 	// Patch the system switch out routine to put the ship in a system of our choosing.
-
-	PBYTE SwitchOut = (PBYTE)hModServer + 0xf600;
-
-	DWORD dummy;
-	VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
-
 	SwitchOut[0x0d7] = 0xeb;				// ignore exit object
 	SwitchOut[0x0d8] = 0x40;
 	SwitchOut[0x119] = 0xbb;				// set the destination system
@@ -265,86 +261,135 @@ void SwitchSystem(uint iClientID, uint iShip)
 	*(PDWORD)(SwitchOut + 0x388) = 0xcf8b178b;
 }
 
-// Checks if carrier ship has all to resupply docked ship and returns time required for it. Notifies only about possibility if notify = true, or notifies only about impossibility if notify = false.
-int CheckIfResupplyingAvailable(uint carrierClientID, uint dockedClientID, uint moduleArch, SUPPLIES_INFO& info, bool notify)
+void CheckIfResupplyingAvailable(uint carrierClientID, uint dockedClientID, uint moduleArch, SUPPLIES_INFO &info)
 {
 	MODULE_ARCH &module = Watcher.moduleArchInfo[moduleArch];
-	int basicResypplyTime = module.basicResupplyTime;
+	uint &basicResupplyTime = module.basicResupplyTime;
 
-	if (basicResypplyTime == -1)
+	if (basicResupplyTime == -1)
+		return;
+
+	ID_TRAITS &traits = Watcher.Cache[carrierClientID].dockingTraits;
+	uint crew = 0;
+
+	EQ_ITEM *item;
+	traverse_equipment(carrierClientID, item)
 	{
-		if (!notify)
-			PrintUserCmdText(dockedClientID, L"No resupplying possible.");
+		// Check if this is crew item.
+		if (find(traits.suitableCrewIDs.begin(), traits.suitableCrewIDs.end(), item->iArchID) != traits.suitableCrewIDs.end())
+		{
+			crew += item->iCount;
+			continue_traverse(item);
+		}
+
+		// Check if this is supply item.
+		auto supplyIter = traits.supplyItems.find(item->iArchID);
+		if (supplyIter != traits.supplyItems.end())
+		{
+			SUPPLY &supply = supplyIter->second;
+			if (supply.ammoPerUnit)
+			{
+				info.hasAmmoSup = true;
+			}
+			if (supply.botsPerUnit)
+			{
+				info.hasBotsSup = true;
+			}
+			if (supply.batsPerUnit)
+			{
+				info.hasShieldSup = true;
+			}
+			if (supply.cloakBatsPerUnit)
+			{
+				info.hasCloakSup = true;
+			}
+		}
+
+		continue_traverse(item);
+	}
+
+	uint crewLimit = (uint)(module.minCrewLimit * traits.crewLimitMultiplier);
+
+	if ((info.hasAmmoSup || info.hasCloakSup || info.hasShieldSup || info.hasBotsSup) && crew >= crewLimit)
+	{
+		PrintUserCmdText(dockedClientID, L"Resupplying system available. Insert '/loadsupplies' to use.");
+	}
+}
+
+int EstimateResupplyingTime(uint carrierClientID, uint dockedClientID, uint moduleArch, SUPPLIES_INFO &info)
+{
+	MODULE_ARCH &module = Watcher.moduleArchInfo[moduleArch];
+	uint &basicResupplyTime = module.basicResupplyTime;
+
+	if (basicResupplyTime == -1)
+	{
+		PrintUserCmdText(dockedClientID, L"No resupplying possible.");
 		return -1;
 	}
 
 	ID_TRAITS &traits = Watcher.Cache[carrierClientID].dockingTraits;
 	uint crew = 0;
 
-	char *szClassPtr;
-	memcpy(&szClassPtr, &Players, 4);
-	szClassPtr += 0x418 * (carrierClientID - 1);
-
-	EQ_ITEM *eqLst;
-	memcpy(&eqLst, szClassPtr + 0x27C, 4);
 	EQ_ITEM *item;
-	item = eqLst->next;
-	while (item != eqLst)
+	traverse_equipment(carrierClientID, item)
 	{
 		// Check if this is crew item.
 		if (find(traits.suitableCrewIDs.begin(), traits.suitableCrewIDs.end(), item->iArchID) != traits.suitableCrewIDs.end())
 		{
 			crew += item->iCount;
-			item = item->next;
-			continue;
+			continue_traverse(item);
 		}
 
 		// Check if this is supply item.
-		auto supply = traits.supplyItems.find(item->iArchID);
-		if (supply != traits.supplyItems.end())
+		auto supplyIter = traits.supplyItems.find(item->iArchID);
+		if (supplyIter != traits.supplyItems.end())
 		{
-			if (supply->second.ammoPerUnit)
+			SUPPLY &supply = supplyIter->second;
+			if (supply.ammoPerUnit)
 			{
 				info.hasAmmoSup = true;
 			}
-			if (supply->second.botsPerUnit)
+			if (supply.botsPerUnit)
 			{
 				info.hasBotsSup = true;
 			}
-			if (supply->second.batsPerUnit)
+			if (supply.batsPerUnit)
 			{
 				info.hasShieldSup = true;
 			}
-			if (supply->second.cloakBatsPerUnit)
+			if (supply.cloakBatsPerUnit)
 			{
 				info.hasCloakSup = true;
 			}
 		}
 
-		item = item->next;
+		continue_traverse(item);
 	}
 
-	uint crewLimit = module.minCrewLimit * traits.crewLimitMultiplier;
+	uint crewLimit = (uint)(module.minCrewLimit * traits.crewLimitMultiplier);
 
 	if (crew < crewLimit)
 	{
-		if (!notify)
-			PrintUserCmdText(dockedClientID, L"Carrier ship has not enough crew.");
+		PrintUserCmdText(dockedClientID, L"Carrier ship has not enough crew.");
 		return -1;
 	}
-	else if (!info.hasAmmoSup && !info.hasCloakSup  && !info.hasShieldSup && !info.hasBotsSup)
+	else if (!info.hasAmmoSup && !info.hasCloakSup && !info.hasShieldSup && !info.hasBotsSup)
 	{
-		if (!notify)
-			PrintUserCmdText(dockedClientID, L"Carrier has no supplies.");
+		PrintUserCmdText(dockedClientID, L"Carrier has no supplies.");
 		return -1;
 	}
-	else if (notify)
-		PrintUserCmdText(dockedClientID, L"Resupplying system available. Insert '/loadsupplies' to use.");
+
+	int time;
 
 	if (traits.crewLimitMultiplier)
-		return (int)(basicResypplyTime / pow(2, ((crew - crewLimit) / 200.0f)));
+		time = (int)(basicResupplyTime / pow(2, ((crew - crewLimit) / 200.0f)));
 	else
-		return (int)(basicResypplyTime / 2);
+		time = (int)(basicResupplyTime / 2);
+
+	if (time == 0)
+		time = 1;
+
+	return time;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,62 +398,62 @@ int CheckIfResupplyingAvailable(uint carrierClientID, uint dockedClientID, uint 
 
 namespace Commands
 {
-	bool Listdocked(uint client, const wstring& wscCmd)
+	bool Listdocked(uint iClientID, const wstring &wscCmd)
 	{
-		PrintUserCmdText(client, EnumerateDockedShips(client));
+		PrintUserCmdText(iClientID, EnumerateDockedShips(iClientID));
 		return true;
 	}
 
-	bool Conn(uint client, const wstring& wscCmd)
+	bool Conn(uint iClientID, const wstring &wscCmd)
 	{
 		// This plugin always runs before the Conn Plugin runs it's /conn function. Verify that there are no docked ships.
-		if (!Clients[client].DockedChars.Empty())
+		if (!Clients[iClientID].DockedChars.Empty())
 		{
-			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked with you!");
+			PrintUserCmdText(iClientID, L"You cannot use this command if you have vessels docked with you!");
 			return true;
 		}
 
 		// Verify that client is not currently docked to carrier.
-		if (Clients[client].DockedToModule)
+		if (Clients[iClientID].DockedToModule)
 		{
-			PrintUserCmdText(client, L"Connecticut virtual reality module is not found on that base.");
+			PrintUserCmdText(iClientID, L"Connecticut virtual reality module is not found on that base.");
 			return true;
 		}
 
 		return false;
 	}
 
-	bool Return(uint client, const wstring& wscCmd)
+	bool Return(uint iClientID, const wstring &wscCmd)
 	{
 		// This plugin always runs before the Conn Plugin runs it's /return function. Verify that there are no docked ships.
-		if (!Clients[client].DockedChars.Empty())
+		if (!Clients[iClientID].DockedChars.Empty())
 		{
-			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked with you!");
+			PrintUserCmdText(iClientID, L"You cannot use this command if you have vessels docked with you!");
 			return true;
 		}
 
 		return false;
 	}
 
-	bool Renameme(uint client, const wstring& wscCmd)
+	bool Renameme(uint iClientID, const wstring &wscCmd)
 	{
 		// Don't want to copy whole command here. Just restricted.
-		if (Clients[client].DockedToModule)
+		if (Clients[iClientID].DockedToModule)
 		{
-			PrintUserCmdText(client, L"You cannot use this command if you are docked to someone!");
+			PrintUserCmdText(iClientID, L"You cannot use this command if you are docked to someone!");
 			return true;
 		}
 
-		if (!Clients[client].DockedChars.Empty())
+		if (!Clients[iClientID].DockedChars.Empty())
 		{
-			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked to you!");
+			PrintUserCmdText(iClientID, L"You cannot use this command if you have vessels docked to you!");
 			return true;
 		}
 
 		return false;
 	}
 
-	bool Allowdock(uint iClientID, const wstring& wscCmd)
+	bool Allowdock(uint iClientID, const wstring &wscCmd)
 	{
 		// Check if it is base-docking.
 		wstring targetName = Trim(GetParam(wscCmd, ' ', 1));
@@ -447,7 +492,7 @@ namespace Commands
 		// If target is not player ship - ignore request.
 		const uint iTargetClientID = HkGetClientIDByShip(iTargetShip);
 		if (!iTargetClientID)
-			return 0;
+			return true;
 
 		// Find the docking request. If none - ignore.
 		if (mapPendingDockingRequests[iTargetClientID] != iClientID)
@@ -471,7 +516,7 @@ namespace Commands
 		return true;
 	}
 
-	bool Dockatbase(uint iClientID, const wstring& wscCmd)
+	bool Dockatbase(uint iClientID, const wstring &wscCmd)
 	{
 		if (mapDockingClients[iClientID])
 			return true;
@@ -533,7 +578,7 @@ namespace Commands
 		return true;
 	}
 
-	bool Jettisonship(uint iClientID, const wstring& wscCmd)
+	bool Jettisonship(uint iClientID, const wstring &wscCmd)
 	{
 		wstring targetName = GetParam(wscCmd, ' ', 1);
 		uint iTargetClientID = HkGetClientIdFromCharname(targetName);
@@ -546,7 +591,7 @@ namespace Commands
 		else
 		{
 			vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars.Get();
-			for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); it++)
+			for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
 			{
 				if (it->occupiedBy == targetName)
 				{
@@ -560,16 +605,16 @@ namespace Commands
 		return true;
 	}
 
-	bool Jettisonallships(uint iClientID, const wstring& wscCmd)
+	bool Jettisonallships(uint iClientID, const wstring &wscCmd)
 	{
 		vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars.Get();
-		for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); it++)
+		for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
 			Jettison(it, HkGetClientIdFromCharname(it->occupiedBy), iClientID);
 
 		return true;
 	}
 
-	bool Loadsupplies(uint iClientID, const wstring& wscCmd)
+	bool Loadsupplies(uint iClientID, const wstring &wscCmd)
 	{
 		// If ship is not docked to player - ignore.
 		if (!Clients[iClientID].DockedToModule)
@@ -590,7 +635,7 @@ namespace Commands
 		// If client is already resupplying - cancel operation.
 		if (ResupplyingClients[iClientID])
 		{
-			ResupplyingClients[iClientID] = 0;
+			ResupplyingClients[iClientID] = false;
 			pub::Audio::PlaySoundEffect(iClientID, ID_sound_canceled);
 			PrintUserCmdText(iClientID, L"Resupplying canceled.");
 
@@ -612,15 +657,8 @@ namespace Commands
 		map<uint, int> guns;
 
 		// Check what player already has.
-		char *szClassPtr;
-		memcpy(&szClassPtr, &Players, 4);
-		szClassPtr += 0x418 * (iClientID - 1);
-
-		EQ_ITEM *eqLst;
-		memcpy(&eqLst, szClassPtr + 0x27C, 4);
 		EQ_ITEM *item;
-		item = eqLst->next;
-		while (item != eqLst)
+		traverse_equipment(iClientID, item)
 		{
 			// Check if item present in plugin gun database.
 			if (item->bMounted)
@@ -631,50 +669,59 @@ namespace Commands
 						guns[item->iArchID] = 1;
 					else if (mapAmmo[item->iArchID].stackable)
 						guns[item->iArchID]++;
+
+					continue_traverse(item);
 				}
 
 				// Check if item present in plugin cloaking devices database.
 				if (mapBatteries.find(item->iArchID) != mapBatteries.end())
 				{
 					request.cloak = item->iArchID;
+					continue_traverse(item);
 				}
 			}
 			// Check if item present in plugin ammo database.
 			else
 			{
 				// Check for usual ammo.
-				for (map<uint, AMMO>::iterator it = mapAmmo.begin(); it != mapAmmo.end(); it++)
+				auto ammoIter = find_if(mapAmmo.begin(), mapAmmo.end(),
+					[&item](const pair<uint, AMMO> &pair) { return pair.second.ammoID == item->iArchID; });
+
+				if (ammoIter != mapAmmo.end())
 				{
-					if (it->second.ammoID == item->iArchID)
-					{
-						ammo[item->iArchID] = item->iCount;
-					}
+					ammo[item->iArchID] = item->iCount;
+					continue_traverse(item);
 				}
+
 				// Check for cloaking device ammo.
-				for (map<uint, uint>::iterator it = mapBatteries.begin(); it != mapBatteries.end(); it++)
+				auto batteriesIter = find_if(mapBatteries.begin(), mapBatteries.end(),
+					[&item](const pair<uint, uint> &pair) { return pair.second == item->iArchID; });
+
+				if (batteriesIter != mapBatteries.end())
 				{
-					if (it->second == item->iArchID)
-					{
-						ammo[item->iArchID] = item->iCount;
-					}
+					ammo[item->iArchID] = item->iCount;
+					continue_traverse(item);
 				}
+
 				// Is this shield batteries?
 				if (item->iArchID == ID_batteries)
 				{
 					request.batteriesInCart = ship->iMaxShieldBats - item->iCount;
+					continue_traverse(item);
 				}
 				// Is this nanobots?
 				if (item->iArchID == ID_nanobots)
 				{
 					request.nanobotsInCart = ship->iMaxNanobots - item->iCount;
+					continue_traverse(item);
 				}
 			}
 
-			item = item->next;
+			continue_traverse(item);
 		}
 
 		// Calculate how much ammo this player needs.
-		for (map<uint, int>::iterator it = guns.begin(); it != guns.end(); it++)
+		for (map<uint, int>::iterator it = guns.begin(); it != guns.end(); ++it)
 		{
 			uint ammoID = mapAmmo[it->first].ammoID;
 
@@ -682,7 +729,7 @@ namespace Commands
 			if (ammo.find(ammoID) != ammo.end())
 				need -= ammo[ammoID];
 
-			if(need)
+			if (need)
 				request.ammoInCart[ammoID] = need;
 		}
 
@@ -697,7 +744,7 @@ namespace Commands
 			request.cloakBatteriesInCart = need;
 		}
 
-		if (request.ammoInCart.size() + request.cloakBatteriesInCart + request.batteriesInCart + request.nanobotsInCart == 0)
+		if (request.ammoInCart.empty() && request.cloakBatteriesInCart == 0 && request.batteriesInCart == 0 && request.nanobotsInCart == 0)
 		{
 			PrintUserCmdText(iClientID, L"Resupplying is not needed.");
 			return true;
@@ -705,43 +752,53 @@ namespace Commands
 
 		// Calculate time needed for resupplying. Return if carrier can't provide resupplying and notify docked ship about that.
 		SUPPLIES_INFO info = SUPPLIES_INFO();
-		int time = CheckIfResupplyingAvailable(carrierClientID, iClientID, Clients[iClientID].DockedToModule, info, false);
+		int time = EstimateResupplyingTime(carrierClientID, iClientID, Clients[iClientID].DockedToModule, info);
 		if (time == -1) return true;
 
 		// Check if carrier is lacking specific supplies and warn docked ship about that.
-		if (info.hasAmmoSup == false && request.ammoInCart.size() != 0)
+		bool warnNoAmmo = false;
+		bool warnNoCloakBats = false;
+		bool warnNoBots = false;
+		bool warnNoBats = false;
+
+		if (!info.hasAmmoSup && !request.ammoInCart.empty())
 		{
 			request.ammoInCart.clear();
-			if (request.cloakBatteriesInCart + request.batteriesInCart + request.nanobotsInCart != 0)
-				PrintUserCmdText(iClientID, L"Warning. Carrier has no ammo for you.");
+			warnNoAmmo = true;
 		}
 
-		if (info.hasCloakSup == false && request.cloakBatteriesInCart != 0)
+		if (!info.hasCloakSup && request.cloakBatteriesInCart != 0)
 		{
 			request.cloakBatteriesInCart = 0;
-			if (request.ammoInCart.size() + request.batteriesInCart + request.nanobotsInCart != 0)
-				PrintUserCmdText(iClientID, L"Warning. Carrier has no batteries for your cloaking device.");
+			warnNoCloakBats = true;
 		}
 
-		if (info.hasBotsSup == false && request.nanobotsInCart != 0)
+		if (!info.hasBotsSup && request.nanobotsInCart != 0)
 		{
 			request.nanobotsInCart = 0;
-			if (request.ammoInCart.size() + request.cloakBatteriesInCart + request.batteriesInCart != 0)
-				PrintUserCmdText(iClientID, L"Warning. Carrier has no nanobots for your ship.");
+			warnNoBots = true;
 		}
 
-		if (info.hasShieldSup == false && request.batteriesInCart != 0)
+		if (!info.hasShieldSup&& request.batteriesInCart != 0)
 		{
 			request.batteriesInCart = 0;
-			if (request.ammoInCart.size() + request.cloakBatteriesInCart + request.nanobotsInCart != 0)
-				PrintUserCmdText(iClientID, L"Warning. Carrier has no shield batteries for your ship.");
+			warnNoBats = true;
 		}
 
-		if (request.ammoInCart.size() + request.cloakBatteriesInCart + request.batteriesInCart + request.nanobotsInCart == 0)
+		if (request.ammoInCart.empty() && request.cloakBatteriesInCart == 0 && request.batteriesInCart == 0 && request.nanobotsInCart == 0)
 		{
 			PrintUserCmdText(iClientID, L"Resupplying is not possible. Carrier has no requested supplies in cargo hold.");
 			return true;
 		}
+
+		if (warnNoAmmo)
+			PrintUserCmdText(iClientID, L"Warning. Carrier has no ammo for you.");
+		if (warnNoCloakBats)
+			PrintUserCmdText(iClientID, L"Warning. Carrier has no batteries for your cloaking device.");
+		if (warnNoBots)
+			PrintUserCmdText(iClientID, L"Warning. Carrier has no nanobots for your ship.");
+		if (warnNoBats)
+			PrintUserCmdText(iClientID, L"Warning. Carrier has no shield batteries for your ship.");
 
 		pub::Audio::PlaySoundEffect(iClientID, ID_sound_accepted);
 		PrintUserCmdText(iClientID, L"Resupplying begins. Wait %i seconds before work is finished.", time);

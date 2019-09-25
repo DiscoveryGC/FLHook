@@ -13,7 +13,7 @@ wstring EnumerateDockedShips(uint carrierClientID)
 	{
 		wstring shipNames;
 
-		for (int i = 0; i != DockedChars.size(); i++)
+		for (int i = 0; i != DockedChars.size(); ++i)
 		{
 			if (i != 0)
 				shipNames += L", ";
@@ -37,7 +37,7 @@ wstring EnumerateDockedShips(uint carrierClientID)
 
 namespace ModuleWatcher
 {
-	void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
+	void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId, uint iClientID)
 	{
 		// Don't do this all at ClearClientInfo because it's not being fired when player switches characters.
 		returncode = DEFAULT_RETURNCODE;
@@ -53,18 +53,17 @@ namespace ModuleWatcher
 		bool licenseFound = false;
 		vector<MODULE_CACHE> newModules;
 
-		list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
-		for (list<EquipDesc>::iterator it = equip.begin(); it != equip.end(); it++)
+		for (auto &item : Players[iClientID].equipDescList.equip)
 		{
-			if (!it->bMounted)
+			if (!item.bMounted)
 				continue;
 
-			if (Watcher.moduleArchInfo.find(it->iArchID) != Watcher.moduleArchInfo.end())
-				newModules.push_back(MODULE_CACHE(it->iArchID));
-			else if (Watcher.IDTraits.find(it->iArchID) != Watcher.IDTraits.end())
+			if (Watcher.moduleArchInfo.find(item.iArchID) != Watcher.moduleArchInfo.end())
+				newModules.push_back(MODULE_CACHE(item.iArchID));
+			else if (Watcher.IDTraits.find(item.iArchID) != Watcher.IDTraits.end())
 			{
 				licenseFound = true;
-				Watcher.Cache[iClientID].dockingTraits = Watcher.IDTraits[it->iArchID];
+				Watcher.Cache[iClientID].dockingTraits = Watcher.IDTraits[item.iArchID];
 			}
 		}
 
@@ -72,9 +71,9 @@ namespace ModuleWatcher
 			Watcher.Cache[iClientID].dockingTraits = defaultTraits;
 
 		vector<MODULE_CACHE> dockedChars = Clients[iClientID].DockedChars.Get();
-		for (vector<MODULE_CACHE>::iterator it = newModules.begin(); it != newModules.end(); it++)
+		for (vector<MODULE_CACHE>::iterator it = newModules.begin(); it != newModules.end(); ++it)
 		{
-			for (vector<MODULE_CACHE>::const_iterator cit = dockedChars.begin(); cit != dockedChars.end(); cit++)
+			for (vector<MODULE_CACHE>::const_iterator cit = dockedChars.begin(); cit != dockedChars.end(); ++cit)
 			{
 				if (it->occupiedBy.empty() && cit->archID == it->archID)
 				{
@@ -87,7 +86,7 @@ namespace ModuleWatcher
 
 		// Sort modules in capacity ascending order to occupy module rationally.
 		// Ship at first tries to occupy smaller modules, later - larger ones.
-		sort(newModules.begin(), newModules.end(), [](const MODULE_CACHE& A, const MODULE_CACHE& B)
+		sort(newModules.begin(), newModules.end(), [](const MODULE_CACHE &A, const MODULE_CACHE &B)
 		{
 			return (Watcher.moduleArchInfo[A.archID].maxCargoCapacity < Watcher.moduleArchInfo[B.archID].maxCargoCapacity);
 		});
@@ -95,7 +94,7 @@ namespace ModuleWatcher
 		Watcher.Cache[iClientID].Modules = newModules;
 	}
 
-	void __stdcall ReqEquipment_AFTER(class EquipDescList const &edl, unsigned int iClientID)
+	void __stdcall ReqEquipment_AFTER(class EquipDescList const &edl, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -107,54 +106,56 @@ namespace ModuleWatcher
 		newModules.reserve(oldModules.size());
 
 		// Get relevant docking modules.
-		const list<EquipDesc> &equip = edl.equip;
-		for (list<EquipDesc>::const_iterator it = equip.begin(); it != equip.end(); it++)
+		for (auto &item : edl.equip)
 		{
-			if (!it->bMounted)
+			if (!item.bMounted)
 				continue;
 
-			if (Watcher.moduleArchInfo.find(it->iArchID) != Watcher.moduleArchInfo.end())
-				newModules.push_back(MODULE_CACHE(it->iArchID));
-			else if (Watcher.IDTraits.find(it->iArchID) != Watcher.IDTraits.end())
+			if (Watcher.moduleArchInfo.find(item.iArchID) != Watcher.moduleArchInfo.end())
+				newModules.push_back(MODULE_CACHE(item.iArchID));
+			else if (Watcher.IDTraits.find(item.iArchID) != Watcher.IDTraits.end())
 			{
 				licenseFound = true;
-				Watcher.Cache[iClientID].dockingTraits = Watcher.IDTraits[it->iArchID];
+				Watcher.Cache[iClientID].dockingTraits = Watcher.IDTraits[item.iArchID];
 			}
 		}
 
-		if(!licenseFound)
+		if (!licenseFound)
 			Watcher.Cache[iClientID].dockingTraits = defaultTraits;
 
 		// Move all possible players from old modules to new.
-		for (vector<MODULE_CACHE>::iterator it = oldModules.begin(); it != oldModules.end(); it++)
+		for (vector<MODULE_CACHE>::iterator oit = oldModules.begin(); oit != oldModules.end(); )
 		{
-			if (it->occupiedBy.empty())
+			if (oit->occupiedBy.empty())
 			{
-				it = oldModules.erase(it);
-				it--;
+				oit = oldModules.erase(oit);
 			}
 			else
-				for (vector<MODULE_CACHE>::iterator mit = newModules.begin(); mit != newModules.end(); mit++)
+			{
+				for (vector<MODULE_CACHE>::iterator nit = newModules.begin(); nit != newModules.end(); ++nit)
 				{
-					if (it->archID == mit->archID && mit->occupiedBy.empty())
+					if (oit->archID == nit->archID && nit->occupiedBy.empty())
 					{
-						mit->occupiedBy = it->occupiedBy;
-						it = oldModules.erase(it);
-						it--;
-						break;
+						nit->occupiedBy = oit->occupiedBy;
+						oit = oldModules.erase(oit);
+						goto end;
 					}
 				}
+
+				++oit;
+			}
+		end:;
 		}
 
 		// Eject all remained players.
-		for (vector<MODULE_CACHE>::iterator it = oldModules.begin(); it != oldModules.end(); it++)
+		for (vector<MODULE_CACHE>::iterator it = oldModules.begin(); it != oldModules.end(); ++it)
 		{
 			Jettison(it, HkGetClientIdFromCharname(it->occupiedBy), iClientID);
 		}
 
 		// Sort modules in capacity ascending order to occupy module rationally.
 		// Ship at first tries to occupy smaller modules, later - larger ones.
-		sort(newModules.begin(), newModules.end(), [](const MODULE_CACHE& A, const MODULE_CACHE& B)
+		sort(newModules.begin(), newModules.end(), [](const MODULE_CACHE &A, const MODULE_CACHE &B)
 		{
 			return (Watcher.moduleArchInfo[A.archID].maxCargoCapacity < Watcher.moduleArchInfo[B.archID].maxCargoCapacity);
 		});
@@ -163,7 +164,22 @@ namespace ModuleWatcher
 		oldModules = newModules;
 	}
 
-	void __stdcall ReqAddItem_AFTER(unsigned int iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, unsigned int iClientID)
+	void __stdcall ReqAddItem(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
+	{
+		returncode = DEFAULT_RETURNCODE;
+
+		if (ResupplyingClients[iClientID])
+		{
+			ResupplyingClients[iClientID] = false;
+			pub::Audio::PlaySoundEffect(iClientID, ID_sound_canceled);
+			PrintUserCmdText(iClientID, L"ERR Resupply process disrupted.");
+
+			resupplyList.erase(remove_if(resupplyList.begin(), resupplyList.end(),
+				[iClientID](const ActionResupply &action) { return action.dockedClientID == iClientID; }));
+		}
+	}
+
+	void __stdcall ReqAddItem_AFTER(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -177,7 +193,7 @@ namespace ModuleWatcher
 
 			// Sort modules in capacity ascending order to occupy module rationally.
 			// Ship at first tries to occupy smaller modules, later - larger ones.
-			sort(Modules.begin(), Modules.end(), [](const MODULE_CACHE& A, const MODULE_CACHE& B)
+			sort(Modules.begin(), Modules.end(), [](const MODULE_CACHE &A, const MODULE_CACHE &B)
 			{
 				return (Watcher.moduleArchInfo[A.archID].maxCargoCapacity < Watcher.moduleArchInfo[B.archID].maxCargoCapacity);
 			});
@@ -188,7 +204,7 @@ namespace ModuleWatcher
 		}
 	}
 
-	void __stdcall ReqRemoveItem(unsigned short sHpID, int iCount, unsigned int iClientID)
+	void __stdcall ReqRemoveItem(ushort sHpID, int iCount, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -204,7 +220,7 @@ namespace ModuleWatcher
 		if (Watcher.moduleArchInfo.find(item->iArchID) != Watcher.moduleArchInfo.end())
 		{
 			// Try to find non-occupied module and remove it.
-			for (vector<MODULE_CACHE>::iterator mit = Modules.begin(); mit != Modules.end(); mit++)
+			for (vector<MODULE_CACHE>::iterator mit = Modules.begin(); mit != Modules.end(); ++mit)
 				if (mit->occupiedBy.empty() && mit->archID == item->iArchID)
 				{
 					Modules.erase(mit);
@@ -212,7 +228,7 @@ namespace ModuleWatcher
 				}
 
 			// Well, there are no such modules without players, going to remove module with player.
-			for (vector<MODULE_CACHE>::iterator mit = Modules.begin(); mit != Modules.end(); mit++)
+			for (vector<MODULE_CACHE>::iterator mit = Modules.begin(); mit != Modules.end(); ++mit)
 				if (mit->archID == item->iArchID)
 				{
 					Jettison(mit, HkGetClientIdFromCharname(mit->occupiedBy), iClientID);
@@ -226,11 +242,11 @@ namespace ModuleWatcher
 		}
 	}
 
-	void __stdcall SPScanCargo_AFTER(unsigned int const &p1, unsigned int const &p2, unsigned int iClientID)
+	void __stdcall SPScanCargo_AFTER(uint const &scanningShip, uint const &scannedShip, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
-		uint scannedClientID = HkGetClientIDByShip(p2);
+		uint scannedClientID = HkGetClientIDByShip(scannedShip);
 		if (scannedClientID && Clients[scannedClientID].HasDockingModules)
 			PrintUserCmdText(iClientID, EnumerateDockedShips(scannedClientID));
 	}

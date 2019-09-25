@@ -1,5 +1,7 @@
 #include "Database.h"
 
+string dataPath;
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Definitions
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -17,7 +19,7 @@ namespace DB
 	void WatcherDB::ReleaseModule(uint carrierClientID, wstring& dockedCharname)
 	{
 		vector<MODULE_CACHE>& modules = Cache[carrierClientID].Modules;
-		for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); it++)
+		for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); ++it)
 		{
 			if (it->occupiedBy == dockedCharname)
 			{
@@ -32,7 +34,7 @@ namespace DB
 	{
 		vector<MODULE_CACHE> &modules = Cache[carrierClientID].Modules;
 
-		for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); it++)
+		for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); ++it)
 		{
 			if (it->archID == moduleArch && it->occupiedBy.empty())
 			{
@@ -49,11 +51,10 @@ namespace DB
 	const vector<MODULE_CACHE> DockedCharsDB::Get()
 	{
 		vector<MODULE_CACHE> Chars;
-		vector<string> strChars = GetParams(HookExt::IniGetS(iClientID, "DockedChars"), '|');
-		for (vector<string>::iterator it = strChars.begin(); it != strChars.end(); it++)
+		for (string &str : GetParams(HookExt::IniGetS(iClientID, "DockedChars"), '|'))
 		{
-			uint archID = boost::lexical_cast<uint>(GetParam(*it, ',', 0));
-			wstring occupiedBy = EncodeWStringFromStringOfBytes(GetParam(*it, ',', 1));
+			uint archID = boost::lexical_cast<uint>(GetParam(str, ',', 0));
+			wstring occupiedBy = EncodeWStringFromStringOfBytes(GetParam(str, ',', 1));
 			Chars.push_back(MODULE_CACHE(archID, occupiedBy));
 		}
 
@@ -74,7 +75,7 @@ namespace DB
 	{
 		string str = HookExt::IniGetS(iClientID, "DockedChars");
 
-		if(!str.empty())
+		if (!str.empty())
 			str += '|';
 		str += to_string(info.archID);
 		str += ',';
@@ -95,7 +96,7 @@ namespace DB
 			if (pos)
 				str.erase(pos - 1, toErase.length() + 1);
 			else
-				if(toErase.length() != str.size() && str[toErase.length()] != '|')
+				if (toErase.length() != str.size() && str[toErase.length()] != '|')
 					str.erase(pos, toErase.length());
 				else
 					str.erase(pos, toErase.length() + 1);
@@ -121,7 +122,7 @@ namespace DB
 				{
 					if (str[pos - index] == '|' || pos - index == 0)
 					{
-						if(pos - index == 0)
+						if (pos - index == 0)
 							str.erase(pos - index, toErase.length() + index);
 						else
 							str.erase(pos - index, toErase.length() + 1);
@@ -139,106 +140,106 @@ namespace DB
 	// Begin of OfflineData class.
 	OfflineData::OfflineData(wstring& charname)
 	{
-		map<string, vector<string>> fields;
-		fields["system"];
-		fields["base"];
-		fields["pos"];
-		fields["rotate"];
-		fields["cargo"];
-		fields["DockedChars"];
-		fields["DockedWith"];
-		fields["DockedToModule"];
-		fields["saveLastBaseID"];
-		fields["saveLastPOBID"];
-		fields["base.player_base"];
-		fields["base.last_player_base"];
+		map<string, vector<string>> variables;
+		variables["system"];
+		variables["base"];
+		variables["pos"];
+		variables["rotate"];
+		variables["cargo"];
 
-		string path = GetFLAccPath(charname);
-		bool foundFile = ReadFLFile(fields, path);
+		map<string, string> hookExtData;
+		hookExtData["DockedChars"];
+		hookExtData["DockedWith"];
+		hookExtData["DockedToModule"];
+		hookExtData["saveLastBaseID"];
+		hookExtData["saveLastPOBID"];
+		hookExtData["base.player_base"];
+		hookExtData["base.last_player_base"];
 
-		if (foundFile)
+		path = GetFLAccPath(charname);
+		ReadFLFile(variables, hookExtData, path);
+
+
+		Charname = charname;
+
+		if (!variables["system"].empty())
+			Location.systemID = CreateID(Trim(variables["system"][0]).c_str());
+		else
+			Location.systemID = 0;
+
+		if (!variables["base"].empty())
+			Location.baseID = CreateID(Trim(variables["base"][0]).c_str());
+		else
+			Location.baseID = 0;
+
+		if (!variables["pos"].empty() && !variables["rotate"].empty())
 		{
-			Charname = charname;
+			Location.pos.x = boost::lexical_cast<float>(Trim(GetParam(variables["pos"][0], ',', 0)));
+			Location.pos.y = boost::lexical_cast<float>(Trim(GetParam(variables["pos"][0], ',', 1)));
+			Location.pos.z = boost::lexical_cast<float>(Trim(GetParam(variables["pos"][0], ',', 2)));
 
-			if (!fields["system"].empty())
-				Location.systemID = CreateID(Trim(fields["system"][0]).c_str());
-			else
-				Location.systemID = 0;
-
-			if (!fields["base"].empty())
-				Location.baseID = CreateID(Trim(fields["base"][0]).c_str());
-			else
-				Location.baseID = 0;
-
-			if (!fields["pos"].empty() && !fields["rotate"].empty())
-			{
-				Location.pos.x = boost::lexical_cast<float>(Trim(GetParam(fields["pos"][0], ',', 0)));
-				Location.pos.y = boost::lexical_cast<float>(Trim(GetParam(fields["pos"][0], ',', 1)));
-				Location.pos.z = boost::lexical_cast<float>(Trim(GetParam(fields["pos"][0], ',', 2)));
-
-				Location.rot.x = boost::lexical_cast<float>(Trim(GetParam(fields["rotate"][0], ',', 0)));
-				Location.rot.y = boost::lexical_cast<float>(Trim(GetParam(fields["rotate"][0], ',', 1)));
-				Location.rot.z = boost::lexical_cast<float>(Trim(GetParam(fields["rotate"][0], ',', 2)));
-			}
-			else
-			{
-				Location.pos = Vector{ 0,100000,0 };
-				Location.rot = Vector{ 0,0,0 };
-			}
-
-			vector<CARGO_ITEM> cargo;
-			for (vector<string>::iterator it = fields["cargo"].begin(); it != fields["cargo"].end(); it++)
-			{
-				uint archID = boost::lexical_cast<uint>(Trim(GetParam(*it, ',', 0)));
-				uint count = boost::lexical_cast<uint>(Trim(GetParam(*it, ',', 1)));
-				cargo.push_back(CARGO_ITEM(archID, count));
-			}
-			Cargo = CargoDB(cargo);
-
-			if (!fields["DockedChars"].empty())
-			{
-				vector<string> strData = GetParams(fields["DockedChars"][0], '|');
-				for (vector<string>::iterator it = strData.begin(); it != strData.end(); it++)
-				{
-					uint archID = boost::lexical_cast<uint>(GetParam(*it, ',', 0));
-					wstring occupiedBy = EncodeWStringFromStringOfBytes(GetParam(*it, ',', 1));
-					DockedChars.push_back(MODULE_CACHE(archID, occupiedBy));
-				}
-			}
-
-			if (!fields["DockedWith"].empty())
-			{
-				DockedWith = EncodeWStringFromStringOfBytes(fields["DockedWith"][0]);
-				IsDocked = true;
-			}
-			else
-				IsDocked = false;
-
-			if (!fields["DockedToModule"].empty())
-				DockedToModule = boost::lexical_cast<uint>(fields["DockedToModule"][0]);
-			else
-				DockedToModule = 0;
-
-			if (!fields["saveLastBaseID"].empty())
-				saveLastBaseID = boost::lexical_cast<uint>(fields["saveLastBaseID"][0]);
-			else
-				saveLastBaseID = 0;
-
-			if (!fields["saveLastPOBID"].empty())
-				saveLastPOBID = boost::lexical_cast<uint>(fields["saveLastPOBID"][0]);
-			else
-				saveLastPOBID = 0;
-
-			if (!fields["base.player_base"].empty())
-				POBID = boost::lexical_cast<uint>(fields["base.player_base"][0]);
-			else
-				POBID = 0;
-
-			if (!fields["base.last_player_base"].empty())
-				LastPOBID = boost::lexical_cast<uint>(fields["base.last_player_base"][0]);
-			else
-				LastPOBID = 0;
+			Location.rot.x = boost::lexical_cast<float>(Trim(GetParam(variables["rotate"][0], ',', 0)));
+			Location.rot.y = boost::lexical_cast<float>(Trim(GetParam(variables["rotate"][0], ',', 1)));
+			Location.rot.z = boost::lexical_cast<float>(Trim(GetParam(variables["rotate"][0], ',', 2)));
 		}
+		else
+		{
+			Location.pos = Vector{ 0,100000,0 };
+			Location.rot = Vector{ 0,0,0 };
+		}
+
+		vector<CARGO_ITEM> cargo;
+		for (vector<string>::iterator it = variables["cargo"].begin(); it != variables["cargo"].end(); it++)
+		{
+			uint archID = boost::lexical_cast<uint>(Trim(GetParam(*it, ',', 0)));
+			uint count = boost::lexical_cast<uint>(Trim(GetParam(*it, ',', 1)));
+			cargo.push_back(CARGO_ITEM(archID, count));
+		}
+		Cargo = CargoDB(cargo);
+
+		if (!variables["DockedChars"].empty())
+		{
+			vector<string> strData = GetParams(variables["DockedChars"][0], '|');
+			for (vector<string>::iterator it = strData.begin(); it != strData.end(); it++)
+			{
+				uint archID = boost::lexical_cast<uint>(GetParam(*it, ',', 0));
+				wstring occupiedBy = EncodeWStringFromStringOfBytes(GetParam(*it, ',', 1));
+				DockedChars.push_back(MODULE_CACHE(archID, occupiedBy));
+			}
+		}
+
+		if (!variables["DockedWith"].empty())
+		{
+			DockedWith = EncodeWStringFromStringOfBytes(variables["DockedWith"][0]);
+			IsDocked = true;
+		}
+		else
+			IsDocked = false;
+
+		if (!variables["DockedToModule"].empty())
+			DockedToModule = boost::lexical_cast<uint>(variables["DockedToModule"][0]);
+		else
+			DockedToModule = 0;
+
+		if (!variables["saveLastBaseID"].empty())
+			saveLastBaseID = boost::lexical_cast<uint>(variables["saveLastBaseID"][0]);
+		else
+			saveLastBaseID = 0;
+
+		if (!variables["saveLastPOBID"].empty())
+			saveLastPOBID = boost::lexical_cast<uint>(variables["saveLastPOBID"][0]);
+		else
+			saveLastPOBID = 0;
+
+		if (!variables["base.player_base"].empty())
+			POBID = boost::lexical_cast<uint>(variables["base.player_base"][0]);
+		else
+			POBID = 0;
+
+		if (!variables["base.last_player_base"].empty())
+			LastPOBID = boost::lexical_cast<uint>(variables["base.last_player_base"][0]);
+		else
+			LastPOBID = 0;
 	}
 
 	void OfflineData::Save()
@@ -247,13 +248,15 @@ namespace DB
 		linesToDelete.push_back("base =");
 		linesToDelete.push_back("pos =");
 		linesToDelete.push_back("rotate =");
-		linesToDelete.push_back("DockedChars");
-		linesToDelete.push_back("DockedWith");
-		linesToDelete.push_back("saveLastBaseID");
-		linesToDelete.push_back("saveLastPOBID");
-		linesToDelete.push_back("DockedToModule");
-		linesToDelete.push_back("base.player_base");
-		linesToDelete.push_back("base.last_player_base");
+
+		vector<string> hookExtLinesToDelete;
+		hookExtLinesToDelete.push_back("DockedChars");
+		hookExtLinesToDelete.push_back("DockedWith");
+		hookExtLinesToDelete.push_back("DockedToModule");
+		hookExtLinesToDelete.push_back("saveLastBaseID");
+		hookExtLinesToDelete.push_back("saveLastPOBID");
+		hookExtLinesToDelete.push_back("base.player_base");
+		hookExtLinesToDelete.push_back("base.last_player_base");
 
 		if (Cargo.Get().empty())
 			linesToDelete.push_back("cargo =");
@@ -273,19 +276,19 @@ namespace DB
 			"rotate = " + to_string(Location.rot.x) + "," + to_string(Location.rot.y) + "," + to_string(Location.rot.z)
 		};
 
-		vector<string> linesToAdd;
+		vector<string> hookExtLinesToAdd;
 		if (!DockedWith.empty())
-			linesToAdd.push_back("DockedWith = " + DecodeWStringToStringOfBytes(DockedWith));
+			hookExtLinesToAdd.push_back("DockedWith = " + DecodeWStringToStringOfBytes(DockedWith));
 		if (DockedToModule)
-			linesToAdd.push_back("DockedToModule = " + to_string(DockedToModule));
+			hookExtLinesToAdd.push_back("DockedToModule = " + to_string(DockedToModule));
 		if (saveLastBaseID)
-			linesToAdd.push_back("saveLastBaseID = " + to_string(saveLastBaseID));
+			hookExtLinesToAdd.push_back("saveLastBaseID = " + to_string(saveLastBaseID));
 		if (saveLastPOBID)
-			linesToAdd.push_back("saveLastPOBID = " + to_string(saveLastPOBID));
+			hookExtLinesToAdd.push_back("saveLastPOBID = " + to_string(saveLastPOBID));
 		if (POBID)
-			linesToAdd.push_back("base.player_base = " + to_string(POBID));
+			hookExtLinesToAdd.push_back("base.player_base = " + to_string(POBID));
 		if (LastPOBID)
-			linesToAdd.push_back("base.last_player_base = " + to_string(LastPOBID));
+			hookExtLinesToAdd.push_back("base.last_player_base = " + to_string(LastPOBID));
 
 		if (!DockedChars.empty())
 		{
@@ -299,11 +302,10 @@ namespace DB
 				strDockedChars.push_back(str);
 			}
 
-			linesToAdd.push_back("DockedChars = " + SetParams(strDockedChars, '|'));
+			hookExtLinesToAdd.push_back("DockedChars = " + SetParams(strDockedChars, '|'));
 		}
-		
-		string path = GetFLAccPath(Charname);
-		EditFLFile(&linesToDelete, &linesToAdd, &linesToReplace, path);
+
+		EditFLFile(linesToDelete, linesToReplace, hookExtLinesToAdd, hookExtLinesToDelete, path);
 	}
 	// End of OfflineData class.
 }

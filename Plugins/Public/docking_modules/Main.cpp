@@ -1,5 +1,5 @@
 // Docking Modules by Invoker
-// August 2019
+// September 2019
 
 #include "Main.h"
 
@@ -8,11 +8,11 @@ PLUGIN_RETURNCODE returncode;
 // Lists of items, used in dock plugin.
 map<uint, AMMO> mapAmmo;
 map<uint, uint> mapBatteries;
-vector<uint> boostedAmmo;
+map<uint, uint> boostedAmmo;
 
 ID_TRAITS defaultTraits;
 
-// IDs, must be extracted from config file, but there are always default values if something gone wrong.
+// IDs, must be extracted from config file, but there are always default values if something goes wrong.
 uint ID_lootcrate = CreateID("lootcrate_ast_loot_metal");
 uint ID_nanobots = CreateID("ge_s_repair_01");
 uint ID_batteries = CreateID("ge_s_battery_01");
@@ -52,12 +52,21 @@ void LoadSettings()
 	// Plugin configuration
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\dockingmodules.cfg";
+	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\specdock.cfg";
 	string scAmmolimitCfgFile = string(szCurDir) + "\\flhook_plugins\\ammolimits.cfg";
 	string scAutobuyCfgFile = string(szCurDir) + "\\flhook_plugins\\autobuy.cfg";
 
+	// Get data directory.
+	char datapath[MAX_PATH];
+	GetUserDataPath(datapath);
+	dataPath = string(datapath);
+
+	// Give access to the block of memory so system switch routine can work properly.
+	DWORD dummy;
+	VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
+
 	INI_Reader ini;
-	// Read dock config file
+	// Read dock config file.
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
 		uint traitCount = 0;
@@ -131,6 +140,18 @@ void LoadSettings()
 					}
 				}
 			}
+			else if (ini.is_header("Supplies"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("boost"))
+					{
+						uint ammo = CreateID(ini.get_value_string(0));
+						uint multiplier = ini.get_value_int(1);
+						boostedAmmo[ammo] = multiplier;
+					}
+				}
+			}
 			else if (ini.is_header("Traits"))
 			{
 				traitCount++;
@@ -185,13 +206,13 @@ void LoadSettings()
 				if (isDefault)
 					defaultTraits = traits;
 				else
-					for (vector<uint>::iterator it = IDs.begin(); it != IDs.end(); it++)
-						Watcher.IDTraits[*it] = traits;
+					for (uint &id : IDs)
+						Watcher.IDTraits[id] = traits;
 			}
 		}
 		ini.close();
 
-		for (byte i = 0; i != MAX_CLIENT_ID + 1; i++)
+		for (byte i = 0; i != MAX_CLIENT_ID + 1; ++i)
 			dockingQueues[i].reserve(5);
 
 		// Check immediately if players have installed docking modules if plugin was loaded from console.
@@ -239,13 +260,6 @@ void LoadSettings()
 			}
 		}
 		ini.close();
-
-		// If ammo limit is 1000+ - increase resupplying efficiency for these items.
-		for (map<uint, AMMO>::iterator iter = mapAmmo.begin(); iter != mapAmmo.end(); iter++)
-			if (iter->second.ammoLimit >= 1000)
-			{
-				boostedAmmo.push_back(iter->second.ammoID);
-			}
 
 		ConPrint(L"DOCK: Loaded %u ammolimits. Efficiency boosted for %u ammo.\n", mapAmmo.size(), boostedAmmo.size());
 	}
@@ -317,11 +331,11 @@ int __cdecl Dock_Call(uint const &iShip, uint const &iBaseID, int iCancel, enum 
 
 	switch (msg)
 	{
-		case NO_MODULES:		PrintUserCmdText(client, L"The ship has no docking modules."); break;
-		case TOO_LARGE:			PrintUserCmdText(client, L"Your ship is too large to dock."); break;
-		case NO_FREE_MODULES:	PrintUserCmdText(client, L"The carrier has no free docking modules for you."); break;
-		case TOO_FAR:			PrintUserCmdText(client, L"Your ship is too far from carrier."); break;
-		case OK:				returncode = SKIPPLUGINS_NOFUNCTIONCALL; return -1;
+	case NO_MODULES:		PrintUserCmdText(client, L"The ship has no docking modules."); break;
+	case TOO_LARGE:			PrintUserCmdText(client, L"Your ship is too large to dock."); break;
+	case NO_FREE_MODULES:	PrintUserCmdText(client, L"The carrier has no free docking modules for you."); break;
+	case TOO_FAR:			PrintUserCmdText(client, L"Your ship is too far from carrier."); break;
+	case OK:				returncode = SKIPPLUGINS_NOFUNCTIONCALL; return -1;
 	}
 
 	return 0;
@@ -347,6 +361,7 @@ void __stdcall ReqShipArch_AFTER(uint iArchID, uint iClientID)
 void __stdcall BaseEnter_AFTER(uint iBaseID, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
+	// base plugin cleans base desription for us so it will be displayed correctly.
 
 	if (Clients[iClientID].DockedToModule)
 	{
@@ -362,18 +377,18 @@ void __stdcall BaseEnter_AFTER(uint iBaseID, uint iClientID)
 		status += L"<POP/></RDL>";
 		SendSetBaseInfoText2(iClientID, status);
 
-		CheckIfResupplyingAvailable(carrierClientID, iClientID, Clients[iClientID].DockedToModule, SUPPLIES_INFO(), true);
+		CheckIfResupplyingAvailable(carrierClientID, iClientID, Clients[iClientID].DockedToModule, SUPPLIES_INFO());
 
 		// Disrupt autobuy.
 		returncode = SKIPPLUGINS;
 	}
 
 	// Change last base for all docked ships if last base for carrier changes.
-	vector<MODULE_CACHE> dockedShips = Clients[iClientID].DockedChars.Get();
-	if (!dockedShips.empty())
+	vector<MODULE_CACHE> Modules = Clients[iClientID].DockedChars.Get();
+	if (!Modules.empty())
 	{
 		uint baseSystemID = Universe::get_base(iBaseID)->iSystemID;
-		for (vector<MODULE_CACHE>::iterator it = dockedShips.begin(); it != dockedShips.end(); it++)
+		for (vector<MODULE_CACHE>::iterator it = Modules.begin(); it != Modules.end(); ++it)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(it->occupiedBy);
 
@@ -397,9 +412,6 @@ void __stdcall BaseEnter_AFTER(uint iBaseID, uint iClientID)
 void __stdcall PlayerLaunch(uint iShip, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-
-	// Clear custom base info text if base plugin doesn't this.
-	// SendSetBaseInfoText2(iClientID, L"");
 
 	OnlineData Data = Clients[iClientID];
 	if (Data.DockedToModule && !Data.DockedWith.empty() && !ForceLandingClients[iClientID])
@@ -467,7 +479,7 @@ bool __stdcall Send_FLPACKET_SERVER_LAUNCH(uint iClientID, FLPACKET_LAUNCH& pLau
 			ornt = EulerMatrix(carrierData.Location.rot);
 
 			vector<MODULE_CACHE> &modules = carrierData.DockedChars;
-			for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); it++)
+			for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); ++it)
 			{
 				if (it->occupiedBy == (wstring)(const wchar_t*)Players.GetActiveCharacterName(iClientID))
 				{
@@ -579,7 +591,7 @@ void __stdcall PlayerLaunch_AFTER(uint iShip, uint iClientID)
 					OfflineData carrierData = Clients[Data.DockedWith];
 
 					vector<MODULE_CACHE> &modules = carrierData.DockedChars;
-					for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); it++)
+					for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); ++it)
 					{
 						if (it->occupiedBy == charname)
 						{
@@ -605,7 +617,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 
 	CShip *cship = (CShip*)ecx[4];
 	uint client = cship->GetOwnerPlayer();
-	
+
 	if (client)
 	{
 		// If the ship requested docking earlier - cancel request.
@@ -615,12 +627,12 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 		if (!dockingQueues[client].empty())
 		{
 			vector<ActionDocking> &queue = dockingQueues[client];
-			for (vector<ActionDocking>::iterator it = queue.begin(); it != queue.end(); it++)
-				mapDockingClients[it->dockingClientID] = 0;
+			for (ActionDocking &ship : queue)
+				mapDockingClients[ship.dockingClientID] = 0;
 
 			queue.clear();
 
-			for (vector<uint>::iterator it = dockingList.begin(); it != dockingList.end(); it++)
+			for (vector<uint>::iterator it = dockingList.begin(); it != dockingList.end(); ++it)
 				if (*it == client)
 				{
 					dockingList.erase(it);
@@ -635,7 +647,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 			uint system = cship->iSystem;
 
 			vector<MODULE_CACHE> &Modules = Watcher.Cache[client].Modules;
-			for (vector<MODULE_CACHE>::iterator it = Modules.begin(); it != Modules.end(); it++)
+			for (vector<MODULE_CACHE>::iterator it = Modules.begin(); it != Modules.end(); ++it)
 			{
 				if (it->occupiedBy.empty())
 					continue;
@@ -674,7 +686,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 					Data.POBID = Data.saveLastPOBID;
 					Data.DockedToModule = 0;
 
-					for each(const CARGO_ITEM &item in Data.Cargo.Get())
+					for (const CARGO_ITEM &item : Data.Cargo.Get())
 						Server.MineAsteroid(cship->iSystem, pos, ID_lootcrate, item.archID, item.count, client);
 
 					Data.Cargo.Clear();
@@ -698,7 +710,7 @@ void __stdcall SystemSwitchOutComplete(uint iShip, uint iClientID)
 		SwitchSystem(iClientID, iShip);
 
 	// Handle system switch after carrier ship is moved to another system.
-	if(Clients[iClientID].HasDockingModules)
+	if (Clients[iClientID].HasDockingModules)
 		JumpingCarriers[iClientID] = true;
 }
 
@@ -727,7 +739,7 @@ bool _stdcall Send_FLPACKET_SERVER_MISCOBJUPDATE_5(uint iClientID, uint iClientI
 	return true;
 }
 
-void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, unsigned int iClientID)
+void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -758,7 +770,8 @@ void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, unsigned int iCl
 		uint system = removingData.Location.systemID;
 		uint base = removingData.Location.baseID;
 
-		for (vector<MODULE_CACHE>::iterator it = removingData.DockedChars.begin(); it != removingData.DockedChars.end(); it++)
+		vector<MODULE_CACHE> &Chars = removingData.DockedChars;
+		for (vector<MODULE_CACHE>::iterator it = Chars.begin(); it != Chars.end(); ++it)
 		{
 			if (it->occupiedBy.empty())
 				continue;
@@ -827,7 +840,7 @@ void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, unsigned int iCl
 	}
 }
 
-void __stdcall ReqHullStatus(float reqRelativeHealth, unsigned int iClientID)
+void __stdcall ReqHullStatus(float reqRelativeHealth, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -848,22 +861,19 @@ void __stdcall ReqHullStatus(float reqRelativeHealth, unsigned int iClientID)
 			int toRepair = (int)floor(maxHitPoints * diff);
 			int toRepairPrevious = toRepair;
 
-			char *szClassPtr;
-			memcpy(&szClassPtr, &Players, 4);
-			szClassPtr += 0x418 * (carrierClientID - 1);
-
-			EQ_ITEM *eqLst;
-			memcpy(&eqLst, szClassPtr + 0x27C, 4);
 			EQ_ITEM *item;
-			item = eqLst->next;
-			while (item != eqLst && toRepair > 0)
+			traverse_equipment(carrierClientID, item)
 			{
-				auto supply = traits.supplyItems.find(item->iArchID);
-				if (supply != traits.supplyItems.end())
+				if (toRepair <= 0)
+					break;
+
+				auto supplyIter = traits.supplyItems.find(item->iArchID);
+				if (supplyIter != traits.supplyItems.end())
 				{
-					if (supply->second.hullPerUnit)
+					SUPPLY &supply = supplyIter->second;
+					if (supply.hullPerUnit)
 					{
-						ushort efficiency = supply->second.hullPerUnit;
+						ushort efficiency = supply.hullPerUnit;
 						int toUse = 0;
 						int toAdd = item->iCount * efficiency;
 
@@ -876,12 +886,11 @@ void __stdcall ReqHullStatus(float reqRelativeHealth, unsigned int iClientID)
 					}
 				}
 
-				item = item->next;
+				continue_traverse(item);
 			}
 
 			if (toRepair < 0)
 				toRepair = 0;
-
 
 			if (toRepair == toRepairPrevious)
 			{
@@ -932,10 +941,9 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 
 	// If the chat string does not match the USER_CMD then we do not handle the
 	// command, so let other plugins or FLHook kick in. We require an exact match
-	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
+	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); ++i)
 	{
-
-		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
+		if (boost::algorithm::starts_with(wscCmdLineLower, UserCmds[i].wszCmd))
 		{
 			// Dispatch the command to the appropriate processing function.
 			if (UserCmds[i].proc(iClientID, wscCmd))
@@ -978,12 +986,12 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
 	PLUGIN_INFO* p_PI = new PLUGIN_INFO();
-	p_PI->sName = "Docking Modules Plugin by Invoker";
+	p_PI->sName = "Docking Modules by Invoker";
 	p_PI->sShortName = "specdock";
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 3));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Timers::HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
@@ -1003,6 +1011,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ModuleWatcher::CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ModuleWatcher::ReqEquipment_AFTER, PLUGIN_HkIServerImpl_ReqEquipment_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ModuleWatcher::ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ModuleWatcher::ReqAddItem_AFTER, PLUGIN_HkIServerImpl_ReqAddItem_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ModuleWatcher::ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ModuleWatcher::SPScanCargo_AFTER, PLUGIN_HkIServerImpl_SPScanCargo_AFTER, 0));

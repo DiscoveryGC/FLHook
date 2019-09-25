@@ -12,8 +12,9 @@
 
 // Utilities.cpp
 string GetFLAccPath(wstring& charname);
-bool EditFLFile(vector<string> *linesToDelete, vector<string> *linesToAdd, map<string, vector<string>> *linesToReplace, string& path, bool createNew = false, bool compareHard = false);
-bool ReadFLFile(map<string, vector<string>> &fields, string& path);
+void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &linesToReplace, vector<string> &hookExtLinesToAdd, vector<string> &hookExtLinesToDelete, string &path);
+void ReadFLFile(map<string, vector<string>> &variables, map<string, string> &hookExtData, string &path);
+void ReadFLFile(map<string, vector<string>> &variables, string &path);
 string DecodeWStringToStringOfBytes(wstring& wstr);
 wstring EncodeWStringFromStringOfBytes(string& bytestr);
 vector<string> GetParams(string& str, char splitChar);
@@ -27,11 +28,11 @@ namespace DB
 {
 	struct SUPPLY
 	{
-		ushort ammoPerUnit;
-		ushort batsPerUnit;
-		ushort botsPerUnit;
-		ushort cloakBatsPerUnit;
-		ushort hullPerUnit;
+		uint ammoPerUnit;
+		uint batsPerUnit;
+		uint botsPerUnit;
+		uint cloakBatsPerUnit;
+		uint hullPerUnit;
 	};
 
 	struct CARGO_ITEM
@@ -56,8 +57,8 @@ namespace DB
 
 	struct MODULE_ARCH
 	{
-		int maxCargoCapacity; // Above how many cargo capacity docking ship will be rejected.
-		uint dockingTime; // 0 for instadock
+		int maxCargoCapacity; // Above how many cargo capacity will docking ship be rejected.
+		uint dockingTime; // Never make it lower than 1 or bugs occur.
 		uint basicResupplyTime; // -1 to disable resupplying for the module
 		uint minCrewLimit; // 0 to allow resupplying without crew
 		uint dockDisatnce; // How far you need to be to dock.
@@ -141,7 +142,7 @@ namespace DB
 	};
 
 
-	class OnlineData 
+	class OnlineData
 	{
 	private:
 		uint iClientID;
@@ -190,7 +191,7 @@ namespace DB
 		vector<CARGO_ITEM> cargo;
 
 	public:
-		vector<CARGO_ITEM> Get() { return cargo;  }
+		vector<CARGO_ITEM> Get() { return cargo; }
 		void Clear() { cargo.clear(); }
 
 		CargoDB() { }
@@ -203,7 +204,7 @@ namespace DB
 	class OfflineData
 	{
 	public:
-
+		string path;
 		wstring Charname;
 
 		SHIP_LOCATION Location;

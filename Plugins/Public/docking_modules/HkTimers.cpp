@@ -1,5 +1,4 @@
 #include "Main.h"
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Lists of delayed actions handled by timers.
@@ -25,21 +24,18 @@ void DelayedDocking(uint dockingClientID, uint carrierClientID, uint moduleArch,
 
 void DockingTimer()
 {
-	for (vector<uint>::iterator lit = dockingList.begin(); lit != dockingList.end(); lit++)
+	for (vector<uint>::iterator lit = dockingList.begin(); lit != dockingList.end(); )
 	{
-		if (!dockingQueues[*lit].empty())
+		vector<ActionDocking> &queue = dockingQueues[*lit];
+		if (!queue.empty())
 		{
 			// Process only first ship in queue, others need to wait.
-			vector<ActionDocking>::iterator it = dockingQueues[*lit].begin();
+			vector<ActionDocking>::iterator it = queue.begin();
 			it->timeLeft--;
 			if (it->timeLeft == 0)
 			{
 				// Check if distance between ships is still within limit.
-				if (HkDistance3DByShip(Players[it->dockingClientID].iShipID, Players[*lit].iShipID) > it->interruptDistance)
-				{
-					dockingQueues[*lit].erase(it);
-				}
-				else
+				if (HkDistance3DByShip(Players[it->dockingClientID].iShipID, Players[*lit].iShipID) <= it->interruptDistance)
 				{
 					OnlineData Data = Clients[it->dockingClientID];
 					Data.saveLastBaseID = Players[it->dockingClientID].iLastBaseID;
@@ -53,22 +49,21 @@ void DockingTimer()
 					pub::Audio::PlaySoundEffect(*lit, ID_sound_docked);
 					MiscCmds::ExportSetLights(it->dockingClientID);
 					Watcher.OccupyModule(*lit, it->moduleArch, (wstring)(const wchar_t*)Players.GetActiveCharacterName(it->dockingClientID));
-
-					dockingQueues[*lit].erase(it);
 				}
+
+				queue.erase(it);
 			}
 		}
 
 		// If queue of the carrier is empty, remove carrier ID from list.
-		if (dockingQueues[*lit].empty())
-		{
+		if (queue.empty())
 			lit = dockingList.erase(lit);
-			lit--;
-		}
+		else
+			++lit;
 	}
 }
 
-void DelayedResupply(uint dockedClientID, wstring &dockedCharname, wstring &carrierCharname, RESUPPLY_REQUEST request, int delayTimeSeconds)
+void DelayedResupply(uint dockedClientID, wstring &dockedCharname, wstring &carrierCharname, RESUPPLY_REQUEST &request, int delayTimeSeconds)
 {
 	ActionResupply action;
 	action.timeLeft = delayTimeSeconds;
@@ -84,7 +79,7 @@ void DelayedResupply(uint dockedClientID, wstring &dockedCharname, wstring &carr
 
 void ResupplyTimer()
 {
-	for (vector<ActionResupply>::iterator it = resupplyList.begin(); it != resupplyList.end(); it++)
+	for (vector<ActionResupply>::iterator it = resupplyList.begin(); it != resupplyList.end(); )
 	{
 		it->timeLeft--;
 		if (it->timeLeft == 0)
@@ -96,7 +91,6 @@ void ResupplyTimer()
 			if (dockedClientID == -1 || HkIsInCharSelectMenu(dockedClientID))
 			{
 				it = resupplyList.erase(it);
-				it--;
 				continue;
 			}
 
@@ -105,45 +99,39 @@ void ResupplyTimer()
 				PrintUserCmdText(dockedClientID, L"Carrier pilot went to bathroom and does not respond. Resupplying disrupted.");
 				ResupplyingClients[dockedClientID] = false;
 				it = resupplyList.erase(it);
-				it--;
 				continue;
 			}
 
 			// Unpack request.
-			uint& iCloak = it->request.cloak;
-			map<uint, int>& iAmmoInCart = it->request.ammoInCart;
-			int& iCloakBatteriesInCart = it->request.cloakBatteriesInCart;
-			int& iNanobotsInCart = it->request.nanobotsInCart;
-			int& iBatteriesInCart = it->request.batteriesInCart;
+			uint &cloak = it->request.cloak;
+			map<uint, int> &ammoInCart = it->request.ammoInCart;
+			int &cloakBatteriesInCart = it->request.cloakBatteriesInCart;
+			int &nanobotsInCart = it->request.nanobotsInCart;
+			int &batteriesInCart = it->request.batteriesInCart;
 
 			// Start resupplying.
 			ID_TRAITS &traits = Watcher.Cache[carrierClientID].dockingTraits;
 
-			char *szClassPtr;
-			memcpy(&szClassPtr, &Players, 4);
-			szClassPtr += 0x418 * (carrierClientID - 1);
-
-			EQ_ITEM *eqLst;
-			memcpy(&eqLst, szClassPtr + 0x27C, 4);
 			EQ_ITEM *item;
-			item = eqLst->next;
-			while (item != eqLst)
+			traverse_equipment(carrierClientID, item)
 			{
-				auto supply = traits.supplyItems.find(item->iArchID);
-				if (supply != traits.supplyItems.end())
+				auto supplyIter = traits.supplyItems.find(item->iArchID);
+				if (supplyIter != traits.supplyItems.end())
 				{
-					if (supply->second.ammoPerUnit && it->request.ammoInCart.size() != 0)
+					SUPPLY &supply = supplyIter->second;
+					if (supply.ammoPerUnit && !it->request.ammoInCart.empty())
 					{
-						ushort efficiency = supply->second.ammoPerUnit;
+						uint &efficiency = supply.ammoPerUnit;
 						int toUse = 0;
 						int toAdd = item->iCount * efficiency;
 						int boost = 1;
 
-						for (map<uint, int>::iterator it = iAmmoInCart.begin(); it != iAmmoInCart.end(); it++)
+						for (map<uint, int>::iterator ait = ammoInCart.begin(); (ait != ammoInCart.end() && toAdd != 0); )
 						{
-							if (find(boostedAmmo.begin(), boostedAmmo.end(), it->first) != boostedAmmo.end())
+							auto boostIter = boostedAmmo.find(ait->first);
+							if (boostIter != boostedAmmo.end())
 							{
-								boost = 20;
+								boost = boostIter->second;
 								toAdd = toAdd * boost;
 							}
 							else if (boost > 1)
@@ -152,40 +140,36 @@ void ResupplyTimer()
 								boost = 1;
 							}
 
-							int ammotoAdd = 0;
-							if (it->second <= toAdd)
-							{
-								ammotoAdd = it->second;
-								iAmmoInCart.erase(it->first);
-							}
-							else if (toAdd != 0)
-							{
-								ammotoAdd = toAdd;
-								iAmmoInCart[it->first] -= ammotoAdd;
-							}
+							int ammotoAdd;
+							if (ait->second <= toAdd)
+								ammotoAdd = ait->second;
 							else
-							{
-								break;
-							}
+								ammotoAdd = toAdd;
+
+							ait->second -= ammotoAdd;
 							toAdd -= ammotoAdd;
 							toUse += ammotoAdd / efficiency / boost;
 
-							if (toAdd)
-								HkAddCargo(ARG_CLIENTID(dockedClientID), it->first, ammotoAdd, false);
+							HkAddCargo(ARG_CLIENTID(dockedClientID), ait->first, ammotoAdd, false);
+
+							if (ait->second == 0)
+								ait = ammoInCart.erase(ait);
+							else
+								++ait;
 						}
 
 						HkRemoveCargo(ARG_CLIENTID(carrierClientID), item->sID, toUse);
 					}
-					if (supply->second.batsPerUnit && iBatteriesInCart != 0)
+					if (supply.batsPerUnit && batteriesInCart != 0)
 					{
-						ushort efficiency = supply->second.batsPerUnit;
+						uint &efficiency = supply.batsPerUnit;
 						int toUse = 0;
 						int toAdd = item->iCount * efficiency;
 
-						if (iBatteriesInCart < toAdd)
-							toAdd = iBatteriesInCart;
+						if (batteriesInCart < toAdd)
+							toAdd = batteriesInCart;
 
-						iBatteriesInCart -= toAdd;
+						batteriesInCart -= toAdd;
 						toUse = (int)ceil(toAdd / efficiency);
 
 						if (toAdd)
@@ -193,43 +177,43 @@ void ResupplyTimer()
 
 						HkRemoveCargo(ARG_CLIENTID(carrierClientID), item->sID, toUse);
 					}
-					if (supply->second.botsPerUnit && iNanobotsInCart != 0)
+					if (supply.botsPerUnit && nanobotsInCart != 0)
 					{
-						ushort efficiency = supply->second.botsPerUnit;
+						uint &efficiency = supply.botsPerUnit;
 						int toUse = 0;
 						int toAdd = item->iCount * efficiency;
 
-						if (iNanobotsInCart < toAdd)
-							toAdd = iNanobotsInCart;
+						if (nanobotsInCart < toAdd)
+							toAdd = nanobotsInCart;
 
 						toUse = (int)ceil(toAdd / efficiency);
-						iNanobotsInCart -= toAdd;
+						nanobotsInCart -= toAdd;
 
 						if (toAdd)
 							HkAddCargo(ARG_CLIENTID(dockedClientID), ID_nanobots, toAdd, false);
 
 						HkRemoveCargo(ARG_CLIENTID(carrierClientID), item->sID, toUse);
 					}
-					if (supply->second.cloakBatsPerUnit && iCloakBatteriesInCart != 0)
+					if (supply.cloakBatsPerUnit && cloakBatteriesInCart != 0)
 					{
-						ushort efficiency = supply->second.cloakBatsPerUnit;
+						uint &efficiency = supply.cloakBatsPerUnit;
 						int toUse = 0;
 						int toAdd = item->iCount * efficiency;
 
-						if (iCloakBatteriesInCart < toAdd)
-							toAdd = iCloakBatteriesInCart;
+						if (cloakBatteriesInCart < toAdd)
+							toAdd = cloakBatteriesInCart;
 
-						iCloakBatteriesInCart -= toAdd;
+						cloakBatteriesInCart -= toAdd;
 						toUse = (int)ceil(toAdd / efficiency);
 
-						if(toAdd)
-							HkAddCargo(ARG_CLIENTID(dockedClientID), mapBatteries[iCloak], toAdd, false);
+						if (toAdd)
+							HkAddCargo(ARG_CLIENTID(dockedClientID), mapBatteries[cloak], toAdd, false);
 
 						HkRemoveCargo(ARG_CLIENTID(carrierClientID), item->sID, toUse);
 					}
 				}
 
-				item = item->next;
+				continue_traverse(item);
 			}
 
 			pub::Audio::PlaySoundEffect(dockedClientID, ID_sound_resupply);
@@ -237,8 +221,9 @@ void ResupplyTimer()
 
 			ResupplyingClients[dockedClientID] = false;
 			it = resupplyList.erase(it);
-			it--;
 		}
+		else
+			++it;
 	}
 }
 

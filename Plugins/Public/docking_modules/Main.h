@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <plugin.h>
 #include "../playercntl_plugin/Main.h"
+#include <boost/algorithm/string.hpp>
 
 using namespace DB;
 
@@ -90,9 +91,9 @@ extern PLUGIN_RETURNCODE returncode;
 
 extern map<uint, AMMO> mapAmmo;
 extern map<uint, uint> mapBatteries;
-extern vector<uint> boostedAmmo;
+extern map<uint, uint> boostedAmmo;
 
-extern DB::ID_TRAITS defaultTraits;
+extern ID_TRAITS defaultTraits;
 
 extern uint ID_lootcrate;
 extern uint ID_nanobots;
@@ -120,6 +121,8 @@ extern bool JettisoningClients[MAX_CLIENT_ID + 1];
 extern bool ResupplyingClients[MAX_CLIENT_ID + 1];
 
 extern map<uint, DEFERREDJUMPS> mapDeferredJumps;
+extern const PBYTE SwitchOut;
+extern string dataPath;
 
 
 // Utilities.cpp
@@ -137,11 +140,12 @@ wstring EnumerateDockedShips(uint carrierClientID);
 
 namespace ModuleWatcher
 {
-	void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID);
-	void __stdcall ReqEquipment_AFTER(class EquipDescList const &edl, unsigned int iClientID);
-	void __stdcall ReqAddItem_AFTER(unsigned int p1, char const *p2, int p3, float p4, bool p5, unsigned int iClientID);
-	void __stdcall ReqRemoveItem(unsigned short p1, int p2, unsigned int iClientID);
-	void __stdcall SPScanCargo_AFTER(unsigned int const &p1, unsigned int const &p2, unsigned int iClientID);
+	void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId, uint iClientID);
+	void __stdcall ReqEquipment_AFTER(class EquipDescList const &edl, uint iClientID);
+	void __stdcall ReqAddItem(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID);
+	void __stdcall ReqAddItem_AFTER(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID);
+	void __stdcall ReqRemoveItem(ushort sHpID, int iCount, uint iClientID);
+	void __stdcall SPScanCargo_AFTER(uint const &scanningShip, uint const &scannedShip, uint iClientID);
 }
 
 
@@ -151,27 +155,43 @@ ErrorMessage TryDockInSpace(vector<MODULE_CACHE> &Modules, uint dockingClientID,
 void Jettison(vector<MODULE_CACHE>::iterator it, uint dockedClientID, uint carrierClientID);
 void CancelRequest(uint dockingClientID);
 void SwitchSystem(uint iClientID, uint iShip);
-int CheckIfResupplyingAvailable(uint carrierClientID, uint dockedClientID, uint moduleArch, SUPPLIES_INFO& info, bool notify);
+void CheckIfResupplyingAvailable(uint carrierClientID, uint dockedClientID, uint moduleArch, SUPPLIES_INFO &info);
 
 namespace Commands
 {
-	bool Listdocked(uint iClientID, const wstring& wscCmd);
-	bool Conn(uint iClientID, const wstring& wscCmd);
-	bool Return(uint iClientID, const wstring& wscCmd);
-	bool Renameme(uint iClientID, const wstring& wscCmd);
-	bool Allowdock(uint iClientID, const wstring& wscCmd);
-	bool Dockatbase(uint iClientID, const wstring& wscCmd);
-	bool Jettisonship(uint iClientID, const wstring& wscCmd);
-	bool Jettisonallships(uint iClientID, const wstring& wscCmd);
-	bool Loadsupplies(uint iClientID, const wstring& wscCmd);
+	bool Listdocked(uint iClientID, const wstring &wscCmd);
+	bool Conn(uint iClientID, const wstring &wscCmd);
+	bool Return(uint iClientID, const wstring &wscCmd);
+	bool Renameme(uint iClientID, const wstring &wscCmd);
+	bool Allowdock(uint iClientID, const wstring &wscCmd);
+	bool Dockatbase(uint iClientID, const wstring &wscCmd);
+	bool Jettisonship(uint iClientID, const wstring &wscCmd);
+	bool Jettisonallships(uint iClientID, const wstring &wscCmd);
+	bool Loadsupplies(uint iClientID, const wstring &wscCmd);
 }
 
 
 // HkTimers.cpp
 void DelayedDocking(uint dockingClientID, uint carrierClientID, uint moduleArch, uint interruptDistance, int delayTimeSeconds);
-void DelayedResupply(uint dockedClientID, wstring &dockedCharname, wstring &carrierCharname, RESUPPLY_REQUEST request, int delayTimeSeconds);
+void DelayedResupply(uint dockedClientID, wstring &dockedCharname, wstring &carrierCharname, RESUPPLY_REQUEST &request, int delayTimeSeconds);
 
 namespace Timers
 {
 	void HkTimerCheckKick();
+}
+
+
+#define traverse_equipment(iClientID, item) \
+	char *szClassPtr; \
+	memcpy(&szClassPtr, &Players, 4); \
+	szClassPtr += 0x418 * (iClientID - 1); \
+	EQ_ITEM *eqLst; \
+	memcpy(&eqLst, szClassPtr + 0x27C, 4); \
+	item = eqLst->next; \
+	while (item != eqLst)
+
+#define continue_traverse(item) \
+{ \
+	item = item->next; \
+	continue; \
 }

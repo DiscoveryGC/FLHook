@@ -32,7 +32,6 @@ uint GetProxyBaseForCarrier(uint carrierClientID)
 // Get proxy base ID for specific system.
 uint GetProxyBaseForSystem(uint carrierClientID, uint iSystemID)
 {
-	sizeof(ErrorMessage);
 	uint iBaseID;
 	string systemName = wstos(HkGetSystemNickByID(iSystemID));
 	string proxyBaseSuffix = Watcher.Cache[carrierClientID].dockingTraits.proxyBaseSuffix;

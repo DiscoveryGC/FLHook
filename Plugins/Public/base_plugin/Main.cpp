@@ -1873,6 +1873,11 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			float new_damage = i->second->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, damage);
 			returncode = SKIPPLUGINS;
 
+			if (new_damage == 0.0f)
+			{
+				new_damage = damage;
+			}
+
 			if (new_damage <= 0 && p1 == 1)
 			{
 				uint iType;
@@ -1884,25 +1889,12 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 					BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
 			}
 
-			if (new_damage != 0.0f)
-			{
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[4] suppressed - shield up - new_damage=%0.0f\n", new_damage);
-				dmg->add_damage_entry(p1, new_damage, fate);
-				iDmgToSpaceID = 0;
-				return;
-			}
-			else
-			{
-				// Override it anyways to be compatible with combat magic
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[5] suppressed - doing it ourselves - new_damage=%0.0f\n", damage);
-				dmg->add_damage_entry(p1, damage, fate);
-				iDmgToSpaceID = 0;
-				return;
-			}
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			if (set_plugin_debug)
+				ConPrint(L"HkCb_AddDmgEntry[4] suppressed - shield up - new_damage=%0.0f\n", new_damage);
+			dmg->add_damage_entry(p1, new_damage, fate);
+			iDmgToSpaceID = 0;
+			return;
 		}
 	}
 }

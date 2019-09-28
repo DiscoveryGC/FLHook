@@ -384,7 +384,7 @@ void __stdcall BaseEnter_AFTER(uint iBaseID, uint iClientID)
 	}
 
 	// Change last base for all docked ships if last base for carrier changes.
-	vector<MODULE_CACHE> Modules = Clients[iClientID].DockedChars.Get();
+	vector<MODULE_CACHE> Modules = Clients[iClientID].DockedChars_Get();
 	if (!Modules.empty())
 	{
 		uint baseSystemID = Universe::get_base(iBaseID)->iSystemID;
@@ -697,7 +697,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 				it->occupiedBy.clear();
 			}
 
-			Clients[client].DockedChars.Clear();
+			Clients[client].DockedChars_Clear();
 		}
 	}
 }
@@ -721,8 +721,8 @@ bool _stdcall Send_FLPACKET_SERVER_MISCOBJUPDATE_5(uint iClientID, uint iClientI
 	if (JumpingCarriers[iClientID2])
 	{
 		// If the ship has other ships docked inside - move them to new system.
-		vector<MODULE_CACHE> DockedChars = Clients[iClientID2].DockedChars.Get();
-		for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); it++)
+		vector<MODULE_CACHE> DockedChars = Clients[iClientID2].DockedChars_Get();
+		for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(it->occupiedBy);
 			if (dockedClientID != -1 && !ForceLandingClients[dockedClientID] && !HkIsInCharSelectMenu(dockedClientID))

@@ -35,7 +35,7 @@ ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, 
 					Data.DockedToModule = it->archID;
 
 					it->occupiedBy = dockingName;
-					Clients[carrierClientID].DockedChars.Add(*it);
+					Clients[carrierClientID].DockedChars_Add(*it);
 
 					PrintUserCmdText(dockingClientID, L"Request accepted. Docking immediately.");
 					mapDockingClients[dockingClientID] = carrierClientID;
@@ -407,7 +407,7 @@ namespace Commands
 	bool Conn(uint iClientID, const wstring &wscCmd)
 	{
 		// This plugin always runs before the Conn Plugin runs it's /conn function. Verify that there are no docked ships.
-		if (!Clients[iClientID].DockedChars.Empty())
+		if (!Clients[iClientID].DockedChars_Empty())
 		{
 			PrintUserCmdText(iClientID, L"You cannot use this command if you have vessels docked with you!");
 			return true;
@@ -426,7 +426,7 @@ namespace Commands
 	bool Return(uint iClientID, const wstring &wscCmd)
 	{
 		// This plugin always runs before the Conn Plugin runs it's /return function. Verify that there are no docked ships.
-		if (!Clients[iClientID].DockedChars.Empty())
+		if (!Clients[iClientID].DockedChars_Empty())
 		{
 			PrintUserCmdText(iClientID, L"You cannot use this command if you have vessels docked with you!");
 			return true;
@@ -444,7 +444,7 @@ namespace Commands
 			return true;
 		}
 
-		if (!Clients[iClientID].DockedChars.Empty())
+		if (!Clients[iClientID].DockedChars_Empty())
 		{
 			PrintUserCmdText(iClientID, L"You cannot use this command if you have vessels docked to you!");
 			return true;
@@ -590,7 +590,7 @@ namespace Commands
 		}
 		else
 		{
-			vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars.Get();
+			vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars_Get();
 			for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
 			{
 				if (it->occupiedBy == targetName)
@@ -607,7 +607,7 @@ namespace Commands
 
 	bool Jettisonallships(uint iClientID, const wstring &wscCmd)
 	{
-		vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars.Get();
+		vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars_Get();
 		for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
 			Jettison(it, HkGetClientIdFromCharname(it->occupiedBy), iClientID);
 

@@ -7,7 +7,7 @@
 // Get list of docked ships in string format.
 wstring EnumerateDockedShips(uint carrierClientID)
 {
-	vector<MODULE_CACHE> DockedChars = Clients[carrierClientID].DockedChars.Get();
+	vector<MODULE_CACHE> DockedChars = Clients[carrierClientID].DockedChars_Get();
 
 	if (!DockedChars.empty())
 	{
@@ -29,6 +29,17 @@ wstring EnumerateDockedShips(uint carrierClientID)
 	}
 
 	return L"No docked ships detected on board.";
+}
+
+inline void SortModules(vector<MODULE_CACHE> &Modules)
+{
+	// Sort modules in capacity ascending order to occupy module rationally.
+	// Ship at first tries to occupy smaller modules, later - larger ones.
+
+	sort(Modules.begin(), Modules.end(), [](const MODULE_CACHE &A, const MODULE_CACHE &B)
+	{
+		return (Watcher.moduleArchInfo[A.archID].maxCargoCapacity < Watcher.moduleArchInfo[B.archID].maxCargoCapacity);
+	});
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +81,7 @@ namespace ModuleWatcher
 		if (!licenseFound)
 			Watcher.Cache[iClientID].dockingTraits = defaultTraits;
 
-		vector<MODULE_CACHE> dockedChars = Clients[iClientID].DockedChars.Get();
+		vector<MODULE_CACHE> dockedChars = Clients[iClientID].DockedChars_Get();
 		for (vector<MODULE_CACHE>::iterator it = newModules.begin(); it != newModules.end(); ++it)
 		{
 			for (vector<MODULE_CACHE>::const_iterator cit = dockedChars.begin(); cit != dockedChars.end(); ++cit)
@@ -84,13 +95,7 @@ namespace ModuleWatcher
 			}
 		}
 
-		// Sort modules in capacity ascending order to occupy module rationally.
-		// Ship at first tries to occupy smaller modules, later - larger ones.
-		sort(newModules.begin(), newModules.end(), [](const MODULE_CACHE &A, const MODULE_CACHE &B)
-		{
-			return (Watcher.moduleArchInfo[A.archID].maxCargoCapacity < Watcher.moduleArchInfo[B.archID].maxCargoCapacity);
-		});
-
+		SortModules(newModules);
 		Watcher.Cache[iClientID].Modules = newModules;
 	}
 
@@ -153,30 +158,10 @@ namespace ModuleWatcher
 			Jettison(it, HkGetClientIdFromCharname(it->occupiedBy), iClientID);
 		}
 
-		// Sort modules in capacity ascending order to occupy module rationally.
-		// Ship at first tries to occupy smaller modules, later - larger ones.
-		sort(newModules.begin(), newModules.end(), [](const MODULE_CACHE &A, const MODULE_CACHE &B)
-		{
-			return (Watcher.moduleArchInfo[A.archID].maxCargoCapacity < Watcher.moduleArchInfo[B.archID].maxCargoCapacity);
-		});
 
 		// Update module list in cache by reference;
+		SortModules(newModules);
 		oldModules = newModules;
-	}
-
-	void __stdcall ReqAddItem(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
-	{
-		returncode = DEFAULT_RETURNCODE;
-
-		if (ResupplyingClients[iClientID])
-		{
-			ResupplyingClients[iClientID] = false;
-			pub::Audio::PlaySoundEffect(iClientID, ID_sound_canceled);
-			PrintUserCmdText(iClientID, L"ERR Resupply process disrupted.");
-
-			resupplyList.erase(remove_if(resupplyList.begin(), resupplyList.end(),
-				[iClientID](const ActionResupply &action) { return action.dockedClientID == iClientID; }));
-		}
 	}
 
 	void __stdcall ReqAddItem_AFTER(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
@@ -190,13 +175,7 @@ namespace ModuleWatcher
 		{
 			vector<MODULE_CACHE> &Modules = Watcher.Cache[iClientID].Modules;
 			Modules.push_back(MODULE_CACHE(iArchID));
-
-			// Sort modules in capacity ascending order to occupy module rationally.
-			// Ship at first tries to occupy smaller modules, later - larger ones.
-			sort(Modules.begin(), Modules.end(), [](const MODULE_CACHE &A, const MODULE_CACHE &B)
-			{
-				return (Watcher.moduleArchInfo[A.archID].maxCargoCapacity < Watcher.moduleArchInfo[B.archID].maxCargoCapacity);
-			});
+			SortModules(Modules);
 		}
 		else if (Watcher.IDTraits.find(iArchID) != Watcher.IDTraits.end())
 		{
@@ -209,6 +188,9 @@ namespace ModuleWatcher
 		returncode = DEFAULT_RETURNCODE;
 
 		vector<MODULE_CACHE> &Modules = Watcher.Cache[iClientID].Modules;
+
+		if (Modules.empty())
+			return;
 
 		list<EquipDesc> &equipList = Players[iClientID].equipDescList.equip;
 		list<EquipDesc>::iterator item = find_if(equipList.begin(), equipList.end(),
@@ -249,5 +231,20 @@ namespace ModuleWatcher
 		uint scannedClientID = HkGetClientIDByShip(scannedShip);
 		if (scannedClientID && Clients[scannedClientID].HasDockingModules)
 			PrintUserCmdText(iClientID, EnumerateDockedShips(scannedClientID));
+	}
+
+	void __stdcall ReqAddItem(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
+	{
+		returncode = DEFAULT_RETURNCODE;
+
+		if (ResupplyingClients[iClientID])
+		{
+			ResupplyingClients[iClientID] = false;
+			pub::Audio::PlaySoundEffect(iClientID, ID_sound_canceled);
+			PrintUserCmdText(iClientID, L"ERR Resupply process disrupted.");
+
+			resupplyList.erase(remove_if(resupplyList.begin(), resupplyList.end(),
+				[iClientID](const ActionResupply &action) { return action.dockedClientID == iClientID; }));
+		}
 	}
 }

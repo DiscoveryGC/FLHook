@@ -121,35 +121,12 @@ namespace DB
 	// Provides convenient way to access values in files or in HookExt plugin as regular C++ variables.
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	class DockedCharsDB
-	{
-	private:
-		uint iClientID;
-
-	public:
-		void Add(MODULE_CACHE &info);
-		void Erase(vector<MODULE_CACHE>::iterator it);
-		void Remove(wstring &charname);
-		void Clear();
-		bool Empty();
-		const vector<MODULE_CACHE> Get();
-
-		DockedCharsDB() {}
-		DockedCharsDB(uint clientID)
-		{
-			iClientID = clientID;
-		}
-	};
-
-
 	class OnlineData
 	{
 	private:
 		uint iClientID;
 
 	public:
-		DockedCharsDB DockedChars;
-
 		void DockedWith_Set(wstring &setVal) { HookExt::IniSetS(iClientID, "DockedWith", DecodeWStringToStringOfBytes(setVal)); }
 		wstring DockedWith_Get() { return EncodeWStringFromStringOfBytes(HookExt::IniGetS(iClientID, "DockedWith")); }
 		Property(DockedWith_Get, DockedWith_Set) wstring DockedWith;
@@ -177,10 +154,16 @@ namespace DB
 		bool HasDockingModules_Get() { return !Watcher.Cache[iClientID].Modules.empty(); }
 		ReadonlyProperty(HasDockingModules_Get) bool HasDockingModules;
 
+		void DockedChars_Add(MODULE_CACHE &info);
+		void DockedChars_Erase(vector<MODULE_CACHE>::iterator it);
+		void DockedChars_Remove(wstring &charname);
+		void DockedChars_Clear();
+		bool DockedChars_Empty();
+		const vector<MODULE_CACHE> DockedChars_Get();
+
 		OnlineData(uint clientID)
 		{
 			iClientID = clientID;
-			DockedChars = DockedCharsDB(iClientID);
 		}
 	};
 
@@ -191,11 +174,11 @@ namespace DB
 		vector<CARGO_ITEM> cargo;
 
 	public:
-		vector<CARGO_ITEM> Get() { return cargo; }
+		const vector<CARGO_ITEM>& Get() { return cargo; }
 		void Clear() { cargo.clear(); }
 
 		CargoDB() { }
-		CargoDB(vector<CARGO_ITEM> Cargo)
+		CargoDB(vector<CARGO_ITEM> &Cargo)
 		{
 			cargo = Cargo;
 		}
@@ -232,7 +215,7 @@ namespace DB
 			return OnlineData(iClientID);
 		};
 
-		const OfflineData operator [] (wstring charname)
+		const OfflineData operator [] (wstring &charname)
 		{
 			return OfflineData(charname);
 		};

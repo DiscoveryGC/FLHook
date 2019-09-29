@@ -207,7 +207,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float setHealt
 		if (iter != mapDamageAdjust.end())
 		{
 			float curr, max;
-			bool bShieldsUp = false;
+			bool bShieldsUp;
 
 			if (subObjID == 1) // 1 is base (hull)
 				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max); 

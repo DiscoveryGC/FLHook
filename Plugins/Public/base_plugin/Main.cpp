@@ -1858,14 +1858,16 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			// Ask the combat magic plugin if we need to do anything differently
 			COMBAT_DAMAGE_OVERRIDE_STRUCT info;
 			info.iMunitionID = iDmgMunitionID;
-			info.fDamage = 0.0f;
+			info.fDamageMultiplier = 0.0f;
 			Plugin_Communication(COMBAT_DAMAGE_OVERRIDE, &info);
 
-			if (info.fDamage != 0.0f)
+			if (info.fDamageMultiplier != 0.0f)
 			{
 				//ConPrint(L"base: Got a response back, info.fDamage = %0.0f\n", info.fDamage);
 				//ConPrint(L"base: Got a response back, changing damage = %0.0f -> ", damage);
-				damage = (curr - info.fDamage);
+				damage = (curr - (curr - damage) * info.fDamageMultiplier);
+				if (damage < 0.0f)
+					damage = 0.0f;
 				//ConPrint(L"%0.0f\n", damage);
 			}
 
@@ -2550,7 +2552,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CShip_destroy, PLUGIN_HkIEngine_CShip_destroy, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseDestroyed, PLUGIN_BaseDestroyed, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 15));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 11));
 	return p_PI;
 }

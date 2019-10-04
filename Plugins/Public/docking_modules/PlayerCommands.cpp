@@ -6,7 +6,7 @@ static const PBYTE SwitchOut = (PBYTE)hModServer + 0xf600;
 //Helper functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, uint carrierClientID, wstring dockingName)
+ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, uint carrierClientID, wstring &dockingName)
 {
 	if (Modules.empty())
 		return NO_MODULES;
@@ -14,14 +14,14 @@ ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, 
 	ErrorMessage errorMsg = TOO_LARGE;
 	float holdSize = Archetype::GetShip(Players[dockingClientID].iShipArchetype)->fHoldSize;
 
-	for (vector<MODULE_CACHE>::iterator it = Modules.begin(); it != Modules.end(); ++it)
+	for (MODULE_CACHE &module : Modules)
 	{
-		MODULE_ARCH module = Watcher.moduleArchInfo[it->archID];
+		MODULE_ARCH &moduleArch = Watcher.moduleArchInfo[module.archID];
 
-		if (holdSize <= module.maxCargoCapacity)
+		if (holdSize <= moduleArch.maxCargoCapacity)
 		{
 			errorMsg = NO_FREE_MODULES;
-			if (it->occupiedBy.empty())
+			if (module.occupiedBy.empty())
 			{
 				bool IsInGroupWithCarrier = false;
 				pub::Player::IsGroupMember(dockingClientID, carrierClientID, IsInGroupWithCarrier);
@@ -32,10 +32,10 @@ ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, 
 					Data.saveLastBaseID = Players[dockingClientID].iLastBaseID;
 					Data.saveLastPOBID = Clients[dockingClientID].POBID;
 					Data.DockedWith = (wstring)(const wchar_t*)Players.GetActiveCharacterName(carrierClientID);
-					Data.DockedToModule = it->archID;
+					Data.DockedToModule = module.archID;
 
-					it->occupiedBy = dockingName;
-					Clients[carrierClientID].DockedChars_Add(*it);
+					module.occupiedBy = dockingName;
+					Clients[carrierClientID].DockedChars_Add(module);
 
 					PrintUserCmdText(dockingClientID, L"Request accepted. Docking immediately.");
 					mapDockingClients[dockingClientID] = carrierClientID;
@@ -59,21 +59,20 @@ ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, 
 	return errorMsg;
 }
 
-ErrorMessage TryDockInSpace(vector<MODULE_CACHE> &Modules, uint dockingClientID, uint carrierClientID, uint dockingShip, uint carrierShip, wstring dockingName)
+ErrorMessage TryDockInSpace(vector<MODULE_CACHE> Modules, uint dockingClientID, uint carrierClientID, uint dockingShip, uint carrierShip)
 {
 	if (Modules.empty())
 		return NO_MODULES;
 
 	// Check if there is place in queue.
-	vector<MODULE_CACHE> checkModules = Modules;
 	vector<ActionDocking> &queue = dockingQueues[carrierClientID];
 	for (vector<ActionDocking>::iterator qit = queue.begin(); qit != queue.end(); ++qit)
 	{
-		for (vector<MODULE_CACHE>::iterator cit = checkModules.begin(); cit != checkModules.end(); ++cit)
+		for (vector<MODULE_CACHE>::iterator cit = Modules.begin(); cit != Modules.end(); ++cit)
 		{
 			if (cit->occupiedBy.empty() && qit->moduleArch == cit->archID)
 			{
-				checkModules.erase(cit);
+				Modules.erase(cit);
 				break;
 			}
 		}
@@ -85,25 +84,25 @@ ErrorMessage TryDockInSpace(vector<MODULE_CACHE> &Modules, uint dockingClientID,
 	float distance = HkDistance3DByShip(dockingShip, carrierShip);
 
 	// For each module check if it is suitable for the ship.
-	for (vector<MODULE_CACHE>::iterator it = checkModules.begin(); it != checkModules.end(); ++it)
+	for (MODULE_CACHE &module : Modules)
 	{
-		MODULE_ARCH module = Watcher.moduleArchInfo[it->archID];
+		MODULE_ARCH &moduleArch = Watcher.moduleArchInfo[module.archID];
 
-		if (holdSize <= module.maxCargoCapacity)
+		if (holdSize <= moduleArch.maxCargoCapacity)
 		{
 			errorMsg = NO_FREE_MODULES;
-			if (it->occupiedBy.empty())
+			if (module.occupiedBy.empty())
 			{
 				errorMsg = TOO_FAR;
-				if (distance <= module.dockDisatnce)
+				if (distance <= moduleArch.dockDisatnce)
 				{
 					bool IsInGroupWithCarrier;
 					pub::Player::IsGroupMember(dockingClientID, carrierClientID, IsInGroupWithCarrier);
 
 					if (IsInGroupWithCarrier || mapPendingDockingRequests[dockingClientID] == carrierClientID)
 					{
-						DelayedDocking(dockingClientID, carrierClientID, it->archID, module.dockDisatnce, module.dockingTime);
-						PrintUserCmdText(dockingClientID, L"Request accepted. Docking in %u seconds.", module.dockingTime);
+						DelayedDocking(dockingClientID, carrierClientID, module.archID, moduleArch.dockDisatnce, moduleArch.dockingTime);
+						PrintUserCmdText(dockingClientID, L"Request accepted. Docking in %u seconds.", moduleArch.dockingTime);
 
 						if (IsInGroupWithCarrier)
 							MiscCmds::ExportSetLights(dockingClientID);
@@ -154,14 +153,14 @@ void CancelRequest(uint dockingClientID)
 	}
 }
 
-void Jettison(vector<MODULE_CACHE>::iterator it, uint dockedClientID, uint carrierClientID)
+void Jettison(MODULE_CACHE &module, uint dockedClientID, uint carrierClientID)
 {
 	bool isInMenu = HkIsInCharSelectMenu(dockedClientID);
 
 	if (dockedClientID != -1 && !isInMenu)
 	{
-		PrintUserCmdText(carrierClientID, L"Jettisoning " + it->occupiedBy + L"...");
-		Watcher.ReleaseModule(carrierClientID, it->occupiedBy);
+		PrintUserCmdText(carrierClientID, L"Jettisoning " + module.occupiedBy + L"...");
+		Watcher.ReleaseModule(carrierClientID, module.occupiedBy);
 		JettisoningClients[dockedClientID] = true;
 
 		if (Players[carrierClientID].iBaseID)
@@ -176,7 +175,7 @@ void Jettison(vector<MODULE_CACHE>::iterator it, uint dockedClientID, uint carri
 			Matrix ornt;
 			pub::SpaceObj::GetLocation(Players[carrierClientID].iShipID, pos, ornt);
 
-			uint undockDistance = Watcher.moduleArchInfo[it->archID].undockDistance;
+			uint undockDistance = Watcher.moduleArchInfo[module.archID].undockDistance;
 			pos.x += ornt.data[0][1] * undockDistance;
 			pos.y += ornt.data[1][1] * undockDistance;
 			pos.z += ornt.data[2][1] * undockDistance;
@@ -192,7 +191,7 @@ void Jettison(vector<MODULE_CACHE>::iterator it, uint dockedClientID, uint carri
 	{
 		if (!Players[carrierClientID].iBaseID)
 		{
-			PrintUserCmdText(carrierClientID, L"Cannot jettison " + it->occupiedBy + L" while being in space. Dock to a base.");
+			PrintUserCmdText(carrierClientID, L"Cannot jettison " + module.occupiedBy + L" while being in space. Dock to a base.");
 		}
 		else
 		{
@@ -200,11 +199,11 @@ void Jettison(vector<MODULE_CACHE>::iterator it, uint dockedClientID, uint carri
 			if (isInMenu)
 				HkKick(ARG_CLIENTID(dockedClientID));
 
-			Watcher.ReleaseModule(carrierClientID, it->occupiedBy);
-			PrintUserCmdText(carrierClientID, L"Jettisoning " + it->occupiedBy + L"...");
+			Watcher.ReleaseModule(carrierClientID, module.occupiedBy);
+			PrintUserCmdText(carrierClientID, L"Jettisoning " + module.occupiedBy + L"...");
 			pub::Audio::PlaySoundEffect(carrierClientID, ID_sound_undocked);
 
-			OfflineData Data = Clients[it->occupiedBy];
+			OfflineData Data = Clients[module.occupiedBy];
 			Data.Location.baseID = Players[carrierClientID].iBaseID;
 			Data.POBID = Clients[carrierClientID].POBID;
 			Data.Location.systemID = Players[carrierClientID].iSystemID;
@@ -503,7 +502,7 @@ namespace Commands
 
 		vector<MODULE_CACHE> &Modules = Watcher.Cache[iClientID].Modules;
 		targetName = (const wchar_t*)Players.GetActiveCharacterName(iTargetClientID);
-		ErrorMessage msg = TryDockInSpace(Modules, iTargetClientID, iClientID, iTargetShip, iShip, targetName);
+		ErrorMessage msg = TryDockInSpace(Modules, iTargetClientID, iClientID, iTargetShip, iShip);
 
 		switch (msg)
 		{
@@ -590,12 +589,11 @@ namespace Commands
 		}
 		else
 		{
-			vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars_Get();
-			for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
+			for (MODULE_CACHE &module : Clients[iClientID].DockedChars_Get())
 			{
-				if (it->occupiedBy == targetName)
+				if (module.occupiedBy == targetName)
 				{
-					Jettison(it, iTargetClientID, iClientID);
+					Jettison(module, iTargetClientID, iClientID);
 					return true;
 				}
 			}
@@ -607,9 +605,8 @@ namespace Commands
 
 	bool Jettisonallships(uint iClientID, const wstring &wscCmd)
 	{
-		vector<MODULE_CACHE> DockedChars = Clients[iClientID].DockedChars_Get();
-		for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
-			Jettison(it, HkGetClientIdFromCharname(it->occupiedBy), iClientID);
+		for (MODULE_CACHE &module : Clients[iClientID].DockedChars_Get())
+			Jettison(module, HkGetClientIdFromCharname(module.occupiedBy), iClientID);
 
 		return true;
 	}
@@ -704,13 +701,13 @@ namespace Commands
 				}
 
 				// Is this shield batteries?
-				if (item->iArchID == ID_batteries)
+				if (item->iArchID == ID_item_batteries)
 				{
 					request.batteriesInCart = ship->iMaxShieldBats - item->iCount;
 					continue_traverse(item);
 				}
 				// Is this nanobots?
-				if (item->iArchID == ID_nanobots)
+				if (item->iArchID == ID_item_nanobots)
 				{
 					request.nanobotsInCart = ship->iMaxNanobots - item->iCount;
 					continue_traverse(item);

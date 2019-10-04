@@ -11,14 +11,14 @@
 #include "../hookext_plugin/hookext_exports.h"
 
 // Utilities.cpp
-string GetFLAccPath(wstring& charname);
+string GetFLAccPath(wstring &charname);
 void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &linesToReplace, vector<string> &hookExtLinesToAdd, vector<string> &hookExtLinesToDelete, string &path);
 void ReadFLFile(map<string, vector<string>> &variables, map<string, string> &hookExtData, string &path);
 void ReadFLFile(map<string, vector<string>> &variables, string &path);
-string DecodeWStringToStringOfBytes(wstring& wstr);
-wstring EncodeWStringFromStringOfBytes(string& bytestr);
-vector<string> GetParams(string& str, char splitChar);
-string SetParams(vector<string>& Params, char uniteChar);
+string DecodeWStringToStringOfBytes(wstring &wstr);
+wstring EncodeWStringFromStringOfBytes(string &bytestr);
+vector<string> GetParams(string &str, char splitChar);
+string SetParams(vector<string> &Params, char uniteChar);
 
 // Macro to define property with custom getter and setter.
 #define Property(GET, SET) _declspec(property(get = GET, put = SET))
@@ -104,12 +104,12 @@ namespace DB
 	class WatcherDB
 	{
 	public:
-		CLIENT_INFO Cache[MAX_CLIENT_ID + 1] = { CLIENT_INFO() };
+		CLIENT_INFO Cache[MAX_CLIENT_ID + 1];
 		map<uint, MODULE_ARCH> moduleArchInfo;
 		map<uint, ID_TRAITS> IDTraits;
 
-		void ReleaseModule(uint carrierClientID, wstring& dockedCharname);
-		void OccupyModule(uint carrierClientID, uint moduleArch, wstring& dockingCharname);
+		void ReleaseModule(uint carrierClientID, wstring &dockedCharname);
+		void OccupyModule(uint carrierClientID, uint moduleArch, wstring &dockingCharname);
 	};
 
 	// Instance of WatcherDB.
@@ -155,11 +155,11 @@ namespace DB
 		ReadonlyProperty(HasDockingModules_Get) bool HasDockingModules;
 
 		void DockedChars_Add(MODULE_CACHE &info);
-		void DockedChars_Erase(vector<MODULE_CACHE>::iterator it);
+		void DockedChars_Erase(MODULE_CACHE &module);
 		void DockedChars_Remove(wstring &charname);
 		void DockedChars_Clear();
 		bool DockedChars_Empty();
-		const vector<MODULE_CACHE> DockedChars_Get();
+		vector<MODULE_CACHE> DockedChars_Get();
 
 		OnlineData(uint clientID)
 		{
@@ -202,7 +202,7 @@ namespace DB
 
 		CargoDB Cargo;
 
-		OfflineData(wstring& charname);
+		OfflineData(wstring &charname);
 		void Save();
 	};
 

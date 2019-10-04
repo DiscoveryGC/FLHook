@@ -48,7 +48,7 @@ inline void SortModules(vector<MODULE_CACHE> &Modules)
 
 namespace ModuleWatcher
 {
-	void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId, uint iClientID)
+	void __stdcall CharacterSelect_AFTER(const CHARACTER_ID &cId, uint iClientID)
 	{
 		// Don't do this all at ClearClientInfo because it's not being fired when player switches characters.
 		returncode = DEFAULT_RETURNCODE;
@@ -64,7 +64,7 @@ namespace ModuleWatcher
 		bool licenseFound = false;
 		vector<MODULE_CACHE> newModules;
 
-		for (auto &item : Players[iClientID].equipDescList.equip)
+		for (EquipDesc &item : Players[iClientID].equipDescList.equip)
 		{
 			if (!item.bMounted)
 				continue;
@@ -82,13 +82,13 @@ namespace ModuleWatcher
 			Watcher.Cache[iClientID].dockingTraits = defaultTraits;
 
 		vector<MODULE_CACHE> dockedChars = Clients[iClientID].DockedChars_Get();
-		for (vector<MODULE_CACHE>::iterator it = newModules.begin(); it != newModules.end(); ++it)
+		for (vector<MODULE_CACHE>::iterator nit = newModules.begin(); nit != newModules.end(); ++nit)
 		{
 			for (vector<MODULE_CACHE>::const_iterator cit = dockedChars.begin(); cit != dockedChars.end(); ++cit)
 			{
-				if (it->occupiedBy.empty() && cit->archID == it->archID)
+				if (nit->occupiedBy.empty() && cit->archID == nit->archID)
 				{
-					it->occupiedBy = cit->occupiedBy;
+					nit->occupiedBy = cit->occupiedBy;
 					dockedChars.erase(cit);
 					break;
 				}
@@ -99,7 +99,7 @@ namespace ModuleWatcher
 		Watcher.Cache[iClientID].Modules = newModules;
 	}
 
-	void __stdcall ReqEquipment_AFTER(class EquipDescList const &edl, uint iClientID)
+	void __stdcall ReqEquipment_AFTER(const EquipDescList &edl, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -111,7 +111,7 @@ namespace ModuleWatcher
 		newModules.reserve(oldModules.size());
 
 		// Get relevant docking modules.
-		for (auto &item : edl.equip)
+		for (const EquipDesc &item : edl.equip)
 		{
 			if (!item.bMounted)
 				continue;
@@ -143,20 +143,18 @@ namespace ModuleWatcher
 					{
 						nit->occupiedBy = oit->occupiedBy;
 						oit = oldModules.erase(oit);
-						goto end;
+						goto End;
 					}
 				}
 
 				++oit;
 			}
-		end:;
+		End:;
 		}
 
 		// Eject all remained players.
-		for (vector<MODULE_CACHE>::iterator it = oldModules.begin(); it != oldModules.end(); ++it)
-		{
-			Jettison(it, HkGetClientIdFromCharname(it->occupiedBy), iClientID);
-		}
+		for (MODULE_CACHE &module : oldModules)
+			Jettison(module, HkGetClientIdFromCharname(module.occupiedBy), iClientID);
 
 
 		// Update module list in cache by reference;
@@ -164,7 +162,7 @@ namespace ModuleWatcher
 		oldModules = newModules;
 	}
 
-	void __stdcall ReqAddItem_AFTER(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
+	void __stdcall ReqAddItem_AFTER(uint iArchID, const char *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -213,7 +211,7 @@ namespace ModuleWatcher
 			for (vector<MODULE_CACHE>::iterator mit = Modules.begin(); mit != Modules.end(); ++mit)
 				if (mit->archID == item->iArchID)
 				{
-					Jettison(mit, HkGetClientIdFromCharname(mit->occupiedBy), iClientID);
+					Jettison(*mit, HkGetClientIdFromCharname(mit->occupiedBy), iClientID);
 					Modules.erase(mit);
 					return;
 				}
@@ -224,7 +222,7 @@ namespace ModuleWatcher
 		}
 	}
 
-	void __stdcall SPScanCargo_AFTER(uint const &scanningShip, uint const &scannedShip, uint iClientID)
+	void __stdcall SPScanCargo_AFTER(const uint &scanningShip, const uint &scannedShip, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -233,7 +231,7 @@ namespace ModuleWatcher
 			PrintUserCmdText(iClientID, EnumerateDockedShips(scannedClientID));
 	}
 
-	void __stdcall ReqAddItem(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
+	void __stdcall ReqAddItem(uint iArchID, const char *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 

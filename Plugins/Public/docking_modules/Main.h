@@ -91,13 +91,13 @@ extern PLUGIN_RETURNCODE returncode;
 
 extern map<uint, AMMO> mapAmmo;
 extern map<uint, uint> mapBatteries;
-extern map<uint, uint> boostedAmmo;
+extern map<uint, uint> mapBoostedAmmo;
 
 extern ID_TRAITS defaultTraits;
 
-extern uint ID_lootcrate;
-extern uint ID_nanobots;
-extern uint ID_batteries;
+extern uint ID_object_lootcrate;
+extern uint ID_item_nanobots;
+extern uint ID_item_batteries;
 extern uint ID_sound_accepted;
 extern uint ID_sound_canceled;
 extern uint ID_sound_docked;
@@ -126,13 +126,13 @@ extern string dataPath;
 
 
 // Utilities.cpp
-void SendCommand(uint client, const wstring &message);
-void SendSetBaseInfoText2(UINT client, const wstring &message);
-void SendResetMarketOverride(UINT client);
+void SendCommand(uint iClientID, wstring const &message);
+void SendSetBaseInfoText2(uint iClientID, wstring const &message);
+void SendResetMarketOverride(uint iClientID);
 uint GetProxyBaseForCarrier(uint carrierClientID);
 uint GetProxyBaseForSystem(uint carrierClientID, uint iSystemID);
-wstring HkGetCharnameFromCharFile(string charFile, CAccount* acc);
-string DecodeWStringToStringOfBytes(wstring& wstr);
+wstring HkGetCharnameFromCharFile(string const &charFile, CAccount *acc);
+string DecodeWStringToStringOfBytes(wstring &wstr);
 
 
 // ModuleWatcher.cpp
@@ -140,8 +140,8 @@ wstring EnumerateDockedShips(uint carrierClientID);
 
 namespace ModuleWatcher
 {
-	void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId, uint iClientID);
-	void __stdcall ReqEquipment_AFTER(class EquipDescList const &edl, uint iClientID);
+	void __stdcall CharacterSelect_AFTER(CHARACTER_ID const &cId, uint iClientID);
+	void __stdcall ReqEquipment_AFTER(EquipDescList const &edl, uint iClientID);
 	void __stdcall ReqAddItem(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID);
 	void __stdcall ReqAddItem_AFTER(uint iArchID, char const *cHpName, int iCount, float fHealth, bool bMounted, uint iClientID);
 	void __stdcall ReqRemoveItem(ushort sHpID, int iCount, uint iClientID);
@@ -150,9 +150,9 @@ namespace ModuleWatcher
 
 
 // PlayerCommands.cpp
-ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, uint carrierClientID, wstring dockingName);
-ErrorMessage TryDockInSpace(vector<MODULE_CACHE> &Modules, uint dockingClientID, uint carrierClientID, uint dockingShip, uint carrierShip, wstring dockingName);
-void Jettison(vector<MODULE_CACHE>::iterator it, uint dockedClientID, uint carrierClientID);
+ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, uint carrierClientID, wstring &dockingName);
+ErrorMessage TryDockInSpace(vector<MODULE_CACHE> Modules, uint dockingClientID, uint carrierClientID, uint dockingShip, uint carrierShip);
+void Jettison(MODULE_CACHE &module, uint dockedClientID, uint carrierClientID);
 void CancelRequest(uint dockingClientID);
 void SwitchSystem(uint iClientID, uint iShip);
 void CheckIfResupplyingAvailable(uint carrierClientID, uint dockedClientID, uint moduleArch, SUPPLIES_INFO &info);

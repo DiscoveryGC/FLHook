@@ -5,17 +5,17 @@
 
 PLUGIN_RETURNCODE returncode;
 
-// Lists of items, used in dock plugin.
+// Lists of items, used in dock plugin
 map<uint, AMMO> mapAmmo;
 map<uint, uint> mapBatteries;
-map<uint, uint> boostedAmmo;
+map<uint, uint> mapBoostedAmmo;
 
 ID_TRAITS defaultTraits;
 
 // IDs, must be extracted from config file, but there are always default values if something goes wrong.
-uint ID_lootcrate = CreateID("lootcrate_ast_loot_metal");
-uint ID_nanobots = CreateID("ge_s_repair_01");
-uint ID_batteries = CreateID("ge_s_battery_01");
+uint ID_object_lootcrate = CreateID("lootcrate_ast_loot_metal");
+uint ID_item_nanobots = CreateID("ge_s_repair_01");
+uint ID_item_batteries = CreateID("ge_s_battery_01");
 uint ID_sound_accepted = CreateID("sfx_ui_react_processing01");
 uint ID_sound_canceled = CreateID("sfx_ui_react_accept01");
 uint ID_sound_docked = CreateID("tractor_loot_grabbed");
@@ -66,7 +66,8 @@ void LoadSettings()
 	VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
 
 	INI_Reader ini;
-	// Read dock config file.
+
+	// Read dock config file
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
 		uint traitCount = 0;
@@ -126,17 +127,17 @@ void LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					if (ini.is_value("ID_nanobots"))
+					if (ini.is_value("ID_item_nanobots"))
 					{
-						ID_nanobots = CreateID(ini.get_value_string());
+						ID_item_nanobots = CreateID(ini.get_value_string());
 					}
-					else if (ini.is_value("ID_batteries"))
+					else if (ini.is_value("ID_item_batteries"))
 					{
-						ID_batteries = CreateID(ini.get_value_string());
+						ID_item_batteries = CreateID(ini.get_value_string());
 					}
-					else if (ini.is_value("ID_lootcrate"))
+					else if (ini.is_value("ID_object_lootcrate"))
 					{
-						ID_lootcrate = CreateID(ini.get_value_string());
+						ID_object_lootcrate = CreateID(ini.get_value_string());
 					}
 				}
 			}
@@ -148,7 +149,7 @@ void LoadSettings()
 					{
 						uint ammo = CreateID(ini.get_value_string(0));
 						uint multiplier = ini.get_value_int(1);
-						boostedAmmo[ammo] = multiplier;
+						mapBoostedAmmo[ammo] = multiplier;
 					}
 				}
 			}
@@ -168,9 +169,8 @@ void LoadSettings()
 					{
 						if (stows(ini.get_value_string(0)) != L"$DEFAULT")
 						{
-							vector<string> Params = GetParams((string)ini.get_value_string(), ',');
-							for (vector<string>::iterator it = Params.begin(); it != Params.end(); it++)
-								IDs.push_back(CreateID((*it).c_str()));
+							for (string &param : GetParams((string)ini.get_value_string(), ','))
+								IDs.push_back(CreateID((param).c_str()));
 						}
 						else
 						{
@@ -210,17 +210,15 @@ void LoadSettings()
 						Watcher.IDTraits[id] = traits;
 			}
 		}
+
 		ini.close();
 
-		for (byte i = 0; i != MAX_CLIENT_ID + 1; ++i)
+		for (byte i = 0; i != MAX_CLIENT_ID + 2; ++i)
 			dockingQueues[i].reserve(5);
 
 		// Check immediately if players have installed docking modules if plugin was loaded from console.
 		for (HKPLAYERINFO &player : HkGetPlayers())
-		{
-			// Nothing bad happens if I just do it:
 			ModuleWatcher::CharacterSelect_AFTER(CHARACTER_ID(), player.iClientID);
-		};
 
 		ConPrint(L"DOCK: Loaded %u docking modules and %u ID configurations.\n", Watcher.moduleArchInfo.size(), traitCount);
 	}
@@ -259,9 +257,10 @@ void LoadSettings()
 				}
 			}
 		}
+
 		ini.close();
 
-		ConPrint(L"DOCK: Loaded %u ammolimits. Efficiency boosted for %u ammo.\n", mapAmmo.size(), boostedAmmo.size());
+		ConPrint(L"DOCK: Loaded %u ammolimits. Efficiency boosted for %u ammo.\n", mapAmmo.size(), mapBoostedAmmo.size());
 	}
 	else
 	{
@@ -303,6 +302,7 @@ void LoadSettings()
 				}
 			}
 		}
+
 		ini.close();
 
 		ConPrint(L"DOCK: Loaded %u extra item pairs and %u stackable ammo.\n", mapBatteries.size(), stackables);
@@ -317,7 +317,7 @@ int __cdecl Dock_Call(uint const &iShip, uint const &iBaseID, int iCancel, enum 
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	UINT client = HkGetClientIDByShip(iShip);
+	uint iClientID = HkGetClientIDByShip(iShip);
 
 	// If target is not player ship - ignore request.
 	// In case if player tries to dock to ship, iBaseID is actually iShipID.
@@ -326,22 +326,22 @@ int __cdecl Dock_Call(uint const &iShip, uint const &iBaseID, int iCancel, enum 
 		return 0;
 
 	vector<MODULE_CACHE> &Modules = Watcher.Cache[iTargetClientID].Modules;
-	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-	ErrorMessage msg = TryDockInSpace(Modules, client, iTargetClientID, iShip, iBaseID, charname);
+	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+	ErrorMessage msg = TryDockInSpace(Modules, iClientID, iTargetClientID, iShip, iBaseID);
 
 	switch (msg)
 	{
-	case NO_MODULES:		PrintUserCmdText(client, L"The ship has no docking modules."); break;
-	case TOO_LARGE:			PrintUserCmdText(client, L"Your ship is too large to dock."); break;
-	case NO_FREE_MODULES:	PrintUserCmdText(client, L"The carrier has no free docking modules for you."); break;
-	case TOO_FAR:			PrintUserCmdText(client, L"Your ship is too far from carrier."); break;
+	case NO_MODULES:		PrintUserCmdText(iClientID, L"The ship has no docking modules."); break;
+	case TOO_LARGE:			PrintUserCmdText(iClientID, L"Your ship is too large to dock."); break;
+	case NO_FREE_MODULES:	PrintUserCmdText(iClientID, L"The carrier has no free docking modules for you."); break;
+	case TOO_FAR:			PrintUserCmdText(iClientID, L"Your ship is too far from carrier."); break;
 	case OK:				returncode = SKIPPLUGINS_NOFUNCTIONCALL; return -1;
 	}
 
 	return 0;
 }
 
-void __stdcall RequestCancel(int iType, uint iShip, uint p3, ulong p4, uint iClientID)
+void __stdcall RequestCancel(int iType, uint iShip, uint iBaseID, ulong p4, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -361,7 +361,6 @@ void __stdcall ReqShipArch_AFTER(uint iArchID, uint iClientID)
 void __stdcall BaseEnter_AFTER(uint iBaseID, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-	// base plugin cleans base desription for us so it will be displayed correctly.
 
 	if (Clients[iClientID].DockedToModule)
 	{
@@ -564,14 +563,14 @@ void __stdcall PlayerLaunch_AFTER(uint iShip, uint iClientID)
 			PrintUserCmdText(iClientID, L"Carrier has jumped.");
 			JumpingDockedShips[iClientID] = false;
 		}
-		// Ship docks to carrier (proxy base).
+		// Ship docks to carrier (proxy base)
 		else if (mapDockingClients[iClientID])
 		{
 			uint carrierClientID = HkGetClientIdFromCharname(Clients[iClientID].DockedWith);
 			pub::Audio::PlaySoundEffect(carrierClientID, ID_sound_docked);
 			mapDockingClients[iClientID] = 0;
 		}
-		// Ship undocks from carrier at base.
+		// Ship undocks from carrier at base
 		else
 		{
 			OnlineData Data = Clients[iClientID];
@@ -616,24 +615,24 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 	returncode = DEFAULT_RETURNCODE;
 
 	CShip *cship = (CShip*)ecx[4];
-	uint client = cship->GetOwnerPlayer();
+	uint iClientID = cship->GetOwnerPlayer();
 
-	if (client)
+	if (iClientID)
 	{
 		// If the ship requested docking earlier - cancel request.
-		CancelRequest(client);
+		CancelRequest(iClientID);
 
 		// If the ship is carrier and docking queue is not empty -  clear it.
-		if (!dockingQueues[client].empty())
+		if (!dockingQueues[iClientID].empty())
 		{
-			vector<ActionDocking> &queue = dockingQueues[client];
+			vector<ActionDocking> &queue = dockingQueues[iClientID];
 			for (ActionDocking &ship : queue)
 				mapDockingClients[ship.dockingClientID] = 0;
 
 			queue.clear();
 
 			for (vector<uint>::iterator it = dockingList.begin(); it != dockingList.end(); ++it)
-				if (*it == client)
+				if (*it == iClientID)
 				{
 					dockingList.erase(it);
 					break;
@@ -646,13 +645,12 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 			Matrix ornt = cship->get_orientation();
 			uint system = cship->iSystem;
 
-			vector<MODULE_CACHE> &Modules = Watcher.Cache[client].Modules;
-			for (vector<MODULE_CACHE>::iterator it = Modules.begin(); it != Modules.end(); ++it)
+			for (MODULE_CACHE &module : Watcher.Cache[iClientID].Modules)
 			{
-				if (it->occupiedBy.empty())
+				if (module.occupiedBy.empty())
 					continue;
 
-				uint dockedClientID = HkGetClientIdFromCharname(it->occupiedBy);
+				uint dockedClientID = HkGetClientIdFromCharname(module.occupiedBy);
 
 				if (dockedClientID != -1 && HkIsInCharSelectMenu(dockedClientID))
 				{
@@ -664,7 +662,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 				// Docked ship is online - move it to carrier's position
 				if (dockedClientID != -1)
 				{
-					uint undockDistance = Watcher.moduleArchInfo[it->archID].undockDistance;
+					uint undockDistance = Watcher.moduleArchInfo[module.archID].undockDistance;
 					Vector undockPos;
 
 					undockPos.x = pos.x + ornt.data[0][1] * undockDistance;
@@ -680,24 +678,24 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 				// Docked ship is offline - throw its cargo in space and move to last real base.
 				else
 				{
-					OfflineData Data = Clients[it->occupiedBy];
+					OfflineData Data = Clients[module.occupiedBy];
 					Data.Location.baseID = Data.saveLastBaseID;
 					Data.Location.systemID = Universe::get_base(Data.saveLastBaseID)->iSystemID;
 					Data.POBID = Data.saveLastPOBID;
 					Data.DockedToModule = 0;
 
 					for (const CARGO_ITEM &item : Data.Cargo.Get())
-						Server.MineAsteroid(cship->iSystem, pos, ID_lootcrate, item.archID, item.count, client);
+						Server.MineAsteroid(cship->iSystem, pos, ID_object_lootcrate, item.archID, item.count, iClientID);
 
 					Data.Cargo.Clear();
 
 					Data.Save();
 				}
 
-				it->occupiedBy.clear();
+				module.occupiedBy.clear();
 			}
 
-			Clients[client].DockedChars_Clear();
+			Clients[iClientID].DockedChars_Clear();
 		}
 	}
 }
@@ -721,10 +719,9 @@ bool _stdcall Send_FLPACKET_SERVER_MISCOBJUPDATE_5(uint iClientID, uint iClientI
 	if (JumpingCarriers[iClientID2])
 	{
 		// If the ship has other ships docked inside - move them to new system.
-		vector<MODULE_CACHE> DockedChars = Clients[iClientID2].DockedChars_Get();
-		for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
+		for (MODULE_CACHE &module : Clients[iClientID2].DockedChars_Get())
 		{
-			uint dockedClientID = HkGetClientIdFromCharname(it->occupiedBy);
+			uint dockedClientID = HkGetClientIdFromCharname(module.occupiedBy);
 			if (dockedClientID != -1 && !ForceLandingClients[dockedClientID] && !HkIsInCharSelectMenu(dockedClientID))
 			{
 				JumpingDockedShips[dockedClientID] = true;
@@ -739,16 +736,16 @@ bool _stdcall Send_FLPACKET_SERVER_MISCOBJUPDATE_5(uint iClientID, uint iClientI
 	return true;
 }
 
-void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, uint iClientID)
+void __stdcall DestroyCharacter(CHARACTER_ID const &cId, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	wstring charname = HkGetCharnameFromCharFile(cId.szCharFilename, HkGetAccountByClientID(iClientID));
+	wstring charname = HkGetCharnameFromCharFile(cId.szCharFilename, Players.FindAccountFromClientID(iClientID));
 	OfflineData removingData = Clients[charname];
 
 	if (removingData.DockedToModule)
 	{
-		//Remove the ship from carrier's module.
+		// Remove the ship from carrier's module.
 		uint carrierClientID = HkGetClientIdFromCharname(removingData.DockedWith);
 		if (carrierClientID != -1 && HkIsInCharSelectMenu(iClientID))
 		{
@@ -758,8 +755,10 @@ void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, uint iClientID)
 		else
 		{
 			OfflineData carrierData = Clients[removingData.DockedWith];
+
 			remove_if(carrierData.DockedChars.begin(), carrierData.DockedChars.end(),
 				[&charname](const MODULE_CACHE &module) { return module.occupiedBy == charname; });
+
 			carrierData.Save();
 		}
 	}
@@ -770,13 +769,13 @@ void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, uint iClientID)
 		uint system = removingData.Location.systemID;
 		uint base = removingData.Location.baseID;
 
-		vector<MODULE_CACHE> &Chars = removingData.DockedChars;
-		for (vector<MODULE_CACHE>::iterator it = Chars.begin(); it != Chars.end(); ++it)
+		
+		for (MODULE_CACHE &module : removingData.DockedChars)
 		{
-			if (it->occupiedBy.empty())
+			if (module.occupiedBy.empty())
 				continue;
 
-			uint dockedClientID = HkGetClientIdFromCharname(it->occupiedBy);
+			uint dockedClientID = HkGetClientIdFromCharname(module.occupiedBy);
 
 			if (dockedClientID != -1 && HkIsInCharSelectMenu(dockedClientID))
 			{
@@ -785,7 +784,7 @@ void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, uint iClientID)
 				dockedClientID = -1;
 			}
 
-			// Move it to carrier's position
+			// Move it to carrier's position.
 			if (dockedClientID != -1)
 			{
 				if (base)
@@ -796,7 +795,7 @@ void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, uint iClientID)
 				}
 				else
 				{
-					uint undockDistance = Watcher.moduleArchInfo[it->archID].undockDistance;
+					uint undockDistance = Watcher.moduleArchInfo[module.archID].undockDistance;
 					Vector undockPos;
 
 					undockPos.x = pos.x + ornt.data[0][1] * undockDistance;
@@ -815,7 +814,7 @@ void __stdcall DestroyCharacter(struct CHARACTER_ID const &cId, uint iClientID)
 			}
 			else
 			{
-				OfflineData dockedData = Clients[it->occupiedBy];
+				OfflineData dockedData = Clients[module.occupiedBy];
 
 				if (base)
 				{
@@ -939,8 +938,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 
 	wstring wscCmdLineLower = ToLower(wscCmd);
 
-	// If the chat string does not match the USER_CMD then we do not handle the
-	// command, so let other plugins or FLHook kick in. We require an exact match
+	// Scan for exact beginning match with one of our commands.
 	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); ++i)
 	{
 		if (boost::algorithm::starts_with(wscCmdLineLower, UserCmds[i].wszCmd))

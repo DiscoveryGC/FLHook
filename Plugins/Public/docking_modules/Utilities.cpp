@@ -1,20 +1,20 @@
 #include "Main.h"
 
 /// Send a command to the client at destination ID 0x9999
-void SendCommand(uint client, const wstring &message)
+void SendCommand(uint iClientID, wstring const &message)
 {
-	HkFMsg(client, L"<TEXT>" + XMLText(message) + L"</TEXT>");
+	HkFMsg(iClientID, L"<TEXT>" + XMLText(message) + L"</TEXT>");
 }
 
-void SendSetBaseInfoText2(UINT client, const wstring &message)
+void SendSetBaseInfoText2(uint iClientID, wstring const &message)
 {
-	SendCommand(client, wstring(L" SetBaseInfoText2 ") + message);
+	SendCommand(iClientID, wstring(L" SetBaseInfoText2 ") + message);
 }
 
-void SendResetMarketOverride(UINT client)
+void SendResetMarketOverride(uint iClientID)
 {
-	SendCommand(client, L" ResetMarketOverride");
-	SendCommand(client, L" SetMarketOverride 0 0 0 0");
+	SendCommand(iClientID, L" ResetMarketOverride");
+	SendCommand(iClientID, L" SetMarketOverride 0 0 0 0");
 }
 
 // Get proxy base ID for specific carrier.
@@ -42,7 +42,7 @@ uint GetProxyBaseForSystem(uint carrierClientID, uint iSystemID)
 }
 
 // Gets character name from charfile and account.
-wstring HkGetCharnameFromCharFile(string charFile, CAccount* acc)
+wstring HkGetCharnameFromCharFile(string const &charFile, CAccount *acc)
 {
 	string path;
 	path.reserve(dataPath.size() + 45);
@@ -107,7 +107,7 @@ void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &line
 	{
 		string line;
 
-	begin:
+	Begin:
 		while (getline(file, line))
 		{
 			// Do not scan for hookext data.
@@ -119,7 +119,7 @@ void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &line
 
 			for (string &del : linesToDelete)
 				if (boost::algorithm::starts_with(line, del))
-					goto begin;
+					goto Begin;
 			for (auto &pair : linesToReplace)
 			{
 				if (boost::algorithm::starts_with(line, pair.first))
@@ -127,19 +127,19 @@ void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &line
 					for (string &replacement : pair.second)
 						newFile << replacement << endl;
 
-					goto begin;
+					goto Begin;
 				}
 			}
 
 			newFile << line << endl;
 		}
 
-	hbegin:
+	hBegin:
 		while (getline(file, line))
 		{
 			for (string &del : hookExtLinesToDelete)
 				if (boost::algorithm::starts_with(line, del))
-					goto hbegin;
+					goto hBegin;
 
 			newFile << line << endl;
 		}
@@ -236,7 +236,7 @@ string DecodeWStringToStringOfBytes(wstring &wstr)
 	string bytestr;
 	bytestr.reserve(wstr.size() * 4);
 
-	for (wchar_t c : wstr)
+	for (wchar_t &c : wstr)
 	{
 		char buf[4];
 		sprintf(buf, "%04x", c);

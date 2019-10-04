@@ -16,30 +16,27 @@ namespace DB
 
 	// Begin of WatcherDB class.
 
-	void WatcherDB::ReleaseModule(uint carrierClientID, wstring& dockedCharname)
+	void WatcherDB::ReleaseModule(uint carrierClientID, wstring &dockedCharname)
 	{
-		vector<MODULE_CACHE>& modules = Cache[carrierClientID].Modules;
-		for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); ++it)
+		for (MODULE_CACHE &module : Cache[carrierClientID].Modules)
 		{
-			if (it->occupiedBy == dockedCharname)
+			if (module.occupiedBy == dockedCharname)
 			{
-				Clients[carrierClientID].DockedChars_Erase(it);
-				it->occupiedBy = L"";
+				Clients[carrierClientID].DockedChars_Erase(module);
+				module.occupiedBy = L"";
 				return;
 			}
 		}
 	}
 
-	void WatcherDB::OccupyModule(uint carrierClientID, uint moduleArch, wstring& dockingCharname)
+	void WatcherDB::OccupyModule(uint carrierClientID, uint moduleArch, wstring &dockingCharname)
 	{
-		vector<MODULE_CACHE> &modules = Cache[carrierClientID].Modules;
-
-		for (vector<MODULE_CACHE>::iterator it = modules.begin(); it != modules.end(); ++it)
+		for (MODULE_CACHE &module : Cache[carrierClientID].Modules)
 		{
-			if (it->archID == moduleArch && it->occupiedBy.empty())
+			if (module.archID == moduleArch && module.occupiedBy.empty())
 			{
-				Clients[carrierClientID].DockedChars_Add(MODULE_CACHE(it->archID, dockingCharname));
-				it->occupiedBy = dockingCharname;
+				Clients[carrierClientID].DockedChars_Add(MODULE_CACHE(module.archID, dockingCharname));
+				module.occupiedBy = dockingCharname;
 				return;
 			}
 		}
@@ -48,7 +45,7 @@ namespace DB
 
 	// Begin of DockedChars class.
 
-	const vector<MODULE_CACHE> OnlineData::DockedChars_Get()
+	vector<MODULE_CACHE> OnlineData::DockedChars_Get()
 	{
 		vector<MODULE_CACHE> Chars;
 		for (string &str : GetParams(HookExt::IniGetS(iClientID, "DockedChars"), '|'))
@@ -84,11 +81,11 @@ namespace DB
 		HookExt::IniSetS(iClientID, "DockedChars", str);
 	}
 
-	void OnlineData::DockedChars_Erase(vector<MODULE_CACHE>::iterator it)
+	void OnlineData::DockedChars_Erase(MODULE_CACHE &module)
 	{
 		// Search for the substring in string
 		string str = HookExt::IniGetS(iClientID, "DockedChars");
-		string toErase = to_string(it->archID) + ',' + DecodeWStringToStringOfBytes(it->occupiedBy);
+		string toErase = to_string(module.archID) + ',' + DecodeWStringToStringOfBytes(module.occupiedBy);
 
 		uint pos = str.find(toErase);
 		if (pos != std::string::npos)
@@ -138,7 +135,7 @@ namespace DB
 	// End of DockedChars class.
 
 	// Begin of OfflineData class.
-	OfflineData::OfflineData(wstring& charname)
+	OfflineData::OfflineData(wstring &charname)
 	{
 		map<string, vector<string>> variables;
 		variables["system"];
@@ -189,10 +186,10 @@ namespace DB
 		}
 
 		vector<CARGO_ITEM> cargo;
-		for (vector<string>::iterator it = variables["cargo"].begin(); it != variables["cargo"].end(); ++it)
+		for (string &str : variables["cargo"])
 		{
-			uint archID = boost::lexical_cast<uint>(Trim(GetParam(*it, ',', 0)));
-			uint count = boost::lexical_cast<uint>(Trim(GetParam(*it, ',', 1)));
+			uint archID = boost::lexical_cast<uint>(Trim(GetParam(str, ',', 0)));
+			uint count = boost::lexical_cast<uint>(Trim(GetParam(str, ',', 1)));
 			cargo.push_back(CARGO_ITEM(archID, count));
 		}
 		Cargo = CargoDB(cargo);
@@ -200,10 +197,10 @@ namespace DB
 		if (!variables["DockedChars"].empty())
 		{
 			vector<string> strData = GetParams(variables["DockedChars"][0], '|');
-			for (vector<string>::iterator it = strData.begin(); it != strData.end(); ++it)
+			for (string &str : strData)
 			{
-				uint archID = boost::lexical_cast<uint>(GetParam(*it, ',', 0));
-				wstring occupiedBy = EncodeWStringFromStringOfBytes(GetParam(*it, ',', 1));
+				uint archID = boost::lexical_cast<uint>(GetParam(str, ',', 0));
+				wstring occupiedBy = EncodeWStringFromStringOfBytes(GetParam(str, ',', 1));
 				DockedChars.push_back(MODULE_CACHE(archID, occupiedBy));
 			}
 		}
@@ -293,12 +290,12 @@ namespace DB
 		if (!DockedChars.empty())
 		{
 			vector<string> strDockedChars;
-			for (vector<MODULE_CACHE>::iterator it = DockedChars.begin(); it != DockedChars.end(); ++it)
+			for (MODULE_CACHE &module : DockedChars)
 			{
 				string str;
-				str += to_string(it->archID);
+				str += to_string(module.archID);
 				str += ",";
-				str += DecodeWStringToStringOfBytes(it->occupiedBy);
+				str += DecodeWStringToStringOfBytes(module.occupiedBy);
 				strDockedChars.push_back(str);
 			}
 

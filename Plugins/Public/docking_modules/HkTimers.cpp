@@ -128,8 +128,8 @@ void ResupplyTimer()
 
 						for (map<uint, int>::iterator ait = ammoInCart.begin(); (ait != ammoInCart.end() && toAdd != 0); )
 						{
-							auto boostIter = boostedAmmo.find(ait->first);
-							if (boostIter != boostedAmmo.end())
+							auto boostIter = mapBoostedAmmo.find(ait->first);
+							if (boostIter != mapBoostedAmmo.end())
 							{
 								boost = boostIter->second;
 								toAdd = toAdd * boost;
@@ -173,7 +173,7 @@ void ResupplyTimer()
 						toUse = (int)ceil(toAdd / efficiency);
 
 						if (toAdd)
-							HkAddCargo(ARG_CLIENTID(dockedClientID), ID_batteries, toAdd, false);
+							HkAddCargo(ARG_CLIENTID(dockedClientID), ID_item_batteries, toAdd, false);
 
 						HkRemoveCargo(ARG_CLIENTID(carrierClientID), item->sID, toUse);
 					}
@@ -190,7 +190,7 @@ void ResupplyTimer()
 						nanobotsInCart -= toAdd;
 
 						if (toAdd)
-							HkAddCargo(ARG_CLIENTID(dockedClientID), ID_nanobots, toAdd, false);
+							HkAddCargo(ARG_CLIENTID(dockedClientID), ID_item_nanobots, toAdd, false);
 
 						HkRemoveCargo(ARG_CLIENTID(carrierClientID), item->sID, toUse);
 					}

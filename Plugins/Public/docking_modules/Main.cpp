@@ -61,7 +61,7 @@ void LoadSettings()
 	GetUserDataPath(datapath);
 	dataPath = string(datapath);
 
-	// Give access to the block of memory so system switch routine can work properly.
+	// Give access to the block of memory so system switch routine can be patched properly.
 	DWORD dummy;
 	VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
 
@@ -412,6 +412,7 @@ void __stdcall PlayerLaunch(uint iShip, uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	// Check if client attempts to undock from carrier.
 	OnlineData Data = Clients[iClientID];
 	if (Data.DockedToModule && !Data.DockedWith.empty() && !ForceLandingClients[iClientID])
 	{
@@ -622,7 +623,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint kill)
 		// If the ship requested docking earlier - cancel request.
 		CancelRequest(iClientID);
 
-		// If the ship is carrier and docking queue is not empty -  clear it.
+		// If the ship is carrier and docking queue is not empty - clear it.
 		if (!dockingQueues[iClientID].empty())
 		{
 			vector<ActionDocking> &queue = dockingQueues[iClientID];

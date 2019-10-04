@@ -83,7 +83,7 @@ namespace DB
 
 	void OnlineData::DockedChars_Erase(MODULE_CACHE &module)
 	{
-		// Search for the substring in string
+		// Search for the substring in string.
 		string str = HookExt::IniGetS(iClientID, "DockedChars");
 		string toErase = to_string(module.archID) + ',' + DecodeWStringToStringOfBytes(module.occupiedBy);
 
@@ -104,7 +104,7 @@ namespace DB
 
 	void OnlineData::DockedChars_Remove(wstring &charname)
 	{
-		// Search for the substring in string
+		// Search for the substring in string.
 		string str = HookExt::IniGetS(iClientID, "DockedChars");
 		string toErase = DecodeWStringToStringOfBytes(charname);
 

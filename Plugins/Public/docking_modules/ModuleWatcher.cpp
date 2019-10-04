@@ -48,7 +48,7 @@ inline void SortModules(vector<MODULE_CACHE> &Modules)
 
 namespace ModuleWatcher
 {
-	void __stdcall CharacterSelect_AFTER(const CHARACTER_ID &cId, uint iClientID)
+	void __stdcall CharacterSelect_AFTER(CHARACTER_ID const &cId, uint iClientID)
 	{
 		// Don't do this all at ClearClientInfo because it's not being fired when player switches characters.
 		returncode = DEFAULT_RETURNCODE;
@@ -99,7 +99,7 @@ namespace ModuleWatcher
 		Watcher.Cache[iClientID].Modules = newModules;
 	}
 
-	void __stdcall ReqEquipment_AFTER(const EquipDescList &edl, uint iClientID)
+	void __stdcall ReqEquipment_AFTER(EquipDescList const &edl, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -222,7 +222,7 @@ namespace ModuleWatcher
 		}
 	}
 
-	void __stdcall SPScanCargo_AFTER(const uint &scanningShip, const uint &scannedShip, uint iClientID)
+	void __stdcall SPScanCargo_AFTER(uint const &scanningShip, uint const &scannedShip, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 

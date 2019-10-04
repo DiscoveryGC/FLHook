@@ -37,7 +37,7 @@ struct RESUPPLY_REQUEST
 	int batteriesInCart;
 };
 
-// Structs for timers.
+// Structs for timers
 
 struct ActionDocking
 {
@@ -126,8 +126,8 @@ extern string dataPath;
 
 
 // Utilities.cpp
-void SendCommand(uint iClientID, wstring const &message);
-void SendSetBaseInfoText2(uint iClientID, wstring const &message);
+void SendCommand(uint iClientID, const wstring &message);
+void SendSetBaseInfoText2(uint iClientID, const wstring &message);
 void SendResetMarketOverride(uint iClientID);
 uint GetProxyBaseForCarrier(uint carrierClientID);
 uint GetProxyBaseForSystem(uint carrierClientID, uint iSystemID);

@@ -1,12 +1,12 @@
 #include "Main.h"
 
 /// Send a command to the client at destination ID 0x9999
-void SendCommand(uint iClientID, wstring const &message)
+void SendCommand(uint iClientID, const wstring &message)
 {
 	HkFMsg(iClientID, L"<TEXT>" + XMLText(message) + L"</TEXT>");
 }
 
-void SendSetBaseInfoText2(uint iClientID, wstring const &message)
+void SendSetBaseInfoText2(uint iClientID, const wstring &message)
 {
 	SendCommand(iClientID, wstring(L" SetBaseInfoText2 ") + message);
 }
@@ -47,7 +47,7 @@ wstring HkGetCharnameFromCharFile(string const &charFile, CAccount *acc)
 	string path;
 	path.reserve(dataPath.size() + 45);
 
-	// Get account directory name
+	// Get account directory name.
 	_GetFLName GetFLName = (_GetFLName)((char*)hModServer + 0x66370);
 	char szDir[12];
 	GetFLName(szDir, acc->wszAccID);
@@ -63,12 +63,6 @@ wstring HkGetCharnameFromCharFile(string const &charFile, CAccount *acc)
 		charname = EncodeWStringFromStringOfBytes(variables["name"][0]);
 
 	return charname;
-}
-
-bool CheckIfExists(string &path)
-{
-	struct stat buffer;
-	return (stat(path.c_str(), &buffer) == 0);
 }
 
 // Get path to original FL account for this charname.

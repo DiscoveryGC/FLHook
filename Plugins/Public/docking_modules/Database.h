@@ -59,8 +59,8 @@ namespace DB
 	{
 		int maxCargoCapacity; // Above how many cargo capacity will docking ship be rejected.
 		uint dockingTime; // Never make it lower than 1 or bugs occur.
-		uint basicResupplyTime; // -1 to disable resupplying for the module
-		uint minCrewLimit; // 0 to allow resupplying without crew
+		uint basicResupplyTime; // -1 to disable resupplying for the module.
+		uint minCrewLimit; // 0 to allow resupplying without crew.
 		uint dockDisatnce; // How far you need to be to dock.
 		uint undockDistance; // How high will ship appear above carrier at undock.
 	};

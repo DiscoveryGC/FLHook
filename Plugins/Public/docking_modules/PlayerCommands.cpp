@@ -216,6 +216,7 @@ void Jettison(MODULE_CACHE &module, uint dockedClientID, uint carrierClientID)
 void SwitchSystem(uint iClientID, uint iShip)
 {
 	// Patch the system switch out routine to put the ship in a system of our choosing.
+
 	SwitchOut[0x0d7] = 0xeb;				// ignore exit object
 	SwitchOut[0x0d8] = 0x40;
 	SwitchOut[0x119] = 0xbb;				// set the destination system

@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <plugin.h>
 #include "../playercntl_plugin/Main.h"
-#include <boost/algorithm/string.hpp>
 
 using namespace DB;
 
@@ -129,8 +128,7 @@ extern string dataPath;
 void SendCommand(uint iClientID, const wstring &message);
 void SendSetBaseInfoText2(uint iClientID, const wstring &message);
 void SendResetMarketOverride(uint iClientID);
-uint GetProxyBaseForCarrier(uint carrierClientID);
-uint GetProxyBaseForSystem(uint carrierClientID, uint iSystemID);
+uint GetProxyBase(uint carrierClientID, uint iSystemID);
 wstring HkGetCharnameFromCharFile(string const &charFile, CAccount *acc);
 string DecodeWStringToStringOfBytes(wstring &wstr);
 

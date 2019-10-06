@@ -1,6 +1,5 @@
 #include "Main.h"
 
-/// Send a command to the client at destination ID 0x9999
 void SendCommand(uint iClientID, const wstring &message)
 {
 	HkFMsg(iClientID, L"<TEXT>" + XMLText(message) + L"</TEXT>");
@@ -17,20 +16,18 @@ void SendResetMarketOverride(uint iClientID)
 	SendCommand(iClientID, L" SetMarketOverride 0 0 0 0");
 }
 
-// Get proxy base ID for specific carrier.
-uint GetProxyBaseForCarrier(uint carrierClientID)
+inline string GetFLName(const wchar_t *key)
 {
-	uint iBaseID;
-	string systemName = wstos(HkGetSystemNickByID(Players[carrierClientID].iSystemID));
-	string proxyBaseSuffix = Watcher.Cache[carrierClientID].dockingTraits.proxyBaseSuffix;
-	string proxyBase = systemName + proxyBaseSuffix;
-	pub::GetBaseID(iBaseID, proxyBase.c_str());
+	char szName[12];
 
-	return iBaseID;
+	_GetFLName __GetFLName = (_GetFLName)((char*)hModServer + 0x66370);
+	__GetFLName(szName, key);
+
+	return (string)szName;
 }
 
-// Get proxy base ID for specific system.
-uint GetProxyBaseForSystem(uint carrierClientID, uint iSystemID)
+// Get proxy base ID for specific system with proxy base specific to carrier.
+uint GetProxyBase(uint carrierClientID, uint iSystemID)
 {
 	uint iBaseID;
 	string systemName = wstos(HkGetSystemNickByID(iSystemID));
@@ -42,27 +39,32 @@ uint GetProxyBaseForSystem(uint carrierClientID, uint iSystemID)
 }
 
 // Gets character name from charfile and account.
-wstring HkGetCharnameFromCharFile(string const &charFile, CAccount *acc)
+wstring HkGetCharnameFromCharFile(string const &fileName, CAccount *acc)
 {
 	string path;
 	path.reserve(dataPath.size() + 45);
 
-	// Get account directory name.
-	_GetFLName GetFLName = (_GetFLName)((char*)hModServer + 0x66370);
-	char szDir[12];
-	GetFLName(szDir, acc->wszAccID);
+	string dirName = GetFLName(acc->wszAccID);
+	path = dataPath + "\\Accts\\MultiPlayer\\" + dirName + "\\" + fileName + ".fl";
 
-	path = dataPath + "\\Accts\\MultiPlayer\\" + szDir + "\\" + charFile + ".fl";
+	ifstream file(path);
+	if (file.is_open())
+	{
+		string line;
+		while (getline(file, line))
+		{
+			if (boost::algorithm::starts_with(line, "name"))
+			{
+				file.close();
+				return EncodeWStringFromStringOfBytes(line.substr(7));
+				// 7 = 4 symbols + whitespace + equation symbol + whitespace
+			}
+		}
 
-	map<string, vector<string>> variables;
-	variables["name"] = vector<string>();
-	ReadFLFile(variables, path);
+		file.close();
+	}
 
-	wstring charname;
-	if (!variables["name"].empty())
-		charname = EncodeWStringFromStringOfBytes(variables["name"][0]);
-
-	return charname;
+	return wstring();
 }
 
 // Get path to original FL account for this charname.
@@ -71,25 +73,18 @@ string GetFLAccPath(wstring &charname)
 	string path;
 	path.reserve(dataPath.size() + 45);
 
-	char datapath[MAX_PATH];
-	GetUserDataPath(datapath);
-
 	CAccount *acc = HkGetAccountByCharname(charname);
 
-	// Get account directory name.
-	_GetFLName GetFLName = (_GetFLName)((char*)hModServer + 0x66370);
-	char szDir[12];
-	GetFLName(szDir, acc->wszAccID);
+	string dirName = GetFLName(acc->wszAccID);
+	string fileName = GetFLName(charname.c_str());
 
-	// Get character file name.
-	char szFile[12];
-	GetFLName(szFile, charname.c_str());
-
-	path = dataPath + "\\Accts\\MultiPlayer\\" + szDir + "\\" + szFile + ".fl";
+	path = dataPath + "\\Accts\\MultiPlayer\\" + dirName + "\\" + fileName + ".fl";
 	return path;
 }
 
-// Removes all specifil lines from file, adds specific lines to end of file, or replaces one line with few another if need to insert lines into specific position. Returns result of check if file exists.
+// Removes all specified lines from file which begin from one of given lines to delete.
+// Replaces one line with multiple if need to insert lines into a specific position.
+// Has separate functionality to remove or add hookExt data.
 void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &linesToReplace, vector<string> &hookExtLinesToAdd, vector<string> &hookExtLinesToDelete, string &path)
 {
 	string tempPath = path + "-temp";
@@ -114,6 +109,7 @@ void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &line
 			for (string &del : linesToDelete)
 				if (boost::algorithm::starts_with(line, del))
 					goto Begin;
+
 			for (auto &pair : linesToReplace)
 			{
 				if (boost::algorithm::starts_with(line, pair.first))
@@ -150,7 +146,7 @@ void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &line
 	}
 }
 
-// My own function to read specific values from FL save file without ini headers. Gets them in raw string format. Returns result of check if file exists.
+// Function to find values of ini variables in file. Populates given map with values of variables that begun with a key.
 void ReadFLFile(map<string, vector<string>> &variables, string &path)
 {
 	ifstream file(path);
@@ -180,7 +176,7 @@ void ReadFLFile(map<string, vector<string>> &variables, string &path)
 	}
 }
 
-// Expanded version of previous function.
+// Expanded version of previous function. Also reads hookExt data, while previous does not.
 void ReadFLFile(map<string, vector<string>> &variables, map<string, string> &hookExtData, string &path)
 {
 	ifstream file(path);
@@ -256,45 +252,22 @@ wstring EncodeWStringFromStringOfBytes(string &bytestr)
 // Get vector of strings from one string by separating it by some char.
 vector<string> GetParams(string &str, char splitChar)
 {
+	if (str.empty())
+		return vector<string>();
+
 	vector<string> Params;
 	uint lastPos = 0;
 
-	if (str.empty())
-		return Params;
-
-	for (uint i = 1; true; ++i)
+	for (uint i = 0; i != str.size(); ++i)
 	{
 		if (str[i] == splitChar)
 		{
 			Params.push_back(str.substr(lastPos, i - lastPos));
 			lastPos = i + 1;
 		}
-
-		if (i == str.size() - 1)
-		{
-			Params.push_back(str.substr(lastPos));
-
-			if (Params.empty())
-				Params.push_back(str);
-
-			break;
-		}
 	}
+
+	Params.push_back(str.substr(lastPos));
 
 	return Params;
-}
-
-// Convert multiple strings to one by uniting them with some char.
-string SetParams(vector<string> &Params, char uniteChar)
-{
-	string str;
-
-	for (vector<string>::iterator it = Params.begin(); it != Params.end(); ++it)
-	{
-		str += *it;
-		if (it != Params.end() - 1)
-			str += uniteChar;
-	}
-
-	return str;
 }

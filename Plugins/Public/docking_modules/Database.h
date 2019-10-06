@@ -1,6 +1,8 @@
 #pragma once
 
 #include "boost\lexical_cast.hpp"
+#include "boost\algorithm\string.hpp"
+#include "boost/algorithm/string/join.hpp"
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
@@ -18,7 +20,6 @@ void ReadFLFile(map<string, vector<string>> &variables, string &path);
 string DecodeWStringToStringOfBytes(wstring &wstr);
 wstring EncodeWStringFromStringOfBytes(string &bytestr);
 vector<string> GetParams(string &str, char splitChar);
-string SetParams(vector<string> &Params, char uniteChar);
 
 // Macro to define property with custom getter and setter.
 #define Property(GET, SET) _declspec(property(get = GET, put = SET))

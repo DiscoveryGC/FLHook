@@ -196,8 +196,7 @@ namespace DB
 
 		if (!variables["DockedChars"].empty())
 		{
-			vector<string> strData = GetParams(variables["DockedChars"][0], '|');
-			for (string &str : strData)
+			for (string &str : GetParams(variables["DockedChars"][0], '|'))
 			{
 				uint archID = boost::lexical_cast<uint>(GetParam(str, ',', 0));
 				wstring occupiedBy = EncodeWStringFromStringOfBytes(GetParam(str, ',', 1));
@@ -299,7 +298,7 @@ namespace DB
 				strDockedChars.push_back(str);
 			}
 
-			hookExtLinesToAdd.push_back("DockedChars = " + SetParams(strDockedChars, '|'));
+			hookExtLinesToAdd.push_back("DockedChars = " + boost::join(strDockedChars, ","));
 		}
 
 		EditFLFile(linesToDelete, linesToReplace, hookExtLinesToAdd, hookExtLinesToDelete, path);

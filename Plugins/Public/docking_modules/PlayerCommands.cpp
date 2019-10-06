@@ -40,7 +40,7 @@ ErrorMessage TryDockAtBase(vector<MODULE_CACHE> &Modules, uint dockingClientID, 
 					PrintUserCmdText(dockingClientID, L"Request accepted. Docking immediately.");
 					mapDockingClients[dockingClientID] = carrierClientID;
 					PrintUserCmdText(dockingClientID, L" ChangeSys %u", Players[carrierClientID].iSystemID);
-					ForceLandingClients[dockingClientID] = GetProxyBaseForCarrier(carrierClientID);
+					ForceLandingClients[dockingClientID] = GetProxyBase(carrierClientID, Players[carrierClientID].iSystemID);
 
 					if (!IsInGroupWithCarrier)
 						PrintUserCmdText(carrierClientID, L"You allowed " + dockingName + L" to dock.");

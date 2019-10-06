@@ -43,7 +43,7 @@ void DockingTimer()
 					Data.DockedWith = (wstring)(const wchar_t*)Players.GetActiveCharacterName(*lit);
 					Data.DockedToModule = it->moduleArch;
 
-					uint iBaseID = GetProxyBaseForCarrier(*lit);
+					uint iBaseID = GetProxyBase(*lit, Players[*lit].iSystemID);
 					pub::Player::ForceLand(it->dockingClientID, iBaseID);
 					mapDockingClients[it->dockingClientID] = 0;
 					pub::Audio::PlaySoundEffect(*lit, ID_sound_docked);

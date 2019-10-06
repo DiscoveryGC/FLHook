@@ -13,13 +13,11 @@ wstring EnumerateDockedShips(uint carrierClientID)
 	{
 		wstring shipNames;
 
-		for (int i = 0; i != DockedChars.size(); ++i)
-		{
-			if (i != 0)
-				shipNames += L", ";
+		int i;
+		for (i = 0; i != DockedChars.size() - 1; ++i)
+			shipNames += DockedChars[i].occupiedBy + L", ";
 
-			shipNames += DockedChars[i].occupiedBy;
-		}
+		shipNames += DockedChars[i].occupiedBy;
 
 		return L"Detected ships on board: " + shipNames + L".";
 	}

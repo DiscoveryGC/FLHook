@@ -399,7 +399,7 @@ void __stdcall BaseEnter_AFTER(uint iBaseID, uint iClientID)
 				if (Universe::get_base(iBaseID)->iSystemID != Players[dockedClientID].iSystemID)
 				{
 					JumpingDockedShips[dockedClientID] = true;
-					ForceLandingClients[dockedClientID] = GetProxyBaseForCarrier(iClientID);
+					ForceLandingClients[dockedClientID] = GetProxyBase(iClientID, Players[iClientID].iSystemID);
 					POBForceLandingClients[dockedClientID] = Clients[iClientID].POBID;
 					PrintUserCmdText(dockedClientID, L" ChangeSys %u", Players[dockedClientID].iSystemID);
 				}
@@ -726,7 +726,7 @@ bool _stdcall Send_FLPACKET_SERVER_MISCOBJUPDATE_5(uint iClientID, uint iClientI
 			if (dockedClientID != -1 && !ForceLandingClients[dockedClientID] && !HkIsInCharSelectMenu(dockedClientID))
 			{
 				JumpingDockedShips[dockedClientID] = true;
-				ForceLandingClients[dockedClientID] = GetProxyBaseForSystem(iClientID2, iSystemID);
+				ForceLandingClients[dockedClientID] = GetProxyBase(iClientID2, iSystemID);
 				PrintUserCmdText(dockedClientID, L" ChangeSys %u", Players[dockedClientID].iSystemID);
 			}
 		}

@@ -83,7 +83,7 @@ string GetFLAccPath(wstring &charname)
 }
 
 // Removes all specified lines from file which begin from one of given lines to delete.
-// Replaces one line with multiple if need to insert lines into a specific position.
+// Replaces line (if it starts with given string) with multiple if need to insert lines into a specific position.
 // Has separate functionality to remove or add hookExt data.
 void EditFLFile(vector<string> &linesToDelete, map<string, vector<string>> &linesToReplace, vector<string> &hookExtLinesToAdd, vector<string> &hookExtLinesToDelete, string &path)
 {

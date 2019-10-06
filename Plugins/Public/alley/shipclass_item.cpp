@@ -261,7 +261,7 @@ void SCI::CheckItems(unsigned int iClientID)
 										}
 									}
 								//PrintUserCmdText(iClientID, wscMsg);
-								return ;
+								break;
 							}
 						}
 					}

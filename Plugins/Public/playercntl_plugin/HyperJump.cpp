@@ -56,11 +56,7 @@ namespace HyperJump
 		}
 	}
 
-	struct SYSTEM_JUMPLIST
-	{
-		vector<uint> visibleSystemsList;
-	};
-	static map<uint, SYSTEM_JUMPLIST> mapJumpSystems;
+	static map<uint, vector<uint>> mapJumpSystems;
 
 	static int JumpWhiteListEnabled = 0;
 	static int JumpSystemListEnabled = 0;
@@ -403,7 +399,7 @@ namespace HyperJump
 				if (ini.is_header("system"))
 				{
 					uint nickname;
-					SYSTEM_JUMPLIST jumpsyslist;
+					vector<uint> visibleSystemsList;
 					while (ini.read_value())
 					{
 						if (ini.is_value("nickname"))
@@ -412,10 +408,10 @@ namespace HyperJump
 						}
 						else if (ini.is_value("jump"))
 						{
-							jumpsyslist.visibleSystemsList.push_back(CreateID(ini.get_value_string(0)));
+							visibleSystemsList.push_back(CreateID(ini.get_value_string(0)));
 						}
 					}
-					mapJumpSystems[nickname] = jumpsyslist;
+					mapJumpSystems[nickname] = visibleSystemsList;
 				}
 			}
 			ini.close();
@@ -487,9 +483,9 @@ namespace HyperJump
 
 		if (JumpWhiteListEnabled == 1)
 		{
-			for (map<uint, SYSTEM_JUMPLIST>::iterator iter = mapJumpSystems.begin(); iter!=mapJumpSystems.end(); iter++)
+			for (map<uint, vector<uint>>::iterator iter = mapJumpSystems.begin(); iter!=mapJumpSystems.end(); iter++)
 			{
-				vector<uint> &systemList = iter->second.visibleSystemsList;
+				vector<uint> &systemList = iter->second;
 				if (iter->first == iSystemID)
 				{
 					PrintUserCmdText(iClientID, L"The script has found %s !", wscSysName.c_str());
@@ -518,7 +514,7 @@ namespace HyperJump
 		if (allowedSystemIter == mapJumpSystems.end())
 			return false;
 
-		vector<uint> &allowedSystems = allowedSystemIter->second.visibleSystemsList;
+		vector<uint> &allowedSystems = allowedSystemIter->second;
 		return find(allowedSystems.begin(), allowedSystems.end(), systemTo) != allowedSystems.end();
 	}
 
@@ -1597,7 +1593,7 @@ namespace HyperJump
 				auto systemListIter = mapJumpSystems.find(Players[iClientID].iSystemID);
 				if (systemListIter != mapJumpSystems.end())
 				{
-					auto &systemList = systemListIter->second.visibleSystemsList;
+					auto &systemList = systemListIter->second;
 					if (!systemList.empty())
 					{
 						jd.iTargetSystem = systemList.at(rand() % systemList.size());

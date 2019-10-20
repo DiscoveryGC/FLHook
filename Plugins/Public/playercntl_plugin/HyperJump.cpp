@@ -1421,10 +1421,10 @@ namespace HyperJump
 		}
 
 		////////////////////////// System limit restriction ///////////////////////////////////////
-		if (JumpSystemListEnabled == 1)
+		if (JumpSystemListEnabled)
 		{
 			bool AllowedToWhiteListJump = IsSystemJumpable(Players[iClientID].iSystemID, coords.system);
-			if (AllowedToWhiteListJump == 0)
+			if (!AllowedToWhiteListJump)
 			{
 				const Universe::ISystem *iSysList = Universe::get_system(coords.system);
 				wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
@@ -1504,10 +1504,10 @@ namespace HyperJump
 				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_blind_jump_warning"));
 			}
 			////////////////////////// System limit restriction ///////////////////////////////////////
-			else if (JumpSystemListEnabled == 1 && jd.iTargetSystem != 0)
+			else if (JumpSystemListEnabled)
 			{
 				bool AllowedToWhiteListJump = IsSystemJumpable(iSystemID, jd.iTargetSystem);
-				if (AllowedToWhiteListJump == 0)
+				if (!AllowedToWhiteListJump)
 				{
 					const Universe::ISystem *iSysList = Universe::get_system(jd.iTargetSystem);
 					wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
@@ -1844,7 +1844,7 @@ namespace HyperJump
 			if (JumpSystemListEnabled == 1)
 			{
 				bool AllowedToWhiteListJump = IsSystemJumpable(iSystemID, iTargetSystem);
-				if (AllowedToWhiteListJump == 0)
+				if (!AllowedToWhiteListJump)
 				{
 					const Universe::ISystem *iSysList = Universe::get_system(jd.iTargetSystem);
 					wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);

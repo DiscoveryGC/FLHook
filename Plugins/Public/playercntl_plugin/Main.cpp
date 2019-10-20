@@ -1412,14 +1412,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		HyperJump::AdminCmd_Chase(cmds, cmds->ArgCharname(1));
 		return true;
 	}
-	/*
-	else if (IS_CMD("testbot"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_TestBot(cmds, cmds->ArgStr(1), cmds->ArgInt(2));
-		return true;
-	}
-	*/
 	else if (IS_CMD("lrs"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1432,13 +1424,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		HyperJump::AdminCmd_MakeCoord(cmds);
 		return true;
 	}
-	else if (IS_CMD("jumptest"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_JumpTest(cmds, cmds->ArgStr(1));
-		return true;
-	}
-	
 	else if (IS_CMD("authchar"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;

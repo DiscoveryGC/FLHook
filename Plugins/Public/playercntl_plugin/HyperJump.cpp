@@ -1579,11 +1579,9 @@ namespace HyperJump
 			if (!JumpSystemListEnabled)
 			{
 				vector<string> systems;
-				struct Universe::ISystem *sysinfo = Universe::GetFirstSystem();
-				while (sysinfo)
+				for (struct Universe::ISystem *sysinfo = Universe::GetFirstSystem(); sysinfo; sysinfo = Universe::GetNextSystem())
 				{
 					systems.push_back(sysinfo->nickname);
-					sysinfo = Universe::GetNextSystem();
 				}
 				// Pick a random system and position
 				jd.iTargetSystem = CreateID(systems[rand() % systems.size()].c_str());

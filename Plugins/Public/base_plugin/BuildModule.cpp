@@ -13,7 +13,7 @@ BuildModule::BuildModule(PlayerBase *the_base)
 // Find the recipe for this building_type and start construction.
 BuildModule::BuildModule(PlayerBase *the_base, uint the_build_type)
 	: Module(TYPE_BUILD), base(the_base), build_type(the_build_type)
-{	
+{
 	uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[build_type]);
 	active_recipe = recipes[module_nickname];
 }
@@ -25,12 +25,12 @@ wstring BuildModule::GetInfo(bool xml)
 	{
 		info = L"<TEXT>Constructing " + active_recipe.infotext + L". Waiting for:</TEXT>";
 
-		for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
 		{
 			uint good = i->first;
 			uint quantity = i->second;
-			
+
 			const GoodInfo *gi = GoodList::find_by_id(good);
 			if (gi)
 			{
@@ -45,12 +45,12 @@ wstring BuildModule::GetInfo(bool xml)
 	{
 		info = L"Constructing " + active_recipe.infotext + L". Waiting for: ";
 
-		for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
 		{
 			uint good = i->first;
 			uint quantity = i->second;
-			
+
 			const GoodInfo *gi = GoodList::find_by_id(good);
 			if (gi)
 			{
@@ -73,7 +73,7 @@ bool BuildModule::Timer(uint time)
 	bool cooked = true;
 
 	// Consume goods at the cooking rate.
-	for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
 		uint good = i->first;
@@ -97,60 +97,60 @@ bool BuildModule::Timer(uint time)
 	// Once cooked turn this into the build type
 	if (cooked)
 	{
-		for (uint i=0; i<base->modules.size(); i++)
+		for (uint i = 0; i < base->modules.size(); i++)
 		{
 			if (base->modules[i] == this)
 			{
 				switch (build_type)
 				{
-					case Module::TYPE_CORE:
-						base->base_level++;
-						if (base->base_level > 4)
-							base->base_level = 4;
-						base->SetupDefaults();
+				case Module::TYPE_CORE:
+					base->base_level++;
+					if (base->base_level > 4)
+						base->base_level = 4;
+					base->SetupDefaults();
 
-						// Clear the build module slot.
-						base->modules[i] = 0;
+					// Clear the build module slot.
+					base->modules[i] = 0;
 
-						// Delete and respawn the old core module
-						delete base->modules[0];
-						base->modules[0] = new CoreModule(base);
-						base->modules[0]->Spawn();
+					// Delete and respawn the old core module
+					delete base->modules[0];
+					base->modules[0] = new CoreModule(base);
+					base->modules[0]->Spawn();
 
-						break;
-					case Module::TYPE_SHIELDGEN:
-						base->modules[i] = new ShieldModule(base);
-						break;
-					case Module::TYPE_STORAGE:
-						base->modules[i] = new StorageModule(base);
-						break;
-					case Module::TYPE_DEFENSE_1:
-						base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_1);
-						break;
-					case Module::TYPE_M_DOCKING:
-						base->modules[i] = new FactoryModule(base, Module::TYPE_M_DOCKING);
-						break;
-					case Module::TYPE_M_JUMPDRIVES:
-						base->modules[i] = new FactoryModule(base, Module::TYPE_M_JUMPDRIVES);
-						break;
-					case Module::TYPE_M_HYPERSPACE_SCANNER:
-						base->modules[i] = new FactoryModule(base, Module::TYPE_M_HYPERSPACE_SCANNER);
-						break;
-					case Module::TYPE_M_CLOAK:
-						base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAK);
-						break;
-					case Module::TYPE_DEFENSE_2:
-						base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_2);
-						break;
-					case Module::TYPE_DEFENSE_3:
-						base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_3);
-						break;
-					case Module::TYPE_M_CLOAKDISRUPTOR:
-						base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
-						break;
-					default:
-						base->modules[i] = 0;
-						break;
+					break;
+				case Module::TYPE_SHIELDGEN:
+					base->modules[i] = new ShieldModule(base);
+					break;
+				case Module::TYPE_STORAGE:
+					base->modules[i] = new StorageModule(base);
+					break;
+				case Module::TYPE_DEFENSE_1:
+					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_1);
+					break;
+				case Module::TYPE_M_DOCKING:
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_DOCKING);
+					break;
+				case Module::TYPE_M_JUMPDRIVES:
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_JUMPDRIVES);
+					break;
+				case Module::TYPE_M_HYPERSPACE_SCANNER:
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_HYPERSPACE_SCANNER);
+					break;
+				case Module::TYPE_M_CLOAK:
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAK);
+					break;
+				case Module::TYPE_DEFENSE_2:
+					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_2);
+					break;
+				case Module::TYPE_DEFENSE_3:
+					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_3);
+					break;
+				case Module::TYPE_M_CLOAKDISRUPTOR:
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
+					break;
+				default:
+					base->modules[i] = 0;
+					break;
 				}
 				base->Save();
 				delete this;
@@ -196,9 +196,9 @@ void BuildModule::SaveState(FILE *file)
 	fprintf(file, "produced_item = %u\n", active_recipe.produced_item);
 	fprintf(file, "cooking_rate = %u\n", active_recipe.cooking_rate);
 	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
-	for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
-		fprintf(file, "consumed = %u, %u\n", i->first, i->second);	
+		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
 	}
 }

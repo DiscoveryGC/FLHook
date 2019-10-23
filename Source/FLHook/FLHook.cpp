@@ -70,14 +70,14 @@ FARPROC fpOldUpdate;
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-	if(bExecuted)
+	if (bExecuted)
 		return TRUE;
 
 	char szFile[MAX_PATH];
 	GetModuleFileName(0, szFile, sizeof(szFile));
 	wstring wscFileName = ToLower(stows(szFile));
 
-	if(wscFileName.find(L"flserver.exe") != -1)
+	if (wscFileName.find(L"flserver.exe") != -1)
 	{ // start FLHook
 		bExecuted = true;
 
@@ -98,8 +98,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		WriteProcMem(pAddress, &fpShutdown, 4);
 
 		// create log dirs
-		CreateDirectoryA("./flhook_logs/",NULL);
-		CreateDirectoryA("./flhook_logs/debug",NULL);
+		CreateDirectoryA("./flhook_logs/", NULL);
+		CreateDirectoryA("./flhook_logs/debug", NULL);
 	}
 	return TRUE;
 }
@@ -129,18 +129,18 @@ thread that reads console input
 
 void ReadConsoleEvents()
 {
-	while(1)
+	while (1)
 	{
 		DWORD dwBytesRead;
 		char szCmd[1024];
 		memset(szCmd, 0, sizeof(szCmd));
-		if(ReadConsole(hConsoleIn, szCmd, sizeof(szCmd), &dwBytesRead, 0))
+		if (ReadConsole(hConsoleIn, szCmd, sizeof(szCmd), &dwBytesRead, 0))
 		{
 			string scCmd = szCmd;
-			if(scCmd[scCmd.length()-1] == '\n')
-				scCmd = scCmd.substr(0, scCmd.length()-1);
-			if(scCmd[scCmd.length()-1] == '\r')
-				scCmd = scCmd.substr(0, scCmd.length()-1);
+			if (scCmd[scCmd.length() - 1] == '\n')
+				scCmd = scCmd.substr(0, scCmd.length() - 1);
+			if (scCmd[scCmd.length() - 1] == '\r')
+				scCmd = scCmd.substr(0, scCmd.length() - 1);
 
 			wstring wscCmd = stows(scCmd);
 			EnterCriticalSection(&cs);
@@ -149,7 +149,7 @@ void ReadConsoleEvents()
 			lstConsoleCmds.push_back(pwscCmd);
 			LeaveCriticalSection(&cs);
 		}
-	} 
+	}
 }
 
 /**************************************************************************************************************
@@ -158,12 +158,12 @@ handles console events
 
 BOOL WINAPI ConsoleHandler(DWORD dwCtrlType)
 {
-	switch(dwCtrlType)
+	switch (dwCtrlType)
 	{
 	case CTRL_CLOSE_EVENT:
-		{
-			return TRUE;
-		} break;
+	{
+		return TRUE;
+	} break;
 	}
 
 	return FALSE;
@@ -193,24 +193,24 @@ void FLHookInit_Pre()
 	try {
 
 		// get module handles
-		if(!(hModServer = GetModuleHandle("server")))
+		if (!(hModServer = GetModuleHandle("server")))
 			throw "server.dll not loaded";
 
-		if(!(hWString = LoadLibrary("FLHookVC6Strings.dll")))
+		if (!(hWString = LoadLibrary("FLHookVC6Strings.dll")))
 			throw "FLHookVC6Strings.dll not found";
-		if(!(CreateWString = (_CreateWString)GetProcAddress(hWString, "CreateWString")))
+		if (!(CreateWString = (_CreateWString)GetProcAddress(hWString, "CreateWString")))
 			throw "FLHookVC6Strings.dll: CreateWString not found";
-		if(!(FreeWString = (_FreeWString)GetProcAddress(hWString, "FreeWString")))
+		if (!(FreeWString = (_FreeWString)GetProcAddress(hWString, "FreeWString")))
 			throw "FLHookVC6Strings.dll: FreeWString not found";
-		if(!(CreateString = (_CreateString)GetProcAddress(hWString, "CreateString")))
+		if (!(CreateString = (_CreateString)GetProcAddress(hWString, "CreateString")))
 			throw "FLHookVC6Strings.dll: CreateString not found";
-		if(!(FreeString = (_FreeString)GetProcAddress(hWString, "FreeString")))
+		if (!(FreeString = (_FreeString)GetProcAddress(hWString, "FreeString")))
 			throw "FLHookVC6Strings.dll: FreeString not found";
-		if(!(GetCString = (_GetCString)GetProcAddress(hWString, "GetCString")))
+		if (!(GetCString = (_GetCString)GetProcAddress(hWString, "GetCString")))
 			throw "FLHookVC6Strings.dll: GetCString not found";
-		if(!(GetWCString = (_GetWCString)GetProcAddress(hWString, "GetWCString")))
+		if (!(GetWCString = (_GetWCString)GetProcAddress(hWString, "GetWCString")))
 			throw "FLHookVC6Strings.dll: GetWCString not found";
-		if(!(WStringAssign = (_WStringAssign)GetProcAddress(hWString, "WStringAssign")))
+		if (!(WStringAssign = (_WStringAssign)GetProcAddress(hWString, "WStringAssign")))
 			throw "FLHookVC6Strings.dll: WStringAssign not found";
 		if (!(WStringAppend = (_WStringAppend)GetProcAddress(hWString, "WStringAppend")))
 			throw "FLHookVC6Strings.dll: WStringAppend not found";
@@ -218,10 +218,10 @@ void FLHookInit_Pre()
 			throw "FLHookVC6Strings.dll: CPlayerAccount_GetServerSignature not found";
 
 		// create log dirs
-		CreateDirectoryA("./flhook_logs/",NULL);
-		CreateDirectoryA("./flhook_logs/debug",NULL);
+		CreateDirectoryA("./flhook_logs/", NULL);
+		CreateDirectoryA("./flhook_logs/debug", NULL);
 
-		
+
 
 		DWORD id;
 		DWORD dwParam;
@@ -233,7 +233,7 @@ void FLHookInit_Pre()
 		time_t tNow = time(0);
 		struct tm *t = localtime(&tNow);
 		strftime(szDate, sizeof(szDate), "%d.%m.%Y_%H.%M", t);
-		sDebugLog = "./flhook_logs/debug/FLHookDebug_"+(string)szDate;
+		sDebugLog = "./flhook_logs/debug/FLHookDebug_" + (string)szDate;
 		sDebugLog += ".log";
 
 		//check what plugins should be loaded; we need to read out the settings ourselves cause LoadSettings() wasn't called yet
@@ -242,8 +242,8 @@ void FLHookInit_Pre()
 		string scCfgFile = string(szCurDir) + "\\FLHook.ini";
 
 		PluginManager::Init();
-		
-		if(IniGetB(scCfgFile, "Plugins", "LoadAllPlugins", true))
+
+		if (IniGetB(scCfgFile, "Plugins", "LoadAllPlugins", true))
 			PluginManager::LoadPlugins(true, &AdminConsole);
 		else
 		{
@@ -252,7 +252,7 @@ void FLHookInit_Pre()
 			IniGetSection(scCfgFile, "Plugins", lstIniPlugins);
 			foreach(lstIniPlugins, INISECTIONVALUE, it)
 			{
-				if(it->scKey != "plugin")
+				if (it->scKey != "plugin")
 					continue;
 				PluginManager::LoadPlugin(it->scValue, &AdminConsole, true);
 			}
@@ -284,7 +284,8 @@ void FLHookInit_Pre()
 		}
 #endif
 
-	} catch(char *szError) {
+	}
+	catch (char *szError) {
 		ConPrint(L"CRITICAL ERROR: %s\n", stows(szError).c_str());
 		exit(EXIT_FAILURE);
 	}
@@ -298,21 +299,21 @@ bool FLHookInit()
 	try {
 
 		// get module handles
-		if(!(hModServer = GetModuleHandle("server")))
+		if (!(hModServer = GetModuleHandle("server")))
 			throw "server.dll not loaded";
-		if(!(hModRemoteClient = GetModuleHandle("remoteclient")))
+		if (!(hModRemoteClient = GetModuleHandle("remoteclient")))
 			throw "remoteclient.dll not loaded";
-		if(!(hModCommon = GetModuleHandle("common")))
+		if (!(hModCommon = GetModuleHandle("common")))
 			throw "common.dll not loaded";
-		if(!(hModDPNet = GetModuleHandle("dpnet")))
+		if (!(hModDPNet = GetModuleHandle("dpnet")))
 			throw "dpnet.dll not loaded";
-		if(!(hModDaLib = GetModuleHandle("dalib")))
+		if (!(hModDaLib = GetModuleHandle("dalib")))
 			throw "dalib.dll not loaded";
-		if(!(hModContent = GetModuleHandle("content")))
+		if (!(hModContent = GetModuleHandle("content")))
 			throw "content.dll not loaded";
-		if(!(hMe = GetModuleHandle("FLHook")))
+		if (!(hMe = GetModuleHandle("FLHook")))
 			throw "FLHook.dll not loaded";
-		
+
 		// load settings
 		LoadSettings();
 
@@ -322,18 +323,18 @@ bool FLHookInit()
 		CALL_PLUGINS_NORET(PLUGIN_LoadSettings, , (), ());
 
 		// init hooks
-		if(!InitHookExports())
+		if (!InitHookExports())
 			throw "InitHookExports failed";
 
 		bInitHookExports = true;
 
-		if(set_bSocketActivated)
+		if (set_bSocketActivated)
 		{ // listen to socket
 			WSADATA wsa;
 			WSAStartup(MAKEWORD(2, 0), &wsa);
-			if(set_bSocketActivated)
+			if (set_bSocketActivated)
 			{
-				if(set_iPort)
+				if (set_iPort)
 				{
 					sListen = socket(AF_INET, SOCK_STREAM, 0);
 					sockaddr_in adr;
@@ -343,13 +344,13 @@ bool FLHookInit()
 					if (::bind(sListen, (sockaddr*)&adr, sizeof(adr)) != 0)
 						throw "ascii: socket-bind failed, port already in use?";
 
-					if(listen(sListen, SOMAXCONN) != 0)
+					if (listen(sListen, SOMAXCONN) != 0)
 						throw "ascii: socket-listen failed";
 
 					ConPrint(L"socket(ascii): socket connection listening\n");
 				}
 
-				if(set_iWPort)
+				if (set_iWPort)
 				{
 					sWListen = socket(AF_INET, SOCK_STREAM, 0);
 					sockaddr_in adr;
@@ -359,13 +360,13 @@ bool FLHookInit()
 					if (::bind(sWListen, (sockaddr*)&adr, sizeof(adr)) != 0)
 						throw "unicode: socket-bind failed, port already in use?";
 
-					if(listen(sWListen, SOMAXCONN) != 0)
+					if (listen(sWListen, SOMAXCONN) != 0)
 						throw "unicode: socket-listen failed";
 
 					ConPrint(L"socket(unicode): socket connection listening\n");
 				}
 
-				if(set_iEPort)
+				if (set_iEPort)
 				{
 					sEListen = socket(AF_INET, SOCK_STREAM, 0);
 					sockaddr_in adr;
@@ -375,13 +376,13 @@ bool FLHookInit()
 					if (::bind(sEListen, (sockaddr*)&adr, sizeof(adr)) != 0)
 						throw "encrypted: socket-bind failed, port already in use?";
 
-					if(listen(sEListen, SOMAXCONN) != 0)
+					if (listen(sEListen, SOMAXCONN) != 0)
 						throw "encrypted: socket-listen failed";
 
 					ConPrint(L"socket(encrypted-ascii): socket connection listening\n");
 				}
 
-				if(set_iEWPort)
+				if (set_iEWPort)
 				{
 					sEWListen = socket(AF_INET, SOCK_STREAM, 0);
 					sockaddr_in adr;
@@ -391,7 +392,7 @@ bool FLHookInit()
 					if (::bind(sEWListen, (sockaddr*)&adr, sizeof(adr)) != 0)
 						throw "encrypted-unicode: socket-bind failed, port already in use?";
 
-					if(listen(sEWListen, SOMAXCONN) != 0)
+					if (listen(sEWListen, SOMAXCONN) != 0)
 						throw "encrypted-unicode: socket-listen failed";
 
 					ConPrint(L"socket(encrypted-unicode): socket connection listening\n");
@@ -399,30 +400,31 @@ bool FLHookInit()
 			}
 		}
 
-		
-	} catch(char *szError) {
-		if(bInitHookExports)
+
+	}
+	catch (char *szError) {
+		if (bInitHookExports)
 			UnloadHookExports();
 
-		if(sListen != INVALID_SOCKET)
+		if (sListen != INVALID_SOCKET)
 		{
 			closesocket(sListen);
 			sListen = INVALID_SOCKET;
 		}
 
-		if(sWListen != INVALID_SOCKET)
+		if (sWListen != INVALID_SOCKET)
 		{
 			closesocket(sWListen);
 			sWListen = INVALID_SOCKET;
 		}
 
-		if(sEListen != INVALID_SOCKET)
+		if (sEListen != INVALID_SOCKET)
 		{
 			closesocket(sEListen);
 			sEListen = INVALID_SOCKET;
 		}
 
-		if(sEWListen != INVALID_SOCKET)
+		if (sEWListen != INVALID_SOCKET)
 		{
 			closesocket(sEWListen);
 			sEWListen = INVALID_SOCKET;
@@ -431,7 +433,7 @@ bool FLHookInit()
 		ConPrint(L"ERROR: %s\n", stows(szError).c_str());
 		return false;
 	}
-	return true; 
+	return true;
 }
 
 /**************************************************************************************************************
@@ -449,16 +451,16 @@ void FLHookUnload()
 	FreeConsole();
 
 	// quit network sockets
-	if(sListen != INVALID_SOCKET)
+	if (sListen != INVALID_SOCKET)
 		closesocket(sListen);
-	if(sWListen != INVALID_SOCKET)
+	if (sWListen != INVALID_SOCKET)
 		closesocket(sWListen);
-	if(sEListen != INVALID_SOCKET)
+	if (sEListen != INVALID_SOCKET)
 		closesocket(sEListen);
-	if(sEWListen != INVALID_SOCKET)
+	if (sEWListen != INVALID_SOCKET)
 		closesocket(sEWListen);
 
-	for(list<SOCKET_CONNECTION*>::iterator i = lstSockets.begin(); (i != lstSockets.end()); i++)
+	for (list<SOCKET_CONNECTION*>::iterator i = lstSockets.begin(); (i != lstSockets.end()); i++)
 	{
 		closesocket((*i)->csock.s);
 		delete *i;
@@ -466,7 +468,7 @@ void FLHookUnload()
 	lstSockets.clear();
 
 	// free blowfish encryption data
-	if(set_BF_CTX)
+	if (set_BF_CTX)
 	{
 		ZeroMemory(set_BF_CTX, sizeof(set_BF_CTX));
 		free(set_BF_CTX);
@@ -477,7 +479,7 @@ void FLHookUnload()
 
 	// finish
 	FreeLibrary(hWString);
-	FreeLibraryAndExitThread(hMe, 0); 
+	FreeLibraryAndExitThread(hMe, 0);
 }
 
 void FLHookShutdown()
@@ -511,7 +513,7 @@ void FLHookShutdown()
 
 	// close log
 	fclose(fLog);
-	if(set_bDebug)
+	if (set_bDebug)
 		fclose(fLogDebug);
 
 	// unload rest
@@ -528,23 +530,24 @@ return true -> close socket connection
 
 bool ProcessSocketCmd(SOCKET_CONNECTION *sc, wstring wscCmd)
 {
-	if(!ToLower(wscCmd).find(L"quit")) { // quit connection
+	if (!ToLower(wscCmd).find(L"quit")) { // quit connection
 		sc->csock.DoPrint(L"Goodbye.\r\n");
 		ConPrint(L"socket: connection closed\n");
 		return true;
-	} else if(!(sc->csock.bAuthed)) { // not authenticated yet
+	}
+	else if (!(sc->csock.bAuthed)) { // not authenticated yet
 		wstring wscLwr = ToLower(wscCmd);
-		if(wscLwr.find(L"pass") != 0)
+		if (wscLwr.find(L"pass") != 0)
 		{
 			sc->csock.Print(L"ERR Please authenticate first\n");
 			return false;
 		}
 
 		wchar_t wszPass[256];
-		if(wscCmd.length() >= 256)
+		if (wscCmd.length() >= 256)
 		{
 			sc->csock.DoPrint(L"ERR Wrong password\n");
-//			ConPrint(L"socket: socket authentication failed (invalid pass)\n");
+			//			ConPrint(L"socket: socket authentication failed (invalid pass)\n");
 			sc->csock.DoPrint(L"Goodbye.\r\n");
 			ConPrint(L"socket: connection closed (invalid pass)\n");
 			AddLog("socket: socket connection from %s:%d closed (invalid pass)", sc->csock.sIP.c_str(), sc->csock.iPort);
@@ -553,7 +556,7 @@ bool ProcessSocketCmd(SOCKET_CONNECTION *sc, wstring wscCmd)
 		swscanf(wscCmd.c_str(), L"pass %s", wszPass);
 
 		// read passes from ini
-		for(uint i = 0;; i++)
+		for (uint i = 0;; i++)
 		{
 			char szBuf[64];
 			sprintf(szBuf, "pass%u", i);
@@ -561,14 +564,15 @@ bool ProcessSocketCmd(SOCKET_CONNECTION *sc, wstring wscCmd)
 			sprintf(szBuf, "rights%u", i);
 			string scRights = IniGetS(set_scCfgFile, "Socket", szBuf, "");
 
-			if(!scPass.length()) {
+			if (!scPass.length()) {
 				sc->csock.DoPrint(L"ERR Wrong password\n");
-//				ConPrint(L"socket: socket authentication failed (invalid pass)\n");
+				//				ConPrint(L"socket: socket authentication failed (invalid pass)\n");
 				sc->csock.DoPrint(L"Goodbye.\r\n");
 				ConPrint(L"socket: connection closed (invalid pass)\n");
 				AddLog("socket: socket connection from %s:%d closed (invalid pass)", sc->csock.sIP.c_str(), sc->csock.iPort);
 				return true;
-			} else if(!scPass.compare(wstos(wszPass))) {
+			}
+			else if (!scPass.compare(wstos(wszPass))) {
 				sc->csock.bAuthed = true;
 				sc->csock.SetRightsByString(scRights);
 				sc->csock.Print(L"OK\n");
@@ -576,20 +580,23 @@ bool ProcessSocketCmd(SOCKET_CONNECTION *sc, wstring wscCmd)
 				return false;
 			}
 		}
-	} else { // execute admin command
-		if(wscCmd[wscCmd.length()-1] == '\n')
-			wscCmd = wscCmd.substr(0, wscCmd.length()-1);
-		if(wscCmd[wscCmd.length()-1] == '\r')
-			wscCmd = wscCmd.substr(0, wscCmd.length()-1);
+	}
+	else { // execute admin command
+		if (wscCmd[wscCmd.length() - 1] == '\n')
+			wscCmd = wscCmd.substr(0, wscCmd.length() - 1);
+		if (wscCmd[wscCmd.length() - 1] == '\r')
+			wscCmd = wscCmd.substr(0, wscCmd.length() - 1);
 
-		if(!wscCmd.compare(L"eventmode")) {
-			if(sc->csock.rights & RIGHT_EVENTMODE) {
+		if (!wscCmd.compare(L"eventmode")) {
+			if (sc->csock.rights & RIGHT_EVENTMODE) {
 				sc->csock.Print(L"OK\n");
 				sc->csock.bEventMode = true;
-			} else {
+			}
+			else {
 				sc->csock.Print(L"ERR No permission\n");
-			}		
-		} else
+			}
+		}
+		else
 			sc->csock.ExecuteCommandString(wscCmd);
 
 		return false;
@@ -602,7 +609,7 @@ write text to console
 
 void ConPrint(wstring wscText, ...)
 {
-	wchar_t wszBuf[1024*8] = L"";
+	wchar_t wszBuf[1024 * 8] = L"";
 	va_list marker;
 	va_start(marker, wscText);
 
@@ -626,11 +633,11 @@ void ProcessEvent(wstring wscText, ...)
 
 	wscText = wszBuf;
 
-	CALL_PLUGINS_V(PLUGIN_ProcessEvent_BEFORE,,(wstring &wscText),(wscText));
+	CALL_PLUGINS_V(PLUGIN_ProcessEvent_BEFORE, , (wstring &wscText), (wscText));
 
 	foreach(lstSockets, SOCKET_CONNECTION*, i)
 	{
-		if((*i)->csock.bEventMode)
+		if ((*i)->csock.bEventMode)
 			(*i)->csock.Print(L"%s\n", wscText.c_str());
 	}
 }
@@ -690,14 +697,14 @@ void SendChatEvent(uint iClientID, uint iToID, wstring &wscMsg) {
 check for pending admin commands in console or socket and execute them
 **************************************************************************************************************/
 
-struct timeval tv = {0, 0};
+struct timeval tv = { 0, 0 };
 
 void ProcessPendingCommands()
 {
 	try {
 		// check for new console commands
 		EnterCriticalSection(&cs);
-		while(lstConsoleCmds.size())
+		while (lstConsoleCmds.size())
 		{
 			wstring *pwscCmd = lstConsoleCmds.front();
 			lstConsoleCmds.pop_front();
@@ -706,12 +713,12 @@ void ProcessPendingCommands()
 		}
 		LeaveCriticalSection(&cs);
 
-		if(sListen != INVALID_SOCKET)
+		if (sListen != INVALID_SOCKET)
 		{ // check for new ascii socket connections
 			FD_SET fds;
 			FD_ZERO(&fds);
 			FD_SET(sListen, &fds);
-			if(select(0, &fds, 0, 0, &tv))
+			if (select(0, &fds, 0, 0, &tv))
 			{ // accept new connection 
 				sockaddr_in adr;
 
@@ -732,12 +739,12 @@ void ProcessPendingCommands()
 			}
 		}
 
-		if(sWListen != INVALID_SOCKET)
+		if (sWListen != INVALID_SOCKET)
 		{ // check for new ascii socket connections
 			FD_SET fds;
 			FD_ZERO(&fds);
 			FD_SET(sWListen, &fds);
-			if(select(0, &fds, 0, 0, &tv))
+			if (select(0, &fds, 0, 0, &tv))
 			{ // accept new connection 
 				sockaddr_in adr;
 
@@ -758,12 +765,12 @@ void ProcessPendingCommands()
 			}
 		}
 
-		if(sEListen != INVALID_SOCKET)
+		if (sEListen != INVALID_SOCKET)
 		{ // check for new ascii socket connections
 			FD_SET fds;
 			FD_ZERO(&fds);
 			FD_SET(sEListen, &fds);
-			if(select(0, &fds, 0, 0, &tv))
+			if (select(0, &fds, 0, 0, &tv))
 			{ // accept new connection 
 				sockaddr_in adr;
 
@@ -785,12 +792,12 @@ void ProcessPendingCommands()
 			}
 		}
 
-		if(sEWListen != INVALID_SOCKET)
+		if (sEWListen != INVALID_SOCKET)
 		{ // check for new ascii socket connections
 			FD_SET fds;
 			FD_ZERO(&fds);
 			FD_SET(sEWListen, &fds);
-			if(select(0, &fds, 0, 0, &tv))
+			if (select(0, &fds, 0, 0, &tv))
 			{ // accept new connection 
 				sockaddr_in adr;
 
@@ -820,14 +827,14 @@ void ProcessPendingCommands()
 			FD_SET fds;
 			FD_ZERO(&fds);
 			FD_SET(sc->csock.s, &fds);
-			struct timeval tv = {0, 0};
-			if(select(0, &fds, 0, 0, &tv))
+			struct timeval tv = { 0, 0 };
+			if (select(0, &fds, 0, 0, &tv))
 			{ // data to be read
 				ulong lSize;
 				ioctlsocket(sc->csock.s, FIONREAD, &lSize);
 				char *szData = new char[lSize + 1];
 				memset(szData, 0, lSize + 1);
-				if(recv(sc->csock.s, szData, lSize, 0) <= 0)
+				if (recv(sc->csock.s, szData, lSize, 0) <= 0)
 				{
 					ConPrint(L"socket: socket connection closed\n");
 					delete[] szData;
@@ -837,14 +844,14 @@ void ProcessPendingCommands()
 
 				// enqueue commands (terminated by \n)
 				wstring wscData;
-				if(sc->csock.bEncrypted)
+				if (sc->csock.bEncrypted)
 				{
 					SwapBytes(szData, lSize);
-					Blowfish_Decrypt(sc->csock.bfc, szData, lSize); 
+					Blowfish_Decrypt(sc->csock.bfc, szData, lSize);
 					SwapBytes(szData, lSize);
 				}
-				if(sc->csock.bUnicode)
-					wscData = wstring((wchar_t*)szData,lSize/2);
+				if (sc->csock.bUnicode)
+					wscData = wstring((wchar_t*)szData, lSize / 2);
 				else
 					wscData = stows(szData);
 
@@ -853,9 +860,9 @@ void ProcessPendingCommands()
 
 				// check for memory overflow ddos attack
 				uint iMaxKB = 1;
-				if((sc->csock.bAuthed))  // not authenticated yet
+				if ((sc->csock.bAuthed))  // not authenticated yet
 					iMaxKB = 500;
-				if(wscData.length() > (1024*iMaxKB)) {
+				if (wscData.length() > (1024 * iMaxKB)) {
 					ConPrint(L"socket: socket connection closed (possible ddos attempt)\n");
 					AddLog("socket: socket connection from %s:%d closed (possible ddos attempt)", sc->csock.sIP.c_str(), sc->csock.iPort);
 					delete[] szData;
@@ -865,16 +872,18 @@ void ProcessPendingCommands()
 
 				list<wstring> lstCmds;
 				wstring wscCmd;
-				for(uint i = 0; (i < wscData.length()); i++)
+				for (uint i = 0; (i < wscData.length()); i++)
 				{
-					if(!wscData.substr(i, 2).compare(L"\r\n")) {
+					if (!wscData.substr(i, 2).compare(L"\r\n")) {
 						lstCmds.push_back(wscCmd);
 						wscCmd = L"";
 						i++;
-					} else if(wscData[i] == '\n') {
+					}
+					else if (wscData[i] == '\n') {
 						lstCmds.push_back(wscCmd);
 						wscCmd = L"";
-					} else 
+					}
+					else
 						wscCmd.append(1, wscData[i]);
 				}
 
@@ -883,7 +892,7 @@ void ProcessPendingCommands()
 				// process cmds
 				foreach(lstCmds, wstring, it)
 				{
-					if(ProcessSocketCmd(sc, (*it)))
+					if (ProcessSocketCmd(sc, (*it)))
 					{
 						lstDelete.push_back(sc);
 						break;
@@ -903,8 +912,9 @@ void ProcessPendingCommands()
 		}
 
 		lstDelete.clear();
-	} catch(...) { 
+	}
+	catch (...) {
 		LOG_EXCEPTION
-		throw "exception"; 
+			throw "exception";
 	}
 }

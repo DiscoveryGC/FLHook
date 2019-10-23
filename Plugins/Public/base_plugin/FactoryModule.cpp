@@ -20,7 +20,7 @@ FactoryModule::FactoryModule(PlayerBase *the_base)
 // Find the recipe for this building_type and start construction.
 FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type)
 	: Module(the_type), base(the_base)
-{	
+{
 	active_recipe.nickname = 0;
 }
 
@@ -29,18 +29,18 @@ wstring FactoryModule::GetInfo(bool xml)
 	wstring info;
 	if (xml)
 	{
-		info += FACTORY_NAMES[type]; 
+		info += FACTORY_NAMES[type];
 		info += L"</TEXT><PARA/><TEXT>      Pending " + stows(itos(build_queue.size())) + L" items</TEXT>";
 		if (active_recipe.nickname)
 		{
 			info += L"<PARA/><TEXT>      Building " + active_recipe.infotext + L". Waiting for:</TEXT>";
-		
-			for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+
+			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
 			{
 				uint good = i->first;
 				uint quantity = i->second;
-				
+
 				const GoodInfo *gi = GoodList::find_by_id(good);
 				if (gi)
 				{
@@ -60,13 +60,13 @@ wstring FactoryModule::GetInfo(bool xml)
 		if (active_recipe.nickname)
 		{
 			info = L" - Building " + active_recipe.infotext + L". Waiting for:";
-		
-			for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+
+			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
 			{
 				uint good = i->first;
 				uint quantity = i->second;
-				
+
 				const GoodInfo *gi = GoodList::find_by_id(good);
 				if (gi)
 				{
@@ -104,7 +104,7 @@ bool FactoryModule::Timer(uint time)
 
 	// Consume goods at the cooking rate.
 	bool cooked = true;
-	for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
 		uint good = i->first;
@@ -184,15 +184,15 @@ void FactoryModule::SaveState(FILE *file)
 	fprintf(file, "produced_item = %u\n", active_recipe.produced_item);
 	fprintf(file, "cooking_rate = %u\n", active_recipe.cooking_rate);
 	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
-	for (map<uint,uint>::iterator i = active_recipe.consumed_items.begin();
+	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
-		fprintf(file, "consumed = %u, %u\n", i->first, i->second);	
+		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
 	}
 	for (list<uint>::iterator i = build_queue.begin();
 		i != build_queue.end(); ++i)
 	{
-		fprintf(file, "build_queue = %u\n", *i);	
+		fprintf(file, "build_queue = %u\n", *i);
 	}
 }
 
@@ -249,7 +249,7 @@ bool FactoryModule::AddToQueue(uint equipment_type)
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 

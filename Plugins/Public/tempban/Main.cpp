@@ -44,7 +44,7 @@ EXPORT void HkTimerCheckKick()
 
 	returncode = DEFAULT_RETURNCODE;
 
-	foreach (lstTempBans, TEMPBAN_INFO,it) {
+	foreach(lstTempBans, TEMPBAN_INFO, it) {
 		if (((*it).banstart + (*it).banduration) < timeInMS()) {
 			lstTempBans.erase(it);
 			break; // fix to not overflow the list
@@ -67,10 +67,10 @@ HK_ERROR HkTempBan(const wstring &wscCharname, uint _duration)
 	tempban.banduration = duration;
 
 	CAccount *acc;
-	if(iClientID != -1)
+	if (iClientID != -1)
 		acc = Players.FindAccountFromClientID(iClientID);
 	else {
-		if(!(acc = HkGetAccountByCharname(wscCharname)))
+		if (!(acc = HkGetAccountByCharname(wscCharname)))
 			return HKE_CHAR_DOES_NOT_EXIST;
 	}
 	wstring wscID = HkGetAccountID(acc);
@@ -86,24 +86,24 @@ bool HkTempBannedCheck(uint iClientID)
 {
 	CAccount *acc;
 	acc = Players.FindAccountFromClientID(iClientID);
-	
+
 	wstring wscID = HkGetAccountID(acc);
 
 
-	foreach (lstTempBans, TEMPBAN_INFO,it) {
+	foreach(lstTempBans, TEMPBAN_INFO, it) {
 		if ((*it).wscID == wscID)
 			return true;
 	}
 
-	return false;    	
-	
+	return false;
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 namespace HkIServerImpl
-{    
+{
 
 	EXPORT void __stdcall Login(struct SLoginInfo const &li, unsigned int iClientID)
 	{
@@ -127,16 +127,16 @@ EXPORT void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	// for example a logging plugin that would log every tempban, etc..
 
 	// this is the hooked plugin communication function
-	
+
 	// we now check, if the message is for us
-	if(msg == TEMPBAN_BAN) {
+	if (msg == TEMPBAN_BAN) {
 		// the message is for us, now we know what the actual data is, so we do a reinterpret cast
 		TEMPBAN_BAN_STRUCT* incoming_data = reinterpret_cast<TEMPBAN_BAN_STRUCT*>(data);
-		
+
 		// do something here with the received data & instruction
-		HkTempBan(ARG_CLIENTID(incoming_data->iClientID),incoming_data->iDuration);
+		HkTempBan(ARG_CLIENTID(incoming_data->iClientID), incoming_data->iDuration);
 	}
-	return; 
+	return;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -145,9 +145,9 @@ void CmdTempBan(CCmds* classptr, const wstring &wscCharname, uint iDuration)
 {
 
 	// right check
-	if(!(classptr->rights & RIGHT_BAN)) { classptr->Print(L"ERR No permission\n"); return;}
+	if (!(classptr->rights & RIGHT_BAN)) { classptr->Print(L"ERR No permission\n"); return; }
 
-	if(((classptr->hkLastErr = HkTempBan(wscCharname,iDuration)) == HKE_OK)) // hksuccess 
+	if (((classptr->hkLastErr = HkTempBan(wscCharname, iDuration)) == HKE_OK)) // hksuccess 
 		classptr->Print(L"OK\n");
 	else
 		classptr->PrintError();
@@ -159,7 +159,7 @@ EXPORT bool ExecuteCommandString_Callback(CCmds* classptr, const wstring &wscCmd
 {
 	returncode = NOFUNCTIONCALL;  // flhook needs to care about our return code
 
-	if(IS_CMD("tempban")) {
+	if (IS_CMD("tempban")) {
 
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // do not let other plugins kick in since we now handle the command
 
@@ -168,7 +168,7 @@ EXPORT bool ExecuteCommandString_Callback(CCmds* classptr, const wstring &wscCmd
 		return true;
 	}
 
-    return false;
+	return false;
 }
 
 EXPORT void CmdHelp_Callback(CCmds* classptr)

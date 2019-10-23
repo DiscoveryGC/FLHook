@@ -6,8 +6,8 @@ EXPORT bool g_bMsg = false;
 
 HK_ERROR HkMsg(uint iClientID, const wstring &wscMessage)
 {
-	struct CHAT_ID ci = {0};
-	struct CHAT_ID ciClient = {iClientID};
+	struct CHAT_ID ci = { 0 };
+	struct CHAT_ID ciClient = { iClientID };
 
 	wstring wscXML = L"<TRA data=\"0x19BD3A00\" mask=\"-1\"/><TEXT>" + XMLText(wscMessage) + L"</TEXT>";
 	uint iRet;
@@ -24,7 +24,7 @@ HK_ERROR HkMsg(const wstring &wscCharname, const wstring &wscMessage)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	return HkMsg(iClientID, wscMessage);
@@ -37,10 +37,10 @@ bool g_bMsgS = false;
 HK_ERROR HkMsgS(const wstring &wscSystemname, const wstring &wscMessage)
 {
 	uint iSystemID = 0;
-	if(!(iSystemID = ToInt(wscSystemname.c_str())))
+	if (!(iSystemID = ToInt(wscSystemname.c_str())))
 	{
 		pub::GetSystemID(iSystemID, wstos(wscSystemname).c_str());
-		if(!iSystemID)
+		if (!iSystemID)
 			return HKE_INVALID_SYSTEM;;
 	}
 
@@ -50,18 +50,18 @@ HK_ERROR HkMsgS(const wstring &wscSystemname, const wstring &wscMessage)
 	char szBuf[1024];
 	HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet);
 
-	struct CHAT_ID ci = {0};
+	struct CHAT_ID ci = { 0 };
 
 	// for all players in system...
 	struct PlayerData *pPD = 0;
-	while(pPD = Players.traverse_active(pPD))
+	while (pPD = Players.traverse_active(pPD))
 	{
 		uint iClientID = HkGetClientIdFromPD(pPD);
 		uint iClientSystemID = 0;
 		pub::Player::GetSystem(iClientID, iClientSystemID);
-		if(iSystemID == iClientSystemID)
+		if (iSystemID == iClientSystemID)
 		{
-			struct CHAT_ID ciClient = {iClientID};
+			struct CHAT_ID ciClient = { iClientID };
 			g_bMsgS = true;
 			HkIServerImpl::SubmitChat(ci, iRet, szBuf, ciClient, -1);
 			g_bMsgS = false;
@@ -77,8 +77,8 @@ bool g_bMsgU = false;
 
 HK_ERROR HkMsgU(const wstring &wscMessage)
 {
-	struct CHAT_ID ci = {0};
-	struct CHAT_ID ciClient = {0x00010000};
+	struct CHAT_ID ci = { 0 };
+	struct CHAT_ID ciClient = { 0x00010000 };
 
 	wstring wscXML = L"<TRA font=\"1\" color=\"#FFFFFF\"/><TEXT>" + XMLText(wscMessage) + L"</TEXT>";
 	uint iRet;
@@ -100,7 +100,7 @@ HK_ERROR HkFMsgEncodeXML(const wstring &wscXML, char *szBuf, uint iSize, uint &i
 	wstring wscMsg = L"<?xml version=\"1.0\" encoding=\"UTF-16\"?><RDL><PUSH/>";
 	wscMsg += wscXML;
 	wscMsg += L"<PARA/><POP/></RDL>\x000A\x000A";
-	if(!rdr.read_buffer(rdl, (const char*)wscMsg.c_str(), (uint)wscMsg.length() * 2))
+	if (!rdr.read_buffer(rdl, (const char*)wscMsg.c_str(), (uint)wscMsg.length() * 2))
 		return HKE_WRONG_XML_SYNTAX;;
 
 	BinaryRDLWriter	rdlwrite;
@@ -122,13 +122,13 @@ HK_ERROR HkFMsgSendChat(uint iClientID, char *szBuf, uint iSize)
 
 	__asm
 	{
-		push [p4]
-		push [p3]
-		push [p2]
-		push [p1]
+		push[p4]
+		push[p3]
+		push[p2]
+		push[p1]
 		mov ecx, [Client]
 		add ecx, 4
-		call [RCSendChatMsg]
+		call[RCSendChatMsg]
 	}
 
 	return HKE_OK;;
@@ -140,7 +140,7 @@ HK_ERROR HkFMsg(uint iClientID, const wstring &wscXML)
 {
 	char szBuf[0xFFFF];
 	uint iRet;
-	if(!HKHKSUCCESS(HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet)))
+	if (!HKHKSUCCESS(HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet)))
 		return HKE_WRONG_XML_SYNTAX;;
 
 	HkFMsgSendChat(iClientID, szBuf, iRet);
@@ -151,7 +151,7 @@ HK_ERROR HkFMsg(const wstring &wscCharname, const wstring &wscXML)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	return HkFMsg(iClientID, wscXML);
@@ -163,28 +163,28 @@ HK_ERROR HkFMsgS(const wstring &wscSystemname, const wstring &wscXML)
 {
 	// get system id
 	uint iSystemID = 0;
-	if(!(iSystemID = ToInt(wscSystemname.c_str())))
+	if (!(iSystemID = ToInt(wscSystemname.c_str())))
 	{
 		pub::GetSystemID(iSystemID, wstos(wscSystemname).c_str());
-		if(!iSystemID)
+		if (!iSystemID)
 			return HKE_INVALID_SYSTEM;;
 	}
-	
+
 	// encode xml string
 	char szBuf[0xFFFF];
 	uint iRet;
-	if(!HKHKSUCCESS(HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet)))
+	if (!HKHKSUCCESS(HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet)))
 		return HKE_WRONG_XML_SYNTAX;;
 
 
 	// for all players in system...
 	struct PlayerData *pPD = 0;
-	while(pPD = Players.traverse_active(pPD))
+	while (pPD = Players.traverse_active(pPD))
 	{
 		uint iClientID = HkGetClientIdFromPD(pPD);
 		uint iClientSystemID = 0;
 		pub::Player::GetSystem(iClientID, iClientSystemID);
-		if(iSystemID == iClientSystemID)
+		if (iSystemID == iClientSystemID)
 			HkFMsgSendChat(iClientID, szBuf, iRet);
 	}
 
@@ -198,12 +198,12 @@ HK_ERROR HkFMsgU(const wstring &wscXML)
 	// encode xml string
 	char szBuf[0xFFFF];
 	uint iRet;
-	if(!HKHKSUCCESS(HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet)))
+	if (!HKHKSUCCESS(HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet)))
 		return HKE_WRONG_XML_SYNTAX;;
 
 	// for all players
 	struct PlayerData *pPD = 0;
-	while(pPD = Players.traverse_active(pPD))
+	while (pPD = Players.traverse_active(pPD))
 	{
 		uint iClientID = HkGetClientIdFromPD(pPD);
 		HkFMsgSendChat(iClientID, szBuf, iRet);

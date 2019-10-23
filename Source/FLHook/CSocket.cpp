@@ -5,9 +5,9 @@
 void CSocket::DoPrint(const wstring &wscTextIn)
 {
 	wstring wscText(wscTextIn);
-	for(uint i = 0; (i < wscText.length()); i++)
+	for (uint i = 0; (i < wscText.length()); i++)
 	{
-		if(wscText[i] == '\n')
+		if (wscText[i] == '\n')
 		{
 			wscText.replace(i, 1, L"\r\n");
 			i++;
@@ -15,35 +15,35 @@ void CSocket::DoPrint(const wstring &wscTextIn)
 	}
 
 	int iSndBuf = 300000; // fix: set send-buffer to this size (bytes) 
-    int size = sizeof(int); 
-    setsockopt(this->s, SOL_SOCKET, SO_SNDBUF, (const char*)&iSndBuf, size);
+	int size = sizeof(int);
+	setsockopt(this->s, SOL_SOCKET, SO_SNDBUF, (const char*)&iSndBuf, size);
 
-	if(bEncrypted)
+	if (bEncrypted)
 	{
 		int iLen;
 		char *data;
 		const char* tempData;
-		if(bUnicode)
+		if (bUnicode)
 		{
 			uint iRem = (uint)(wscText.length() % 4);
-			if(iRem) //Data to be encrypted is not a multiple of 8 bytes, add 0x00s to compensate
+			if (iRem) //Data to be encrypted is not a multiple of 8 bytes, add 0x00s to compensate
 			{
 				iRem = 4 - iRem;
-				wscText.resize(wscText.length()+iRem, L'\x00');
+				wscText.resize(wscText.length() + iRem, L'\x00');
 			}
 			tempData = (const char*)wscText.data();
-			iLen = (uint)(wscText.length()*2);
+			iLen = (uint)(wscText.length() * 2);
 			data = (char*)malloc(iLen);
 			memcpy(data, tempData, iLen);
 		}
 		else
 		{
 			uint iRem = (uint)(wscText.length() % 8);
-			if(iRem)
+			if (iRem)
 			{
 				iRem = 8 - iRem;
 				string scText = wstos(wscText);
-				scText.resize(scText.length()+iRem,'\x00');
+				scText.resize(scText.length() + iRem, '\x00');
 				tempData = scText.data();
 				iLen = (int)scText.length();
 				data = (char*)malloc(iLen);
@@ -60,7 +60,7 @@ void CSocket::DoPrint(const wstring &wscTextIn)
 		}
 
 		SwapBytes(data, iLen);
-		if(Blowfish_Encrypt(bfc, data, iLen))
+		if (Blowfish_Encrypt(bfc, data, iLen))
 		{
 			SwapBytes(data, iLen);
 			send(this->s, data, iLen, 0);
@@ -69,8 +69,8 @@ void CSocket::DoPrint(const wstring &wscTextIn)
 	}
 	else
 	{
-		if(bUnicode)
-			send(this->s, (const char*)wscText.c_str(), (int)wscText.length()*2, 0);
+		if (bUnicode)
+			send(this->s, (const char*)wscText.c_str(), (int)wscText.length() * 2, 0);
 		else
 			send(this->s, wstos(wscText).c_str(), (int)wscText.length(), 0);
 	}

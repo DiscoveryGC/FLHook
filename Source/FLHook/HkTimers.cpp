@@ -19,16 +19,16 @@ uint CTimer::stop()
 {
 	uint iDelta = abs((int)(timeInMS() - tmStart));
 
-	if(iDelta > iMax && iDelta > iWarning) {
+	if (iDelta > iMax && iDelta > iWarning) {
 
 		// log
-		if(set_bPerfTimer)
+		if (set_bPerfTimer)
 			HkAddPerfTimerLog("Spent %d ms in %s, longest so far.", iDelta, sFunction.c_str());
 		iMax = iDelta;
 	}
 	else if (iDelta > set_iTimerDebugThreshold && set_iTimerDebugThreshold > 0)
 	{
-		if(set_bPerfTimer)
+		if (set_bPerfTimer)
 			HkAddPerfTimerLog("Spent %d ms in %s", iDelta, sFunction.c_str());
 	}
 
@@ -42,22 +42,22 @@ check if players should be kicked
 
 void HkTimerCheckKick()
 {
-	
-	CALL_PLUGINS_V(PLUGIN_HkTimerCheckKick,,(),());
+
+	CALL_PLUGINS_V(PLUGIN_HkTimerCheckKick, , (), ());
 
 
 	try {
 		// for all players
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
 			uint iClientID = HkGetClientIdFromPD(pPD);
 			if (iClientID < 1 || iClientID > MAX_CLIENT_ID)
 				continue;
 
-			if(ClientInfo[iClientID].tmKickTime)
+			if (ClientInfo[iClientID].tmKickTime)
 			{
-				if(timeInMS() >= ClientInfo[iClientID].tmKickTime)
+				if (timeInMS() >= ClientInfo[iClientID].tmKickTime)
 				{
 					HkKick(ARG_CLIENTID(iClientID)); // kick time expired
 					ClientInfo[iClientID].tmKickTime = 0;
@@ -65,13 +65,13 @@ void HkTimerCheckKick()
 				continue; // player will be kicked anyway
 			}
 
-			if(set_iAntiBaseIdle)
+			if (set_iAntiBaseIdle)
 			{ // anti base-idle check
 				uint iBaseID;
 				pub::Player::GetBase(iClientID, iBaseID);
-				if(iBaseID && ClientInfo[iClientID].iBaseEnterTime)
+				if (iBaseID && ClientInfo[iClientID].iBaseEnterTime)
 				{
-					if((time(0) - ClientInfo[iClientID].iBaseEnterTime) >= set_iAntiBaseIdle)
+					if ((time(0) - ClientInfo[iClientID].iBaseEnterTime) >= set_iAntiBaseIdle)
 					{
 						HkAddKickLog(iClientID, L"Base idling");
 						HkMsgAndKick(iClientID, L"Base idling", set_iKickMsgPeriod);
@@ -80,23 +80,25 @@ void HkTimerCheckKick()
 				}
 			}
 
-			if(set_iAntiCharMenuIdle)
+			if (set_iAntiCharMenuIdle)
 			{ // anti charmenu-idle check
-				if(HkIsInCharSelectMenu(iClientID))	{
-					if(!ClientInfo[iClientID].iCharMenuEnterTime)
+				if (HkIsInCharSelectMenu(iClientID)) {
+					if (!ClientInfo[iClientID].iCharMenuEnterTime)
 						ClientInfo[iClientID].iCharMenuEnterTime = (uint)time(0);
-					else if((time(0) - ClientInfo[iClientID].iCharMenuEnterTime) >= set_iAntiCharMenuIdle) {
+					else if ((time(0) - ClientInfo[iClientID].iCharMenuEnterTime) >= set_iAntiCharMenuIdle) {
 						HkAddKickLog(iClientID, L"Charmenu idling");
 						HkKick(ARG_CLIENTID(iClientID));
 						ClientInfo[iClientID].iCharMenuEnterTime = 0;
 						continue;
 					}
-				} else
+				}
+				else
 					ClientInfo[iClientID].iCharMenuEnterTime = 0;
 			}
 
 		}
-	} catch(...) { LOG_EXCEPTION }
+	}
+	catch (...) { LOG_EXCEPTION }
 }
 
 /**************************************************************************************************************
@@ -105,21 +107,22 @@ Check if NPC spawns should be disabled
 
 void HkTimerNPCAndF1Check()
 {
-	CALL_PLUGINS_V(PLUGIN_HkTimerNPCAndF1Check,,(),());
+	CALL_PLUGINS_V(PLUGIN_HkTimerNPCAndF1Check, , (), ());
 
 	try {
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
 			uint iClientID = HkGetClientIdFromPD(pPD);
 			if (iClientID < 1 || iClientID > MAX_CLIENT_ID)
 				continue;
 
-			if(ClientInfo[iClientID].tmF1Time && (timeInMS() >= ClientInfo[iClientID].tmF1Time)) { // f1
+			if (ClientInfo[iClientID].tmF1Time && (timeInMS() >= ClientInfo[iClientID].tmF1Time)) { // f1
 				Server.CharacterInfoReq(iClientID, false);
 				ClientInfo[iClientID].tmF1Time = 0;
-			} else if(ClientInfo[iClientID].tmF1TimeDisconnect && (timeInMS() >= ClientInfo[iClientID].tmF1TimeDisconnect)) {
-				ulong lArray[64] = {0};
+			}
+			else if (ClientInfo[iClientID].tmF1TimeDisconnect && (timeInMS() >= ClientInfo[iClientID].tmF1TimeDisconnect)) {
+				ulong lArray[64] = { 0 };
 				lArray[26] = iClientID;
 				__asm
 				{
@@ -127,7 +130,7 @@ void HkTimerNPCAndF1Check()
 					lea ecx, lArray
 					mov eax, [hModRemoteClient]
 					add eax, ADDR_RC_DISCONNECT
-					call eax ; disconncet
+					call eax; disconncet
 					popad
 				}
 
@@ -137,11 +140,12 @@ void HkTimerNPCAndF1Check()
 		}
 
 		// npc
-		if(set_iDisableNPCSpawns && (g_iServerLoad >= set_iDisableNPCSpawns))
+		if (set_iDisableNPCSpawns && (g_iServerLoad >= set_iDisableNPCSpawns))
 			HkChangeNPCSpawn(true); // serverload too high, disable npcs
 		else
 			HkChangeNPCSpawn(false);
-	} catch(...) { LOG_EXCEPTION }
+	}
+	catch (...) { LOG_EXCEPTION }
 }
 
 /**************************************************************************************************************
@@ -155,7 +159,7 @@ HANDLE hThreadResolver;
 void HkThreadResolver()
 {
 	try {
-		while(1)
+		while (1)
 		{
 			EnterCriticalSection(&csIPResolve);
 			list<RESOLVE_IP> lstMyResolveIPs = g_lstResolveIPs;
@@ -166,21 +170,22 @@ void HkThreadResolver()
 			{
 				ulong addr = inet_addr(wstos(it->wscIP).c_str());
 				hostent *host = gethostbyaddr((const char*)&addr, sizeof(addr), AF_INET);
-				if(host)
+				if (host)
 					it->wscHostname = stows(host->h_name);
 			}
 
 			EnterCriticalSection(&csIPResolve);
 			foreach(lstMyResolveIPs, RESOLVE_IP, it2)
 			{
-				if(it2->wscHostname.length())
+				if (it2->wscHostname.length())
 					g_lstResolveIPsResult.push_back(*it2);
 			}
 			LeaveCriticalSection(&csIPResolve);
 
 			Sleep(50);
 		}
-	} catch(...) { LOG_EXCEPTION }
+	}
+	catch (...) { LOG_EXCEPTION }
 }
 
 /**************************************************************************************************************
@@ -192,16 +197,16 @@ void HkTimerCheckResolveResults()
 		EnterCriticalSection(&csIPResolve);
 		foreach(g_lstResolveIPsResult, RESOLVE_IP, it)
 		{
-			if(it->iConnects != ClientInfo[it->iClientID].iConnects)
+			if (it->iConnects != ClientInfo[it->iClientID].iConnects)
 				continue; // outdated
 
 			// check if banned
 			foreach(set_lstBans, wstring, itb)
 			{
-				if(Wildcard::wildcardfit(wstos(*itb).c_str(), wstos(it->wscHostname).c_str()))
+				if (Wildcard::wildcardfit(wstos(*itb).c_str(), wstos(it->wscHostname).c_str()))
 				{
 					HkAddKickLog(it->iClientID, L"IP/Hostname ban(%s matches %s)", it->wscHostname.c_str(), (*itb).c_str());
-					if(set_bBanAccountOnMatch)
+					if (set_bBanAccountOnMatch)
 						HkBan(ARG_CLIENTID(it->iClientID), true);
 					HkKick(ARG_CLIENTID(it->iClientID));
 				}
@@ -211,7 +216,8 @@ void HkTimerCheckResolveResults()
 
 		g_lstResolveIPsResult.clear();
 		LeaveCriticalSection(&csIPResolve);
-	} catch(...) { LOG_EXCEPTION }
+	}
+	catch (...) { LOG_EXCEPTION }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

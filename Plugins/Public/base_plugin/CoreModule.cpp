@@ -20,7 +20,7 @@ CoreModule::~CoreModule()
 {
 	if (space_obj)
 	{
-		pub::SpaceObj::Destroy(space_obj, DestroyType::VANISH); 
+		pub::SpaceObj::Destroy(space_obj, DestroyType::VANISH);
 		spaceobj_modules.erase(space_obj);
 		space_obj = 0;
 	}
@@ -212,7 +212,7 @@ static void SpawnSolar(unsigned int & spaceID, pub::SpaceObj::SolarInfo const & 
 {
 	// hack server.dll so it does not call create solar packet send
 	char* serverHackAddress = (char*)hModServer + 0x2A62A;
-	char serverHack[] = {'\xEB'};
+	char serverHack[] = { '\xEB' };
 	WriteProcMem(serverHackAddress, &serverHack, 1);
 
 	pub::SpaceObj::CreateSolar(spaceID, solarInfo);
@@ -251,15 +251,15 @@ static void SpawnSolar(unsigned int & spaceID, pub::SpaceObj::SolarInfo const & 
 		}
 
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
-			if(pPD->iSystemID == solarInfo.iSystemID)
+			if (pPD->iSystemID == solarInfo.iSystemID)
 				GetClientInterface()->Send_FLPACKET_SERVER_CREATESOLAR(pPD->iOnlineID, (FLPACKET_CREATESOLAR&)packetSolar);
 		}
 	}
 
 	// undo the server.dll hack
-	char serverUnHack[] = {'\x74'};
+	char serverUnHack[] = { '\x74' };
 	WriteProcMem(serverHackAddress, &serverUnHack, 1);
 }
 
@@ -314,7 +314,7 @@ void CoreModule::Spawn()
 			solar_ids = 0;
 			return;
 		}
-		
+
 		// Send the base name to all players that are online
 		base->solar_ids = solar_ids;
 
@@ -343,7 +343,7 @@ void CoreModule::Spawn()
 
 		SpawnSolar(space_obj, si);
 		spaceobj_modules[space_obj] = this;
-		
+
 		// Set base health to reflect saved value unless this is a new base with
 		// a health of zero in which case we set it to 5% of the maximum and let
 		// players repair it.
@@ -353,10 +353,10 @@ void CoreModule::Spawn()
 			base->base_health = base->max_base_health * 0.05f;
 		else if (base->base_health > base->max_base_health)
 			base->base_health = base->max_base_health;
-		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health/base->max_base_health);
+		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
 		base->SyncReputationForBaseObject(space_obj);
-		if (set_plugin_debug>1)
+		if (set_plugin_debug > 1)
 			ConPrint(L"CoreModule::created space_obj=%u health=%f\n", space_obj, base->base_health);
 
 		pub::AI::SetPersonalityParams pers = MakePersonality();
@@ -408,7 +408,7 @@ void CoreModule::RepairDamage(float max_base_health)
 	// Check for Oxygen and Water
 	int checkoxygenwater = 0;
 	for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
-	i != set_base_crew_consumption_items.end(); ++i)
+		i != set_base_crew_consumption_items.end(); ++i)
 	{
 		// Use water and oxygen.
 		uint ow_available = base->HasMarketItem(i->first);
@@ -421,7 +421,7 @@ void CoreModule::RepairDamage(float max_base_health)
 	// Check for Food
 	int checkfood = 0;
 	for (map<uint, uint>::iterator i = set_base_crew_food_items.begin();
-	i != set_base_crew_food_items.end(); ++i)
+		i != set_base_crew_food_items.end(); ++i)
 	{
 		uint food_available = base->HasMarketItem(i->first);
 		if (food_available >= 250)
@@ -548,7 +548,7 @@ bool CoreModule::Timer(uint time)
 				// Save the new base health
 				float rhealth = base->base_health / base->max_base_health;
 				pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-				if (set_plugin_debug>1)
+				if (set_plugin_debug > 1)
 					ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
 
 			}
@@ -576,11 +576,11 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 	if (set_holiday_mode || (base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock") || (base->basetype == "planet"))
 	{
-			//force the base to keep max health
-			base->base_health = base->max_base_health;
-			float rhealth = base->base_health / base->max_base_health;
-			pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-			return curr_hitpoints;
+		//force the base to keep max health
+		base->base_health = base->max_base_health;
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+		return curr_hitpoints;
 	}
 
 	if (base->invulnerable == 0)
@@ -604,7 +604,7 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj)
 {
 	if (this->space_obj == space_obj)
 	{
-		if (set_plugin_debug>1)
+		if (set_plugin_debug > 1)
 			ConPrint(L"CoreModule::destroyed space_obj=%u\n", space_obj);
 		pub::SpaceObj::LightFuse(space_obj, "player_base_explode_fuse", 0);
 		spaceobj_modules.erase(space_obj);
@@ -626,7 +626,7 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj)
 				CharsInSystem.push_back(wstos(charname));
 			}
 		}
-			
+
 		// Logging
 		wstring wscMsg = L": Base %b destroyed";
 		wscMsg = ReplaceStr(wscMsg, L"%b", base->basename.c_str());
@@ -665,7 +665,7 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 	{
 		int obj_rep;
 		pub::SpaceObj::GetRep(this->space_obj, obj_rep);
-		if (set_plugin_debug>1)
+		if (set_plugin_debug > 1)
 			ConPrint(L"CoreModule::SetReputation player_rep=%u obj_rep=%u attitude=%f base=%08x\n",
 				player_rep, obj_rep, attitude, base->base);
 		pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);

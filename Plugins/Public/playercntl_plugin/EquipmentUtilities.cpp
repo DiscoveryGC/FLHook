@@ -78,19 +78,19 @@ void EquipmentUtilities::ReadIniNicknames()
 				{
 					if (ini.is_value("equipment"))
 					{
-						ReadIniNicknameFile(dataDirPath+string("\\")+ini.get_value_string());
+						ReadIniNicknameFile(dataDirPath + string("\\") + ini.get_value_string());
 					}
 					else if (ini.is_value("ships"))
 					{
-						ReadIniNicknameFile(dataDirPath+string("\\")+ini.get_value_string());
+						ReadIniNicknameFile(dataDirPath + string("\\") + ini.get_value_string());
 					}
 					else if (ini.is_value("goods"))
 					{
-						ReadIniNicknameFile(dataDirPath+string("\\")+ini.get_value_string());
+						ReadIniNicknameFile(dataDirPath + string("\\") + ini.get_value_string());
 					}
 					else if (ini.is_value("loadouts"))
 					{
-						ReadIniNicknameFile(dataDirPath+string("\\")+ini.get_value_string());
+						ReadIniNicknameFile(dataDirPath + string("\\") + ini.get_value_string());
 					}
 				}
 			}

@@ -7,21 +7,22 @@ HK_ERROR HkFLIniGet(const wstring &wscCharname, const wstring &wscKey, wstring &
 {
 	wscRet = L"";
 	wstring wscDir;
-	if(!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
+	if (!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
 		return HKE_CHAR_DOES_NOT_EXIST;
 
 	wstring wscFile;
 	HkGetCharFileName(wscCharname, wscFile);
 
-	string scCharFile  = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
-	if(HkIsEncoded(scCharFile)) {
+	string scCharFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
+	if (HkIsEncoded(scCharFile)) {
 		string scCharFileNew = scCharFile + ".ini";
-		if(!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
+		if (!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
 			return HKE_COULD_NOT_DECODE_CHARFILE;
 
 		wscRet = stows(IniGetS(scCharFileNew, "Player", wstos(wscKey).c_str(), ""));
 		DeleteFile(scCharFileNew.c_str());
-	} else {
+	}
+	else {
 		wscRet = stows(IniGetS(scCharFile, "Player", wstos(wscKey).c_str(), ""));
 	}
 
@@ -33,16 +34,16 @@ HK_ERROR HkFLIniGet(const wstring &wscCharname, const wstring &wscKey, wstring &
 HK_ERROR HkFLIniWrite(const wstring &wscCharname, const wstring &wscKey, const wstring &wscValue)
 {
 	wstring wscDir;
-	if(!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
+	if (!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
 		return HKE_CHAR_DOES_NOT_EXIST;
 
 	wstring wscFile;
 	HkGetCharFileName(wscCharname, wscFile);
 
 	string scCharFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
-	if(HkIsEncoded(scCharFile)) {
+	if (HkIsEncoded(scCharFile)) {
 		string scCharFileNew = scCharFile + ".ini";
-		if(!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
+		if (!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
 			return HKE_COULD_NOT_DECODE_CHARFILE;
 
 		IniWrite(scCharFileNew, "Player", wstos(wscKey).c_str(), wstos(wscValue).c_str());
@@ -50,11 +51,12 @@ HK_ERROR HkFLIniWrite(const wstring &wscCharname, const wstring &wscKey, const w
 		// keep decoded
 		DeleteFile(scCharFile.c_str());
 		MoveFile(scCharFileNew.c_str(), scCharFile.c_str());
-/*		if(!flc_encode(scCharFileNew.c_str(), scCharFile.c_str()))
-			return HKE_COULD_NOT_ENCODE_CHARFILE;
+		/*		if(!flc_encode(scCharFileNew.c_str(), scCharFile.c_str()))
+					return HKE_COULD_NOT_ENCODE_CHARFILE;
 
-		DeleteFile(scCharFileNew.c_str()); */
-	} else {
+				DeleteFile(scCharFileNew.c_str()); */
+	}
+	else {
 		IniWrite(scCharFile, "Player", wstos(wscKey).c_str(), wstos(wscValue).c_str());
 	}
 

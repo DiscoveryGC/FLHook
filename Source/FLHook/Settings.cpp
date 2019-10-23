@@ -97,11 +97,11 @@ bool get_bAutoBuy(uint iClientID) { return set_bAutoBuy; }
 
 void LoadSettings()
 {
-// init cfg filename
+	// init cfg filename
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	set_scCfgFile = szCurDir;
-	
+
 	// Use flhook.cfg if it is available. It is used in some installations (okay just cannon's)
 	// to avoid FLErrorChecker whining retardly about ini entries it does not understand.
 	if (_access(string(set_scCfgFile + "\\FLHook.cfg").c_str(), 0) != -1)
@@ -110,7 +110,7 @@ void LoadSettings()
 		set_scCfgFile += "\\FLHook.ini";
 
 
-// General
+	// General
 	set_iAntiDockKill = IniGetI(set_scCfgFile, "General", "AntiDockKill", 0);
 	set_bDieMsg = IniGetB(set_scCfgFile, "General", "EnableDieMsg", false);
 	set_bDisableCharfileEncryption = IniGetB(set_scCfgFile, "General", "DisableCharfileEncryption", false);
@@ -122,7 +122,7 @@ void LoadSettings()
 	set_fTorpMissileBaseDamageMultiplier = IniGetF(set_scCfgFile, "General", "TorpMissileBaseDamageMultiplier", 1.0f);
 	set_iMaxGroupSize = IniGetI(set_scCfgFile, "General", "MaxGroupSize", 8);
 
-// Log
+	// Log
 	set_bDebug = IniGetB(set_scCfgFile, "Log", "Debug", false);
 	set_iDebugMaxSize = IniGetI(set_scCfgFile, "Log", "DebugMaxSize", 100);
 	set_iDebugMaxSize *= 1000;
@@ -135,12 +135,12 @@ void LoadSettings()
 	set_iTimerThreshold = IniGetI(set_scCfgFile, "Log", "TimerThreshold", 100);
 	set_iTimerDebugThreshold = IniGetI(set_scCfgFile, "Log", "TimerDebugThreshold", 0);
 
-// Kick
+	// Kick
 	set_iAntiBaseIdle = IniGetI(set_scCfgFile, "Kick", "AntiBaseIdle", 0);
 	set_iAntiCharMenuIdle = IniGetI(set_scCfgFile, "Kick", "AntiCharMenuIdle", 0);
 
 
-// Style
+	// Style
 	set_wscDeathMsgStyle = stows(IniGetS(set_scCfgFile, "Style", "DeathMsgStyle", "0x19198C01"));
 	set_wscDeathMsgStyleSys = stows(IniGetS(set_scCfgFile, "Style", "DeathMsgStyleSys", "0x1919BD01"));
 	set_wscDeathMsgTextPlayerKill = stows(IniGetS(set_scCfgFile, "Style", "DeathMsgTextPlayerKill", "Death: %victim was killed by %killer (%type)"));
@@ -154,21 +154,21 @@ void LoadSettings()
 	set_wscUserCmdStyle = stows(IniGetS(set_scCfgFile, "Style", "UserCmdStyle", "0x00FF0090"));
 	set_wscAdminCmdStyle = stows(IniGetS(set_scCfgFile, "Style", "AdminCmdStyle", "0x00FF0090"));
 
-// Socket
+	// Socket
 	set_bSocketActivated = IniGetB(set_scCfgFile, "Socket", "Activated", false);
 	set_iPort = IniGetI(set_scCfgFile, "Socket", "Port", 0);
 	set_iWPort = IniGetI(set_scCfgFile, "Socket", "WPort", 0);
 	set_iEPort = IniGetI(set_scCfgFile, "Socket", "EPort", 0);
 	set_iEWPort = IniGetI(set_scCfgFile, "Socket", "EWPort", 0);
 	string scEncryptKey = IniGetS(set_scCfgFile, "Socket", "Key", "");
-	if(scEncryptKey.length())
+	if (scEncryptKey.length())
 	{
-		if(!set_BF_CTX)
+		if (!set_BF_CTX)
 			set_BF_CTX = (BLOWFISH_CTX*)malloc(sizeof(BLOWFISH_CTX));
 		Blowfish_Init(set_BF_CTX, (unsigned char *)scEncryptKey.data(), (int)scEncryptKey.length());
 	}
 
-// UserCommands
+	// UserCommands
 	set_bUserCmdSetDieMsg = IniGetB(set_scCfgFile, "UserCommands", "SetDieMsg", false);
 	set_bUserCmdSetDieMsgSize = IniGetB(set_scCfgFile, "UserCommands", "SetDieMsgSize", false);
 	set_bUserCmdSetChatFont = IniGetB(set_scCfgFile, "UserCommands", "SetChatFont", false);
@@ -178,15 +178,15 @@ void LoadSettings()
 	set_bUserCmdHelp = IniGetB(set_scCfgFile, "UserCommands", "Help", false);
 	set_bDefaultLocalChat = IniGetB(set_scCfgFile, "UserCommands", "DefaultLocalChat", false);
 
-// NoPVP
+	// NoPVP
 	set_lstNoPVPSystems.clear();
-	for(uint i = 0;; i++)
+	for (uint i = 0;; i++)
 	{
 		char szBuf[64];
 		sprintf(szBuf, "System%u", i);
 		string scSystem = IniGetS(set_scCfgFile, "NoPVP", szBuf, "");
 
-		if(!scSystem.length())
+		if (!scSystem.length())
 			break;
 
 		uint iSystemID;
@@ -194,21 +194,21 @@ void LoadSettings()
 		set_lstNoPVPSystems.push_back(iSystemID);
 	}
 
-// read chat suppress
+	// read chat suppress
 	set_lstChatSuppress.clear();
-	for(uint i = 0;; i++)
+	for (uint i = 0;; i++)
 	{
 		char szBuf[64];
 		sprintf(szBuf, "Suppress%u", i);
 		string scSuppress = IniGetS(set_scCfgFile, "Chat", szBuf, "");
 
-		if(!scSuppress.length())
+		if (!scSuppress.length())
 			break;
 
 		set_lstChatSuppress.push_back(stows(scSuppress));
 	}
 
-// MultiKillMessages
+	// MultiKillMessages
 	set_MKM_bActivated = IniGetB(set_scCfgFile, "MultiKillMessages", "Activated", false);
 	set_MKM_wscStyle = stows(IniGetS(set_scCfgFile, "MultiKillMessages", "Style", "0x1919BD01"));
 
@@ -217,7 +217,7 @@ void LoadSettings()
 	IniGetSection(set_scCfgFile, "MultiKillMessages", lstValues);
 	foreach(lstValues, INISECTIONVALUE, it)
 	{
-		if(!atoi(it->scKey.c_str()))
+		if (!atoi(it->scKey.c_str()))
 			continue;
 
 		MULTIKILLMESSAGE mkm;
@@ -226,32 +226,32 @@ void LoadSettings()
 		set_MKM_lstMessages.push_back(mkm);
 	}
 
-// bans
+	// bans
 	set_bBanAccountOnMatch = IniGetB(set_scCfgFile, "Bans", "BanAccountOnMatch", false);
 	set_lstBans.clear();
 	IniGetSection(set_scCfgFile, "Bans", lstValues);
-	if(!lstValues.empty())
+	if (!lstValues.empty())
 	{
 		lstValues.pop_front();
 		foreach(lstValues, INISECTIONVALUE, itisv)
 			set_lstBans.push_back(stows(itisv->scKey));
 	}
 
-// help
-	HkAddHelpEntry( L"/set diemsg", L"<visibility>", L"Sets your death message's visibility. Options: all, system, self, none.", L"", get_bUserCmdSetDieMsg );
-	HkAddHelpEntry( L"/set diemsgsize", L"<size>", L"Sets your death message's text size. Options: small, default.", L"", get_bUserCmdSetDieMsgSize );
-	HkAddHelpEntry( L"/set chatfont", L"<size> <style>", L"Sets your chat messages' font. Options are small, default or big for <size> and default, bold, italic or underline for <style>.", L"", get_bUserCmdSetChatFont );
-	HkAddHelpEntry( L"/ignore", L"<charname> [<flags>]", L"Ignores all messages from the given character.", L"The possible flags are:\n p - only affect private chat\n i - <charname> may match partially\nExamples:\n\"/ignore SomeDude\" ignores all chatmessages from SomeDude\n\"/ignore PlayerX p\" ignores all private-chatmessages from PlayerX\n\"/ignore idiot i\" ignores all chatmessages from players whose charname contain \"idiot\" (e.g. \"[XYZ]IDIOT\", \"MrIdiot\", etc)\n\"/ignore Fool pi\" ignores all private-chatmessages from players whose charname contain \"fool\"", get_bUserCmdIgnore );
-	HkAddHelpEntry( L"/ignoreid", L"<client-id> [<flags>]", L"Ignores all messages from the character with the associated client ID (see /id). Use the p flag to only affect private chat.", L"", get_bUserCmdIgnore );
-	HkAddHelpEntry( L"/ignorelist", L"", L"Displays all currently ignored characters.", L"", get_bUserCmdIgnore );
-	HkAddHelpEntry( L"/delignore", L"<id> [<id2> <id3> ...]", L"Removes the characters with the associated ignore ID (see /ignorelist) from the ignore list. * deletes all.", L"", get_bUserCmdIgnore );
-	HkAddHelpEntry( L"/autobuy", L"<param> [<on/off>]", L"Auomatically buys the given elements upon docking. See detailed help for more information.", L"<param> can take one of the following values:\tinfo - display current autobuy-settings\n\tmissiles - enable/disable autobuy for missiles\n\ttorps - enable/disable autobuy for torpedos\n\tmines - enable/disable autobuy for mines\n\tcd - enable/disable autobuy for cruise disruptors\n\tcm - enable/disable autobuy for countermeasures\n\treload - enable/disable autobuy for nanobots/shield batteries\n\tall - enable/disable autobuy for all of the above\nExamples:\n\"/autobuy missiles on\" enable autobuy for missiles\n\"/autobuy all off\" completely disable autobuy\n\"/autobuy info\" show autobuy info", get_bAutoBuy );
-	HkAddHelpEntry( L"/ids", L"", L"Lists all characters with their respective client IDs.", L"", get_bTrue );
-	HkAddHelpEntry( L"/id", L"", L"Gives your own client ID.", L"", get_bTrue );
-	HkAddHelpEntry( L"/i$", L"<client-id>", L"Invites the given client ID.", L"", get_bTrue );
-	HkAddHelpEntry( L"/invite$", L"<client-id>", L"Invites the given client ID.", L"", get_bTrue );
-	HkAddHelpEntry( L"/credits", L"", L"Displays FLHook's credits.", L"", get_bTrue );
-	HkAddHelpEntry( L"/help", L"[<command>]", L"Displays the help screen. Giving a <command> gives detailed info for that command.", L"", get_bTrue );
+	// help
+	HkAddHelpEntry(L"/set diemsg", L"<visibility>", L"Sets your death message's visibility. Options: all, system, self, none.", L"", get_bUserCmdSetDieMsg);
+	HkAddHelpEntry(L"/set diemsgsize", L"<size>", L"Sets your death message's text size. Options: small, default.", L"", get_bUserCmdSetDieMsgSize);
+	HkAddHelpEntry(L"/set chatfont", L"<size> <style>", L"Sets your chat messages' font. Options are small, default or big for <size> and default, bold, italic or underline for <style>.", L"", get_bUserCmdSetChatFont);
+	HkAddHelpEntry(L"/ignore", L"<charname> [<flags>]", L"Ignores all messages from the given character.", L"The possible flags are:\n p - only affect private chat\n i - <charname> may match partially\nExamples:\n\"/ignore SomeDude\" ignores all chatmessages from SomeDude\n\"/ignore PlayerX p\" ignores all private-chatmessages from PlayerX\n\"/ignore idiot i\" ignores all chatmessages from players whose charname contain \"idiot\" (e.g. \"[XYZ]IDIOT\", \"MrIdiot\", etc)\n\"/ignore Fool pi\" ignores all private-chatmessages from players whose charname contain \"fool\"", get_bUserCmdIgnore);
+	HkAddHelpEntry(L"/ignoreid", L"<client-id> [<flags>]", L"Ignores all messages from the character with the associated client ID (see /id). Use the p flag to only affect private chat.", L"", get_bUserCmdIgnore);
+	HkAddHelpEntry(L"/ignorelist", L"", L"Displays all currently ignored characters.", L"", get_bUserCmdIgnore);
+	HkAddHelpEntry(L"/delignore", L"<id> [<id2> <id3> ...]", L"Removes the characters with the associated ignore ID (see /ignorelist) from the ignore list. * deletes all.", L"", get_bUserCmdIgnore);
+	HkAddHelpEntry(L"/autobuy", L"<param> [<on/off>]", L"Auomatically buys the given elements upon docking. See detailed help for more information.", L"<param> can take one of the following values:\tinfo - display current autobuy-settings\n\tmissiles - enable/disable autobuy for missiles\n\ttorps - enable/disable autobuy for torpedos\n\tmines - enable/disable autobuy for mines\n\tcd - enable/disable autobuy for cruise disruptors\n\tcm - enable/disable autobuy for countermeasures\n\treload - enable/disable autobuy for nanobots/shield batteries\n\tall - enable/disable autobuy for all of the above\nExamples:\n\"/autobuy missiles on\" enable autobuy for missiles\n\"/autobuy all off\" completely disable autobuy\n\"/autobuy info\" show autobuy info", get_bAutoBuy);
+	HkAddHelpEntry(L"/ids", L"", L"Lists all characters with their respective client IDs.", L"", get_bTrue);
+	HkAddHelpEntry(L"/id", L"", L"Gives your own client ID.", L"", get_bTrue);
+	HkAddHelpEntry(L"/i$", L"<client-id>", L"Invites the given client ID.", L"", get_bTrue);
+	HkAddHelpEntry(L"/invite$", L"<client-id>", L"Invites the given client ID.", L"", get_bTrue);
+	HkAddHelpEntry(L"/credits", L"", L"Displays FLHook's credits.", L"", get_bTrue);
+	HkAddHelpEntry(L"/help", L"[<command>]", L"Displays the help screen. Giving a <command> gives detailed info for that command.", L"", get_bTrue);
 
 	set_bLoadedSettings = true;
 }

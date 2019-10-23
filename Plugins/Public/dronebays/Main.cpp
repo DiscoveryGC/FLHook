@@ -45,9 +45,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -170,7 +170,7 @@ void LoadSettings()
 
 	ConPrint(L"DRONEBAY: %i bayarches loaded.\n", loadedBays);
 	ConPrint(L"DRONEBAY: %i dronearches loaded.\n", loadedDrones);
-	
+
 
 }
 
@@ -178,11 +178,11 @@ void LoadSettings()
 void ClearClientInfo(uint iClientID)
 {
 	// If a drone exists for the user, destroy it
-	if(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
+	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
 	{
 		pub::SpaceObj::Destroy(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj, DestroyType::FUSE);
 	}
-	
+
 	// Erase any struct entries
 	buildTimerMap.erase(iClientID);
 	droneDespawnMap.erase(iClientID);
@@ -197,11 +197,11 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 	if (iKill)
 	{
 		CShip *cship = reinterpret_cast<CShip*>(ecx[4]);
-		
+
 		// Check if this is a drone or carrier being destroyed
 		for (auto drone = clientDroneInfo.begin(); drone != clientDroneInfo.end(); ++drone)
 		{
-			if(cship->get_id() == drone->second.deployedInfo.deployedDroneObj)
+			if (cship->get_id() == drone->second.deployedInfo.deployedDroneObj)
 			{
 				// If so, clear the carriers map and alert them
 				clientDroneInfo.erase(drone->first);
@@ -210,9 +210,9 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 			}
 
 			// If the carrier is being destroyed, destroy the drone as well
-			else if(cship->get_id() == drone->second.carrierShipobj)
+			else if (cship->get_id() == drone->second.carrierShipobj)
 			{
-				if(!drone->second.deployedInfo.deployedDroneObj != 0)
+				if (!drone->second.deployedInfo.deployedDroneObj != 0)
 				{
 					pub::SpaceObj::Destroy(drone->second.deployedInfo.deployedDroneObj, DestroyType::FUSE);
 					clientDroneInfo.erase(drone->first);
@@ -233,7 +233,7 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 	returncode = DEFAULT_RETURNCODE;
 
 	// If the carrier changes systems, destroy any old drones
-	if(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
+	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
 	{
 		pub::SpaceObj::Destroy(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj, DestroyType::FUSE);
 		PrintUserCmdText(iClientID, L"Drones cannot handle the tear of jumping. Self-destructing.");
@@ -264,15 +264,15 @@ void __stdcall SetTarget_AFTER(uint client, const XSetTarget& target)
 	returncode = DEFAULT_RETURNCODE;
 
 	// If we already have a message sent regarding this targeting operation within a few seconds, ignore it
-	if(droneAlertDebounceMap[client].debounceToggle)
+	if (droneAlertDebounceMap[client].debounceToggle)
 	{
 		return;
 	}
-	
+
 	// Check if the target is one of our drones
-	for(const auto& drone : clientDroneInfo)
+	for (const auto& drone : clientDroneInfo)
 	{
-		if(drone.second.deployedInfo.deployedDroneObj == target.iSpaceID)
+		if (drone.second.deployedInfo.deployedDroneObj == target.iSpaceID)
 		{
 			// Was the last alert for this drone? If so, ignore it
 			if (drone.second.deployedInfo.deployedDroneObj == droneAlertDebounceMap[client].lastDroneObjSelected)
@@ -300,9 +300,9 @@ void HkTimerCheckKick()
 
 	// Every 2 seconds, clear the debounce map allowing a drone alert to appear for the user again
 	static int timerVal = 0;
-	if(timerVal % 2 == 0)
+	if (timerVal % 2 == 0)
 	{
-		for(auto& userDebounce : droneAlertDebounceMap)
+		for (auto& userDebounce : droneAlertDebounceMap)
 		{
 			userDebounce.second.debounceToggle = false;
 		}
@@ -319,7 +319,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	if (msg == CLIENT_CLOAK_INFO)
 	{
 		CLIENT_CLOAK_STRUCT* info = reinterpret_cast<CLIENT_CLOAK_STRUCT*>(data);
-		
+
 		// Check if the information given to us is relevent. (We only care about users in the carrier struct)
 		if (clientDroneInfo.find(info->iClientID) != clientDroneInfo.end())
 		{
@@ -420,7 +420,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = false;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));

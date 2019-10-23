@@ -22,9 +22,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -91,7 +91,7 @@ bool UserCmd_RefreshCharacters(uint iClientID, const wstring &wscCmd, const wstr
 	SystemTimeToFileTime(&st, &ft);
 	char toWrite[128];
 	sprintf_s(toWrite, "%u,%u", ft.dwHighDateTime, ft.dwLowDateTime);
-	
+
 	CAccount *acc = HkGetAccountByClientID(iClientID);
 	CAccountListNode *characterList = acc->pFirstListNode;
 	PrintUserCmdText(iClientID, L"Refreshing Characters:");
@@ -118,7 +118,8 @@ bool UserCmd_RefreshCharacters(uint iClientID, const wstring &wscCmd, const wstr
 		wstring wscCharacterName;
 		try {
 			wscCharacterName = reinterpret_cast<wchar_t*>(characterList->wszCharname);
-		} catch (...) {
+		}
+		catch (...) {
 			// Loop to the next one if this happens.
 			characterList = characterList->next;
 			continue;
@@ -164,7 +165,7 @@ bool UserCmd_FreelancerIFF(uint iClientID, const wstring &wscCmd, const wstring 
 		PrintUserCmdText(iClientID, L"ERROR: %s", HkErrGetText(err).c_str());
 		return true;
 	}
-	
+
 	PrintUserCmdText(iClientID, L"Freelancer IFF granted. You may need to /droprep if your old IFF exists after logging out/in and undocking.");
 	return true;
 }
@@ -253,7 +254,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.emplace_back(reinterpret_cast<FARPROC*>(&LoadSettings), PLUGIN_LoadSettings, 0);
 	p_PI->lstHooks.emplace_back(reinterpret_cast<FARPROC*>(&ClearClientInfo), PLUGIN_ClearClientInfo, 0);
 	p_PI->lstHooks.emplace_back(reinterpret_cast<FARPROC*>(&UserCmd_Process), PLUGIN_UserCmd_Process, 0);

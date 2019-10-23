@@ -110,7 +110,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// calls load settings on FLHook startup and .rehash.
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	return true;
@@ -210,7 +210,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float setHealt
 			bool bShieldsUp;
 
 			if (subObjID == 1) // 1 is base (hull)
-				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max); 
+				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
 			else if (subObjID == 65521) // 65521 is shield (bubble, not equipment)
 				pub::SpaceObj::GetShieldHealth(iDmgToSpaceID, curr, max, bShieldsUp);
 			else

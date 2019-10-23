@@ -37,9 +37,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -130,7 +130,7 @@ void LoadSettings()
 // Admin commands
 bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 {
-	returncode = DEFAULT_RETURNCODE;	
+	returncode = DEFAULT_RETURNCODE;
 
 	if (IS_CMD("getstats"))
 	{
@@ -265,16 +265,16 @@ void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 }
 
 void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
-{	
+{
 	mapActivityData.erase(iClientID);
 	mapActivityData[iClientID].charname = wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID));
 
 	wstring spurdoip;
 	HkGetPlayerIP(iClientID, spurdoip);
 	mapActivityData[iClientID].ip = wstos(spurdoip);
-	
+
 	Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
-	mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];	
+	mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];
 
 	//ensure the ID is empty, as we want to return something if no ID is found.
 	mapActivityData[iClientID].id = "";
@@ -337,7 +337,7 @@ void HkTimerJSON()
 			const Universe::ISystem *iSys = Universe::get_system(iSystemID);
 
 			string sysname = iSys->nickname;
-	
+
 			//if it's empty, it's probably a plugin reload. We fill the data so we don't send dumb shit or worse cause exceptions
 			if (mapActivityData[iClientID].charname.empty())
 			{
@@ -349,7 +349,7 @@ void HkTimerJSON()
 			}
 
 			Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
-			mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];	
+			mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];
 
 			//ensure the ID is empty, as we want to return something if no ID is found.
 			mapActivityData[iClientID].id = "";
@@ -427,7 +427,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerJSON, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));

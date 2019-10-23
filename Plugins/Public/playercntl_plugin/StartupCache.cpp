@@ -27,9 +27,9 @@ namespace StartupCache
 {
 	// The number of characters loaded.
 	static int chars_loaded = 0;
-	
+
 	// The original function read charname function
-	typedef int (__stdcall *_ReadCharacterName)(const char *filename, flstr *str);
+	typedef int(__stdcall *_ReadCharacterName)(const char *filename, flstr *str);
 	_ReadCharacterName ReadCharName;
 
 	// map of acc_char_path to char name
@@ -58,7 +58,7 @@ namespace StartupCache
 
 		// Otherwise use the original FL function to load the char name
 		// and cache the result and report that this is an uncached file
-		ReadCharName(filename, str);	
+		ReadCharName(filename, str);
 		cache[acc_path] = GetWCString(str);
 		return 1;
 	}
@@ -92,7 +92,7 @@ namespace StartupCache
 	}
 
 	static void SaveCache()
-	{	
+	{
 		// Save the name cache file
 		string scPath = scBaseAcctPath + "namecache.bin";
 
@@ -107,7 +107,7 @@ namespace StartupCache
 				strncpy_s(ni.acc_path, 27, i->first.c_str(), i->first.size());
 				wcsncpy_s(ni.name, 25, i->second.c_str(), i->second.size());
 				if (!fwrite(&ni, sizeof(NAMEINFO), 1, file))
-				{			
+				{
 					ConPrint(L"ERROR: Saving character name cache failed\n");
 					break;
 				}
@@ -115,7 +115,7 @@ namespace StartupCache
 			fclose(file);
 			ConPrint(L"Saved %d names\n", cache.size());
 		}
-		
+
 		cache.clear();
 	}
 
@@ -124,15 +124,15 @@ namespace StartupCache
 	{
 		// Disable the admin and banned file checks.
 		{
-			BYTE patch[] = { 0x5f, 0x5e, 0x5d, 0x5b, 0x81, 0xC4, 0x08, 0x11, 0x00, 0x00, 0xC2, 0x04, 0x00}; // pop regs, restore esp, ret 4
+			BYTE patch[] = { 0x5f, 0x5e, 0x5d, 0x5b, 0x81, 0xC4, 0x08, 0x11, 0x00, 0x00, 0xC2, 0x04, 0x00 }; // pop regs, restore esp, ret 4
 			WriteProcMem((char*)hModServer + 0x76b3e, patch, 13);
 		}
 
 		// Hook the read character name and replace it with the caching version
-		PatchCallAddr((char*)hModServer, 0x717be, (char*)HkCb_ReadCharacterName); 
-	
+		PatchCallAddr((char*)hModServer, 0x717be, (char*)HkCb_ReadCharacterName);
+
 		// Keep a reference to the old read character name function.
-		ReadCharName = (_ReadCharacterName) ((char*)hModServer + 0x72fe0);
+		ReadCharName = (_ReadCharacterName)((char*)hModServer + 0x72fe0);
 
 		// Calculate our base path
 		char szDataPath[MAX_PATH];
@@ -151,7 +151,7 @@ namespace StartupCache
 
 		// Restore admin and banned file checks
 		{
-			BYTE patch[] = { 0x8b, 0x35, 0xc0, 0x4b, 0xd6, 0x06, 0x6a, 0x00, 0x68, 0xB0, 0xB8, 0xD6, 0x06};
+			BYTE patch[] = { 0x8b, 0x35, 0xc0, 0x4b, 0xd6, 0x06, 0x6a, 0x00, 0x68, 0xB0, 0xB8, 0xD6, 0x06 };
 			WriteProcMem((char*)hModServer + 0x76b3e, patch, 13);
 		}
 

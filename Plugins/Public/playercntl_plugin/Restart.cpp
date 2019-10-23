@@ -45,33 +45,32 @@ namespace Restart
 
 	bool Restart::UserCmd_ShowRestarts(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
-		WIN32_FIND_DATA FileData; 
-		HANDLE hSearch; 
-		
+		WIN32_FIND_DATA FileData;
+		HANDLE hSearch;
+
 		char szCurDir[MAX_PATH];
 		GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 		string scRestartFiles = string(szCurDir) + "\\flhook_plugins\\restart\\*.fl";
 
 		// Start searching for .fl files in the current directory. 
-		hSearch = FindFirstFile(scRestartFiles.c_str(), &FileData); 
-		if (hSearch == INVALID_HANDLE_VALUE) 
-		{ 
+		hSearch = FindFirstFile(scRestartFiles.c_str(), &FileData);
+		if (hSearch == INVALID_HANDLE_VALUE)
+		{
 			PrintUserCmdText(iClientID, L"Restart files not found");
 			return true;
-		} 
-		
+		}
+
 		wstring wscMsg = L"";
 
 		do
-		{ 
+		{
 			// add filename
 			string scFileName = FileData.cFileName;
 			size_t len = scFileName.length();
-			scFileName.erase(len-3,len);
-			if (scFileName[0]!='_')
-				wscMsg+=stows(scFileName)+L"  ";
-		}
-		while (FindNextFile(hSearch, &FileData));
+			scFileName.erase(len - 3, len);
+			if (scFileName[0] != '_')
+				wscMsg += stows(scFileName) + L"  ";
+		} while (FindNextFile(hSearch, &FileData));
 
 		FindClose(hSearch);
 
@@ -99,10 +98,10 @@ namespace Restart
 			PrintUserCmdText(iClientID, usage);
 			return true;
 		}
-		
+
 		// Get the character name for this connection.
 		RESTART restart;
-		restart.wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+		restart.wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 
 		// Searching restart
 		char szCurDir[MAX_PATH];
@@ -123,7 +122,7 @@ namespace Restart
 		HkSaveChar(iClientID);
 		if (!HkIsValidClientID(iClientID))
 			return true;
-		
+
 		uint iBaseID;
 		pub::Player::GetBase(iClientID, iBaseID);
 		if (!iBaseID)
@@ -165,15 +164,15 @@ namespace Restart
 		while (pendingRestarts.size())
 		{
 			RESTART restart = pendingRestarts.front();
-			if (HkGetClientIdFromCharname(restart.wscCharname)!=-1)
+			if (HkGetClientIdFromCharname(restart.wscCharname) != -1)
 				return;
-			
+
 			pendingRestarts.pop_front();
 
 			try
 			{
 				// Overwrite the existing character file
-				string scCharFile  = scAcctPath + wstos(restart.wscDir) + "\\" + wstos(restart.wscCharfile) + ".fl";
+				string scCharFile = scAcctPath + wstos(restart.wscDir) + "\\" + wstos(restart.wscCharfile) + ".fl";
 				string scTimeStampDesc = IniGetS(scCharFile, "Player", "description", "");
 				string scTimeStamp = IniGetS(scCharFile, "Player", "tstamp", "0");
 				if (!::CopyFileA(restart.scRestartFile.c_str(), scCharFile.c_str(), FALSE))
@@ -187,7 +186,7 @@ namespace Restart
 					flc_encode(scCharFile.c_str(), scCharFile.c_str());
 
 				AddLog("NOTICE: User restart %s for %s", restart.scRestartFile.c_str(), wstos(restart.wscCharname).c_str());
-			}				
+			}
 			catch (char *err)
 			{
 				AddLog("ERROR: User restart failed (%s) for %s", err, wstos(restart.wscCharname).c_str());

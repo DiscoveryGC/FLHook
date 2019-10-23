@@ -41,7 +41,7 @@ namespace IPBans
 		string scIP = wstos(wscIP);
 
 		// Check for an IP range match.
-		foreach (set_lstIPBans, string, iter)
+		foreach(set_lstIPBans, string, iter)
 			if (Wildcard::wildcardfit(iter->c_str(), scIP.c_str()))
 				return true;
 		// To avoid plugin comms with DSAce because I ran out of time to make this
@@ -61,7 +61,7 @@ namespace IPBans
 
 			string scFileSearchPath = scAcctPath + "\\" + wstos(wscDir) + "\\login_*.ini";
 			HANDLE hFileFind = FindFirstFile(scFileSearchPath.c_str(), &findFileData);
-			if (hFileFind!=INVALID_HANDLE_VALUE)
+			if (hFileFind != INVALID_HANDLE_VALUE)
 			{
 				do
 				{
@@ -69,12 +69,12 @@ namespace IPBans
 					string scLoginID = "";
 					string scLoginID2 = "";
 					string scThisIP = "";
-					string scFilePath = scAcctPath +  wstos(wscDir) + "\\" + findFileData.cFileName;
+					string scFilePath = scAcctPath + wstos(wscDir) + "\\" + findFileData.cFileName;
 					FILE *f = fopen(scFilePath.c_str(), "r");
 					if (f)
 					{
 						char szBuf[200];
-						if (fgets(szBuf, sizeof(szBuf), f)!=NULL)
+						if (fgets(szBuf, sizeof(szBuf), f) != NULL)
 						{
 							try
 							{
@@ -91,16 +91,16 @@ namespace IPBans
 						fclose(f);
 					}
 
-					if (set_iPluginDebug>2)
+					if (set_iPluginDebug > 2)
 					{
 						ConPrint(L"NOTICE: Checking for ban on IP %s Login ID1 %s ID2 %s Client %d\n",
-							stows(scThisIP).c_str(), stows(scLoginID).c_str(), stows(scLoginID2).c_str(),iClientID);
+							stows(scThisIP).c_str(), stows(scLoginID).c_str(), stows(scLoginID2).c_str(), iClientID);
 					}
 
 					// If the login ID has been read then check it to see if it has been banned
 					if (scThisIP == scIP && scLoginID.length())
 					{
-						foreach (set_lstLoginIDBans, string, iter)
+						foreach(set_lstLoginIDBans, string, iter)
 						{
 							if (*iter == scLoginID
 								|| *iter == scLoginID2)
@@ -112,8 +112,7 @@ namespace IPBans
 							}
 						}
 					}
-				}
-				while (FindNextFile(hFileFind, &findFileData));
+				} while (FindNextFile(hFileFind, &findFileData));
 				FindClose(hFileFind);
 			}
 
@@ -132,8 +131,8 @@ namespace IPBans
 		if (!acc)
 			return false;
 
-		wstring wscDir; 
-		HkGetAccountDirName(acc, wscDir); 
+		wstring wscDir;
+		HkGetAccountDirName(acc, wscDir);
 		string scUserFile = scAcctPath + wstos(wscDir) + "\\authenticated";
 		FILE* fTest = fopen(scUserFile.c_str(), "r");
 		if (!fTest)
@@ -151,7 +150,7 @@ namespace IPBans
 		GetUserDataPath(szDataPath);
 		string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\ipbans.ini";
 		if (set_iPluginDebug)
-			ConPrint(L"NOTICE: Loading IP bans from %s\n",stows(scAcctPath).c_str());
+			ConPrint(L"NOTICE: Loading IP bans from %s\n", stows(scAcctPath).c_str());
 
 		INI_Reader ini;
 		set_lstIPBans.clear();
@@ -168,7 +167,7 @@ namespace IPBans
 			}
 			ini.close();
 		}
-		ConPrint(L"IP Bans [%u]\n",set_lstIPBans.size());
+		ConPrint(L"IP Bans [%u]\n", set_lstIPBans.size());
 	}
 
 
@@ -179,7 +178,7 @@ namespace IPBans
 		GetUserDataPath(szDataPath);
 		string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\loginidbans.ini";
 		if (set_iPluginDebug)
-			ConPrint(L"NOTICE: Loading Login ID bans from %s\n",stows(scAcctPath).c_str());
+			ConPrint(L"NOTICE: Loading Login ID bans from %s\n", stows(scAcctPath).c_str());
 
 		INI_Reader ini;
 		set_lstLoginIDBans.clear();
@@ -196,7 +195,7 @@ namespace IPBans
 			}
 			ini.close();
 		}
-		ConPrint(L"ID Bans [%u]\n",set_lstLoginIDBans.size());
+		ConPrint(L"ID Bans [%u]\n", set_lstLoginIDBans.size());
 	}
 
 
@@ -248,7 +247,7 @@ namespace IPBans
 		GetUserDataPath(szDataPath);
 
 		wstring wscDir;
-		if (HkGetAccountDirName(wscCharname, wscDir)!=HKE_OK)
+		if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
 		{
 			cmds->Print(L"ERR Account not found\n");
 			return;

@@ -8,7 +8,7 @@ struct HK_ERROR_INFO
 	wchar_t *wszText;
 };
 
-HK_ERROR_INFO hkErrors[] = 
+HK_ERROR_INFO hkErrors[] =
 {
 	{ HKE_OK,							L"Ok" },
 	{ HKE_PLAYER_NOT_LOGGED_IN,			L"Player not logged in" },
@@ -40,9 +40,9 @@ HK_ERROR_INFO hkErrors[] =
 
 wstring HkErrGetText(HK_ERROR hkErr)
 {
-	for(uint i = 0; (i < (sizeof(hkErrors)/sizeof(HK_ERROR_INFO))); i++)
+	for (uint i = 0; (i < (sizeof(hkErrors) / sizeof(HK_ERROR_INFO))); i++)
 	{
-		if(hkErrors[i].hkErr == hkErr)
+		if (hkErrors[i].hkErr == hkErr)
 			return hkErrors[i].wszText;
 	}
 

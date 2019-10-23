@@ -38,9 +38,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -85,40 +85,40 @@ void LoadSettings()
 	if (ini.open(File_FLHook.c_str(), false))
 	{
 		while (ini.read_header())
+		{
+			if (ini.is_header("config"))
 			{
-				if (ini.is_header("config"))
+				while (ini.read_value())
 				{
-					while (ini.read_value())
+					if (ini.is_value("enabled"))
 					{
-						if (ini.is_value("enabled"))
-						{
-							bPluginEnabled = ini.get_value_bool(0);
-						}
-					}				
-				}
-				else if (ini.is_header("commodity"))
-				{
-					uint commodity;
-					CommodityLimitStruct cls;
-					while (ini.read_value())
-					{
-						if (ini.is_value("commodity"))
-						{
-							pub::GetGoodID(commodity, ini.get_value_string(0));
-						}
-						else if (ini.is_value("tag"))
-						{
-							cls.TagRestrictions.push_back(stows(ini.get_value_string(0)));
-						}
-						else if (ini.is_value("id"))
-						{
-							cls.IDRestrictions.push_back(CreateID(ini.get_value_string(0)));
-						}
+						bPluginEnabled = ini.get_value_bool(0);
 					}
-					mapCommodityRestrictions[commodity] = cls;
-					++iLoaded;
 				}
 			}
+			else if (ini.is_header("commodity"))
+			{
+				uint commodity;
+				CommodityLimitStruct cls;
+				while (ini.read_value())
+				{
+					if (ini.is_value("commodity"))
+					{
+						pub::GetGoodID(commodity, ini.get_value_string(0));
+					}
+					else if (ini.is_value("tag"))
+					{
+						cls.TagRestrictions.push_back(stows(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("id"))
+					{
+						cls.IDRestrictions.push_back(CreateID(ini.get_value_string(0)));
+					}
+				}
+				mapCommodityRestrictions[commodity] = cls;
+				++iLoaded;
+			}
+		}
 		ini.close();
 	}
 
@@ -146,7 +146,7 @@ void ClearClientInfo(uint iClientID)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientID)
-{	
+{
 	returncode = DEFAULT_RETURNCODE;
 
 	//Check if this a purchase this plugin must handle
@@ -228,7 +228,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));

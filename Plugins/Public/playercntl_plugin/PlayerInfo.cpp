@@ -29,23 +29,23 @@
 
 namespace PlayerInfo
 {
-	#define RSRCID_PLAYERINFO_TITLE 500000
-	#define RSRCID_PLAYERINFO_TEXT RSRCID_PLAYERINFO_TITLE + 1
-	#define MAX_PARAGRAPHS 5
-	#define MAX_CHARACTERS 1000
+#define RSRCID_PLAYERINFO_TITLE 500000
+#define RSRCID_PLAYERINFO_TEXT RSRCID_PLAYERINFO_TITLE + 1
+#define MAX_PARAGRAPHS 5
+#define MAX_CHARACTERS 1000
 
 	static wstring IniGetLongWS(const string &scFile, const string &scApp, const string &scKey, const wstring &wscDefault)
 	{
 		char szRet[0x10000];
 		GetPrivateProfileString(scApp.c_str(), scKey.c_str(), "", szRet, sizeof(szRet), scFile.c_str());
 		string scValue = szRet;
-		if(!scValue.length())
+		if (!scValue.length())
 			return wscDefault;
 
 		wstring wscValue = L"";
 		long lHiByte;
 		long lLoByte;
-		while(sscanf(scValue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
+		while (sscanf(scValue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
 		{
 			scValue = scValue.substr(4);
 			wchar_t wChar = (wchar_t)((lHiByte << 8) | lLoByte);
@@ -92,7 +92,7 @@ namespace PlayerInfo
 		}
 		wstring wscXML = IniGetLongWS(scFilePath, "Info", "AdminNote", L"");
 		if (wscXML.length())
-				wscPlayerInfo += L"<TEXT>" + wscXML + L"</TEXT><PARA/><PARA/>";
+			wscPlayerInfo += L"<TEXT>" + wscXML + L"</TEXT><PARA/><PARA/>";
 		wscPlayerInfo += L"<POP/></RDL>";
 
 		if (wscPlayerInfo.length() < 30)
@@ -133,7 +133,7 @@ namespace PlayerInfo
 		const wstring &wscMsg = GetParamToEnd(wscParam, ' ', 2);
 
 		string scFilePath = GetUserFilePath((const wchar_t*)Players.GetActiveCharacterName(iClientID), "-info.ini");
-		if (scFilePath.length()==0)
+		if (scFilePath.length() == 0)
 			return false;
 
 		if (iPara > 0 && iPara <= MAX_PARAGRAPHS && wscCommand == L"a")
@@ -152,7 +152,7 @@ namespace PlayerInfo
 		else if (iPara > 0 && iPara <= MAX_PARAGRAPHS && wscCommand == L"d")
 		{
 			IniWriteW(scFilePath, "Info", itos(iPara), L"");
-			PrintUserCmdText(iClientID, L"OK");		
+			PrintUserCmdText(iClientID, L"OK");
 		}
 		else
 		{

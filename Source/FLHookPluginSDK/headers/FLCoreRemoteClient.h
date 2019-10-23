@@ -21,9 +21,9 @@
 class IMPORT IClient
 {
 public:
-	 IClient(class IClient const &);
-	 IClient(void);
-	 class IClient & operator=(class IClient const &);
+	IClient(class IClient const &);
+	IClient(void);
+	class IClient & operator=(class IClient const &);
 
 public:
 	unsigned char data[OBJECT_DATA_SIZE];
@@ -190,7 +190,7 @@ public:
 	virtual bool Send_FLPACKET_SERVER_USE_ITEM(uint iClientID, uint iDunno);
 	virtual bool Send_FLPACKET_SERVER_SETREPUTATION(uint iClientID, FLPACKET_SETREPUTATION& pDunno);
 	virtual void unknown_68(uint iClientID, FLPACKET_UNKNOWN& pDunno);
-	virtual bool Send_FLPACKET_SERVER_SENDCOMM(uint iClientID, uint, uint, uint, uint, uint, 
+	virtual bool Send_FLPACKET_SERVER_SENDCOMM(uint iClientID, uint, uint, uint, uint, uint,
 		uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, uint, uint);
 	virtual void unknown_70(uint iClientID, uint iDunno);
 	virtual bool Send_FLPACKET_SERVER_SET_MISSION_MESSAGE(uint iClientID, FLPACKET_UNKNOWN& pDunno);
@@ -252,13 +252,13 @@ public:
 };
 
 IMPORT  void  ForceClientLogout(unsigned int);
-IMPORT  int  GetClientStats(struct client_stats_t *,int *);
+IMPORT  int  GetClientStats(struct client_stats_t *, int *);
 IMPORT  int  GetNumClients(void);
-IMPORT  void  GetRemoteClientPort( std::vector<unsigned long> & );
+IMPORT  void  GetRemoteClientPort(std::vector<unsigned long> &);
 IMPORT  void  SetRemoteClientPassword(unsigned short const *);
-IMPORT  void  SetRemoteClientResponseData(bool,bool,int,unsigned short const *,unsigned int,char const *);
+IMPORT  void  SetRemoteClientResponseData(bool, bool, int, unsigned short const *, unsigned int, char const *);
 IMPORT  void  SetRemoteClientSessionName(unsigned short const *);
-IMPORT  void  SetServerLogFunction(int (*)(struct ErrorCode,char const *,...));
+IMPORT  void  SetServerLogFunction(int(*)(struct ErrorCode, char const *, ...));
 
 extern "C" IMPORT HkIClientImpl Client;
 extern "C" IMPORT HkIClientImpl * GetClientInterface();

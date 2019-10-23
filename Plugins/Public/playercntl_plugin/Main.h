@@ -30,7 +30,7 @@ namespace pub
 	namespace SpaceObj
 	{
 		IMPORT int __cdecl DrainShields(unsigned int);
-		IMPORT int __cdecl SetInvincible(unsigned int,bool,bool,float);
+		IMPORT int __cdecl SetInvincible(unsigned int, bool, bool, float);
 	}
 
 	namespace Player
@@ -99,7 +99,7 @@ namespace MiscCmds
 	void AdminCmd_PlayMusic(CCmds* cmds, const wstring &wscMusicname);
 	void AdminCmd_PlaySound(CCmds* cmds, const wstring &wscSoundname);
 	void AdminCmd_PlayNNM(CCmds* cmds, const wstring &wscSoundname);
-	
+
 }
 
 namespace IPBans
@@ -120,10 +120,10 @@ namespace PurchaseRestrictions
 	void BaseEnter(unsigned int iBaseID, unsigned int iClientID);
 	bool GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientID);
 	bool ReqAddItem(unsigned int goodID, char const *hardpoint, int count, float status, bool mounted, uint iClientID);
-	bool ReqChangeCash(int iMoneyDiff,unsigned int iClientID);
+	bool ReqChangeCash(int iMoneyDiff, unsigned int iClientID);
 	bool ReqEquipment(class EquipDescList const &eqDesc, unsigned int iClientID);
 	bool ReqHullStatus(float fStatus, unsigned int iClientID);
-	bool ReqSetCash(int iMoney,unsigned int iClientID);
+	bool ReqSetCash(int iMoney, unsigned int iClientID);
 	bool ReqShipArch(unsigned int iArchID, unsigned int iClientID);
 }
 
@@ -138,7 +138,7 @@ namespace HyperJump
 	void MissileTorpHit(uint iClientID, DamageList *dmg);
 	bool CheckForMatrix(uint iClientID);
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
-	
+
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);
 	void AdminCmd_Pull(CCmds* cmds, const wstring &wscCharname);

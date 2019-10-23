@@ -282,261 +282,261 @@ void TimerUpdateLossData()
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// add timers here
-	typedef void(*_TimerFunc)();
+typedef void(*_TimerFunc)();
 
-	struct TIMER
+struct TIMER
+{
+	_TimerFunc	proc;
+	mstime		tmIntervallMS;
+	mstime		tmLastCall;
+};
+
+TIMER Timers[] =
+{
+	{ TimerUpdatePingData, 1000, 0 },
+	{ TimerUpdateLossData, LOSS_INTERVALL, 0 },
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int Condata::Update()
+{
+	static bool bFirstTime = true;
+	if (bFirstTime) {
+		bFirstTime = false;
+		// check for logged in players and reset their connection data
+		struct PlayerData *pPD = 0;
+		while (pPD = Players.traverse_active(pPD))
+			ClearConData(HkGetClientIdFromPD(pPD));
+	}
+
+	// call timers
+	for (uint i = 0; (i < sizeof(Timers) / sizeof(TIMER)); i++)
 	{
-		_TimerFunc	proc;
-		mstime		tmIntervallMS;
-		mstime		tmLastCall;
-	};
-
-	TIMER Timers[] =
-	{
-		{ TimerUpdatePingData, 1000, 0 },
-		{ TimerUpdateLossData, LOSS_INTERVALL, 0 },
-	};
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	int Condata::Update()
-	{
-		static bool bFirstTime = true;
-		if (bFirstTime) {
-			bFirstTime = false;
-			// check for logged in players and reset their connection data
-			struct PlayerData *pPD = 0;
-			while (pPD = Players.traverse_active(pPD))
-				ClearConData(HkGetClientIdFromPD(pPD));
-		}
-
-		// call timers
-		for (uint i = 0; (i < sizeof(Timers) / sizeof(TIMER)); i++)
+		if ((timeInMS() - Timers[i].tmLastCall) >= Timers[i].tmIntervallMS)
 		{
-			if ((timeInMS() - Timers[i].tmLastCall) >= Timers[i].tmIntervallMS)
-			{
-				Timers[i].tmLastCall = timeInMS();
-				Timers[i].proc();
-			}
+			Timers[i].tmLastCall = timeInMS();
+			Timers[i].proc();
 		}
-
-		return 0; // it doesnt matter what we return here since we have set the return code to "DEFAULT_RETURNCODE", so FLHook will just ignore it
 	}
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	return 0; // it doesnt matter what we return here since we have set the return code to "DEFAULT_RETURNCODE", so FLHook will just ignore it
+}
 
-	void Condata::PlayerLaunch(unsigned int iShip, unsigned int iClientID)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Condata::PlayerLaunch(unsigned int iShip, unsigned int iClientID)
+{
+
+	ConData[iClientID].tmLastObjUpdate = 0;
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void Condata::SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
+{
+	// lag detection
+	IObjInspectImpl *ins = HkGetInspect(iClientID);
+	if (!ins)
+		return; // ??? 8[
+
+	mstime tmNow = timeInMS();
+	mstime tmTimestamp = (mstime)(ui.fTimestamp * 1000);
+
+	if (set_iLagDetectionFrame && ConData[iClientID].tmLastObjUpdate && (HkGetEngineState(iClientID) != ES_TRADELANE) && (ui.cState != 7))
 	{
+		uint iTimeDiff = (uint)(tmNow - ConData[iClientID].tmLastObjUpdate);
+		uint iTimestampDiff = (uint)(tmTimestamp - ConData[iClientID].tmLastObjTimestamp);
+		int iDiff = (int)sqrt(pow((long double)((int)iTimeDiff - (int)iTimestampDiff), 2));
+		iDiff -= g_iServerLoad;
+		if (iDiff < 0)
+			iDiff = 0;
 
-		ConData[iClientID].tmLastObjUpdate = 0;
+		uint iPerc;
+		if (iTimestampDiff != 0)
+			iPerc = (uint)((float)((float)iDiff / (float)iTimestampDiff)*100.0);
+		else
+			iPerc = 0;
 
-	}
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	void Condata::SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
-	{
-		// lag detection
-		IObjInspectImpl *ins = HkGetInspect(iClientID);
-		if (!ins)
-			return; // ??? 8[
-
-		mstime tmNow = timeInMS();
-		mstime tmTimestamp = (mstime)(ui.fTimestamp * 1000);
-
-		if (set_iLagDetectionFrame && ConData[iClientID].tmLastObjUpdate && (HkGetEngineState(iClientID) != ES_TRADELANE) && (ui.cState != 7))
+		if (ConData[iClientID].lstObjUpdateIntervalls.size() >= set_iLagDetectionFrame)
 		{
-			uint iTimeDiff = (uint)(tmNow - ConData[iClientID].tmLastObjUpdate);
-			uint iTimestampDiff = (uint)(tmTimestamp - ConData[iClientID].tmLastObjTimestamp);
-			int iDiff = (int)sqrt(pow((long double)((int)iTimeDiff - (int)iTimestampDiff), 2));
-			iDiff -= g_iServerLoad;
-			if (iDiff < 0)
-				iDiff = 0;
-
-			uint iPerc;
-			if (iTimestampDiff != 0)
-				iPerc = (uint)((float)((float)iDiff / (float)iTimestampDiff)*100.0);
-			else
-				iPerc = 0;
-
-
-			if (ConData[iClientID].lstObjUpdateIntervalls.size() >= set_iLagDetectionFrame)
+			uint iLags = 0;
+			foreach(ConData[iClientID].lstObjUpdateIntervalls, uint, it)
 			{
-				uint iLags = 0;
-				foreach(ConData[iClientID].lstObjUpdateIntervalls, uint, it)
-				{
-					if ((*it) > set_iLagDetectionMinimum)
-						iLags++;
-				}
-
-				ConData[iClientID].iLags = (iLags * 100) / set_iLagDetectionFrame;
-				while (ConData[iClientID].lstObjUpdateIntervalls.size() >= set_iLagDetectionFrame)
-					ConData[iClientID].lstObjUpdateIntervalls.pop_front();
+				if ((*it) > set_iLagDetectionMinimum)
+					iLags++;
 			}
 
-			ConData[iClientID].lstObjUpdateIntervalls.push_back(iPerc);
+			ConData[iClientID].iLags = (iLags * 100) / set_iLagDetectionFrame;
+			while (ConData[iClientID].lstObjUpdateIntervalls.size() >= set_iLagDetectionFrame)
+				ConData[iClientID].lstObjUpdateIntervalls.pop_front();
 		}
 
-		ConData[iClientID].tmLastObjUpdate = tmNow;
-		ConData[iClientID].tmLastObjTimestamp = tmTimestamp;
-
+		ConData[iClientID].lstObjUpdateIntervalls.push_back(iPerc);
 	}
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	ConData[iClientID].tmLastObjUpdate = tmNow;
+	ConData[iClientID].tmLastObjTimestamp = tmTimestamp;
 
-	bool Condata::UserCmd_Ping(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		if (!set_bPingCmd) {
-			PRINT_DISABLED();
-			return true;
-		}
+}
 
-		wstring wscTargetPlayer = GetParam(wscParam, ' ', 0);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		uint iClientIDTarget;
-		iClientIDTarget = iClientID;
-
-		wstring Response;
-
-		Response += L"Ping: ";
-		if (ConData[iClientIDTarget].lstPing.size() < set_iPingKickFrame)
-			Response += L"n/a Fluct: n/a ";
-		else {
-			Response += stows(itos(ConData[iClientIDTarget].iAveragePing)).c_str();
-			Response += L"ms ";
-			if (set_iPingKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iPingKick)).c_str();
-				Response += L"ms) ";
-			}
-			Response += L"Fluct: ";
-			Response += stows(itos(ConData[iClientIDTarget].iPingFluctuation)).c_str();
-			Response += L"ms ";
-			if (set_iFluctKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iFluctKick)).c_str();
-				Response += L"ms) ";
-			}
-		}
-
-		Response += L"Loss: ";
-		if (ConData[iClientIDTarget].lstLoss.size() < (set_iLossKickFrame / (LOSS_INTERVALL / 1000)))
-			Response += L"n/a ";
-		else {
-			Response += stows(itos(ConData[iClientIDTarget].iAverageLoss)).c_str();
-			Response += L"%% ";
-			if (set_iLossKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iLossKick)).c_str();
-				Response += L"%%) ";
-			}
-		}
-
-		Response += L"Lag: ";
-		if (ConData[iClientIDTarget].lstObjUpdateIntervalls.size() < set_iLagDetectionFrame)
-			Response += L"n/a";
-		else {
-			Response += stows(itos(ConData[iClientIDTarget].iLags)).c_str();
-			Response += L"%% ";
-			if (set_iLagKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iLagKick)).c_str();
-				Response += L"%%)";
-			}
-		}
-
-		// Send the message to the user 
-		PrintUserCmdText(iClientID, Response);
+bool Condata::UserCmd_Ping(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	if (!set_bPingCmd) {
+		PRINT_DISABLED();
 		return true;
 	}
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	bool Condata::UserCmd_PingTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		if (!set_bPingCmd) {
-			PRINT_DISABLED();
-			return true;
+	wstring wscTargetPlayer = GetParam(wscParam, ' ', 0);
+
+	uint iClientIDTarget;
+	iClientIDTarget = iClientID;
+
+	wstring Response;
+
+	Response += L"Ping: ";
+	if (ConData[iClientIDTarget].lstPing.size() < set_iPingKickFrame)
+		Response += L"n/a Fluct: n/a ";
+	else {
+		Response += stows(itos(ConData[iClientIDTarget].iAveragePing)).c_str();
+		Response += L"ms ";
+		if (set_iPingKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iPingKick)).c_str();
+			Response += L"ms) ";
 		}
-
-		uint iShip = 0;
-		pub::Player::GetShip(iClientID, iShip);
-		if (!iShip) {
-			PrintUserCmdText(iClientID, L"Error: You are docked");
-			return true;
+		Response += L"Fluct: ";
+		Response += stows(itos(ConData[iClientIDTarget].iPingFluctuation)).c_str();
+		Response += L"ms ";
+		if (set_iFluctKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iFluctKick)).c_str();
+			Response += L"ms) ";
 		}
+	}
 
-		uint iTarget = 0;
-		pub::SpaceObj::GetTarget(iShip, iTarget);
-
-		if (!iTarget) {
-			PrintUserCmdText(iClientID, L"Error: No target");
-			return true;
+	Response += L"Loss: ";
+	if (ConData[iClientIDTarget].lstLoss.size() < (set_iLossKickFrame / (LOSS_INTERVALL / 1000)))
+		Response += L"n/a ";
+	else {
+		Response += stows(itos(ConData[iClientIDTarget].iAverageLoss)).c_str();
+		Response += L"%% ";
+		if (set_iLossKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iLossKick)).c_str();
+			Response += L"%%) ";
 		}
+	}
 
-		uint iClientIDTarget = HkGetClientIDByShip(iTarget);
-		if (!HkIsValidClientID(iClientIDTarget))
-		{
-			PrintUserCmdText(iClientID, L"Error: Target is no player");
-			return true;
+	Response += L"Lag: ";
+	if (ConData[iClientIDTarget].lstObjUpdateIntervalls.size() < set_iLagDetectionFrame)
+		Response += L"n/a";
+	else {
+		Response += stows(itos(ConData[iClientIDTarget].iLags)).c_str();
+		Response += L"%% ";
+		if (set_iLagKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iLagKick)).c_str();
+			Response += L"%%)";
 		}
+	}
 
+	// Send the message to the user 
+	PrintUserCmdText(iClientID, Response);
+	return true;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		wstring Response;
-
-		if (iClientIDTarget != iClientID) {
-			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientIDTarget);
-			Response += wscCharname.c_str();
-			Response += L" - ";
-		}
-
-		Response += L"Ping: ";
-		if (ConData[iClientIDTarget].lstPing.size() < set_iPingKickFrame)
-			Response += L"n/a Fluct: n/a ";
-		else {
-			Response += stows(itos(ConData[iClientIDTarget].iAveragePing)).c_str();
-			Response += L"ms ";
-			if (set_iPingKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iPingKick)).c_str();
-				Response += L"ms) ";
-			}
-			Response += L"Fluct: ";
-			Response += stows(itos(ConData[iClientIDTarget].iPingFluctuation)).c_str();
-			Response += L"ms ";
-			if (set_iFluctKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iFluctKick)).c_str();
-				Response += L"ms) ";
-			}
-		}
-
-		Response += L"Loss: ";
-		if (ConData[iClientIDTarget].lstLoss.size() < (set_iLossKickFrame / (LOSS_INTERVALL / 1000)))
-			Response += L"n/a ";
-		else {
-			Response += stows(itos(ConData[iClientIDTarget].iAverageLoss)).c_str();
-			Response += L"%% ";
-			if (set_iLossKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iLossKick)).c_str();
-				Response += L"%%) ";
-			}
-		}
-
-		Response += L"Lag: ";
-		if (ConData[iClientIDTarget].lstObjUpdateIntervalls.size() < set_iLagDetectionFrame)
-			Response += L"n/a";
-		else {
-			Response += stows(itos(ConData[iClientIDTarget].iLags)).c_str();
-			Response += L"%% ";
-			if (set_iLagKick > 0) {
-				Response += L"(Max: ";
-				Response += stows(itos(set_iLagKick)).c_str();
-				Response += L"%%)";
-			}
-		}
-
-		// Send the message to the user 
-		PrintUserCmdText(iClientID, Response);
+bool Condata::UserCmd_PingTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+{
+	if (!set_bPingCmd) {
+		PRINT_DISABLED();
 		return true;
 	}
+
+	uint iShip = 0;
+	pub::Player::GetShip(iClientID, iShip);
+	if (!iShip) {
+		PrintUserCmdText(iClientID, L"Error: You are docked");
+		return true;
+	}
+
+	uint iTarget = 0;
+	pub::SpaceObj::GetTarget(iShip, iTarget);
+
+	if (!iTarget) {
+		PrintUserCmdText(iClientID, L"Error: No target");
+		return true;
+	}
+
+	uint iClientIDTarget = HkGetClientIDByShip(iTarget);
+	if (!HkIsValidClientID(iClientIDTarget))
+	{
+		PrintUserCmdText(iClientID, L"Error: Target is no player");
+		return true;
+	}
+
+
+	wstring Response;
+
+	if (iClientIDTarget != iClientID) {
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientIDTarget);
+		Response += wscCharname.c_str();
+		Response += L" - ";
+	}
+
+	Response += L"Ping: ";
+	if (ConData[iClientIDTarget].lstPing.size() < set_iPingKickFrame)
+		Response += L"n/a Fluct: n/a ";
+	else {
+		Response += stows(itos(ConData[iClientIDTarget].iAveragePing)).c_str();
+		Response += L"ms ";
+		if (set_iPingKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iPingKick)).c_str();
+			Response += L"ms) ";
+		}
+		Response += L"Fluct: ";
+		Response += stows(itos(ConData[iClientIDTarget].iPingFluctuation)).c_str();
+		Response += L"ms ";
+		if (set_iFluctKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iFluctKick)).c_str();
+			Response += L"ms) ";
+		}
+	}
+
+	Response += L"Loss: ";
+	if (ConData[iClientIDTarget].lstLoss.size() < (set_iLossKickFrame / (LOSS_INTERVALL / 1000)))
+		Response += L"n/a ";
+	else {
+		Response += stows(itos(ConData[iClientIDTarget].iAverageLoss)).c_str();
+		Response += L"%% ";
+		if (set_iLossKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iLossKick)).c_str();
+			Response += L"%%) ";
+		}
+	}
+
+	Response += L"Lag: ";
+	if (ConData[iClientIDTarget].lstObjUpdateIntervalls.size() < set_iLagDetectionFrame)
+		Response += L"n/a";
+	else {
+		Response += stows(itos(ConData[iClientIDTarget].iLags)).c_str();
+		Response += L"%% ";
+		if (set_iLagKick > 0) {
+			Response += L"(Max: ";
+			Response += stows(itos(set_iLagKick)).c_str();
+			Response += L"%%)";
+		}
+	}
+
+	// Send the message to the user 
+	PrintUserCmdText(iClientID, Response);
+	return true;
+}

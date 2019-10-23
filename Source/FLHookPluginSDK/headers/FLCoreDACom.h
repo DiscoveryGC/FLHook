@@ -19,18 +19,18 @@
 
 namespace DACOM_CRC
 {
-	IMPORT  int  CompareStringsI(char const *,char const *);
-	IMPORT  unsigned long  GetCRC32(char const *,char const *);
+	IMPORT  int  CompareStringsI(char const *, char const *);
+	IMPORT  unsigned long  GetCRC32(char const *, char const *);
 	IMPORT  unsigned long  GetCRC32(char const *);
-	IMPORT  unsigned long  GetContinuedCRC32(unsigned long,char);
-	IMPORT  unsigned long  GetContinuedCRC32(unsigned long,char const *);
+	IMPORT  unsigned long  GetContinuedCRC32(unsigned long, char);
+	IMPORT  unsigned long  GetContinuedCRC32(unsigned long, char const *);
 };
 
 namespace LogStream
 {
 	IMPORT  void  FlushToDisk(void);
-	IMPORT  void  LogEvent(char const *,float,unsigned long);
-	IMPORT  void  LogNamedEvent(char const *,char const *,unsigned long);
+	IMPORT  void  LogEvent(char const *, float, unsigned long);
+	IMPORT  void  LogNamedEvent(char const *, char const *, unsigned long);
 	IMPORT  bool  Startup(char const *);
 	IMPORT  void  Update(float);
 };

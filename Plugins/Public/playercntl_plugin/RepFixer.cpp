@@ -82,9 +82,9 @@ namespace RepFixer
 
 		list<INISECTIONVALUE> lstValues;
 		IniGetSection(scPluginCfgFile, scIDNick, lstValues);
-		foreach (lstValues, INISECTIONVALUE, var)
+		foreach(lstValues, INISECTIONVALUE, var)
 		{
-			if (var->scValue.size()>0)
+			if (var->scValue.size() > 0)
 			{
 				FactionRep factionRep;
 				factionRep.scRepGroup = var->scKey;
@@ -100,10 +100,10 @@ namespace RepFixer
 					|| factionRep.iMode == FactionRep::MODE_REP_GREATERTHAN
 					|| factionRep.iMode == FactionRep::MODE_REP_STATIC)
 				{
-					if (set_iPluginDebug>0)
+					if (set_iPluginDebug > 0)
 					{
 						ConPrint(L"NOTICE: Add reputation %s/%s rep=%0.2f mode=%d\n",
-							stows(scIDNick).c_str(), stows(var->scKey).c_str(), factionRep.fRep, factionRep.iMode); 
+							stows(scIDNick).c_str(), stows(var->scKey).c_str(), factionRep.fRep, factionRep.iMode);
 					}
 					lstFactionReps.push_back(factionRep);
 				}
@@ -167,7 +167,7 @@ namespace RepFixer
 		set_mapFactionReps.clear();
 		list<INISECTIONVALUE> lstValues;
 		IniGetSection(scPluginCfgFile, "RepFixerItems", lstValues);
-		foreach (lstValues, INISECTIONVALUE, var)
+		foreach(lstValues, INISECTIONVALUE, var)
 			LoadFactionReps(scPluginCfgFile, var->scKey);
 
 		LoadTagRephacks();
@@ -183,7 +183,7 @@ namespace RepFixer
 		int remainingHoldSize = 0;
 		HkEnumCargo(wscCharName, lstCargo, remainingHoldSize);
 
-		foreach (lstCargo, CARGO_INFO, cargo)
+		foreach(lstCargo, CARGO_INFO, cargo)
 		{
 			// If the item is not mounted and we are only checking mounted items
 			// then skip to the next one.
@@ -192,7 +192,7 @@ namespace RepFixer
 
 			// If the item is not an 'ID' then skip to the next one. 
 			map<unsigned int, list<FactionRep> >::iterator iterIDs = set_mapFactionReps.find(cargo->iArchID);
-			if (iterIDs==set_mapFactionReps.end())
+			if (iterIDs == set_mapFactionReps.end())
 				continue;
 
 			// The item is an 'ID'; check and adjust the player reputations

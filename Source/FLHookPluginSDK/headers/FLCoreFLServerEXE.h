@@ -18,6 +18,6 @@
 
 #pragma comment( lib, "FLCoreFLServerEXE.lib" )
 
-IMPORT  int ServerLogf(struct ErrorCode,char const *,...);
+IMPORT  int ServerLogf(struct ErrorCode, char const *, ...);
 
 #endif // _FLCOREFLSERVEREXE_H_

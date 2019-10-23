@@ -71,10 +71,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
-			LoadSettings();	
+		if (set_scCfgFile.length() > 0)
+			LoadSettings();
 		HkLoadStringDLLs();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -113,7 +113,7 @@ void LoadSettings()
 	set_bEnablePimpShip = IniGetB(scPluginCfgFile, "General", "EnablePimpShip", false);
 	set_bEnableRestart = IniGetB(scPluginCfgFile, "General", "EnableRestart", false);
 	set_bEnableGiveCash = IniGetB(scPluginCfgFile, "General", "EnableGiveCash", false);
-	
+
 	set_fSpinProtectMass = IniGetF(scPluginCfgFile, "General", "SpinProtectionMass", 180.0f);
 	set_fSpinImpulseMultiplier = IniGetF(scPluginCfgFile, "General", "SpinProtectionMultiplier", -1.0f);
 
@@ -172,7 +172,7 @@ void HkTimer()
 void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller)
 {
 	returncode = NOFUNCTIONCALL;
-	
+
 	HyperJump::SendDeathMsg(wscMsg, iSystem, iClientIDVictim, iClientIDKiller);
 	CargoDrop::SendDeathMsg(wscMsg, iSystem, iClientIDVictim, iClientIDKiller);
 	Message::SendDeathMsg(wscMsg, iSystem, iClientIDVictim, iClientIDKiller);
@@ -181,7 +181,7 @@ void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uin
 	const wchar_t *killer = (const wchar_t*)Players.GetActiveCharacterName(iClientIDKiller);
 	if (victim && killer)
 	{
-		AddLog("NOTICE: Death charname=%s killername=%s system=%08x", 
+		AddLog("NOTICE: Death charname=%s killername=%s system=%08x",
 			wstos(victim).c_str(), wstos(killer).c_str(), iSystem);
 	}
 }
@@ -206,7 +206,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		else
 		{
 			HkMsgU(L"Debug: targetid invalid HyperJump::Disrupt");
-		}	
+		}
 	}
 
 	returncode = DEFAULT_RETURNCODE;
@@ -216,7 +216,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 
 
 static bool IsDockingAllowed(uint iShip, uint iDockTarget, uint iClientID)
-{	
+{
 	// If the player's rep is less/equal -0.55 to the owner of the station
 	// then refuse the docking request
 	int iSolarRep;
@@ -235,7 +235,7 @@ static bool IsDockingAllowed(uint iShip, uint iDockTarget, uint iClientID)
 			L"Access Denied! Docking request rejected. Your papers are no good.",
 			L"Access Denied! You can't dock here. Your reputation stinks."
 		};
-		PrintUserCmdText(iClientID, wscMsg[rand()%3]);			
+		PrintUserCmdText(iClientID, wscMsg[rand() % 3]);
 		return false;
 	}
 
@@ -246,36 +246,36 @@ static bool IsDockingAllowed(uint iShip, uint iDockTarget, uint iClientID)
 // provided extension. The resulting path is returned in the path parameter.
 bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension)
 {
-        // init variables
-        char szDataPath[MAX_PATH];
-        GetUserDataPath(szDataPath);
-        string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
+	// init variables
+	char szDataPath[MAX_PATH];
+	GetUserDataPath(szDataPath);
+	string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
 
-        wstring wscDir;
-        wstring wscFile;
-        if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
-                return false;
-        if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
-                return false;
-        path = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + extension;
-        return true;
+	wstring wscDir;
+	wstring wscFile;
+	if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
+		return false;
+	if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
+		return false;
+	path = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + extension;
+	return true;
 }
 
 string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
 {
-        // init variables
-        char szDataPath[MAX_PATH];
-        GetUserDataPath(szDataPath);
-        string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
+	// init variables
+	char szDataPath[MAX_PATH];
+	GetUserDataPath(szDataPath);
+	string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
 
-        wstring wscDir;
-        wstring wscFile;
-        if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
-                return "";
-        if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
-                return "";
+	wstring wscDir;
+	wstring wscFile;
+	if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
+		return "";
+	if (HkGetCharFileName(wscCharname, wscFile) != HKE_OK)
+		return "";
 
-        return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + scExtension;
+	return scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + scExtension;
 }
 
 namespace HkIEngine
@@ -292,28 +292,28 @@ namespace HkIEngine
 			return 0;
 		}
 		else
-		{		
-				uint iTypeID;
-				pub::SpaceObj::GetType(iDockTarget, iTypeID);
-				if (iTypeID==OBJ_DOCKING_RING || iTypeID==OBJ_STATION)
+		{
+			uint iTypeID;
+			pub::SpaceObj::GetType(iDockTarget, iTypeID);
+			if (iTypeID == OBJ_DOCKING_RING || iTypeID == OBJ_STATION)
+			{
+				if (!IsDockingAllowed(iShip, iDockTarget, iClientID))
 				{
-					if (!IsDockingAllowed(iShip, iDockTarget, iClientID))
-					{
-						//AddLog("INFO: Docking suppressed docktarget=%u charname=%s", iDockTarget, wstos(Players.GetActiveCharacterName(iClientID)).c_str());
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-						return 0;
-					}
+					//AddLog("INFO: Docking suppressed docktarget=%u charname=%s", iDockTarget, wstos(Players.GetActiveCharacterName(iClientID)).c_str());
+					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+					return 0;
+				}
 
-					if (response==PROCEED_DOCK)
-					{
+				if (response == PROCEED_DOCK)
+				{
 					// Print out a message when a player ship docks.
 					wstring wscMsg = L"%time Traffic control alert: %player has requested to dock";
 					wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
 					wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
 					PrintLocalUserCmdText(iClientID, wscMsg, set_iLocalChatRange);
-					}						
 				}
-		
+			}
+
 			SystemSensor::Dock_Call(iShip, iDockTarget, iCancel, response);
 			return 0;
 		}
@@ -348,17 +348,17 @@ namespace HkIServerImpl
 		{
 			wstring wscDir;
 			HkGetAccountDirName(acc, wscDir);
-			
+
 			char szDataPath[MAX_PATH];
 			GetUserDataPath(szDataPath);
-	
+
 			string path = string(szDataPath) + "\\Accts\\MultiPlayer\\" + wstos(wscDir) + "\\banned";
 
 			FILE *file = fopen(path.c_str(), "r");
 			if (file)
 			{
 				fclose(file);
-			
+
 				// Ban the player
 				flstr *flStr = CreateWString(acc->wszAccID);
 				Players.BanAccount(*flStr, true);
@@ -392,17 +392,17 @@ namespace HkIServerImpl
 			Server.CharacterInfoReq(iClientID, true);
 		}
 	}
-	
+
 	void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigned int iDockTarget, unsigned int p4, unsigned long p5, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 		if (iClientID)
 		{
 			if (!iIsFormationRequest)
-			{ 
+			{
 				uint iTargetTypeID;
 				pub::SpaceObj::GetType(iDockTarget, iTargetTypeID);
-				if (iTargetTypeID==OBJ_DOCKING_RING || iTargetTypeID==OBJ_STATION)
+				if (iTargetTypeID == OBJ_DOCKING_RING || iTargetTypeID == OBJ_STATION)
 				{
 					if (!IsDockingAllowed(iShip, iDockTarget, iClientID))
 					{
@@ -430,7 +430,7 @@ namespace HkIServerImpl
 	}
 
 	void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
-	{		
+	{
 		HyperJump::CheckForMatrix(iClientID);
 		returncode = DEFAULT_RETURNCODE;
 	}
@@ -476,7 +476,7 @@ namespace HkIServerImpl
 		ClearClientInfo(iClientID);
 		Rename::CharacterSelect_AFTER(charId, iClientID);
 	}
-	
+
 	void __stdcall JumpInComplete_AFTER(unsigned int iSystem, unsigned int iShip)
 	{
 		returncode = DEFAULT_RETURNCODE;
@@ -507,7 +507,7 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 
 		// If spin protection is off, do nothing.
-		if (set_fSpinProtectMass==-1.0f)
+		if (set_fSpinProtectMass == -1.0f)
 			return;
 
 		// If the target is not a player, do nothing.
@@ -527,9 +527,9 @@ namespace HkIServerImpl
 		// Don't do spin protect unless the hit ship is big
 		if (target_mass < set_fSpinProtectMass)
 			return;
-		
+
 		// Don't do spin protect unless the hit ship is 2 times larger than the hitter
-		if (target_mass < client_mass*2)
+		if (target_mass < client_mass * 2)
 			return;
 
 		Vector V1, V2;
@@ -547,7 +547,7 @@ namespace HkIServerImpl
 	void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
-		
+
 		/*
 		if (Rename::IsLockedShip(iClientID, 2))
 		{
@@ -576,7 +576,7 @@ namespace HkIServerImpl
 	void __stdcall ReqAddItem(unsigned int goodID, char const *hardpoint, int count, float status, bool mounted, uint iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
-		
+
 		/*if (Rename::IsLockedShip(iClientID, 2))
 		{
 			string HP(hardpoint);
@@ -609,46 +609,46 @@ namespace HkIServerImpl
 	void __stdcall ReqRemoveItem(unsigned short slot, int amount, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
-		
+
 		if (Rename::IsLockedShip(iClientID, 2))
 		{
 			for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+			{
+				if (item->sID == slot)
 				{
-					if (item->sID == slot)
+					string hp = string(item->szHardPoint.value);
+					boost::to_upper(hp);
+					if (item->bMounted == true && (hp == "BAY" || hp.substr(0, 4) == "HPCM" || hp.substr(0, 18) == "HPSPECIALEQUIPMENT"))
 					{
-						string hp = string(item->szHardPoint.value);
-						boost::to_upper(hp);
-						if (item->bMounted == true && (hp == "BAY" || hp.substr(0, 4) == "HPCM" || hp.substr(0, 18) == "HPSPECIALEQUIPMENT"))
-						{
-							PrintUserCmdText(iClientID, L"This ship is locked. You can't sell your ID, Armor, or CM/Cloak. You will be kicked to prevent corruption.");
-							wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-							wstring spurdoip;
-							HkGetPlayerIP(iClientID, spurdoip);
-							AddLog("SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
-							ConPrint(L"SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
+						PrintUserCmdText(iClientID, L"This ship is locked. You can't sell your ID, Armor, or CM/Cloak. You will be kicked to prevent corruption.");
+						wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+						wstring spurdoip;
+						HkGetPlayerIP(iClientID, spurdoip);
+						AddLog("SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
+						ConPrint(L"SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
 
-							HkDelayedKick(iClientID, 1);
+						HkDelayedKick(iClientID, 1);
 
-							returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-						}
-						else if (hp != "BAY" && Rename::IsLockedShip(iClientID, 3))
-						{
-							PrintUserCmdText(iClientID, L"Selling equipment is not allowed on this ship. You will now be kicked to prevent corruption.");
-							wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-							wstring spurdoip;
-							HkGetPlayerIP(iClientID, spurdoip);
-							AddLog("SHIPLOCK: Attempt to sell item on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
-							ConPrint(L"SHIPLOCK: Attempt to sell item on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
-							HkDelayedKick(iClientID, 1);
-							returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-						}
+						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+					}
+					else if (hp != "BAY" && Rename::IsLockedShip(iClientID, 3))
+					{
+						PrintUserCmdText(iClientID, L"Selling equipment is not allowed on this ship. You will now be kicked to prevent corruption.");
+						wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+						wstring spurdoip;
+						HkGetPlayerIP(iClientID, spurdoip);
+						AddLog("SHIPLOCK: Attempt to sell item on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
+						ConPrint(L"SHIPLOCK: Attempt to sell item on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
+						HkDelayedKick(iClientID, 1);
+						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 					}
 				}
+			}
 		}
-		
+
 	}
 
-	void __stdcall ReqChangeCash(int iMoneyDiff,unsigned int iClientID)
+	void __stdcall ReqChangeCash(int iMoneyDiff, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 		if (PurchaseRestrictions::ReqChangeCash(iMoneyDiff, iClientID))
@@ -657,7 +657,7 @@ namespace HkIServerImpl
 		}
 	}
 
-	void __stdcall ReqSetCash(int iMoney,unsigned int iClientID)
+	void __stdcall ReqSetCash(int iMoney, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 		if (PurchaseRestrictions::ReqSetCash(iMoney, iClientID))
@@ -669,7 +669,7 @@ namespace HkIServerImpl
 	void __stdcall ReqEquipment(class EquipDescList const &eqDesc, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
-		
+
 		/*
 		if (Rename::IsLockedShip(iClientID, 2))
 		{
@@ -686,7 +686,7 @@ namespace HkIServerImpl
 						PrintUserCmdText(iClientID, L"Triggered on equip item");
 					}
 			}
-			
+
 			//PrintUserCmdText(iClientID, L"Modifying equipment is not allowed on a locked ship. You will now be kicked.");
 
 			//wstring wsccharname = Players.GetActiveCharacterName(iClientID);
@@ -711,7 +711,7 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 
 		if (Rename::IsLockedShip(iClientID, 2))
-		{			
+		{
 			if (bMounted == true)
 			{
 				PrintUserCmdText(iClientID, L"This ship is locked. You can't mount an ID or Armor. You will be kicked to prevent corruption.");
@@ -739,7 +739,7 @@ namespace HkIServerImpl
 				HkDelayedKick(iClientID, 1);
 
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-			}			
+			}
 		}
 	}
 
@@ -775,7 +775,7 @@ namespace HkIServerImpl
 		for (map<uint, mstime>::iterator iter = mapSaveTimes.begin(); iter != mapSaveTimes.end(); ++iter)
 		{
 			uint iClientID = iter->first;
-			if (iter->second!=0 && iter->second < currTime)
+			if (iter->second != 0 && iter->second < currTime)
 			{
 				if (HkIsValidClientID(iClientID) && !HkIsInCharSelectMenu(iClientID))
 					HkSaveChar(iter->first);
@@ -788,7 +788,7 @@ namespace HkIServerImpl
 	void __stdcall TractorObjects(unsigned int iClientID, struct XTractorObjects const &objs)
 	{
 		returncode = DEFAULT_RETURNCODE;
-		if (mapSaveTimes[iClientID]==0)
+		if (mapSaveTimes[iClientID] == 0)
 		{
 			mapSaveTimes[iClientID] = GetTimeInMS() + 60000;
 		}
@@ -797,7 +797,7 @@ namespace HkIServerImpl
 	// Save after jettison to reduce chance of duplication on crash
 	void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &objs)
 	{
-		if (mapSaveTimes[iClientID]==0)
+		if (mapSaveTimes[iClientID] == 0)
 		{
 			mapSaveTimes[iClientID] = GetTimeInMS() + 60000;
 		}
@@ -894,7 +894,7 @@ void __stdcall RequestBestPath(unsigned int p1, DWORD *p2, int p3)
 	}
 }
 
-typedef bool (*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
+typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
 struct USERCMD
 {
@@ -1063,7 +1063,7 @@ USERCMD UserCmds[] =
 
 /**
 This function is called by FLHook when a user types a chat string. We look at the
-string they've typed and see if it starts with one of the above commands. If it 
+string they've typed and see if it starts with one of the above commands. If it
 does we try to process it.
 */
 bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
@@ -1078,7 +1078,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 
 		// If the chat string does not match the USER_CMD then we do not handle the
 		// command, so let other plugins or FLHook kick in. We require an exact match
-		for(uint i = 0; (i < sizeof(UserCmds)/sizeof(USERCMD)); i++)
+		for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
 		{
 			if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
 			{
@@ -1089,7 +1089,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 				{
 					if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
 						continue;
-					wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd)+1);
+					wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
 				}
 
 				// Dispatch the command to the appropriate processing function.
@@ -1115,7 +1115,7 @@ std::list<uint> npcs;
 
 void UserCmd_Help(uint iClientID, const wstring &wscParam)
 {
-	returncode = DEFAULT_RETURNCODE; 
+	returncode = DEFAULT_RETURNCODE;
 	PrintUserCmdText(iClientID, L"/pos");
 	PrintUserCmdText(iClientID, L"/stuck");
 	PrintUserCmdText(iClientID, L"/droprep");
@@ -1153,12 +1153,12 @@ void UserCmd_Help(uint iClientID, const wstring &wscParam)
 	PrintUserCmdText(iClientID, L"/ln (n=0-9)");
 	PrintUserCmdText(iClientID, L"/gn (n=0-9)");
 	PrintUserCmdText(iClientID, L"/tn (n=0-9)");
-	PrintUserCmdText(iClientID, L"/target or /t" );
-	PrintUserCmdText(iClientID, L"/reply or /r" );
+	PrintUserCmdText(iClientID, L"/target or /t");
+	PrintUserCmdText(iClientID, L"/reply or /r");
 	PrintUserCmdText(iClientID, L"/privatemsg or /pm"),
-	PrintUserCmdText(iClientID, L"/privatemsg$ or /pm$"),
-	PrintUserCmdText(iClientID, L"/factionmsg or /fm"),
-	PrintUserCmdText(iClientID, L"/factioninvite or /fi");
+		PrintUserCmdText(iClientID, L"/privatemsg$ or /pm$"),
+		PrintUserCmdText(iClientID, L"/factionmsg or /fm"),
+		PrintUserCmdText(iClientID, L"/factioninvite or /fi");
 	PrintUserCmdText(iClientID, L"/set chattime");
 	PrintUserCmdText(iClientID, L"/time");
 	PrintUserCmdText(iClientID, L"/mail");
@@ -1171,7 +1171,7 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	pub::AI::SetPersonalityParams p;
 	p.state_graph = pub::StateGraph::get_state_graph("FIGHTER", pub::StateGraph::TYPE_STANDARD);
 	p.state_id = true;
-	
+
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[0] = 0.4f;
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[1] = 0.0f;
 	p.personality.EvadeDodgeUse.evade_dodge_style_weight[2] = 0.4f;
@@ -1192,7 +1192,7 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[1] = 0.25f;
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[2] = 0.25f;
 	p.personality.EvadeDodgeUse.evade_dodge_direction_weight[3] = 0.25f;
-	
+
 	p.personality.EvadeBreakUse.evade_break_roll_throttle = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_time = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_interval_time = 10.0f;
@@ -1205,7 +1205,7 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.EvadeBreakUse.evade_break_style_weight[0] = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_style_weight[1] = 1.0f;
 	p.personality.EvadeBreakUse.evade_break_style_weight[2] = 1.0f;
-	
+
 	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward = 500.0f;
 	p.personality.BuzzHeadTowardUse.buzz_min_distance_to_head_toward_variance_percent = 0.25f;
 	p.personality.BuzzHeadTowardUse.buzz_max_time_to_head_away = 1.0f;
@@ -1226,7 +1226,7 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[0] = 0.33f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[1] = 0.33f;
 	p.personality.BuzzHeadTowardUse.buzz_head_toward_style_weight[2] = 0.33f;
-	
+
 	p.personality.BuzzPassByUse.buzz_distance_to_pass_by = 1000.0f;
 	p.personality.BuzzPassByUse.buzz_pass_by_time = 1.0f;
 	p.personality.BuzzPassByUse.buzz_break_direction_cone_angle = 1.5708f;
@@ -1237,7 +1237,7 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.BuzzPassByUse.buzz_break_direction_weight[2] = 1.0f;
 	p.personality.BuzzPassByUse.buzz_break_direction_weight[3] = 1.0f;
 	p.personality.BuzzPassByUse.buzz_pass_by_style_weight[2] = 1.0f;
-	
+
 	p.personality.TrailUse.trail_lock_cone_angle = 0.0873f;
 	p.personality.TrailUse.trail_break_time = 0.5f;
 	p.personality.TrailUse.trail_min_no_lock_time = 0.1f;
@@ -1245,23 +1245,23 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.TrailUse.trail_break_afterburner = true;
 	p.personality.TrailUse.trail_max_turn_throttle = 1.0f;
 	p.personality.TrailUse.trail_distance = 100.0f;
-	
+
 	p.personality.StrafeUse.strafe_run_away_distance = 100.0f;
 	p.personality.StrafeUse.strafe_attack_throttle = 1.0f;
-	
+
 	p.personality.EngineKillUse.engine_kill_search_time = 0.0f;
 	p.personality.EngineKillUse.engine_kill_face_time = 1.0f;
 	p.personality.EngineKillUse.engine_kill_use_afterburner = true;
 	p.personality.EngineKillUse.engine_kill_afterburner_time = 2.0f;
 	p.personality.EngineKillUse.engine_kill_max_target_distance = 100.0f;
-	
+
 	p.personality.RepairUse.use_shield_repair_pre_delay = 0.0f;
 	p.personality.RepairUse.use_shield_repair_post_delay = 1.0f;
 	p.personality.RepairUse.use_shield_repair_at_damage_percent = 0.2f;
 	p.personality.RepairUse.use_hull_repair_pre_delay = 0.0f;
 	p.personality.RepairUse.use_hull_repair_post_delay = 1.0f;
 	p.personality.RepairUse.use_hull_repair_at_damage_percent = 0.2f;
-	
+
 	p.personality.GunUse.gun_fire_interval_time = 0.0f;
 	p.personality.GunUse.gun_fire_interval_variance_percent = 0.0f;
 	p.personality.GunUse.gun_fire_burst_interval_time = 2.0f;
@@ -1278,17 +1278,17 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.GunUse.auto_turret_burst_interval_variance_percent = 0.0f;
 	p.personality.GunUse.gun_range_threshold_variance_percent = 0.3f;
 	p.personality.GunUse.gun_fire_accuracy_power_npc = 100.0f;
-	
+
 	p.personality.MineUse.mine_launch_interval = 8.0f;
 	p.personality.MineUse.mine_launch_cone_angle = 0.7854f;
 	p.personality.MineUse.mine_launch_range = 200.0f;
-	
+
 	p.personality.MissileUse.missile_launch_interval_time = 0.0f;
 	p.personality.MissileUse.missile_launch_interval_variance_percent = 0.5f;
 	p.personality.MissileUse.missile_launch_range = 800.0f;
 	p.personality.MissileUse.missile_launch_cone_angle = 0.01745f;
 	p.personality.MissileUse.missile_launch_allow_out_of_range = false;
-	
+
 	p.personality.DamageReaction.evade_break_damage_trigger_percent = 1.0f;
 	p.personality.DamageReaction.evade_dodge_more_damage_trigger_percent = 0.25f;
 	p.personality.DamageReaction.engine_kill_face_damage_trigger_percent = 1.0f;
@@ -1304,15 +1304,15 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.DamageReaction.fire_guns_damage_trigger_time = 1.0f;
 	p.personality.DamageReaction.fire_missiles_damage_trigger_percent = 1.0f;
 	p.personality.DamageReaction.fire_missiles_damage_trigger_time = 1.0f;
-	
+
 	p.personality.MissileReaction.evade_missile_distance = 800.0f;
 	p.personality.MissileReaction.evade_break_missile_reaction_time = 1.0f;
 	p.personality.MissileReaction.evade_slide_missile_reaction_time = 1.0f;
 	p.personality.MissileReaction.evade_afterburn_missile_reaction_time = 1.0f;
-	
+
 	p.personality.CountermeasureUse.countermeasure_active_time = 5.0f;
 	p.personality.CountermeasureUse.countermeasure_unactive_time = 0.0f;
-	
+
 	p.personality.FormationUse.force_attack_formation_active_time = 0.0f;
 	p.personality.FormationUse.force_attack_formation_unactive_time = 0.0f;
 	p.personality.FormationUse.break_formation_damage_trigger_percent = 0.01f;
@@ -1325,7 +1325,7 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.FormationUse.formation_exit_roll_outrun_throttle = 1.0f;
 	p.personality.FormationUse.formation_exit_max_time = 5.0f;
 	p.personality.FormationUse.formation_exit_mode = 1;
-	
+
 	p.personality.Job.wait_for_leader_target = false;
 	p.personality.Job.maximum_leader_target_distance = 3000;
 	p.personality.Job.flee_when_leader_flees_style = false;
@@ -1344,7 +1344,7 @@ pub::AI::SetPersonalityParams HkMakePersonality() {
 	p.personality.Job.attack_order[0].type = 11;
 	p.personality.Job.attack_order[0].flag = 15;
 	p.personality.Job.attack_order[1].type = 12;
-	
+
 	return p;
 }
 
@@ -1354,7 +1354,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	
+
 	if (IS_CMD("smiteall"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1367,7 +1367,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		MiscCmds::AdminCmd_Bob(cmds, cmds->ArgCharname(1));
 		return true;
 	}
-	
+
 	else if (IS_CMD("playmusic"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1448,7 +1448,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		if (fLogDebug)
 		{
 			fclose(fLogDebug);
-			::MoveFileA(sDebugLog.c_str(), string(sDebugLog+".old").c_str());
+			::MoveFileA(sDebugLog.c_str(), string(sDebugLog + ".old").c_str());
 			_unlink(sDebugLog.c_str());
 			fLogDebug = fopen(sDebugLog.c_str(), "wt");
 		}
@@ -1466,31 +1466,31 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("pm") || IS_CMD("privatemsg"))
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; 
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		Message::AdminCmd_SendMail(cmds, cmds->ArgCharname(1), cmds->ArgStrToEnd(2));
 		return true;
 	}
 	else if (IS_CMD("pm") || IS_CMD("privatemsg"))
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; 
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		Message::AdminCmd_SendMail(cmds, cmds->ArgCharname(1), cmds->ArgStrToEnd(2));
 		return true;
 	}
 	else if (IS_CMD("showtags"))
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; 
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		Rename::AdminCmd_ShowTags(cmds);
 		return true;
 	}
 	else if (IS_CMD("addtag"))
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; 
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		Rename::AdminCmd_AddTag(cmds, cmds->ArgStr(1), cmds->ArgStr(2), cmds->ArgStrToEnd(3));
 		return true;
 	}
 	else if (IS_CMD("droptag"))
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; 
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		Rename::AdminCmd_DropTag(cmds, cmds->ArgStr(1));
 		return true;
 	}
@@ -1500,7 +1500,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		Rename::ReloadLockedShips();
 		return true;
 	}
-    return false;
+	return false;
 }
 
 /** Admin help command callback */
@@ -1517,7 +1517,7 @@ void CmdHelp_Callback(CCmds* classptr)
 	classptr->Print(L"setaccmovecode <charname> <code>\n");
 	classptr->Print(L"rotatelogs\n");
 	classptr->Print(L"privatemsg|pm <charname> <message>\n");
-	
+
 	classptr->Print(L"showtags\n");
 	classptr->Print(L"addtag <tag> <password>\n");
 	classptr->Print(L"droptag <tag> <password>\n");
@@ -1610,9 +1610,9 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Help, PLUGIN_UserCmd_Help, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CmdHelp_Callback, PLUGIN_CmdHelp_Callback, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCB_MissileTorpHit, PLUGIN_HkCB_MissileTorpHit,0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCB_MissileTorpHit, PLUGIN_HkCB_MissileTorpHit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&RequestBestPath, PLUGIN_HkIServerImpl_RequestBestPath, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 0));
-//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPMunitionCollision, PLUGIN_HkIServerImpl_SPMunitionCollision, 0));
+	//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPMunitionCollision, PLUGIN_HkIServerImpl_SPMunitionCollision, 0));
 	return p_PI;
 }

@@ -82,13 +82,13 @@ int __stdcall HkCb_UpdateFile(char *filename, wchar_t *savetime, int b)
 		}
 	}
 
-	return retv; 
+	return retv;
 }
 
 __declspec(naked)void HkCb_UpdateFileNaked()
 {
 	__asm mov CurrPlayer, ecx
-	__asm jmp HkCb_UpdateFile 
+	__asm jmp HkCb_UpdateFile
 }
 
 
@@ -148,14 +148,14 @@ void LoadSettings()
 
 	clients.clear();
 	struct PlayerData *pPD = 0;
-	while(pPD = Players.traverse_active(pPD))
+	while (pPD = Players.traverse_active(pPD))
 	{
 		uint client = HkGetClientIdFromPD(pPD);
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		string filename = GetCharfilename(charname) + ".fl";
 		CHARACTER_ID charid;
 		strcpy(charid.szCharFilename, filename.c_str());
-		CharacterSelect(charid,client);
+		CharacterSelect(charid, client);
 	}
 }
 
@@ -169,7 +169,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// calls load settings on FLHook startup and .rehash.
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 
 		if (!patched)
@@ -230,7 +230,7 @@ namespace HookExt
 
 	EXPORT void AddMiningObj(uint spaceobj, string basename)
 	{
-		miningobjdata[spaceobj] = basename;		
+		miningobjdata[spaceobj] = basename;
 	}
 
 	EXPORT void ClearMiningObjData()
@@ -257,11 +257,11 @@ namespace HookExt
 
 		if (!clients[client].charfilename.length())
 			return "";
-		
+
 		if (clients[client].lines.find(name)
 			== clients[client].lines.end())
 			return "";
-		
+
 		return clients[client].lines[name];
 	}
 
@@ -272,7 +272,7 @@ namespace HookExt
 		wstring value;
 		long lHiByte;
 		long lLoByte;
-		while(sscanf(svalue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
+		while (sscanf(svalue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
 		{
 			svalue = svalue.substr(4);
 			wchar_t wChar = (wchar_t)((lHiByte << 8) | lLoByte);
@@ -309,7 +309,7 @@ namespace HookExt
 	EXPORT void IniSetWS(uint client, const string &name, const wstring &value)
 	{
 		string svalue = "";
-		for(uint i = 0; (i < value.length()); i++)
+		for (uint i = 0; (i < value.length()); i++)
 		{
 			char cHiByte = value[i] >> 8;
 			char cLoByte = value[i] & 0xFF;
@@ -360,13 +360,13 @@ namespace HookExt
 		{
 			string charpath = scAcctPath + GetCharfilename(acc->wszAccID) + "\\" + charfilename;
 			WritePrivateProfileString("flhook", name.c_str(), value.c_str(), charpath.c_str());
-		}		
+		}
 	}
 
 	EXPORT void IniSetWS(const wstring &charname, const string &name, const wstring &value)
 	{
 		string svalue = "";
-		for(uint i = 0; (i < value.length()); i++)
+		for (uint i = 0; (i < value.length()); i++)
 		{
 			char cHiByte = value[i] >> 8;
 			char cLoByte = value[i] & 0xFF;
@@ -410,8 +410,8 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));	
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
 	//p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect,0));
-	
+
 	return p_PI;
 }

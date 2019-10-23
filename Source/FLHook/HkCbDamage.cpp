@@ -19,7 +19,7 @@ FARPROC fpOldMissileTorpHit;
 int __stdcall HkCB_MissileTorpHit(char *ECX, char *p1, DamageList *dmg)
 {
 
-	CALL_PLUGINS(PLUGIN_HkCB_MissileTorpHit,int,__stdcall,(char*,char*,DamageList*),(ECX,p1,dmg));
+	CALL_PLUGINS(PLUGIN_HkCB_MissileTorpHit, int, __stdcall, (char*, char*, DamageList*), (ECX, p1, dmg));
 
 	try {
 		// get client id
@@ -32,33 +32,34 @@ int __stdcall HkCB_MissileTorpHit(char *ECX, char *p1, DamageList *dmg)
 
 		iDmgTo = iClientID;
 		iDmgToSpaceID = iSpaceID;
-		if(iClientID) 
+		if (iClientID)
 		{ // a player was hit
 			uint iInflictorShip;
 			memcpy(&iInflictorShip, p1 + 4, 4);
 			uint iClientIDInflictor = HkGetClientIDByShip(iInflictorShip);
-			if(!iClientIDInflictor)
+			if (!iClientIDInflictor)
 				return 0; // hit by npc
 
-			if(!AllowPlayerDamage(iClientIDInflictor, iClientID))
+			if (!AllowPlayerDamage(iClientIDInflictor, iClientID))
 				return 1;
 
-			if(set_bChangeCruiseDisruptorBehaviour)
+			if (set_bChangeCruiseDisruptorBehaviour)
 			{
-				if(((dmg->get_cause() == 6) || (dmg->get_cause() == 0x15)) && !ClientInfo[iClientID].bCruiseActivated)
+				if (((dmg->get_cause() == 6) || (dmg->get_cause() == 0x15)) && !ClientInfo[iClientID].bCruiseActivated)
 					dmg->set_cause((enum DamageCause)0xC0); // change to sth else, so client won't recognize it as a disruptor
 			}
 		}
-	} catch(...) { LOG_EXCEPTION }
+	}
+	catch (...) { LOG_EXCEPTION }
 	return 0;
 }
 
 __declspec(naked) void _HookMissileTorpHit()
 {
-	__asm 
+	__asm
 	{
-		mov eax, [esp+4]
-		mov edx, [esp+8]
+		mov eax, [esp + 4]
+		mov edx, [esp + 8]
 		push ecx
 		push edx
 		push eax
@@ -67,12 +68,12 @@ __declspec(naked) void _HookMissileTorpHit()
 		pop ecx
 		cmp eax, 1
 		jnz go_ahead
-		mov edx, [esp] ; suppress
+		mov edx, [esp]; suppress
 		add esp, 0Ch
 		jmp edx
 
-go_ahead:
-		jmp [fpOldMissileTorpHit]
+		go_ahead :
+		jmp[fpOldMissileTorpHit]
 	}
 }
 
@@ -85,7 +86,7 @@ however you can't figure out here, which ship is being damaged, that's why i use
 void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2, enum DamageEntry::SubObjFate p3)
 {
 
-	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry,__stdcall,(DamageList *,unsigned short,float, DamageEntry::SubObjFate),(dmgList,p1,p2,p3));
+	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry, __stdcall, (DamageList *, unsigned short, float, DamageEntry::SubObjFate), (dmgList, p1, p2, p3));
 
 	//check if we've got dmged by a cd with changed behaviour
 	if (dmgList->get_cause() == 0xC0)
@@ -94,29 +95,29 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 		bool bUnk1 = false;
 		bool bUnk2 = false;
 		float fUnk;
-		pub::SpaceObj::GetInvincible(ClientInfo[iDmgTo].iShip,bUnk1,bUnk2,fUnk);
+		pub::SpaceObj::GetInvincible(ClientInfo[iDmgTo].iShip, bUnk1, bUnk2, fUnk);
 		//if so, suspress the dmg
-		if(bUnk1 && bUnk2)
+		if (bUnk1 && bUnk2)
 			return;
 	}
 
-	if(g_gNonGunHitsBase && (dmgList->get_cause() == 5))
+	if (g_gNonGunHitsBase && (dmgList->get_cause() == 5))
 	{
 		float fDamage = g_LastHitPts - p2;
 		p2 = g_LastHitPts - fDamage * set_fTorpMissileBaseDamageMultiplier;
-		if(p2 < 0)
+		if (p2 < 0)
 			p2 = 0;
 	}
 
-	if(!dmgList->is_inflictor_a_player()) // npcs always do damage
+	if (!dmgList->is_inflictor_a_player()) // npcs always do damage
 		dmgList->add_damage_entry(p1, p2, p3);
 	else if (iDmgTo)
-	{ 
+	{
 		// lets see if player should do damage to other player
 		uint iDmgFrom = HkGetClientIDByShip(dmgList->get_inflictor_id());
-		if(iDmgFrom && AllowPlayerDamage(iDmgFrom, iDmgTo))
+		if (iDmgFrom && AllowPlayerDamage(iDmgFrom, iDmgTo))
 			dmgList->add_damage_entry(p1, p2, p3);
-	} 
+	}
 	else
 		dmgList->add_damage_entry(p1, p2, p3);
 
@@ -127,24 +128,25 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 //		pub::SpaceObj::GetHealth(ClientInfo[iDmgTo].iShip,fHealth,fMaxHealth);
 
 		// check for base kill (when hull health = 0)
-		if(p2 == 0 && p1 == 1)
+		if (p2 == 0 && p1 == 1)
 		{
 			uint iType;
-			pub::SpaceObj::GetType(iDmgToSpaceID,iType);
+			pub::SpaceObj::GetType(iDmgToSpaceID, iType);
 			uint iClientIDKiller = HkGetClientIDByShip(dmgList->get_inflictor_id());
-			if(iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
+			if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
 				BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
 		}
 
-		if(iDmgTo && p1 == 1) // only save hits on the hull (p1=1)
+		if (iDmgTo && p1 == 1) // only save hits on the hull (p1=1)
 		{
 			ClientInfo[iDmgTo].dmgLast = *dmgList;
 		}
 
 
-	} catch(...) { LOG_EXCEPTION }
+	}
+	catch (...) { LOG_EXCEPTION }
 
-	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry_AFTER,__stdcall,(DamageList *,unsigned short,float, DamageEntry::SubObjFate),(dmgList,p1,p2,p3));
+	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry_AFTER, __stdcall, (DamageList *, unsigned short, float, DamageEntry::SubObjFate), (dmgList, p1, p2, p3));
 
 	iDmgTo = 0;
 	iDmgToSpaceID = 0;
@@ -155,9 +157,9 @@ __declspec(naked) void _HkCb_AddDmgEntry()
 {
 	__asm
 	{
-		push [esp+0Ch]
-		push [esp+0Ch]
-		push [esp+0Ch]
+		push[esp + 0Ch]
+		push[esp + 0Ch]
+		push[esp + 0Ch]
 		push ecx
 		call HkCb_AddDmgEntry
 		mov eax, [esp]
@@ -175,7 +177,7 @@ FARPROC fpOldGeneralDmg, fpOldGeneralDmg2;
 void __stdcall HkCb_GeneralDmg(char *szECX)
 {
 
-	CALL_PLUGINS_V(PLUGIN_HkCb_GeneralDmg,__stdcall,(char*),(szECX));
+	CALL_PLUGINS_V(PLUGIN_HkCb_GeneralDmg, __stdcall, (char*), (szECX));
 
 	try {
 		char *szP;
@@ -199,7 +201,7 @@ __declspec(naked) void _HkCb_GeneralDmg()
 		push ecx
 		call HkCb_GeneralDmg
 		pop ecx
-		jmp [fpOldGeneralDmg]
+		jmp[fpOldGeneralDmg]
 	}
 }
 
@@ -211,7 +213,7 @@ __declspec(naked) void _HkCb_GeneralDmg2()
 		push ecx
 		call HkCb_GeneralDmg
 		pop ecx
-		jmp [fpOldGeneralDmg2]
+		jmp[fpOldGeneralDmg2]
 	}
 }
 
@@ -221,21 +223,21 @@ Called when ship was damaged
 
 bool AllowPlayerDamage(uint iClientID, uint iClientIDTarget)
 {
-	CALL_PLUGINS(PLUGIN_AllowPlayerDamage,bool,,(uint,uint),(iClientID,iClientIDTarget));
+	CALL_PLUGINS(PLUGIN_AllowPlayerDamage, bool, , (uint, uint), (iClientID, iClientIDTarget));
 
-	if(iClientIDTarget)
+	if (iClientIDTarget)
 	{
 		// anti-dockkill check
-		if(ClientInfo[iClientIDTarget].bSpawnProtected)
+		if (ClientInfo[iClientIDTarget].bSpawnProtected)
 		{
-			if((timeInMS() - ClientInfo[iClientIDTarget].tmSpawnTime) <= set_iAntiDockKill) 
+			if ((timeInMS() - ClientInfo[iClientIDTarget].tmSpawnTime) <= set_iAntiDockKill)
 				return false; // target is protected
 			else
 				ClientInfo[iClientIDTarget].bSpawnProtected = false;
 		}
-		if(ClientInfo[iClientID].bSpawnProtected)
+		if (ClientInfo[iClientID].bSpawnProtected)
 		{
-			if((timeInMS() - ClientInfo[iClientID].tmSpawnTime) <= set_iAntiDockKill) 
+			if ((timeInMS() - ClientInfo[iClientID].tmSpawnTime) <= set_iAntiDockKill)
 				return false; // target may not shoot
 			else
 				ClientInfo[iClientID].bSpawnProtected = false;
@@ -247,9 +249,9 @@ bool AllowPlayerDamage(uint iClientID, uint iClientIDTarget)
 		pub::Player::GetSystem(iClientID, iSystemID);
 		foreach(set_lstNoPVPSystems, uint, i)
 		{
-			if(iSystemID == (*i))
+			if (iSystemID == (*i))
 				return false; // no pvp
-		}		
+		}
 	}
 
 	return true;
@@ -287,8 +289,8 @@ __declspec(naked) void _HkCb_NonGunWeaponHitsBase()
 {
 	__asm
 	{
-		mov eax, [esp+4]
-		mov edx, [esp+8]
+		mov eax, [esp + 4]
+		mov edx, [esp + 8]
 		push ecx
 		push edx
 		push eax
@@ -297,15 +299,15 @@ __declspec(naked) void _HkCb_NonGunWeaponHitsBase()
 		pop ecx
 
 		mov eax, [esp]
-		mov [lRetAddress], eax
+		mov[lRetAddress], eax
 		lea eax, return_here
-		mov [esp], eax
-		jmp [fpOldNonGunWeaponHitsBase]
-return_here:
+		mov[esp], eax
+		jmp[fpOldNonGunWeaponHitsBase]
+		return_here:
 		pushad
-		call HkCb_NonGunWeaponHitsBaseAfter
-		popad
-		jmp [lRetAddress]
+			call HkCb_NonGunWeaponHitsBaseAfter
+			popad
+			jmp[lRetAddress]
 	}
 }
 

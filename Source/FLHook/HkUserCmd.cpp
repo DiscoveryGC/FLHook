@@ -7,7 +7,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef void (*_UserCmdProc)(uint, const wstring &);
+typedef void(*_UserCmdProc)(uint, const wstring &);
 
 struct USERCMD
 {
@@ -19,10 +19,10 @@ struct USERCMD
 
 void PrintUserCmdText(uint iClientID, wstring wscText, ...)
 {
-	wchar_t wszBuf[1024*8] = L"";
+	wchar_t wszBuf[1024 * 8] = L"";
 	va_list marker;
 	va_start(marker, wscText);
-	_vsnwprintf(wszBuf, sizeof(wszBuf)-1, wscText.c_str(), marker);
+	_vsnwprintf(wszBuf, sizeof(wszBuf) - 1, wscText.c_str(), marker);
 
 	wstring wscXML = L"<TRA data=\"" + set_wscUserCmdStyle + L"\" mask=\"-1\"/><TEXT>" + XMLText(wszBuf) + L"</TEXT>";
 	HkFMsg(iClientID, wscXML);
@@ -32,13 +32,13 @@ void PrintUserCmdText(uint iClientID, wstring wscText, ...)
 
 void UserCmd_SetDieMsg(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdSetDieMsg)
+	if (!set_bUserCmdSetDieMsg)
 	{
 		PRINT_DISABLED();
 		return;
 	}
 
-	wstring wscError[] = 
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /set diemsg <param>",
@@ -48,15 +48,15 @@ void UserCmd_SetDieMsg(uint iClientID, const wstring &wscParam)
 	wstring wscDieMsg = ToLower(GetParam(wscParam, ' ', 0));;
 
 	DIEMSGTYPE dieMsg;
-	if(!wscDieMsg.compare(L"all"))
+	if (!wscDieMsg.compare(L"all"))
 		dieMsg = DIEMSG_ALL;
-	else if(!wscDieMsg.compare(L"system"))
+	else if (!wscDieMsg.compare(L"system"))
 		dieMsg = DIEMSG_SYSTEM;
-	else if(!wscDieMsg.compare(L"none"))
+	else if (!wscDieMsg.compare(L"none"))
 		dieMsg = DIEMSG_NONE;
-	else if(!wscDieMsg.compare(L"self"))
+	else if (!wscDieMsg.compare(L"self"))
 		dieMsg = DIEMSG_SELF;
-	else 
+	else
 		PRINT_ERROR();
 
 	// save to ini
@@ -64,7 +64,7 @@ void UserCmd_SetDieMsg(uint iClientID, const wstring &wscParam)
 	IniWrite(scUserFile, "settings", "DieMsg", itos(dieMsg));
 
 	// save in ClientInfo
-	ClientInfo[iClientID].dieMsg = dieMsg; 
+	ClientInfo[iClientID].dieMsg = dieMsg;
 
 	// send confirmation msg
 	PRINT_OK();
@@ -74,13 +74,13 @@ void UserCmd_SetDieMsg(uint iClientID, const wstring &wscParam)
 
 void UserCmd_SetDieMsgSize(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdSetDieMsgSize)
+	if (!set_bUserCmdSetDieMsgSize)
 	{
 		PRINT_DISABLED();
 		return;
 	}
-	
-	wstring wscError[] = 
+
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /set diemsgsize <size>",
@@ -88,38 +88,38 @@ void UserCmd_SetDieMsgSize(uint iClientID, const wstring &wscParam)
 	};
 
 	wstring wscDieMsgSize = ToLower(GetParam(wscParam, ' ', 0));
-//	wstring wscDieMsgStyle = ToLower(GetParam(wscParam, ' ', 1));
+	//	wstring wscDieMsgStyle = ToLower(GetParam(wscParam, ' ', 1));
 
 	CHATSIZE dieMsgSize;
-	if(!wscDieMsgSize.compare(L"small"))
+	if (!wscDieMsgSize.compare(L"small"))
 		dieMsgSize = CS_SMALL;
-	else if(!wscDieMsgSize.compare(L"default"))
+	else if (!wscDieMsgSize.compare(L"default"))
 		dieMsgSize = CS_DEFAULT;
-	else 
+	else
 		PRINT_ERROR();
 
-/*	CHATSTYLE dieMsgStyle;
-	if(!wscDieMsgStyle.compare(L"default"))
-		dieMsgStyle = CST_DEFAULT;
-	else if(!wscDieMsgStyle.compare(L"bold"))
-		dieMsgStyle = CST_BOLD;
-	else if(!wscDieMsgStyle.compare(L"italic"))
-		dieMsgStyle = CST_ITALIC;
-	else if(!wscDieMsgStyle.compare(L"underline"))
-		dieMsgStyle = CST_UNDERLINE;
-	else 
-		PRINT_ERROR(); */
+	/*	CHATSTYLE dieMsgStyle;
+		if(!wscDieMsgStyle.compare(L"default"))
+			dieMsgStyle = CST_DEFAULT;
+		else if(!wscDieMsgStyle.compare(L"bold"))
+			dieMsgStyle = CST_BOLD;
+		else if(!wscDieMsgStyle.compare(L"italic"))
+			dieMsgStyle = CST_ITALIC;
+		else if(!wscDieMsgStyle.compare(L"underline"))
+			dieMsgStyle = CST_UNDERLINE;
+		else
+			PRINT_ERROR(); */
 
-	// save to ini
+			// save to ini
 	GET_USERFILE(scUserFile);
 	IniWrite(scUserFile, "Settings", "DieMsgSize", itos(dieMsgSize));
-//	IniWrite(scUserFile, "Settings", "DieMsgStyle", itos(dieMsgStyle));
+	//	IniWrite(scUserFile, "Settings", "DieMsgStyle", itos(dieMsgStyle));
 
-	// save in ClientInfo
-	ClientInfo[iClientID].dieMsgSize = dieMsgSize; 
-//	ClientInfo[iClientID].dieMsgStyle = dieMsgStyle;
+		// save in ClientInfo
+	ClientInfo[iClientID].dieMsgSize = dieMsgSize;
+	//	ClientInfo[iClientID].dieMsgStyle = dieMsgStyle;
 
-	// send confirmation msg
+		// send confirmation msg
 	PRINT_OK();
 }
 
@@ -127,13 +127,13 @@ void UserCmd_SetDieMsgSize(uint iClientID, const wstring &wscParam)
 
 void UserCmd_SetChatFont(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdSetChatFont)
+	if (!set_bUserCmdSetChatFont)
 	{
 		PRINT_DISABLED();
 		return;
 	}
 
-	wstring wscError[] = 
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /set chatfont <size> <style>",
@@ -143,27 +143,27 @@ void UserCmd_SetChatFont(uint iClientID, const wstring &wscParam)
 
 	wstring wscChatSize = ToLower(GetParam(wscParam, ' ', 0));
 	wstring wscChatStyle = ToLower(GetParam(wscParam, ' ', 1));
-	
+
 	CHATSIZE chatSize;
-	if(!wscChatSize.compare(L"small"))
+	if (!wscChatSize.compare(L"small"))
 		chatSize = CS_SMALL;
-	else if(!wscChatSize.compare(L"default"))
+	else if (!wscChatSize.compare(L"default"))
 		chatSize = CS_DEFAULT;
-	else if(!wscChatSize.compare(L"big"))
+	else if (!wscChatSize.compare(L"big"))
 		chatSize = CS_BIG;
-	else 
+	else
 		PRINT_ERROR();
 
 	CHATSTYLE chatStyle;
-	if(!wscChatStyle.compare(L"default"))
+	if (!wscChatStyle.compare(L"default"))
 		chatStyle = CST_DEFAULT;
-	else if(!wscChatStyle.compare(L"bold"))
+	else if (!wscChatStyle.compare(L"bold"))
 		chatStyle = CST_BOLD;
-	else if(!wscChatStyle.compare(L"italic"))
+	else if (!wscChatStyle.compare(L"italic"))
 		chatStyle = CST_ITALIC;
-	else if(!wscChatStyle.compare(L"underline"))
+	else if (!wscChatStyle.compare(L"underline"))
 		chatStyle = CST_UNDERLINE;
-	else 
+	else
 		PRINT_ERROR();
 
 	// save to ini
@@ -172,8 +172,8 @@ void UserCmd_SetChatFont(uint iClientID, const wstring &wscParam)
 	IniWrite(scUserFile, "settings", "ChatStyle", itos(chatStyle));
 
 	// save in ClientInfo
-	ClientInfo[iClientID].chatSize = chatSize; 
-	ClientInfo[iClientID].chatStyle = chatStyle; 
+	ClientInfo[iClientID].chatSize = chatSize;
+	ClientInfo[iClientID].chatStyle = chatStyle;
 
 	// send confirmation msg
 	PRINT_OK();
@@ -183,13 +183,13 @@ void UserCmd_SetChatFont(uint iClientID, const wstring &wscParam)
 
 void UserCmd_Ignore(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdIgnore)
+	if (!set_bUserCmdIgnore)
 	{
 		PRINT_DISABLED();
 		return;
 	}
 
-	wstring wscError[] = 
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /ignore <charname> [<flags>]",
@@ -209,17 +209,17 @@ void UserCmd_Ignore(uint iClientID, const wstring &wscParam)
 	wstring wscCharname = GetParam(wscParam, ' ', 0);
 	wstring wscFlags = ToLower(GetParam(wscParam, ' ', 1));
 
-	if(!wscCharname.length())
+	if (!wscCharname.length())
 		PRINT_ERROR();
 
 	// check if flags are valid
-	for(uint i = 0; (i < wscFlags.length()); i++)
+	for (uint i = 0; (i < wscFlags.length()); i++)
 	{
-		if(wscAllowedFlags.find_first_of(wscFlags[i]) == -1)
+		if (wscAllowedFlags.find_first_of(wscFlags[i]) == -1)
 			PRINT_ERROR();
 	}
 
-	if(ClientInfo[iClientID].lstIgnore.size() > set_iUserCmdMaxIgnoreList)
+	if (ClientInfo[iClientID].lstIgnore.size() > set_iUserCmdMaxIgnoreList)
 	{
 		PrintUserCmdText(iClientID, L"Error: Too many entries in the ignore list, please delete an entry first!");
 		return;
@@ -243,13 +243,13 @@ void UserCmd_Ignore(uint iClientID, const wstring &wscParam)
 
 void UserCmd_IgnoreID(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdIgnore)
+	if (!set_bUserCmdIgnore)
 	{
 		PRINT_DISABLED();
 		return;
 	}
 
-	wstring wscError[] = 
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /ignoreid <client-id> [<flags>]",
@@ -260,20 +260,20 @@ void UserCmd_IgnoreID(uint iClientID, const wstring &wscParam)
 	wstring wscClientID = GetParam(wscParam, ' ', 0);
 	wstring wscFlags = ToLower(GetParam(wscParam, ' ', 1));
 
-	if(!wscClientID.length())
+	if (!wscClientID.length())
 		PRINT_ERROR();
 
-	if(wscFlags.length() && wscFlags.compare(L"p") != 0)
+	if (wscFlags.length() && wscFlags.compare(L"p") != 0)
 		PRINT_ERROR();
 
-	if(ClientInfo[iClientID].lstIgnore.size() > set_iUserCmdMaxIgnoreList)
+	if (ClientInfo[iClientID].lstIgnore.size() > set_iUserCmdMaxIgnoreList)
 	{
 		PrintUserCmdText(iClientID, L"Error: Too many entries in the ignore list, please delete an entry first!");
 		return;
 	}
 
 	uint iClientIDTarget = ToInt(wscClientID);
-	if(!HkIsValidClientID(iClientIDTarget) || HkIsInCharSelectMenu(iClientIDTarget))
+	if (!HkIsValidClientID(iClientIDTarget) || HkIsInCharSelectMenu(iClientIDTarget))
 	{
 		PrintUserCmdText(iClientID, L"Error: Invalid client-id");
 		return;
@@ -299,7 +299,7 @@ void UserCmd_IgnoreID(uint iClientID, const wstring &wscParam)
 
 void UserCmd_IgnoreList(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdIgnore)
+	if (!set_bUserCmdIgnore)
 	{
 		PRINT_DISABLED();
 		return;
@@ -321,13 +321,13 @@ void UserCmd_IgnoreList(uint iClientID, const wstring &wscParam)
 
 void UserCmd_DelIgnore(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdIgnore)
+	if (!set_bUserCmdIgnore)
 	{
 		PRINT_DISABLED();
 		return;
 	}
 
-	wstring wscError[] = 
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /delignore <id> [<id2> <id3> ...]",
@@ -336,12 +336,12 @@ void UserCmd_DelIgnore(uint iClientID, const wstring &wscParam)
 
 	wstring wscID = GetParam(wscParam, ' ', 0);
 
-	if(!wscID.length())
+	if (!wscID.length())
 		PRINT_ERROR();
 
 	GET_USERFILE(scUserFile);
 
-	if(!wscID.compare(L"*"))
+	if (!wscID.compare(L"*"))
 	{ // delete all
 		IniDelSection(scUserFile, "IgnoreList");
 		ClientInfo[iClientID].lstIgnore.clear();
@@ -350,10 +350,10 @@ void UserCmd_DelIgnore(uint iClientID, const wstring &wscParam)
 	}
 
 	list<uint> lstDelete;
-	for(uint j = 1; wscID.length(); j++)
+	for (uint j = 1; wscID.length(); j++)
 	{
 		uint iID = ToInt(wscID.c_str());
-		if(!iID || (iID > ClientInfo[iClientID].lstIgnore.size()))
+		if (!iID || (iID > ClientInfo[iClientID].lstIgnore.size()))
 		{
 			PrintUserCmdText(iClientID, L"Error: Invalid ID");
 			return;
@@ -371,7 +371,7 @@ void UserCmd_DelIgnore(uint iClientID, const wstring &wscParam)
 		uint iCurID = (uint)ClientInfo[iClientID].lstIgnore.size();
 		foreach(ClientInfo[iClientID].lstIgnore, IGNORE_INFO, it2)
 		{
-			if(iCurID == (*it))
+			if (iCurID == (*it))
 			{
 				ClientInfo[iClientID].lstIgnore.erase(it2);
 				break;
@@ -402,7 +402,7 @@ void UserCmd_AutoBuy(uint iClientID, const wstring &wscParam)
 		return;
 	}
 
-	wstring wscError[] = 
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /autobuy <param> [<on/off>]",
@@ -450,8 +450,8 @@ void UserCmd_AutoBuy(uint iClientID, const wstring &wscParam)
 		ClientInfo[iClientID].bAutoBuyMines = bEnable;
 		ClientInfo[iClientID].bAutoBuyTorps = bEnable;
 		ClientInfo[iClientID].bAutoBuyCD = bEnable;
-		ClientInfo[iClientID].bAutoBuyCM = bEnable;		
-		ClientInfo[iClientID].bAutoBuyReload = bEnable; 
+		ClientInfo[iClientID].bAutoBuyCM = bEnable;
+		ClientInfo[iClientID].bAutoBuyReload = bEnable;
 		IniWrite(scUserFile, scSection, "missiles", bEnable ? "yes" : "no");
 		IniWrite(scUserFile, scSection, "mines", bEnable ? "yes" : "no");
 		IniWrite(scUserFile, scSection, "torps", bEnable ? "yes" : "no");
@@ -471,10 +471,10 @@ void UserCmd_AutoBuy(uint iClientID, const wstring &wscParam)
 		ClientInfo[iClientID].bAutoBuyCD = bEnable;
 		IniWrite(scUserFile, scSection, "cd", bEnable ? "yes" : "no");
 	} else if(!wscType.compare(L"cm")) {
-		ClientInfo[iClientID].bAutoBuyCM = bEnable;		
+		ClientInfo[iClientID].bAutoBuyCM = bEnable;
 		IniWrite(scUserFile, scSection, "cm", bEnable ? "yes" : "no");
 	} else if(!wscType.compare(L"reload")) {
-		ClientInfo[iClientID].bAutoBuyReload = bEnable; 
+		ClientInfo[iClientID].bAutoBuyReload = bEnable;
 		IniWrite(scUserFile, scSection, "reload", bEnable ? "yes" : "no");
 	} else
 		PRINT_ERROR();
@@ -493,14 +493,15 @@ void UserCmd_IDs(uint iClientID, const wstring &wscParam)
 	{
 		wchar_t wszBuf[1024];
 		swprintf(wszBuf, L"%s = %u | ", (*i).wscCharname.c_str(), (*i).iClientID);
-		if((wcslen(wszBuf) + wcslen(wszLine)) >= sizeof(wszLine)/2)	{
+		if ((wcslen(wszBuf) + wcslen(wszLine)) >= sizeof(wszLine) / 2) {
 			PrintUserCmdText(iClientID, L"%s", wszLine);
 			wcscpy(wszLine, wszBuf);
-		} else
+		}
+		else
 			wcscat(wszLine, wszBuf);
 	}
 
-	if(wcslen(wszLine))
+	if (wcslen(wszLine))
 		PrintUserCmdText(iClientID, L"%s", wszLine);
 	PrintUserCmdText(iClientID, L"OK");
 }
@@ -516,7 +517,7 @@ void UserCmd_ID(uint iClientID, const wstring &wscParam)
 /*
 void UserCmd_InviteID(uint iClientID, const wstring &wscParam)
 {
-	wstring wscError[] = 
+	wstring wscError[] =
 	{
 		L"Error: Invalid parameters",
 		L"Usage: /i$ <client-id>",
@@ -561,14 +562,14 @@ void UserCmd_Credits(uint iClientID, const wstring &wscParam)
 	PrintUserCmdText(iClientID, L"Running plugins:");
 
 	bool bRunning = false;
-	foreach(lstPlugins,PLUGIN_DATA,it) {
-		if(it->bPaused)
+	foreach(lstPlugins, PLUGIN_DATA, it) {
+		if (it->bPaused)
 			continue;
 
 		bRunning = true;
 		PrintUserCmdText(iClientID, L"- %s", stows(it->sName).c_str());
 	}
-	if(!bRunning)
+	if (!bRunning)
 		PrintUserCmdText(iClientID, L"- none -");
 }
 
@@ -576,36 +577,37 @@ void UserCmd_Credits(uint iClientID, const wstring &wscParam)
 
 void UserCmd_Help(uint iClientID, const wstring &wscParam)
 {
-	if(!set_bUserCmdHelp)
+	if (!set_bUserCmdHelp)
 	{
 		PRINT_DISABLED();
 		return;
 	}
-	
+
 	bool singleCommandHelp = wscParam.length() > 1;
-	
-	if(!singleCommandHelp)
+
+	if (!singleCommandHelp)
 		PrintUserCmdText(iClientID, L"The following commands are available to you. Use /help <command> for detailed information.");
-	
-	wstring boldHelp = set_wscUserCmdStyle.substr(0, set_wscUserCmdStyle.length()-1) + L"1";
+
+	wstring boldHelp = set_wscUserCmdStyle.substr(0, set_wscUserCmdStyle.length() - 1) + L"1";
 	wstring normal = set_wscUserCmdStyle;
-	
+
 	foreach(lstHelpEntries, stHelpEntry, he) {
-		if(he->fnIsDisplayed(iClientID)) {
-			if(singleCommandHelp) {
-				if(he->wszCommand == wscParam) {
+		if (he->fnIsDisplayed(iClientID)) {
+			if (singleCommandHelp) {
+				if (he->wszCommand == wscParam) {
 					set_wscUserCmdStyle = boldHelp;
 					PrintUserCmdText(iClientID, he->wszCommand + L" " + he->wszArguments);
 					set_wscUserCmdStyle = normal;
 					int pos = 0;
-					while(pos != wstring::npos) {
-						int nextPos = he->wszLongHelp.find('\n', pos+1);
-						PrintUserCmdText(iClientID, L"  " + he->wszLongHelp.substr(pos, (nextPos-pos)));
+					while (pos != wstring::npos) {
+						int nextPos = he->wszLongHelp.find('\n', pos + 1);
+						PrintUserCmdText(iClientID, L"  " + he->wszLongHelp.substr(pos, (nextPos - pos)));
 						pos = nextPos;
 					}
 					return;
 				}
-			} else {
+			}
+			else {
 				set_wscUserCmdStyle = boldHelp;
 				PrintUserCmdText(iClientID, he->wszCommand + L" " + he->wszArguments);
 				set_wscUserCmdStyle = normal;
@@ -613,18 +615,19 @@ void UserCmd_Help(uint iClientID, const wstring &wscParam)
 			}
 		}
 	}
-	
-	if(singleCommandHelp) {
+
+	if (singleCommandHelp) {
 		set_wscUserCmdStyle = boldHelp;
 		PrintUserCmdText(iClientID, wscParam);
 		set_wscUserCmdStyle = normal;
-		
-		if(!UserCmd_Process(iClientID,wscParam))
+
+		if (!UserCmd_Process(iClientID, wscParam))
 			PrintUserCmdText(iClientID, L"No help found for specified command.");
-	} else {
-		CALL_PLUGINS_NORET(PLUGIN_UserCmd_Help,,(uint iClientID, const wstring &wscParam),(iClientID,wscParam));
 	}
-	
+	else {
+		CALL_PLUGINS_NORET(PLUGIN_UserCmd_Help, , (uint iClientID, const wstring &wscParam), (iClientID, wscParam));
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -641,46 +644,47 @@ USERCMD UserCmds[] =
 	//{ L"/autobuy",				UserCmd_AutoBuy},
 	{ L"/ids",					UserCmd_IDs},
 	{ L"/id",					UserCmd_ID},
-  //{ L"/i",					UserCmd_InviteID},
-	//{ L"/i$",					UserCmd_InviteID},
-  //{ L"/invite",				UserCmd_InviteID},
-	//{ L"/invite$",				UserCmd_InviteID},
-	{ L"/credits",				UserCmd_Credits},
-	{ L"/help",					UserCmd_Help},
+	//{ L"/i",					UserCmd_InviteID},
+	  //{ L"/i$",					UserCmd_InviteID},
+	//{ L"/invite",				UserCmd_InviteID},
+	  //{ L"/invite$",				UserCmd_InviteID},
+	  { L"/credits",				UserCmd_Credits},
+	  { L"/help",					UserCmd_Help},
 };
 
 bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 {
 
-	CALL_PLUGINS(PLUGIN_UserCmd_Process,bool,,(uint iClientID, const wstring &wscCmd),(iClientID,wscCmd));
+	CALL_PLUGINS(PLUGIN_UserCmd_Process, bool, , (uint iClientID, const wstring &wscCmd), (iClientID, wscCmd));
 
 
 	wstring wscCmdLower = ToLower(wscCmd);
 
-	for(uint i = 0; (i < sizeof(UserCmds)/sizeof(USERCMD)); i++)
+	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
 	{
-		if(wscCmdLower.find(UserCmds[i].wszCmd) == 0)
+		if (wscCmdLower.find(UserCmds[i].wszCmd) == 0)
 		{
 			wstring wscParam = L"";
-			if(wscCmd.length() > wcslen(UserCmds[i].wszCmd))
+			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
 			{
-				if(wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
+				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
 					continue;
 				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
 			}
 
 			// addlog
-			if(set_bLogUserCmds) {
+			if (set_bLogUserCmds) {
 				wstring wscCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
-				HkAddUserCmdLog("%s: %s",wstos(wscCharname).c_str(),wstos(wscCmd).c_str());
+				HkAddUserCmdLog("%s: %s", wstos(wscCharname).c_str(), wstos(wscCmd).c_str());
 			}
 
 			try {
 				UserCmds[i].proc(iClientID, wscParam);
-				if(set_bLogUserCmds)
+				if (set_bLogUserCmds)
 					HkAddUserCmdLog("finished");
-			} catch(...) {
-				if(set_bLogUserCmds)
+			}
+			catch (...) {
+				if (set_bLogUserCmds)
 					HkAddUserCmdLog("exception");
 			}
 

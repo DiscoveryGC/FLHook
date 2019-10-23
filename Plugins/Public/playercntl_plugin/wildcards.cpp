@@ -20,8 +20,8 @@ Wildcard::wildcardfit(const char *wildcard, const char *test)
 		switch (*wildcard)
 		{
 		case '[':
-			wildcard++; /* leave out the opening square bracket */ 
-			fit = set (&wildcard, &test);
+			wildcard++; /* leave out the opening square bracket */
+			fit = set(&wildcard, &test);
 			/* we don't need to decrement the wildcard as in case */
 			/* of asterisk because the closing ] is still there */
 			break;
@@ -29,21 +29,21 @@ Wildcard::wildcardfit(const char *wildcard, const char *test)
 			test++;
 			break;
 		case '*':
-			fit = asterisk (&wildcard, &test);
+			fit = asterisk(&wildcard, &test);
 			/* the asterisk was skipped by asterisk() but the loop will */
 			/* increment by itself. So we have to decrement */
 			wildcard--;
 			break;
 		default:
-			fit = (int) (*wildcard == *test);
+			fit = (int)(*wildcard == *test);
 			test++;
 		}
 	}
-	while ((*wildcard == '*') && (1 == fit)) 
+	while ((*wildcard == '*') && (1 == fit))
 		/* here the teststring is empty otherwise you cannot */
-		/* leave the previous loop */ 
+		/* leave the previous loop */
 		wildcard++;
-	return (int) ((1 == fit) && ('\0' == *test) && ('\0' == *wildcard));
+	return (int)((1 == fit) && ('\0' == *test) && ('\0' == *wildcard));
 }
 
 int
@@ -62,7 +62,7 @@ Wildcard::set(const char **wildcard, const char **test)
 	{
 		if (0 == fit)
 		{
-			if (('-' == **wildcard) 
+			if (('-' == **wildcard)
 				&& ((*(*wildcard - 1)) < (*(*wildcard + 1)))
 				&& (']' != *(*wildcard + 1))
 				&& (0 == at_beginning))
@@ -85,25 +85,25 @@ Wildcard::set(const char **wildcard, const char **test)
 	if (1 == negation)
 		/* change from zero to one and vice versa */
 		fit = 1 - fit;
-	if (1 == fit) 
+	if (1 == fit)
 		(*test)++;
 
 	return (fit);
 }
 
 int
-Wildcard::asterisk (const char **wildcard, const char **test)
+Wildcard::asterisk(const char **wildcard, const char **test)
 {
 	/* Warning: uses multiple returns */
 	int fit = 1;
 
 	/* erase the leading asterisk */
-	(*wildcard)++; 
+	(*wildcard)++;
 	while (('\000' != (**test))
-		&& (('?' == **wildcard) 
-		|| ('*' == **wildcard)))
+		&& (('?' == **wildcard)
+			|| ('*' == **wildcard)))
 	{
-		if ('?' == **wildcard) 
+		if ('?' == **wildcard)
 			(*test)++;
 		(*wildcard)++;
 	}
@@ -115,25 +115,24 @@ Wildcard::asterisk (const char **wildcard, const char **test)
 	if (('\0' == (**test)) && ('\0' != (**wildcard)))
 		return (fit = 0);
 	if (('\0' == (**test)) && ('\0' == (**wildcard)))
-		return (fit = 1); 
+		return (fit = 1);
 	else
 	{
 		/* Neither test nor wildcard are empty!          */
 		/* the first character of wildcard isn't in [*?] */
 		if (0 == wildcardfit(*wildcard, (*test)))
 		{
-			do 
+			do
 			{
 				(*test)++;
 				/* skip as much characters as possible in the teststring */
 				/* stop if a character match occurs */
-				while (((**wildcard) != (**test)) 
-					&& ('['  != (**wildcard))
+				while (((**wildcard) != (**test))
+					&& ('[' != (**wildcard))
 					&& ('\0' != (**test)))
 					(*test)++;
-			}
-			while ((('\0' != **test))? 
-				(0 == wildcardfit (*wildcard, (*test))) 
+			} while ((('\0' != **test)) ?
+				(0 == wildcardfit(*wildcard, (*test)))
 				: (0 != (fit = 0)));
 		}
 		if (('\0' == **test) && ('\0' == **wildcard))

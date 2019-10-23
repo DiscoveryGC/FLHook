@@ -154,14 +154,14 @@ namespace Rename
 			wstring wscCharname(si.wszCharname);
 			for (std::map<wstring, TAG_DATA>::iterator i = mapTagToPassword.begin(); i != mapTagToPassword.end(); ++i)
 			{
-				if (WstrInsensitiveFind(wscCharname, i->second.tag)==0
-					&& i->second.rename_password.size()!=0)
+				if (WstrInsensitiveFind(wscCharname, i->second.tag) == 0
+					&& i->second.rename_password.size() != 0)
 				{
 					Server.CharacterInfoReq(iClientID, true);
 					return true;
 				}
 			}
-			
+
 			// If this ship name is too short, reject the request
 			if (wscCharname.size() < MIN_CHAR_TAG_LEN + 1)
 			{
@@ -173,10 +173,10 @@ namespace Rename
 		if (set_bAsciiCharnameOnly)
 		{
 			wstring wscCharname(si.wszCharname);
-			for (uint i=0; i<wscCharname.size(); i++)
+			for (uint i = 0; i < wscCharname.size(); i++)
 			{
 				wchar_t ch = wscCharname[i];
-				if (ch&0xFF80)
+				if (ch & 0xFF80)
 					return true;
 			}
 		}
@@ -193,7 +193,7 @@ namespace Rename
 			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			for (std::map<wstring, TAG_DATA>::iterator i = mapTagToPassword.begin(); i != mapTagToPassword.end(); ++i)
 			{
-				if (wscCharname.find(i->second.tag)==0)
+				if (wscCharname.find(i->second.tag) == 0)
 				{
 					i->second.last_access = (uint)time(0);
 				}
@@ -207,7 +207,7 @@ namespace Rename
 		{
 			// Indicate an error if the command does not appear to be formatted correctly 
 			// and stop processing but tell FLHook that we processed the command.
-			if (wscParam.size()==0)
+			if (wscParam.size() == 0)
 			{
 				PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 				PrintUserCmdText(iClientID, usage);
@@ -250,7 +250,7 @@ namespace Rename
 			// If this tag is in use then reject the request.
 			for (std::map<wstring, TAG_DATA>::iterator i = mapTagToPassword.begin(); i != mapTagToPassword.end(); ++i)
 			{
-				if (tag.find(i->second.tag)==0 || i->second.tag.find(tag)==0)
+				if (tag.find(i->second.tag) == 0 || i->second.tag.find(tag) == 0)
 				{
 					PrintUserCmdText(iClientID, L"ERR Tag already exists or conflicts with existing tag");
 					return true;
@@ -260,23 +260,23 @@ namespace Rename
 			// Save character and exit if kicked on save.
 			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			HkSaveChar(wscCharname);
-			if (HkGetClientIdFromCharname(wscCharname)==-1)
+			if (HkGetClientIdFromCharname(wscCharname) == -1)
 				return false;
 
 			int iCash;
 			HK_ERROR err;
 			if ((err = HkGetCash(wscCharname, iCash)) != HKE_OK)
 			{
-				PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+				PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 				return true;
 			}
-			if (set_iMakeTagCost>0 && iCash<set_iMakeTagCost)
+			if (set_iMakeTagCost > 0 && iCash < set_iMakeTagCost)
 			{
 				PrintUserCmdText(iClientID, L"ERR Insufficient credits");
 				return true;
 			}
 
-			HkAddCash(wscCharname, 0-set_iMakeTagCost);
+			HkAddCash(wscCharname, 0 - set_iMakeTagCost);
 
 			// TODO: Try to check if any player is using this tag
 			mapTagToPassword[tag].tag = tag;
@@ -299,7 +299,7 @@ namespace Rename
 		{
 			// Indicate an error if the command does not appear to be formatted correctly 
 			// and stop processing but tell FLHook that we processed the command.
-			if (wscParam.size()==0)
+			if (wscParam.size() == 0)
 			{
 				PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 				PrintUserCmdText(iClientID, usage);
@@ -336,7 +336,7 @@ namespace Rename
 		{
 			// Indicate an error if the command does not appear to be formatted correctly 
 			// and stop processing but tell FLHook that we processed the command.
-			if (wscParam.size()==0)
+			if (wscParam.size() == 0)
 			{
 				PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 				PrintUserCmdText(iClientID, usage);
@@ -408,13 +408,13 @@ namespace Rename
 		while (pendingRenames.size())
 		{
 			RENAME o = pendingRenames.front();
-			if (HkGetClientIdFromCharname(o.wscCharname)!=-1)
+			if (HkGetClientIdFromCharname(o.wscCharname) != -1)
 				return;
-			
+
 			pendingRenames.pop_front();
 
 			CAccount *acc = HkGetAccountByCharname(o.wscCharname);
-			
+
 			// Delete the character from the existing account, create a new character with the
 			// same name in this account and then copy over it with the save character file.
 			try
@@ -427,9 +427,9 @@ namespace Rename
 
 				// Move the char file to a temporary one.
 				if (!::MoveFileExA(o.scSourceFile.c_str(), o.scDestFileTemp.c_str(),
-					MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
+					MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
 					throw "move src to temp failed";
-			
+
 				// Decode the char file, update the char name and re-encode it.
 				// Add a space to the value so the ini file line looks like "<key> = <value>"
 				// otherwise Ioncross Server Operator can't decode the file correctly
@@ -446,7 +446,7 @@ namespace Rename
 
 				// Move files around
 				if (!::MoveFileExA(o.scDestFileTemp.c_str(), o.scDestFile.c_str(),
-					MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
+					MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
 					throw "move failed";
 				if (::PathFileExistsA(o.scSourceFile.c_str()))
 					throw "src still exists";
@@ -454,22 +454,22 @@ namespace Rename
 					throw "dest does not exist";
 
 				// The rename worked. Log it and save the rename time.
-				AddLog("NOTICE: User rename %s to %s (%s)",wstos(o.wscCharname).c_str(),wstos(o.wscNewCharname).c_str(), wstos(HkGetAccountID(acc)).c_str());
+				AddLog("NOTICE: User rename %s to %s (%s)", wstos(o.wscCharname).c_str(), wstos(o.wscNewCharname).c_str(), wstos(HkGetAccountID(acc)).c_str());
 			}
 			catch (char *err)
 			{
-				AddLog("ERROR: User rename failed (%s) from %s to %s (%s)", err, wstos(o.wscCharname).c_str(),wstos(o.wscNewCharname).c_str(), wstos(HkGetAccountID(acc)).c_str());
+				AddLog("ERROR: User rename failed (%s) from %s to %s (%s)", err, wstos(o.wscCharname).c_str(), wstos(o.wscNewCharname).c_str(), wstos(HkGetAccountID(acc)).c_str());
 			}
 		}
 
 		while (pendingMoves.size())
 		{
 			MOVE o = pendingMoves.front();
-			if (HkGetClientIdFromCharname(o.wscDestinationCharname)!=-1)
+			if (HkGetClientIdFromCharname(o.wscDestinationCharname) != -1)
 				return;
-			if (HkGetClientIdFromCharname(o.wscMovingCharname)!=-1)
+			if (HkGetClientIdFromCharname(o.wscMovingCharname) != -1)
 				return;
-			
+
 			pendingMoves.pop_front();
 
 			CAccount *acc = HkGetAccountByCharname(o.wscDestinationCharname);
@@ -487,7 +487,7 @@ namespace Rename
 
 				// Move the char file to a temporary one.
 				if (!::MoveFileExA(o.scSourceFile.c_str(), o.scDestFileTemp.c_str(),
-					MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
+					MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
 					throw "move src to temp failed";
 
 				// Create and delete the character
@@ -496,7 +496,7 @@ namespace Rename
 
 				// Move files around
 				if (!::MoveFileExA(o.scDestFileTemp.c_str(), o.scDestFile.c_str(),
-					MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH))
+					MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
 					throw "move failed";
 				if (::PathFileExistsA(o.scSourceFile.c_str()))
 					throw "src still exists";
@@ -530,7 +530,7 @@ namespace Rename
 
 		// Indicate an error if the command does not appear to be formatted correctly 
 		// and stop processing but tell FLHook that we processed the command.
-		if (wscParam.size()==0)
+		if (wscParam.size() == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
@@ -562,7 +562,7 @@ namespace Rename
 			return true;
 		}
 
-		if (wscNewCharname.find(L" ")!=-1)
+		if (wscNewCharname.find(L" ") != -1)
 		{
 			PrintUserCmdText(iClientID, L"ERR Space characters not allowed in name");
 			return true;
@@ -570,19 +570,19 @@ namespace Rename
 
 		if (HkGetAccountByCharname(wscNewCharname))
 		{
-			PrintUserCmdText(iClientID, L"ERR Name already exists");	
+			PrintUserCmdText(iClientID, L"ERR Name already exists");
 			return true;
 		}
 
 		if (wscNewCharname.length() > 23)
 		{
-			PrintUserCmdText(iClientID, L"ERR Name to long");	
+			PrintUserCmdText(iClientID, L"ERR Name to long");
 			return true;
 		}
-		
+
 		if (wscNewCharname.length() < MIN_CHAR_TAG_LEN)
 		{
-			PrintUserCmdText(iClientID, L"ERR Name to short");	
+			PrintUserCmdText(iClientID, L"ERR Name to short");
 			return true;
 		}
 
@@ -592,18 +592,18 @@ namespace Rename
 
 			for (std::map<wstring, TAG_DATA>::iterator i = mapTagToPassword.begin(); i != mapTagToPassword.end(); ++i)
 			{
-				if (WstrInsensitiveFind(wscNewCharname, i->first)==0
+				if (WstrInsensitiveFind(wscNewCharname, i->first) == 0
 					&& i->second.rename_password.size() != 0)
 				{
 					if (!wscPassword.length())
 					{
-						PrintUserCmdText(iClientID, L"ERR Name starts with an owned tag. Password is required.");	
+						PrintUserCmdText(iClientID, L"ERR Name starts with an owned tag. Password is required.");
 						return true;
 					}
 					else if (wscPassword != i->second.master_password
 						&& wscPassword != i->second.rename_password)
 					{
-						PrintUserCmdText(iClientID, L"ERR Name starts with an owned tag. Password is wrong.");	
+						PrintUserCmdText(iClientID, L"ERR Name starts with an owned tag. Password is wrong.");
 						return true;
 					}
 					// Password is valid for owned tag.
@@ -623,10 +623,10 @@ namespace Rename
 		int iCash = 0;
 		if ((err = HkGetCash(wscCharname, iCash)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
-		if (set_iRenameCost>0 && iCash<set_iRenameCost)
+		if (set_iRenameCost > 0 && iCash < set_iRenameCost)
 		{
 			PrintUserCmdText(iClientID, L"ERR Insufficient credits");
 			return true;
@@ -634,12 +634,12 @@ namespace Rename
 
 		// Read the last time a rename was done on this character
 		wstring wscDir;
-		if ((err = HkGetAccountDirName(wscCharname, wscDir))!=HKE_OK)
+		if ((err = HkGetAccountDirName(wscCharname, wscDir)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
-		string scRenameFile  = scAcctPath + wstos(wscDir) + "\\" + "rename.ini";
+		string scRenameFile = scAcctPath + wstos(wscDir) + "\\" + "rename.ini";
 		int lastRenameTime = IniGetI(scRenameFile, "General", wstos(wscCharname), 0);
 
 		// If a rename was done recently by this player then reject the request.
@@ -659,21 +659,21 @@ namespace Rename
 		string scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
 
 		wstring wscSourceFile;
-		if ((err = HkGetCharFileName(wscCharname, wscSourceFile))!=HKE_OK)
+		if ((err = HkGetCharFileName(wscCharname, wscSourceFile)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
 		wstring wscDestFile;
-		if ((err = HkGetCharFileName(wscNewCharname, wscDestFile))!=HKE_OK)
+		if ((err = HkGetCharFileName(wscNewCharname, wscDestFile)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
 
 		// Remove cash if we're charging for it.
-		if (set_iRenameCost>0)
-			HkAddCash(wscCharname, 0-set_iRenameCost);
+		if (set_iRenameCost > 0)
+			HkAddCash(wscCharname, 0 - set_iRenameCost);
 
 
 		RENAME o;
@@ -683,7 +683,7 @@ namespace Rename
 		o.scDestFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscDestFile) + ".fl";
 		o.scDestFileTemp = scAcctPath + wstos(wscDir) + "\\" + wstos(wscSourceFile) + ".fl.renaming";
 		pendingRenames.push_back(o);
-		
+
 		HkKickReason(o.wscCharname, L"Updating character, please wait 10 seconds before reconnecting");
 		IniWrite(scRenameFile, "General", wstos(o.wscNewCharname), itos((int)time(0)));
 		return true;
@@ -696,14 +696,14 @@ namespace Rename
 		if (!set_bEnableMoveChar)
 			return false;
 
-		if (wscParam.size()==0)
+		if (wscParam.size() == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
 			return true;
 		}
 
-		wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 		string scFile;
 		if (!GetUserFilePath(scFile, wscCharname, "-movechar.ini"))
 		{
@@ -712,7 +712,7 @@ namespace Rename
 		}
 
 		wstring wscCode = Trim(GetParam(wscParam, L' ', 0));
-		if (wscCode==L"none")
+		if (wscCode == L"none")
 		{
 			IniWriteW(scFile, "Settings", "Code", L"");
 			PrintUserCmdText(iClientID, L"OK Movechar code cleared");
@@ -720,7 +720,7 @@ namespace Rename
 		else
 		{
 			IniWriteW(scFile, "Settings", "Code", wscCode);
-			PrintUserCmdText(iClientID, L"OK Movechar code set to "+wscCode);
+			PrintUserCmdText(iClientID, L"OK Movechar code set to " + wscCode);
 		}
 		return true;
 	}
@@ -758,7 +758,7 @@ namespace Rename
 
 		// Indicate an error if the command does not appear to be formatted correctly 
 		// and stop processing but tell FLHook that we processed the command.
-		if (wscParam.size()==0)
+		if (wscParam.size() == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
@@ -782,11 +782,11 @@ namespace Rename
 			PrintUserCmdText(iClientID, L"ERR Character does not exist");
 			return true;
 		}
-		
+
 		// Check the move char code.
 		wstring wscCode = Trim(GetParam(wscParam, L' ', 1));
 		wstring wscTargetCode = IniGetWS(scFile, "Settings", "Code", L"");
-		if (!wscTargetCode.length() || wscTargetCode!=wscCode)
+		if (!wscTargetCode.length() || wscTargetCode != wscCode)
 		{
 			PrintUserCmdText(iClientID, L"ERR Move character access denied");
 			return true;
@@ -820,17 +820,17 @@ namespace Rename
 		int iCash = 0;
 		if ((err = HkGetCash(wscCharname, iCash)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
-		if (set_iMoveCost>0 && iCash<set_iMoveCost)
+		if (set_iMoveCost > 0 && iCash < set_iMoveCost)
 		{
 			PrintUserCmdText(iClientID, L"ERR Insufficient credits");
 			return true;
 		}
 
 		// Check there is room in this account.
-		CAccount *acc=Players.FindAccountFromClientID(iClientID);
+		CAccount *acc = Players.FindAccountFromClientID(iClientID);
 		if (acc->iNumberOfCharacters >= 7)
 		{
 			PrintUserCmdText(iClientID, L"ERR Too many characters in account");
@@ -845,27 +845,27 @@ namespace Rename
 		wstring wscDir;
 		wstring wscSourceDir;
 		wstring wscSourceFile;
-		if ((err = HkGetAccountDirName(wscCharname, wscDir))!=HKE_OK)
+		if ((err = HkGetAccountDirName(wscCharname, wscDir)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
-		if ((err = HkGetAccountDirName(wscMovingCharname, wscSourceDir))!=HKE_OK)
+		if ((err = HkGetAccountDirName(wscMovingCharname, wscSourceDir)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
-		if ((err = HkGetCharFileName(wscMovingCharname, wscSourceFile))!=HKE_OK)
+		if ((err = HkGetCharFileName(wscMovingCharname, wscSourceFile)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 			return true;
 		}
 
 		// Remove cash if we're charging for it.
-		if (set_iMoveCost>0)
-			HkAddCash(wscCharname, 0-set_iMoveCost);
+		if (set_iMoveCost > 0)
+			HkAddCash(wscCharname, 0 - set_iMoveCost);
 		HkSaveChar(wscCharname);
-		
+
 		// Schedule the move
 		MOVE o;
 		o.wscDestinationCharname = wscCharname;
@@ -898,13 +898,13 @@ namespace Rename
 		}
 
 		wstring wscDir;
-		if (HkGetAccountDirName(wscCharname, wscDir)!=HKE_OK)
+		if (HkGetAccountDirName(wscCharname, wscDir) != HKE_OK)
 		{
 			cmds->Print(L"ERR Charname not found\n");
 			return;
 		}
 
-		if (wscCode.length()==0)
+		if (wscCode.length() == 0)
 		{
 			cmds->Print(L"ERR Code too small, set to none to clear.\n");
 			return;
@@ -916,9 +916,9 @@ namespace Rename
 		string scPath = string(szDataPath) + "\\Accts\\MultiPlayer\\" + wstos(wscDir) + "\\*.fl";
 
 		// Open the directory iterator.
-		WIN32_FIND_DATA FindFileData; 
+		WIN32_FIND_DATA FindFileData;
 		HANDLE hFileFind = FindFirstFile(scPath.c_str(), &FindFileData);
-		if (hFileFind==INVALID_HANDLE_VALUE)
+		if (hFileFind == INVALID_HANDLE_VALUE)
 		{
 			cmds->Print(L"ERR Account directory not found\n");
 			return;
@@ -929,20 +929,19 @@ namespace Rename
 		{
 			string scCharfile = FindFileData.cFileName;
 			string scMoveCodeFile = string(szDataPath) + "\\Accts\\MultiPlayer\\" + wstos(wscDir) + "\\"
-				+ scCharfile.substr(0,scCharfile.size()-3) + "-movechar.ini";
-			if (wscCode==L"none")
+				+ scCharfile.substr(0, scCharfile.size() - 3) + "-movechar.ini";
+			if (wscCode == L"none")
 			{
 				IniWriteW(scMoveCodeFile, "Settings", "Code", L"");
-				cmds->Print(L"OK Movechar code cleared on "+stows(scCharfile)+L"\n");
+				cmds->Print(L"OK Movechar code cleared on " + stows(scCharfile) + L"\n");
 			}
 			else
 			{
 				IniWriteW(scMoveCodeFile, "Settings", "Code", wscCode);
-				cmds->Print(L"OK Movechar code set to "+wscCode +L" on "+stows(scCharfile)+L"\n");
+				cmds->Print(L"OK Movechar code set to " + wscCode + L" on " + stows(scCharfile) + L"\n");
 			}
-		}
-		while (FindNextFile(hFileFind, &FindFileData));
-		FindClose(hFileFind); 
+		} while (FindNextFile(hFileFind, &FindFileData));
+		FindClose(hFileFind);
 
 		cmds->Print(L"OK\n");
 	}
@@ -996,7 +995,7 @@ namespace Rename
 		// If this tag is in use then reject the request.
 		for (std::map<wstring, TAG_DATA>::iterator i = mapTagToPassword.begin(); i != mapTagToPassword.end(); ++i)
 		{
-			if (tag.find(i->second.tag)==0 || i->second.tag.find(tag)==0)
+			if (tag.find(i->second.tag) == 0 || i->second.tag.find(tag) == 0)
 			{
 				cmds->Print(L"ERR Tag already exists or conflicts with another tag\n");
 				return;
@@ -1059,7 +1058,7 @@ void Rename::ReloadLockedShips()
 					if (ini.is_value("ship"))
 					{
 						LockedShipsStruct info;
-						
+
 						wstring ship = stows(ini.get_value_string(0));
 						wstring filename;
 						HkGetCharFileName(ship, filename);
@@ -1068,7 +1067,7 @@ void Rename::ReloadLockedShips()
 						info.LockLevel = ini.get_value_int(1);
 
 						MapLockedShips[ToLower(ship)] = info;
-						++numberoflockedships;						
+						++numberoflockedships;
 					}
 				}
 				ConPrint(L"Notice: Loaded %i locked ships\n", numberoflockedships);

@@ -125,7 +125,7 @@ PlayerBase *GetPlayerBaseForClient(uint client)
 	map<uint, PlayerBase*>::iterator i = player_bases.find(j->second.player_base);
 	if (i == player_bases.end())
 		return 0;
-	
+
 	return i->second;
 }
 
@@ -169,23 +169,23 @@ void Logging(const char *szString, ...)
 // These logging functions need consolidating.
 void BaseLogging(const char *szString, ...)
 {
-    char szBufString[1024];
-    va_list marker;
-    va_start(marker, szString);
-    _vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
+	char szBufString[1024];
+	va_list marker;
+	va_start(marker, szString);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
-    char szBuf[64];
-    time_t tNow = time(0);
-    struct tm *t = localtime(&tNow);
-    strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
+	char szBuf[64];
+	time_t tNow = time(0);
+	struct tm *t = localtime(&tNow);
+	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
 
-    FILE *BaseLogfile = fopen("./flhook_logs/playerbase_events.log", "at");
-    if (BaseLogfile)
-    {
-        fprintf(BaseLogfile, "%s %s\n", szBuf, szBufString);
-        fflush(BaseLogfile);
-        fclose(BaseLogfile);
-    }
+	FILE *BaseLogfile = fopen("./flhook_logs/playerbase_events.log", "at");
+	if (BaseLogfile)
+	{
+		fprintf(BaseLogfile, "%s %s\n", szBuf, szBufString);
+		fflush(BaseLogfile);
+		fclose(BaseLogfile);
+	}
 }
 
 FILE *LogfileEventCommodities = fopen("./flhook_logs/event_pobsales.log", "at");
@@ -275,7 +275,7 @@ void SyncReputationForClientShip(uint ship, uint client)
 		if (base->second->system == system)
 		{
 			float attitude = base->second->GetAttitudeTowardsClient(client);
-			if (set_plugin_debug>1)
+			if (set_plugin_debug > 1)
 				ConPrint(L"SyncReputationForClientShip:: ship=%u attitude=%f base=%08x\n", ship, attitude, base->first);
 			for (vector<Module*>::iterator module = base->second->modules.begin();
 				module != base->second->modules.end(); ++module)
@@ -295,38 +295,38 @@ void SyncReputationForClientShip(uint ship, uint client)
 wstring HtmlEncode(wstring text)
 {
 	wstring sb;
-    int len = text.size();
-    for (int i = 0; i < len; i++)
-    {
-        switch (text[i])
-        {
-            case L'<':
-                sb.append(L"&lt;");
-                break;
-            case L'>':
-                sb.append(L"&gt;");
-                break;
-            case L'"':
-                sb.append(L"&quot;");
-                break;
-            case L'&':
-                sb.append(L"&amp;");
-                break;
-            default:
-                if (text[i] > 159)
-                {
-                    sb.append(L"&#");
-                    sb.append(stows(itos((int)text[i])));
-                    sb.append(L";");
-                }
-                else
-				{
-                    sb.append(1, text[i]);
-				}
-                break;
-        }
-    }
-    return sb;
+	int len = text.size();
+	for (int i = 0; i < len; i++)
+	{
+		switch (text[i])
+		{
+		case L'<':
+			sb.append(L"&lt;");
+			break;
+		case L'>':
+			sb.append(L"&gt;");
+			break;
+		case L'"':
+			sb.append(L"&quot;");
+			break;
+		case L'&':
+			sb.append(L"&amp;");
+			break;
+		default:
+			if (text[i] > 159)
+			{
+				sb.append(L"&#");
+				sb.append(stows(itos((int)text[i])));
+				sb.append(L";");
+			}
+			else
+			{
+				sb.append(1, text[i]);
+			}
+			break;
+		}
+	}
+	return sb;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -374,7 +374,7 @@ void LoadSettingsActual()
 	shield_power_items.clear();
 
 	HookExt::ClearMiningObjData();
-	
+
 	INI_Reader ini;
 	if (ini.open(cfg_file.c_str(), false))
 	{
@@ -646,17 +646,17 @@ void LoadSettingsActual()
 
 	char datapath[MAX_PATH];
 	GetUserDataPath(datapath);
-	
+
 	// Create base account dir if it doesn't exist
 	string basedir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\";
 	CreateDirectoryA(basedir.c_str(), 0);
 
 	// Load and spawn all bases
-	string path = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\base_*.ini";	
+	string path = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\base_*.ini";
 
-	WIN32_FIND_DATA findfile; 
+	WIN32_FIND_DATA findfile;
 	HANDLE h = FindFirstFile(path.c_str(), &findfile);
-	if (h != INVALID_HANDLE_VALUE)  
+	if (h != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
@@ -664,8 +664,7 @@ void LoadSettingsActual()
 			PlayerBase *base = new PlayerBase(filepath);
 			player_bases[base->base] = base;
 			base->Spawn();
-		}
-		while (FindNextFile(h, &findfile));
+		} while (FindNextFile(h, &findfile));
 		FindClose(h);
 	}
 
@@ -733,7 +732,7 @@ void HkTimerCheckKick()
 	if (ExportType == 0 || ExportType == 2)
 	{
 		// Write status to an html formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_html.size()>0)
+		if ((curr_time % 60) == 0 && set_status_path_html.size() > 0)
 		{
 			ExportData::ToHTML();
 		}
@@ -742,7 +741,7 @@ void HkTimerCheckKick()
 	if (ExportType == 1 || ExportType == 2)
 	{
 		// Write status to a json formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_json.size()>0)
+		if ((curr_time % 60) == 0 && set_status_path_json.size() > 0)
 		{
 			ExportData::ToJSON();
 		}
@@ -761,18 +760,18 @@ __declspec(naked) void HkCb_IsDockableErrorNaked()
 {
 	__asm
 	{
-		test [esi+0x1b4], eax
+		test[esi + 0x1b4], eax
 		jnz no_error
-		push [edi+0xB8]
-		push [esi+0x1b4]
+		push[edi + 0xB8]
+		push[esi + 0x1b4]
 		call HkCb_IsDockableError
 		test al, al
 		jz no_error
 		push 0x62b76d3
 		ret
-no_error:
+		no_error :
 		push 0x62b76fc
-		ret
+			ret
 	}
 }
 
@@ -783,7 +782,7 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 		uint client = HkGetClientIDByShip(obj->get_id());
 		if (client)
 		{
-			if (set_plugin_debug>1)
+			if (set_plugin_debug > 1)
 				ConPrint(L"Land client=%u base_dock_id=%u base=%u\n", client, base_dock_id, base);
 
 			// If we're docking at a player base, do nothing.
@@ -794,19 +793,19 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 			// the last base flag
 			clients[client].last_player_base = 0;
 			clients[client].player_base = 0;
-			if (base==0)
-			{		
+			if (base == 0)
+			{
 				char szSystem[1024];
 				pub::GetSystemNickname(szSystem, sizeof(szSystem), Players[client].iSystemID);
-				
+
 				char szProxyBase[1024];
 				sprintf(szProxyBase, "%s_proxy_base", szSystem);
 
 				uint iProxyBaseID = CreateID(szProxyBase);
-		
+
 				clients[client].player_base = base_dock_id;
 				clients[client].last_player_base = base_dock_id;
-				if (set_plugin_debug>1)
+				if (set_plugin_debug > 1)
 					ConPrint(L"Land[2] client=%u baseDockID=%u base=%u player_base=%u\n", client, base_dock_id, base, clients[client].player_base);
 				pub::Player::ForceLand(client, iProxyBaseID);
 				return false;
@@ -820,37 +819,37 @@ __declspec(naked) void HkCb_LandNaked()
 {
 	__asm
 	{
-		mov al, [ebx+0x1c]
+		mov al, [ebx + 0x1c]
 		test al, al
 		jz not_in_dock
 
-		mov eax, [ebx+0x18] // base id
-		push eax 
-		mov eax, [esp+0x14] // dock target
+		mov eax, [ebx + 0x18] // base id
+		push eax
+		mov eax, [esp + 0x14] // dock target
 		push eax
 		push edi // objinspect
 		call HkCb_Land
 		test al, al
 		jz done
 
-not_in_dock:
+		not_in_dock :
 		// Copied from moor.dll to support mooring.
-		mov	al, [ebx+0x1c]
-		test	al, al
-		jnz	done
-		// It's false, so a safe bet that it's a moor.  Is it the player?
-		mov	eax, [edi]
-		mov	ecx, edi
-		call	[eax+0xbc] // is_player
-		test	al, al
-		jnz done
+		mov	al, [ebx + 0x1c]
+			test	al, al
+			jnz	done
+			// It's false, so a safe bet that it's a moor.  Is it the player?
+			mov	eax, [edi]
+			mov	ecx, edi
+			call[eax + 0xbc] // is_player
+			test	al, al
+			jnz done
 
 
 
 
-done:
+			done :
 		push 0x6D0C251
-		ret
+			ret
 	}
 }
 
@@ -862,7 +861,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
 		if (!patched)
 		{
@@ -876,7 +875,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 				WriteProcMem((char*)hModServer + 0x2c24c, patch, sizeof(patch));
 				PatchCallAddr((char*)hModServer, 0x2c24c, (char*)HkCb_LandNaked);
 			}
-			
+
 			hModCommon = GetModuleHandleA("common.dll");
 			{
 				// Suppress "is dockable " error message
@@ -926,31 +925,31 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 bool UserCmd_Process(uint client, const wstring &args)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (args.find(L"/base login")==0)
+	if (args.find(L"/base login") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseLogin(client, args);
 		return true;
 	}
-	else if (args.find(L"/base addpwd")==0)
+	else if (args.find(L"/base addpwd") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseAddPwd(client, args);
 		return true;
 	}
-	else if (args.find(L"/base rmpwd")==0)
+	else if (args.find(L"/base rmpwd") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseRmPwd(client, args);
 		return true;
 	}
-	else if (args.find(L"/base lstpwd")==0)
+	else if (args.find(L"/base lstpwd") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseLstPwd(client, args);
 		return true;
 	}
-	else if (args.find(L"/base setmasterpwd")==0)
+	else if (args.find(L"/base setmasterpwd") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseSetMasterPwd(client, args);
@@ -965,13 +964,13 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseAddAllyTag(client, args);
 		return true;
 	}
-	else if (args.find(L"/base rmtag")==0)
+	else if (args.find(L"/base rmtag") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseRmAllyTag(client, args);
 		return true;
 	}
-	else if (args.find(L"/base lsttag")==0)
+	else if (args.find(L"/base lsttag") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseLstAllyTag(client, args);
@@ -998,67 +997,67 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseLstHostileTag(client, args);
 		return true;
 	}
-	else if (args.find(L"/base rep")==0)
+	else if (args.find(L"/base rep") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseRep(client, args);
 		return true;
 	}
-	else if (args.find(L"/base defensemode")==0)
+	else if (args.find(L"/base defensemode") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseDefenseMode(client, args);
 		return true;
 	}
-	else if (args.find(L"/base deploy")==0)
+	else if (args.find(L"/base deploy") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseDeploy(client, args);
 		return true;
 	}
-	else if (args.find(L"/shop")==0)
+	else if (args.find(L"/shop") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::Shop(client, args);
 		return true;
 	}
-	else if (args.find(L"/bank")==0)
+	else if (args.find(L"/bank") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::Bank(client, args);
 		return true;
 	}
-	else if (args.find(L"/base info")==0)
+	else if (args.find(L"/base info") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseInfo(client, args);
 		return true;
 	}
-	else if (args.find(L"/base facmod")==0)
+	else if (args.find(L"/base facmod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);
 		return true;
 	}
-	else if (args.find(L"/base defmod")==0)
+	else if (args.find(L"/base defmod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseDefMod(client, args);
 		return true;
 	}
-	else if (args.find(L"/base shieldmod")==0)
+	else if (args.find(L"/base shieldmod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseShieldMod(client, args);
 		return true;
 	}
-	else if (args.find(L"/base buildmod")==0)
+	else if (args.find(L"/base buildmod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseBuildMod(client, args);
 		return true;
 	}
-	else if (args.find(L"/base")==0)
+	else if (args.find(L"/base") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseHelp(client, args);
@@ -1068,12 +1067,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 }
 
 static bool IsDockingAllowed(PlayerBase *base, uint client)
-{	
+{
 	// Allies can always dock.
 	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 	for (list<wstring>::iterator i = base->ally_tags.begin(); i != base->ally_tags.end(); ++i)
 	{
-		if (charname.find(*i)==0)
+		if (charname.find(*i) == 0)
 		{
 			return true;
 		}
@@ -1090,7 +1089,7 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	{
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -1222,7 +1221,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 	return 0;
 }
 
-void __stdcall CharacterSelect(struct CHARACTER_ID const &cId,unsigned int client)
+void __stdcall CharacterSelect(struct CHARACTER_ID const &cId, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -1234,11 +1233,11 @@ void __stdcall CharacterSelect(struct CHARACTER_ID const &cId,unsigned int clien
 	}
 }
 
-void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId,unsigned int client)
+void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (set_plugin_debug>1)
+	if (set_plugin_debug > 1)
 		ConPrint(L"CharacterSelect_AFTER client=%u player_base=%u\n", client, clients[client].player_base);
 
 	// If this ship is in a player base is then set then docking ID to emulate
@@ -1246,9 +1245,9 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId,unsigned int
 	LoadDockState(client);
 	if (clients[client].player_base)
 	{
-		if (set_plugin_debug>1)
+		if (set_plugin_debug > 1)
 			ConPrint(L"CharacterSelect_AFTER[2] client=%u player_base=%u\n", client, clients[client].player_base);
-		
+
 		// If this base does not exist, dump the ship into space
 		PlayerBase *base = GetPlayerBase(clients[client].player_base);
 		if (!base)
@@ -1270,7 +1269,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId,unsigned int
 
 void __stdcall BaseEnter(uint base, uint client)
 {
-	if (set_plugin_debug>1)
+	if (set_plugin_debug > 1)
 		ConPrint(L"BaseEnter base=%u client=%u player_base=%u last_player_base=%u\n", base, client,
 			clients[client].player_base, clients[client].last_player_base);
 
@@ -1316,10 +1315,10 @@ void __stdcall BaseEnter(uint base, uint client)
 
 void __stdcall BaseExit(uint base, uint client)
 {
-	returncode = DEFAULT_RETURNCODE;	
-	
-	if (set_plugin_debug>1)
-			ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
+	returncode = DEFAULT_RETURNCODE;
+
+	if (set_plugin_debug > 1)
+		ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
 
 	// Reset client state and save it retaining the last player base ID to deal with respawn.
 	clients[client].admin = false;
@@ -1328,7 +1327,7 @@ void __stdcall BaseExit(uint base, uint client)
 	{
 		if (set_plugin_debug)
 			ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
-		
+
 		clients[client].last_player_base = clients[client].player_base;
 		clients[client].player_base = 0;
 		SaveDockState(client);
@@ -1337,7 +1336,7 @@ void __stdcall BaseExit(uint base, uint client)
 	{
 		DeleteDockState(client);
 	}
-		
+
 	// Clear the base market and text
 	SendResetMarketOverride(client);
 	SendSetBaseInfoText2(client, L"");
@@ -1352,7 +1351,7 @@ void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigne
 	if (client)
 	{
 		if (!iIsFormationRequest)
-		{ 
+		{
 			PlayerBase *base = GetPlayerBase(iDockTarget);
 			if (base)
 			{
@@ -1382,7 +1381,7 @@ PlayerBase* player_launch_base = 0;
 
 /// If the ship is launching from a player base record this so that
 /// override the launch location.
-bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Matrix &rot, int dock_mode) 
+bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Matrix &rot, int dock_mode)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (player_launch_base)
@@ -1393,7 +1392,7 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 		TranslateX(pos, rot, -750);
 		if (set_plugin_debug)
 			ConPrint(L"LaunchPosHook[1] space_obj=%u pos=%0.0f %0.0f %0.0f dock_mode=%u\n",
-			space_obj, pos.x, pos.y, pos.z, dock_mode);
+				space_obj, pos.x, pos.y, pos.z, dock_mode);
 		player_launch_base = 0;
 	}
 	return true;
@@ -1404,7 +1403,7 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (set_plugin_debug>1)
+	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 	player_launch_base = GetPlayerBase(clients[client].last_player_base);
 }
@@ -1420,7 +1419,7 @@ void __stdcall JumpInComplete(unsigned int system, unsigned int ship)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (set_plugin_debug>1)
+	if (set_plugin_debug > 1)
 		ConPrint(L"JumpInComplete system=%u ship=%u\n");
 
 	uint client = HkGetClientIDByShip(ship);
@@ -1440,7 +1439,7 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
-		if (base->market_items.find(gsi.iArchID)==base->market_items.end()
+		if (base->market_items.find(gsi.iArchID) == base->market_items.end()
 			&& !clients[client].admin)
 		{
 			PrintUserCmdText(client, L"ERR: Base will not accept goods");
@@ -1489,21 +1488,21 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 
 			return;
 		}
-		
+
 		// If the base doesn't have sufficient cash to support this purchase
 		// reduce the amount purchased and shift the cargo back to the ship.
 		if (base->money < price)
 		{
 			PrintUserCmdText(client, L"ERR: Base cannot accept goods, insufficient cash");
 			clients[client].reverse_sell = true;
-			return;	
+			return;
 		}
 
-		if ((item.quantity + count) > item.max_stock) 
+		if ((item.quantity + count) > item.max_stock)
 		{
 			PrintUserCmdText(client, L"ERR: Base cannot accept goods, stock limit reached");
 			clients[client].reverse_sell = true;
-			return;	
+			return;
 		}
 
 		// Prevent player from getting invalid net worth.
@@ -1531,7 +1530,7 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		}
 
 		pub::Player::AdjustCash(client, price);
-		base->ChangeMoney(0-price);
+		base->ChangeMoney(0 - price);
 		base->Save();
 
 		if (listCommodities.find(gsi.iArchID) != listCommodities.end())
@@ -1597,11 +1596,11 @@ void __stdcall ReqRemoveItem_AFTER(unsigned short iID, int count, unsigned int c
 		{
 			clients[client].reverse_sell = false;
 
-			foreach (clients[client].cargo, CARGO_INFO, ci)
+			foreach(clients[client].cargo, CARGO_INFO, ci)
 			{
 				if (ci->iID == iID)
 				{
-					Server.ReqAddItem(ci->iArchID, ci->hardpoint.value, count, ci->fStatus, ci->bMounted, client);						
+					Server.ReqAddItem(ci->iArchID, ci->hardpoint.value, count, ci->fStatus, ci->bMounted, client);
 					return;
 				}
 			}
@@ -1609,15 +1608,15 @@ void __stdcall ReqRemoveItem_AFTER(unsigned short iID, int count, unsigned int c
 		else
 		{
 			// Update the player CRC so that the player is not kicked for 'ship related' kick
-			PlayerData *pd = &Players[client];			
+			PlayerData *pd = &Players[client];
 			char *ACCalcCRC = (char*)hModServer + 0x6FAF0;
 			__asm
 			{
 				pushad
 				mov ecx, [pd]
-				call [ACCalcCRC]
+				call[ACCalcCRC]
 				mov ecx, [pd]
-				mov [ecx+320h], eax
+				mov[ecx + 320h], eax
 				popad
 			}
 		}
@@ -1650,14 +1649,14 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 			PrintUserCmdText(client, L"ERR Base will not sell goods");
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			clients[client].stop_buy = true;
-			return;	
+			return;
 		}
 		else if (curr_money < price)
 		{
 			PrintUserCmdText(client, L"ERR Not enough credits");
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			clients[client].stop_buy = true;
-			return;	
+			return;
 		}
 
 		clients[client].stop_buy = false;
@@ -1693,24 +1692,24 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const &gbi, unsigned int iC
 	PlayerBase *base = GetPlayerBaseForClient(iClientID);
 	if (base)
 	{
-			returncode = SKIPPLUGINS;
-			// Update the player CRC so that the player is not kicked for 'ship related' kick
-			PlayerData *pd = &Players[iClientID];
-			char *ACCalcCRC = (char*)hModServer + 0x6FAF0;
-			__asm
-			{
-				pushad
-				mov ecx, [pd]
-					call[ACCalcCRC]
-					mov ecx, [pd]
-					mov[ecx + 320h], eax
-					popad
-			}
+		returncode = SKIPPLUGINS;
+		// Update the player CRC so that the player is not kicked for 'ship related' kick
+		PlayerData *pd = &Players[iClientID];
+		char *ACCalcCRC = (char*)hModServer + 0x6FAF0;
+		__asm
+		{
+			pushad
+			mov ecx, [pd]
+			call[ACCalcCRC]
+			mov ecx, [pd]
+			mov[ecx + 320h], eax
+			popad
+		}
 
-			//PrintUserCmdText(iClientID, L"You will be kicked to update your ship.");
-			//HkSaveChar((const wchar_t*)Players.GetActiveCharacterName(iClientID));
-			//HkDelayedKick(iClientID, 10);
-			
+		//PrintUserCmdText(iClientID, L"You will be kicked to update your ship.");
+		//HkSaveChar((const wchar_t*)Players.GetActiveCharacterName(iClientID));
+		//HkDelayedKick(iClientID, 10);
+
 	}
 }
 
@@ -1739,8 +1738,8 @@ void __stdcall ReqAddItem_AFTER(unsigned int good, char const *hardpoint, int co
 	if (base)
 	{
 		returncode = SKIPPLUGINS;
-		PlayerData *pd = &Players[client];			
-	
+		PlayerData *pd = &Players[client];
+
 		// Add to check-list which is being compared to the users equip-list when saving
 		// char to fix "Ship or Equipment not sold on base" kick
 		EquipDesc ed;
@@ -1755,10 +1754,10 @@ void __stdcall ReqAddItem_AFTER(unsigned int good, char const *hardpoint, int co
 		{
 			pushad
 			mov ecx, [pd]
-				call[ACCalcCRC]
-				mov ecx, [pd]
-				mov[ecx + 320h], eax
-				popad
+			call[ACCalcCRC]
+			mov ecx, [pd]
+			mov[ecx + 320h], eax
+			popad
 		}
 	}
 }
@@ -1821,11 +1820,11 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 		pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
 
 		map<uint, Module*>::iterator i = spaceobj_modules.find(iDmgToSpaceID);
-		if ((i != spaceobj_modules.end()) && (i->second->mining == false) )
+		if ((i != spaceobj_modules.end()) && (i->second->mining == false))
 		{
 			if (set_plugin_debug)
 				ConPrint(L"HkCb_AddDmgEntry iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f damage=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
-				iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);	
+					iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);
 
 			if (set_holiday_mode)
 			{
@@ -1837,11 +1836,11 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			// A work around for an apparent bug where mines/missiles at the base
 			// causes the base damage to jump down to 0 even if the base is
 			// otherwise healthy.
-			if (damage==0.0f /*&& dmg->get_cause()==7*/ && curr>200000) 
+			if (damage == 0.0f /*&& dmg->get_cause()==7*/ && curr > 200000)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");	
+					ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
 				return;
 			}
 
@@ -1849,7 +1848,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			if (!dmg->is_inflictor_a_player())
 			{
 				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[2] suppressed - npc\n");	
+					ConPrint(L"HkCb_AddDmgEntry[2] suppressed - npc\n");
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				iDmgToSpaceID = 0;
 				return;
@@ -1905,35 +1904,35 @@ static void ForcePlayerBaseDock(uint client, PlayerBase *base)
 {
 	char system_nick[1024];
 	pub::GetSystemNickname(system_nick, sizeof(system_nick), base->system);
-				
+
 	char proxy_base_nick[1024];
 	sprintf(proxy_base_nick, "%s_proxy_base", system_nick);
 
 	uint proxy_base_id = CreateID(proxy_base_nick);
-		
+
 	clients[client].player_base = base->base;
 	clients[client].last_player_base = base->base;
-	
-	if (set_plugin_debug>1)
+
+	if (set_plugin_debug > 1)
 		ConPrint(L"ForcePlayerBaseDock client=%u player_base=%u\n", client, clients[client].player_base);
-		
+
 	uint system;
 	pub::Player::GetSystem(client, system);
 
 	pub::Player::ForceLand(client, proxy_base_id);
 	if (system != base->system)
 	{
-		Server.BaseEnter(proxy_base_id,client);
-		Server.BaseExit(proxy_base_id,client);
+		Server.BaseEnter(proxy_base_id, client);
+		Server.BaseExit(proxy_base_id, client);
 
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		wstring charfilename;
 		HkGetCharFileName(charname, charfilename);
 		charfilename += L".fl";
 		CHARACTER_ID charid;
-		strcpy(charid.szCharFilename,wstos(charname.substr(0,14)).c_str());
+		strcpy(charid.szCharFilename, wstos(charname.substr(0, 14)).c_str());
 
-		Server.CharacterSelect(charid, client);\
+		Server.CharacterSelect(charid, client); \
 	}
 }
 
@@ -1982,8 +1981,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			sys = Universe::GetNextSystem();
 		}
 		return true;
-	}*/	
-	if (args.find(L"testrecipe")==0)
+	}*/
+	if (args.find(L"testrecipe") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
@@ -1998,7 +1997,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		uint recipe_name = CreateID(wstos(cmd->ArgStr(1)).c_str());
 
 		RECIPE recipe = recipes[recipe_name];
-		for (map<uint,uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
+		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
 		{
 			base->market_items[i->first].quantity += i->second;
 			SendMarketGoodUpdated(base, i->first, base->market_items[i->first]);
@@ -2008,7 +2007,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		cmd->Print(L"OK");
 		return true;
 	}
-	else if (args.find(L"testdeploy")==0)
+	else if (args.find(L"testdeploy") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
@@ -2016,7 +2015,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		{
 			cmd->Print(L"ERR Not in game");
 			return true;
-		}	
+		}
 
 		for (map<uint, uint>::iterator i = construction_items.begin(); i != construction_items.end(); ++i)
 		{
@@ -2024,11 +2023,11 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			uint quantity = i->second;
 			pub::Player::AddCargo(client, good, quantity, 1.0, false);
 		}
-		
+
 		cmd->Print(L"OK");
 		return true;
 	}
-	else if (args.compare(L"beam")==0)
+	else if (args.compare(L"beam") == 0)
 	{
 		returncode = DEFAULT_RETURNCODE;
 		wstring charname = cmd->ArgCharname(1);
@@ -2041,12 +2040,12 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		}
 
 		HKPLAYERINFO info;
-		if (HkGetPlayerInfo(charname, info, false)!=HKE_OK)
+		if (HkGetPlayerInfo(charname, info, false) != HKE_OK)
 		{
 			return false;
 		}
 
-		if (info.iShip==0)
+		if (info.iShip == 0)
 		{
 			return false;
 		}
@@ -2054,7 +2053,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		// Search for an match at the start of the name
 		for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
 		{
-			if (ToLower(i->second->basename).find(ToLower(basename))==0)
+			if (ToLower(i->second->basename).find(ToLower(basename)) == 0)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				ForcePlayerBaseDock(info.iClientID, i->second);
@@ -2066,7 +2065,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		// Exact match failed, try a for an partial match
 		for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
 		{
-			if (ToLower(i->second->basename).find(ToLower(basename))!=-1)
+			if (ToLower(i->second->basename).find(ToLower(basename)) != -1)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				ForcePlayerBaseDock(info.iClientID, i->second);
@@ -2141,7 +2140,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			return true;
 		}
 
-		
+
 		if (optype == true)
 		{
 			base->invulnerable = true;
@@ -2242,7 +2241,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		Vector dir1;
 		Vector dir2;
 		pub::SpaceObj::GetMotion(ship, dir1, dir2);
-		if (dir1.x>5 || dir1.y>5 || dir1.z>5)
+		if (dir1.x > 5 || dir1.y > 5 || dir1.z > 5)
 		{
 			PrintUserCmdText(client, L"ERR Ship is moving");
 			return true;
@@ -2366,7 +2365,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		Vector dir1;
 		Vector dir2;
 		pub::SpaceObj::GetMotion(ship, dir1, dir2);
-		if (dir1.x>5 || dir1.y>5 || dir1.z>5)
+		if (dir1.x > 5 || dir1.y > 5 || dir1.z > 5)
 		{
 			PrintUserCmdText(client, L"ERR Ship is moving");
 			return true;
@@ -2467,18 +2466,18 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		return true;
 	}
 
-    return false;
+	return false;
 }
 
 
 void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 {
-	returncode = DEFAULT_RETURNCODE; 
+	returncode = DEFAULT_RETURNCODE;
 
 	if (msg == CUSTOM_BASE_BEAM)
 	{
-		CUSTOM_BASE_BEAM_STRUCT* info = reinterpret_cast<CUSTOM_BASE_BEAM_STRUCT*>(data);\
-		PlayerBase *base = GetPlayerBase(info->iTargetBaseID);
+		CUSTOM_BASE_BEAM_STRUCT* info = reinterpret_cast<CUSTOM_BASE_BEAM_STRUCT*>(data); \
+			PlayerBase *base = GetPlayerBase(info->iTargetBaseID);
 		if (base)
 		{
 			returncode = SKIPPLUGINS;
@@ -2506,7 +2505,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			info->iLastDockedBaseID = base->base;
 		}
 	}
-	return; 
+	return;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2522,12 +2521,12 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));	
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&RequestEvent, PLUGIN_HkIServerImpl_RequestEvent, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LaunchPosHook, PLUGIN_LaunchPosHook, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));	
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JumpInComplete, PLUGIN_HkIServerImpl_JumpInComplete, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
@@ -2545,11 +2544,11 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqChangeCash, PLUGIN_HkIServerImpl_ReqChangeCash, 15));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqSetCash, PLUGIN_HkIServerImpl_ReqSetCash, 15));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqEquipment, PLUGIN_HkIServerImpl_ReqEquipment, 11));
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CShip_destroy, PLUGIN_HkIEngine_CShip_destroy, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseDestroyed, PLUGIN_BaseDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 15));

@@ -38,7 +38,7 @@ void GiftLogging(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	if (GiftLogfile) {
 		char szBuf[64];
@@ -48,7 +48,8 @@ void GiftLogging(const char *szString, ...)
 		fprintf(GiftLogfile, "%s %s\n", szBuf, szBufString);
 		fflush(GiftLogfile);
 		fclose(GiftLogfile);
-	} else {
+	}
+	else {
 		ConPrint(L"Failed to write gift log! This might be due to inability to create the directory - are you running as an administrator?\n");
 	}
 	GiftLogfile = fopen("./flhook_logs/alley_gifts.log", "at");
@@ -182,9 +183,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -208,7 +209,7 @@ void PMLogging(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	if (PMLogfile) {
 		char szBuf[64];
@@ -218,7 +219,8 @@ void PMLogging(const char *szString, ...)
 		fprintf(PMLogfile, "%s %s\n", szBuf, szBufString);
 		fflush(PMLogfile);
 		fclose(PMLogfile);
-	} else {
+	}
+	else {
 		ConPrint(L"Failed to write generatedids log! This might be due to inability to create the directory - are you running as an administrator?\n");
 	}
 	PMLogfile = fopen("./flhook_logs/generatedids.log", "at");
@@ -243,18 +245,18 @@ void LoadSettings()
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
 		while (ini.read_header())
+		{
+			if (ini.is_header("notrade"))
 			{
-				if (ini.is_header("notrade"))
+				while (ini.read_value())
 				{
-					while (ini.read_value())
+					if (ini.is_value("tr"))
 					{
-						if (ini.is_value("tr"))
-						{
-							notradelist[CreateID(ini.get_value_string(0))] = ini.get_value_string(1);
-						}
-					}				
+						notradelist[CreateID(ini.get_value_string(0))] = ini.get_value_string(1);
+					}
 				}
 			}
+		}
 		ini.close();
 	}
 
@@ -332,7 +334,7 @@ void UnSetFuse(uint iClientID, uint fuse)
 		while(pPD = Players.traverse_active(pPD))
 		{
 			uint iClientsID = HkGetClientIdFromPD(pPD);
-			
+
 			wstring wscMsg = L"<TRA data=\"0xfffc3b5b\" mask=\"-1\"/><TEXT>%p</TEXT>";
 			wscMsg = ReplaceStr(wscMsg, L"%p", wscParam);
 			HkFMsg(iClientsID, wscMsg);
@@ -350,7 +352,7 @@ bool PirateCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, c
 		return true;
 	}
 
-	wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 	HkSetRep(wscCharname, L"fc_pirate", 1.0f);
 
 	PrintUserCmdText(iClientID, L"Do what you want cause a pirate is free, you are a pirate!");
@@ -366,7 +368,7 @@ bool GiftCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, con
 	HK_ERROR err;
 	// Indicate an error if the command does not appear to be formatted correctly 
 	// and stop processing but tell FLHook that we processed the command.
-	if (wscParam.size()==0)
+	if (wscParam.size() == 0)
 	{
 		PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 		PrintUserCmdText(iClientID, usage);
@@ -383,11 +385,11 @@ bool GiftCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, con
 
 	// Read the current number of credits for the player
 	// and check that the character has enough cash.
-	wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 	wstring wscCash = GetParam(wscParam, L' ', 0);
 	int Cash = ToInt(wscCash);
 
-	if (Cash<=0)
+	if (Cash <= 0)
 	{
 		PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 		PrintUserCmdText(iClientID, usage);
@@ -397,18 +399,18 @@ bool GiftCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, con
 	int iCash = 0;
 	if ((err = HkGetCash(wscCharname, iCash)) != HKE_OK)
 	{
-		PrintUserCmdText(iClientID, L"ERR "+HkErrGetText(err));
+		PrintUserCmdText(iClientID, L"ERR " + HkErrGetText(err));
 		return true;
 	}
-	if (Cash>0 && iCash<Cash)
+	if (Cash > 0 && iCash < Cash)
 	{
 		PrintUserCmdText(iClientID, L"ERR Insufficient credits");
 		return true;
 	}
 
 	// Remove cash if we're charging for it.
-	if (Cash>0)
-		HkAddCash(wscCharname, 0-Cash);
+	if (Cash > 0)
+		HkAddCash(wscCharname, 0 - Cash);
 
 	string timestamp = pt::to_iso_string(pt::second_clock::local_time());
 	wstring wscMsg = L"[%stamp] %name has gifted $%money to the kitty.";
@@ -427,49 +429,49 @@ bool GiftCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, con
 }
 
 void AdminCmd_GenerateID(CCmds* cmds, wstring argument)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
-
-		uint thegeneratedid = CreateID(wstos(argument).c_str());
-
-		string s;
-		stringstream out;
-		out << thegeneratedid;
-		s = out.str();
-		
-		
-
-		wstring wscMsg = L"string <%sender> would equal to <%d> as internal id";
-		wscMsg = ReplaceStr(wscMsg, L"%sender", argument.c_str());
-		wscMsg = ReplaceStr(wscMsg, L"%d", stows(s).c_str());
-		string scText = wstos(wscMsg);
-		cmds->Print(L"OK %s\n", wscMsg.c_str());
-		PMLogging("%s", scText.c_str());
-
+		cmds->Print(L"ERR No permission\n");
 		return;
 	}
 
+	uint thegeneratedid = CreateID(wstos(argument).c_str());
+
+	string s;
+	stringstream out;
+	out << thegeneratedid;
+	s = out.str();
+
+
+
+	wstring wscMsg = L"string <%sender> would equal to <%d> as internal id";
+	wscMsg = ReplaceStr(wscMsg, L"%sender", argument.c_str());
+	wscMsg = ReplaceStr(wscMsg, L"%d", stows(s).c_str());
+	string scText = wstos(wscMsg);
+	cmds->Print(L"OK %s\n", wscMsg.c_str());
+	PMLogging("%s", scText.c_str());
+
+	return;
+}
+
 void AdminCmd_missiontest1(CCmds* cmds, wstring argument)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
+		cmds->Print(L"ERR No permission\n");
+		return;
+	}
 
-		const wchar_t *wszTargetName = 0;
-		wszTargetName = L"New mission available";
+	const wchar_t *wszTargetName = 0;
+	wszTargetName = L"New mission available";
 
-		wstring wscXML = cmds->ArgStrToEnd(1);
-		wstring wscPlayerInfo = L"<RDL><PUSH/><TEXT>" + wscXML + L"</TEXT><PARA/><PARA/><POP/></RDL>";
+	wstring wscXML = cmds->ArgStrToEnd(1);
+	wstring wscPlayerInfo = L"<RDL><PUSH/><TEXT>" + wscXML + L"</TEXT><PARA/><PARA/><POP/></RDL>";
 
-		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
-		{
+	struct PlayerData *pPD = 0;
+	while (pPD = Players.traverse_active(pPD))
+	{
 
 		uint iClientID = HkGetClientIdFromPD(pPD);
 
@@ -487,99 +489,99 @@ void AdminCmd_missiontest1(CCmds* cmds, wstring argument)
 		pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
 		pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("mission_data_received"));
 
-		}
-
-		cmds->Print(L"OK\n");
-
-		return;
 	}
+
+	cmds->Print(L"OK\n");
+
+	return;
+}
 
 void AdminCmd_missiontest2(CCmds* cmds, wstring argument)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
-
-		const wchar_t *wszTargetName = argument.c_str();
-
-		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
-		{
-			uint iClientID = HkGetClientIdFromPD(pPD);
-			HkChangeIDSString(iClientID, 526999, wszTargetName);
-
-			FmtStr caption(0, 0);
-			caption.begin_mad_lib(526999);
-			caption.end_mad_lib();
-
-			pub::Player::DisplayMissionMessage(iClientID, caption, MissionMessageType::MissionMessageType_Type1, true);
-		}
-		
-		cmds->Print(L"OK\n");
-
+		cmds->Print(L"ERR No permission\n");
 		return;
 	}
+
+	const wchar_t *wszTargetName = argument.c_str();
+
+	struct PlayerData *pPD = 0;
+	while (pPD = Players.traverse_active(pPD))
+	{
+		uint iClientID = HkGetClientIdFromPD(pPD);
+		HkChangeIDSString(iClientID, 526999, wszTargetName);
+
+		FmtStr caption(0, 0);
+		caption.begin_mad_lib(526999);
+		caption.end_mad_lib();
+
+		pub::Player::DisplayMissionMessage(iClientID, caption, MissionMessageType::MissionMessageType_Type1, true);
+	}
+
+	cmds->Print(L"OK\n");
+
+	return;
+}
 
 void AdminCmd_missiontest2b(CCmds* cmds, wstring argument)
+{
+	if (!(cmds->rights & RIGHT_SUPERADMIN))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
-
-		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
-		{
-			cmds->Print(L"ERR Not in space\n");
-			return;
-		}
-
-		uint iShip;
-		pub::Player::GetShip(adminPlyr.iClientID, iShip);
-
-		Vector pos;
-		Matrix rot;
-		pub::SpaceObj::GetLocation(iShip, pos, rot);
-
-		uint iSystem;
-		pub::Player::GetSystem(adminPlyr.iClientID, iSystem);
-
-		const wchar_t *wszTargetName = argument.c_str();
-
-		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
-		{
-				// Get the this player's current system and location in the system.
-			uint iClientID2 = HkGetClientIdFromPD(pPD);
-			uint iSystem2 = 0;
-			pub::Player::GetSystem(iClientID2, iSystem2);
-			if (iSystem != iSystem2)
-				continue;
-
-			HkChangeIDSString(iClientID2, 526999, wszTargetName);
-
-			FmtStr caption(0, 0);
-			caption.begin_mad_lib(526999);
-			caption.end_mad_lib();
-
-			pub::Player::DisplayMissionMessage(iClientID2, caption, MissionMessageType::MissionMessageType_Type1, true);
-		}
-		
-			HkChangeIDSString(adminPlyr.iClientID, 526999, wszTargetName);
-
-			FmtStr caption(0, 0);
-			caption.begin_mad_lib(526999);
-			caption.end_mad_lib();
-
-			pub::Player::DisplayMissionMessage(adminPlyr.iClientID, caption, MissionMessageType::MissionMessageType_Type1, true);
-
-		cmds->Print(L"OK\n");
-
+		cmds->Print(L"ERR No permission\n");
 		return;
 	}
+
+	HKPLAYERINFO adminPlyr;
+	if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
+	{
+		cmds->Print(L"ERR Not in space\n");
+		return;
+	}
+
+	uint iShip;
+	pub::Player::GetShip(adminPlyr.iClientID, iShip);
+
+	Vector pos;
+	Matrix rot;
+	pub::SpaceObj::GetLocation(iShip, pos, rot);
+
+	uint iSystem;
+	pub::Player::GetSystem(adminPlyr.iClientID, iSystem);
+
+	const wchar_t *wszTargetName = argument.c_str();
+
+	struct PlayerData *pPD = 0;
+	while (pPD = Players.traverse_active(pPD))
+	{
+		// Get the this player's current system and location in the system.
+		uint iClientID2 = HkGetClientIdFromPD(pPD);
+		uint iSystem2 = 0;
+		pub::Player::GetSystem(iClientID2, iSystem2);
+		if (iSystem != iSystem2)
+			continue;
+
+		HkChangeIDSString(iClientID2, 526999, wszTargetName);
+
+		FmtStr caption(0, 0);
+		caption.begin_mad_lib(526999);
+		caption.end_mad_lib();
+
+		pub::Player::DisplayMissionMessage(iClientID2, caption, MissionMessageType::MissionMessageType_Type1, true);
+	}
+
+	HkChangeIDSString(adminPlyr.iClientID, 526999, wszTargetName);
+
+	FmtStr caption(0, 0);
+	caption.begin_mad_lib(526999);
+	caption.end_mad_lib();
+
+	pub::Player::DisplayMissionMessage(adminPlyr.iClientID, caption, MissionMessageType::MissionMessageType_Type1, true);
+
+	cmds->Print(L"OK\n");
+
+	return;
+}
 
 bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
@@ -589,20 +591,20 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 		if (*Mark == iClientID)
 		{
 			PrintUserCmdText(iClientID, L"You must wait before you can mark another target.");
-				return true;
+			return true;
 		}
 	}
 
 	uint iShip, iTargetShip;
 	pub::Player::GetShip(iClientID, iShip);
 	pub::SpaceObj::GetTarget(iShip, iTargetShip);
-	if(!iTargetShip)
+	if (!iTargetShip)
 	{
 		PrintUserCmdText(iClientID, L"Error: you must have something targeted to mark it.");
 		return true;
-	}	
+	}
 
-	wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 	uint iClientIDTarget = HkGetClientIDByShip(iTargetShip);
 
 	if (!iClientIDTarget)
@@ -612,17 +614,17 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 	}
 
 	list<GROUP_MEMBER> lstMembers;
-	HkGetGroupMembers((const wchar_t*) Players.GetActiveCharacterName(iClientID), lstMembers);
+	HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstMembers);
 
-	foreach (lstMembers, GROUP_MEMBER, gm)
+	foreach(lstMembers, GROUP_MEMBER, gm)
 	{
 		uint iClientShip;
 		pub::Player::GetShip(gm->iClientID, iClientShip);
-		if(iClientShip == iTargetShip)
+		if (iClientShip == iTargetShip)
 			continue;
 
-	
-		wstring wscTargetCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientIDTarget);
+
+		wstring wscTargetCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientIDTarget);
 
 		wstring wscMsg = L"Target: %name";
 		wscMsg = ReplaceStr(wscMsg, L"%name", wscTargetCharname.c_str());
@@ -692,7 +694,7 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef bool (*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
+typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
 struct USERCMD
 {
@@ -727,7 +729,7 @@ USERCMD UserCmds[] =
 
 /**
 This function is called by FLHook when a user types a chat string. We look at the
-string they've typed and see if it starts with one of the above commands. If it 
+string they've typed and see if it starts with one of the above commands. If it
 does we try to process it.
 */
 bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
@@ -738,19 +740,19 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 
 	// If the chat string does not match the USER_CMD then we do not handle the
 	// command, so let other plugins or FLHook kick in. We require an exact match
-	for(uint i = 0; (i < sizeof(UserCmds)/sizeof(USERCMD)); i++)
+	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
 	{
-				
+
 		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
-        {
+		{
 			// Extract the parameters string from the chat string. It should
-            // be immediately after the command and a space.
-            wstring wscParam = L"";
-            if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
+			// be immediately after the command and a space.
+			wstring wscParam = L"";
+			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
 			{
 				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
 					continue;
-				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd)+1);
+				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
 			}
 
 			// Dispatch the command to the appropriate processing function.
@@ -771,7 +773,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
-	
+
 	if (IS_CMD("showrestrictions"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -787,12 +789,12 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR\n");
 			return true;
 		}
-		
+
 		Archetype::Ship* TheShipArch = Archetype::GetShip(Players[adminPlyr.iClientID].iShipArchetype);
 		PrintUserCmdText(adminPlyr.iClientID, L"The secret code is %d", TheShipArch->iArchID);
 
@@ -802,7 +804,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR\n");
 			return true;
@@ -811,7 +813,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		uint iShip;
 		pub::Player::GetShip(adminPlyr.iClientID, iShip);
 
-		float curr,max;
+		float curr, max;
 		pub::SpaceObj::GetHealth(iShip, curr, max);
 
 		float woop = curr - 2000.0f;
@@ -822,7 +824,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR\n");
 			return true;
@@ -831,7 +833,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		uint iShip;
 		pub::Player::GetShip(adminPlyr.iClientID, iShip);
 
-		float curr,max;
+		float curr, max;
 		pub::SpaceObj::GetHealth(iShip, curr, max);
 
 		float woop = curr + 2000.0f;
@@ -887,12 +889,12 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		ANPC::AdminCmd_AILoot(cmds, cmds->ArgInt(1));
 		return true;
 	}
-    else if (IS_CMD("aidestroy"))
-    {
-        returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIKill(cmds, cmds->ArgInt(1));                
+	else if (IS_CMD("aidestroy"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		ANPC::AdminCmd_AIKill(cmds, cmds->ArgInt(1));
 		return true;
-    }
+	}
 	else if (IS_CMD("aifollow"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1043,7 +1045,7 @@ void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float 
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())
-	{	
+	{
 		uint client = HkGetClientIDByShip(iDmgToSpaceID);
 		if (client)
 		{
@@ -1090,7 +1092,7 @@ void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float 
 						//HkMsgU(L"DEBUG: Health less max");
 						dmg->add_damage_entry(1, testhealth, (DamageEntry::SubObjFate)0);
 						return;
-					}				
+					}
 				}
 				//else do nothing, means it isn't a healing call.
 			}
@@ -1111,26 +1113,26 @@ void ClearClientInfo(uint iClientID)
 }
 
 void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
-	{
-		returncode = DEFAULT_RETURNCODE;
-		// Make player invincible to fix JHs/JGs near mine fields sometimes
-		// exploding player while jumping (in jump tunnel)
-		pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-		if (AP::SystemSwitchOutComplete(iShip, iClientID))
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-	}
+{
+	returncode = DEFAULT_RETURNCODE;
+	// Make player invincible to fix JHs/JGs near mine fields sometimes
+	// exploding player while jumping (in jump tunnel)
+	pub::SpaceObj::SetInvincible(iShip, true, true, 0);
+	if (AP::SystemSwitchOutComplete(iShip, iClientID))
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+}
 
 void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
-{	
+{
 	returncode = DEFAULT_RETURNCODE;
 	//int iSlotPlayer;
-	
+
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (item->sID == jc.iSlot)
 		{
 			//PrintUserCmdText(iClientID, L"Slot match");
-			for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i) 
+			for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 			{
 				if (i->first == item->iArchID)
 				{
@@ -1146,7 +1148,7 @@ void AddTradeEquip(unsigned int iClientID, struct EquipDesc const &ed)
 {
 	if (notradelist.find(ed.iArchID) != notradelist.end())
 	{
-		for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i) 
+		for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 		{
 			if (i->first == ed.iArchID)
 			{
@@ -1157,24 +1159,24 @@ void AddTradeEquip(unsigned int iClientID, struct EquipDesc const &ed)
 	}
 	else
 	{
-	returncode = DEFAULT_RETURNCODE;
-	//PrintUserCmdText(iClientID, L"Ok you can trade this item.");
+		returncode = DEFAULT_RETURNCODE;
+		//PrintUserCmdText(iClientID, L"Ok you can trade this item.");
 	}
 }
 
 
 
 void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
-	{
-		//ClearClientInfo(iClientID);
-		returncode = DEFAULT_RETURNCODE;
-		//wstring wscIp = L"???";
-		//HkGetPlayerIP(iClientID, wscIp);
+{
+	//ClearClientInfo(iClientID);
+	returncode = DEFAULT_RETURNCODE;
+	//wstring wscIp = L"???";
+	//HkGetPlayerIP(iClientID, wscIp);
 
-		//string scText = wstos(wscIp);
-		//PMLogging("BaseEnter: %s", scText.c_str());
-		AP::BaseEnter_AFTER(iBaseID, iClientID);
-	}
+	//string scText = wstos(wscIp);
+	//PMLogging("BaseEnter: %s", scText.c_str());
+	AP::BaseEnter_AFTER(iBaseID, iClientID);
+}
 
 
 
@@ -1195,7 +1197,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int client)
 	//string scText = wstos(wscIp);
 	//PMLogging("PlayerLaunch: %s", scText.c_str());
 
-	ADOCK::PlayerLaunch(iShip,client);
+	ADOCK::PlayerLaunch(iShip, client);
 	SCI::CheckOwned(client);
 	SCI::UpdatePlayerID(client);
 }
@@ -1212,35 +1214,35 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 		bool ishook = ANPC::IsFLHook(cship);
 
 		if (ishook == true)
-		{	
+		{
 			HkMsgU(L"Death: I reached ShipDestroyed ishook true");
-			cship->clear_equip_and_cargo();			
-		}	
+			cship->clear_equip_and_cargo();
+		}
 	}
 }
 */
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
-	{
-		returncode = DEFAULT_RETURNCODE;
-		
-		uint iClientID = HkGetClientIDByShip(iShip);
+{
+	returncode = DEFAULT_RETURNCODE;
 
-		if (iClientID && (response==PROCEED_DOCK || response==DOCK) && iCancel!=-1)
+	uint iClientID = HkGetClientIDByShip(iShip);
+
+	if (iClientID && (response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
+	{
+		if (!ADOCK::IsDockAllowed(iShip, iDockTarget, iClientID))
 		{
-					if (!ADOCK::IsDockAllowed(iShip, iDockTarget, iClientID))
-					{
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-						return 0;
-					}
-					if (!SCI::CanDock(iDockTarget, iClientID))
-					{
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-						return 0;
-					}
-		}
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			return 0;
+		}
+		if (!SCI::CanDock(iDockTarget, iClientID))
+		{
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			return 0;
+		}
 	}
+	return 0;
+}
 
 void __stdcall BaseExit(unsigned int iBaseID, unsigned int iClientID)
 {
@@ -1267,14 +1269,14 @@ void __stdcall ReqEquipment(class EquipDescList const &edl, unsigned int iClient
 {
 
 
-//PrintUserCmdText(iClientID, L"Triggered on equipment unmount");
-//PrintUserCmdText(iClientID, L"Triggered on equipment mount");
-//returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	//PrintUserCmdText(iClientID, L"Triggered on equipment unmount");
+	//PrintUserCmdText(iClientID, L"Triggered on equipment mount");
+	//returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 }
 
 void __stdcall ReqModifyItem(unsigned short iArchID, char const *Hardpoint, int count, float p4, bool bMounted, unsigned int iClientID)
 {
-//PrintUserCmdText(iClientID, L"smaller poop");
+	//PrintUserCmdText(iClientID, L"smaller poop");
 }
 
 void __stdcall ReqRemoveItem(unsigned short slot, int amount, unsigned int iClientID)
@@ -1284,7 +1286,7 @@ void __stdcall ReqRemoveItem(unsigned short slot, int amount, unsigned int iClie
 		item != Players[iClientID].equipDescList.pFirst; item = item->next)
 	{
 		if (item->equip.sID == slot)
-		{		
+		{
 			if (string(item->equip.szHardPoint.value) == "BAY")
 			{
 				PrintUserCmdText(iClientID, L"Triggered on cargo sale");
@@ -1299,31 +1301,31 @@ void __stdcall ReqRemoveItem(unsigned short slot, int amount, unsigned int iClie
 	*/
 }
 
-	void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
+void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
+{
+	returncode = DEFAULT_RETURNCODE;
+	ClearClientInfo(iClientID);
+}
+
+void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	ClearClientInfo(iClientID);
+}
+
+void HkTimerCheckKick()
+{
+	uint curr_time = (uint)time(0);
+	ADOCK::Timer();
+
+	//Every 15 seconds, wipe the timer list.
+	if ((curr_time % 15) == 0)
 	{
-		returncode = DEFAULT_RETURNCODE;
-		ClearClientInfo(iClientID);
+		MarkUsageTimer.clear();
 	}
 
-	void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned int iClientID)
-	{
-		returncode = DEFAULT_RETURNCODE;
-		ClearClientInfo(iClientID);
-	}
-
-	void HkTimerCheckKick()
-	{
-		uint curr_time = (uint)time(0);
-		ADOCK::Timer();
-
-		//Every 15 seconds, wipe the timer list.
-		if ((curr_time % 15) == 0)
-		{
-			MarkUsageTimer.clear();
-		}
-
-		AP::Timer();
-	}
+	AP::Timer();
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1338,7 +1340,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
@@ -1350,7 +1352,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
-//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
+	//	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));

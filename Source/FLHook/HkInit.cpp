@@ -3,19 +3,19 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-PATCH_INFO piFLServerEXE = 
+PATCH_INFO piFLServerEXE =
 {
 	"flserver.exe", 0x0400000,
 	{
-		{0x041B094,		&HkIEngine::Update_Time,							4, 0,					false}, 
-		{0x041BAB0,		&HkIEngine::Elapse_Time,							4, 0,					false}, 
+		{0x041B094,		&HkIEngine::Update_Time,							4, 0,					false},
+		{0x041BAB0,		&HkIEngine::Elapse_Time,							4, 0,					false},
 
 
 		{0,0,0,0} // terminate
 	}
 };
 
-PATCH_INFO piContentDLL = 
+PATCH_INFO piContentDLL =
 {
 	"content.dll", 0x6EA0000,
 	{
@@ -25,7 +25,7 @@ PATCH_INFO piContentDLL =
 	}
 };
 
-PATCH_INFO piCommonDLL = 
+PATCH_INFO piCommonDLL =
 {
 	"common.dll", 0x6260000,
 	{
@@ -38,15 +38,15 @@ PATCH_INFO piCommonDLL =
 };
 
 
-PATCH_INFO piServerDLL = 
+PATCH_INFO piServerDLL =
 {
 	"server.dll", 0x6CE0000,
 	{
 		{0x6D67274,		&ShipDestroyedHook,							4, &fpOldShipDestroyed,			false},
 		{0x6D641EC,		&_HkCb_AddDmgEntry,							4, 0,							false},
 		{0x6D67320,		&_HookMissileTorpHit,						4, &fpOldMissileTorpHit,		false},
-		{0x6D65448,		&_HookMissileTorpHit,						4, 0,							false},		
-		{0x6D67670,		&_HookMissileTorpHit,						4, 0,							false},		
+		{0x6D65448,		&_HookMissileTorpHit,						4, 0,							false},
+		{0x6D67670,		&_HookMissileTorpHit,						4, 0,							false},
 		{0x6D653F4,		&_HkCb_GeneralDmg,							4, &fpOldGeneralDmg,			false},
 		{0x6D672CC,		&_HkCb_GeneralDmg,							4, 0,							false},
 		{0x6D6761C,		&_HkCb_GeneralDmg,							4, 0,							false},
@@ -56,12 +56,12 @@ PATCH_INFO piServerDLL =
 		{0x6D67668,		&_HkCb_NonGunWeaponHitsBase,				4, &fpOldNonGunWeaponHitsBase,	false},
 		{0x6D6420C,		&HkIEngine::_LaunchPos,						4, &HkIEngine::fpOldLaunchPos,	false},
 		{0x6D648E0,		&HkIEngine::FreeReputationVibe,				4, 0,							false},
-		
+
 		{0,0,0,0} // terminate
 	}
 };
 
-PATCH_INFO piRemoteClientDLL = 
+PATCH_INFO piRemoteClientDLL =
 {
 	"remoteclient.dll", 0x6B30000,
 	{
@@ -71,7 +71,7 @@ PATCH_INFO piRemoteClientDLL =
 	}
 };
 
-PATCH_INFO piDaLibDLL = 
+PATCH_INFO piDaLibDLL =
 {
 	"dalib.dll", 0x65C0000,
 	{
@@ -86,19 +86,20 @@ PATCH_INFO piDaLibDLL =
 bool Patch(PATCH_INFO &pi)
 {
 	HMODULE hMod = GetModuleHandle(pi.szBinName);
-	if(!hMod)
+	if (!hMod)
 		return false;
 
-	for(uint i = 0; (i < sizeof(pi.piEntries)/sizeof(PATCH_INFO_ENTRY)); i++)
+	for (uint i = 0; (i < sizeof(pi.piEntries) / sizeof(PATCH_INFO_ENTRY)); i++)
 	{
-		if(!pi.piEntries[i].pAddress)
+		if (!pi.piEntries[i].pAddress)
 			break;
 
 		char *pAddress = (char*)hMod + (pi.piEntries[i].pAddress - pi.pBaseAddress);
-		if(!pi.piEntries[i].pOldValue) {
+		if (!pi.piEntries[i].pOldValue) {
 			pi.piEntries[i].pOldValue = new char[pi.piEntries[i].iSize];
 			pi.piEntries[i].bAlloced = true;
-		} else
+		}
+		else
 			pi.piEntries[i].bAlloced = false;
 
 		ReadProcMem(pAddress, pi.piEntries[i].pOldValue, pi.piEntries[i].iSize);
@@ -113,17 +114,17 @@ bool Patch(PATCH_INFO &pi)
 bool RestorePatch(PATCH_INFO &pi)
 {
 	HMODULE hMod = GetModuleHandle(pi.szBinName);
-	if(!hMod)
+	if (!hMod)
 		return false;
 
-	for(uint i = 0; (i < sizeof(pi.piEntries)/sizeof(PATCH_INFO_ENTRY)); i++)
+	for (uint i = 0; (i < sizeof(pi.piEntries) / sizeof(PATCH_INFO_ENTRY)); i++)
 	{
-		if(!pi.piEntries[i].pAddress)
+		if (!pi.piEntries[i].pAddress)
 			break;
 
 		char *pAddress = (char*)hMod + (pi.piEntries[i].pAddress - pi.pBaseAddress);
 		WriteProcMem(pAddress, pi.piEntries[i].pOldValue, pi.piEntries[i].iSize);
-		if(pi.piEntries[i].bAlloced)
+		if (pi.piEntries[i].bAlloced)
 			delete[] pi.piEntries[i].pOldValue;
 	}
 
@@ -145,7 +146,7 @@ _CreateChar CreateChar;
 
 string scAcctPath;
 
-CLIENT_INFO ClientInfo[MAX_CLIENT_ID+1];
+CLIENT_INFO ClientInfo[MAX_CLIENT_ID + 1];
 
 uint g_iServerLoad = 0;
 uint g_iPlayerCount = 0;
@@ -205,7 +206,7 @@ void ClearClientInfo(uint iClientID)
 
 	ClientInfo[iClientID].bSpawnProtected = false;
 
-	CALL_PLUGINS_V(PLUGIN_ClearClientInfo,,(uint),(iClientID));			
+	CALL_PLUGINS_V(PLUGIN_ClearClientInfo, , (uint), (iClientID));
 }
 
 /**************************************************************************************************************
@@ -229,10 +230,10 @@ void LoadUserSettings(uint iClientID)
 
 	// read ignorelist
 	ClientInfo[iClientID].lstIgnore.clear();
-	for(int i = 1; ; i++)
+	for (int i = 1; ; i++)
 	{
 		wstring wscIgnore = IniGetWS(scUserFile, "IgnoreList", itos(i), L"");
-		if(!wscIgnore.length())
+		if (!wscIgnore.length())
 			break;
 
 		IGNORE_INFO ii;
@@ -269,7 +270,7 @@ void LoadUserCharSettings(uint iClientID)
 	*/
 
 
-	CALL_PLUGINS_V(PLUGIN_LoadUserCharSettings,,(uint),(iClientID));
+	CALL_PLUGINS_V(PLUGIN_LoadUserCharSettings, , (uint), (iClientID));
 }
 
 /**************************************************************************************************************
@@ -285,13 +286,13 @@ bool InitHookExports()
 	DWORD dwID;
 	DWORD dwParam[34]; // else release version crashes, dont ask me why...
 	hThreadResolver = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)HkThreadResolver, &dwParam, 0, &dwID);
- 
+
 	GetShipInspect = (_GetShipInspect)SRV_ADDR(ADDR_SRV_GETINSPECT);
 
 	// install IServerImpl callbacks in remoteclient.dll
 	char *pServer = (char*)&Server;
 	memcpy(&pServer, pServer, 4);
-	for(uint i = 0; (i < sizeof(HkIServerImpl::hookEntries)/sizeof(HOOKENTRY)); i++)
+	for (uint i = 0; (i < sizeof(HkIServerImpl::hookEntries) / sizeof(HOOKENTRY)); i++)
 	{
 		char *pAddress = pServer + HkIServerImpl::hookEntries[i].dwRemoteAddress;
 		ReadProcMem(pAddress, &HkIServerImpl::hookEntries[i].fpOldProc, 4);
@@ -308,7 +309,7 @@ bool InitHookExports()
 
 
 	// patch rep array free
-	char szNOPs[] = { '\x90','\x90','\x90','\x90','\x90'};
+	char szNOPs[] = { '\x90','\x90','\x90','\x90','\x90' };
 	pAddress = ((char*)hModServer + ADDR_SRV_REPARRAYFREE);
 	ReadProcMem(pAddress, szRepFreeFixOld, 5);
 	WriteProcMem(pAddress, szNOPs, 5);
@@ -337,15 +338,15 @@ bool InitHookExports()
 
 
 	// crc anti-cheat
-	CRCAntiCheat = (_CRCAntiCheat) ((char*)hModServer + ADDR_CRCANTICHEAT);
+	CRCAntiCheat = (_CRCAntiCheat)((char*)hModServer + ADDR_CRCANTICHEAT);
 
 	// get CDPServer
 	pAddress = DALIB_ADDR(ADDR_CDPSERVER);
 	ReadProcMem(pAddress, &cdpSrv, 4);
-	 
+
 	// read g_FLServerDataPtr(used for serverload calc)
 	pAddress = FLSERVER_ADDR(ADDR_DATAPTR);
-	ReadProcMem(pAddress , &g_FLServerDataPtr, 4);
+	ReadProcMem(pAddress, &g_FLServerDataPtr, 4);
 
 	// some setting relate hooks
 	HookRehashed();
@@ -363,7 +364,7 @@ bool InitHookExports()
 	scAcctPath = string(szDataPath) + "\\Accts\\MultiPlayer\\";
 
 	// clear ClientInfo
-	for(uint i = 0; (i < sizeof(ClientInfo)/sizeof(CLIENT_INFO)); i++)
+	for (uint i = 0; (i < sizeof(ClientInfo) / sizeof(CLIENT_INFO)); i++)
 	{
 		ClientInfo[i].iConnects = 0; // only set to 0 on start
 		ClearClientInfo(i);
@@ -393,9 +394,9 @@ void UnloadHookExports()
 
 	// uninstall IServerImpl callbacks in remoteclient.dll
 	char *pServer = (char*)&Server;
-	if(pServer) {
+	if (pServer) {
 		memcpy(&pServer, pServer, 4);
-		for(uint i = 0; (i < sizeof(HkIServerImpl::hookEntries)/sizeof(HOOKENTRY)); i++)
+		for (uint i = 0; (i < sizeof(HkIServerImpl::hookEntries) / sizeof(HOOKENTRY)); i++)
 		{
 			void *pAddress = (void*)((char*)pServer + HkIServerImpl::hookEntries[i].dwRemoteAddress);
 			WriteProcMem(pAddress, &HkIServerImpl::hookEntries[i].fpOldProc, 4);
@@ -432,7 +433,7 @@ void UnloadHookExports()
 	// plugins
 	PluginManager::UnloadPlugins();
 	PluginManager::Destroy();
-	
+
 	// help
 	lstHelpEntries.clear();
 }
@@ -447,24 +448,26 @@ void HookRehashed()
 	char *pAddress;
 
 	// anti-deathmsg
-	if(set_bDieMsg)	{ // disables the "old" "A Player has died: ..." messages
+	if (set_bDieMsg) { // disables the "old" "A Player has died: ..." messages
 		char szJMP[] = { '\xEB' };
 		pAddress = SRV_ADDR(ADDR_ANTIDIEMSG);
 		WriteProcMem(pAddress, szJMP, 1);
-	} else {
+	}
+	else {
 		char szOld[] = { '\x74' };
 		pAddress = SRV_ADDR(ADDR_ANTIDIEMSG);
 		WriteProcMem(pAddress, szOld, 1);
 	}
 
 	// charfile encyption(doesn't get disabled when unloading FLHook)
-	if(set_bDisableCharfileEncryption) {
+	if (set_bDisableCharfileEncryption) {
 		char szBuf[] = { '\x14', '\xB3' };
 		pAddress = SRV_ADDR(ADDR_DISCFENCR);
 		WriteProcMem(pAddress, szBuf, 2);
 		pAddress = SRV_ADDR(ADDR_DISCFENCR2);
 		WriteProcMem(pAddress, szBuf, 2);
-	} else {
+	}
+	else {
 		char szBuf[] = { '\xE4', '\xB4' };
 		pAddress = SRV_ADDR(ADDR_DISCFENCR);
 		WriteProcMem(pAddress, szBuf, 2);
@@ -473,13 +476,14 @@ void HookRehashed()
 	}
 
 	// maximum group size
-	if(set_iMaxGroupSize > 0) {
+	if (set_iMaxGroupSize > 0) {
 		char cNewGroupSize = set_iMaxGroupSize & 0xFF;
 		pAddress = SRV_ADDR(ADDR_SRV_MAXGROUPSIZE);
 		WriteProcMem(pAddress, &cNewGroupSize, 1);
 		pAddress = SRV_ADDR(ADDR_SRV_MAXGROUPSIZE2);
 		WriteProcMem(pAddress, &cNewGroupSize, 1);
-	} else { // default
+	}
+	else { // default
 		char cNewGroupSize = 8;
 		pAddress = SRV_ADDR(ADDR_SRV_MAXGROUPSIZE);
 		WriteProcMem(pAddress, &cNewGroupSize, 1);
@@ -488,9 +492,10 @@ void HookRehashed()
 	}
 
 	// open debug log if necessary
-	if(set_bDebug && !fLogDebug) {
+	if (set_bDebug && !fLogDebug) {
 		fLogDebug = fopen(sDebugLog.c_str(), "at");
-	} else if(!set_bDebug && fLogDebug) {
+	}
+	else if (!set_bDebug && fLogDebug) {
 		fclose(fLogDebug);
 		fLogDebug = 0;
 	}

@@ -55,7 +55,7 @@ void Siege::SiegeGunDeploy(uint client, const wstring &args)
 	Vector dir1;
 	Vector dir2;
 	pub::SpaceObj::GetMotion(ship, dir1, dir2);
-	if (dir1.x>5 || dir1.y>5 || dir1.z>5)
+	if (dir1.x > 5 || dir1.y > 5 || dir1.z > 5)
 	{
 		PrintUserCmdText(client, L"ERR Ship is moving");
 		return;
@@ -122,12 +122,12 @@ void Siege::SiegeGunDeploy(uint client, const wstring &args)
 	newbase->baseloadout = "depot";
 	newbase->defense_mode = 1;
 
-	for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter!=mapArchs.end(); iter++)
+	for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
 	{
 
 		ARCHTYPE_STRUCT &thearch = iter->second;
-		if (iter->first == newbase->basetype) 
-		{					
+		if (iter->first == newbase->basetype)
+		{
 			newbase->invulnerable = thearch.invulnerable;
 			newbase->logic = thearch.logic;
 		}
@@ -142,9 +142,9 @@ void Siege::SiegeGunDeploy(uint client, const wstring &args)
 
 int Siege::CalculateHealthPercentage(uint basehash, int health, int maxhealth)
 {
-	int result = 100 * (health/maxhealth);
+	int result = 100 * (health / maxhealth);
 
-	
+
 
 	return result;
 }
@@ -153,7 +153,7 @@ void Siege::SiegeAudioCalc(uint basehash, uint iSystemID, Vector pos, int level)
 {
 	// For all players in system...
 	struct PlayerData *pPD = 0;
-	while(pPD = Players.traverse_active(pPD))
+	while (pPD = Players.traverse_active(pPD))
 	{
 		// Get the this player's current system and location in the system.
 		uint iClientID = HkGetClientIdFromPD(pPD);
@@ -172,7 +172,7 @@ void Siege::SiegeAudioCalc(uint basehash, uint iSystemID, Vector pos, int level)
 
 		// Is player within (15K) of the sending char.
 		float fDistance = HkDistance3D(vShipLoc, pos);
-		if (fDistance>15000)
+		if (fDistance > 15000)
 			continue;
 
 		SiegeAudioNotification(iClientID, level);
@@ -182,7 +182,7 @@ void Siege::SiegeAudioCalc(uint basehash, uint iSystemID, Vector pos, int level)
 
 int Siege::GetRandomSound(int min, int max)
 {
-	srand((unsigned)time(0)); 
+	srand((unsigned)time(0));
 	int result = min + (rand() % (int)(max - min + 1));
 	return result;
 }
@@ -204,7 +204,7 @@ void Siege::SiegeAudioNotification(uint iClientID, int level)
 		else
 		{
 			HkMsgU(L"Debug: no possible sound for level 0");
-		}		
+		}
 		return;
 	}
 

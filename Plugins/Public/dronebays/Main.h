@@ -27,7 +27,7 @@ struct DroneArch
 {
 	// The name used to deploy this type of drone
 	string aliasName;
-	
+
 	// The ship archetype which this drone uses - Defaults to civilian bomber
 	uint archetype = CreateID("dsy_civbomb");
 
@@ -93,7 +93,7 @@ struct DroneDespawnWrapper
 {
 	uint droneObj;
 	uint parentObj;
-	
+
 	int timeElapsedSinceRecallCmd = 0;
 };
 
@@ -105,7 +105,7 @@ extern map<uint, BayArch> availableDroneBays;
 extern map<string, DroneArch> availableDroneArch;
 
 /*
- * Messages alerting a user of who owns a drone fires >5 times for some reason on first select. 
+ * Messages alerting a user of who owns a drone fires >5 times for some reason on first select.
  * Maintain a map cleared every 2 seconds which makes sure you only see the name once per click
  */
 extern map<uint, ChatDebounceStruct> droneAlertDebounceMap;
@@ -128,7 +128,7 @@ namespace Utility
 	float RandFloatRange(float a, float b);
 	void CreateNPC(uint iClientID, Vector pos, Matrix rot, uint iSystem, DroneArch drone);
 	pub::AI::SetPersonalityParams MakePersonality();
-	
+
 	void SetRepNeutral(uint clientObj, uint targetObj);
 	void SetRepHostile(uint clientObj, uint targetObj);
 

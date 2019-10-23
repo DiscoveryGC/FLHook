@@ -38,7 +38,7 @@ uint Utility::CreateDroneNameInfocard(const uint& droneOwnerId)
 	const wstring droneName = wstring(L"Drone - ") + charname;
 
 	struct PlayerData *pd = nullptr;
-	while((pd = Players.traverse_active(pd)))
+	while ((pd = Players.traverse_active(pd)))
 	{
 		HkChangeIDSString(pd->iOnlineID, currInfocard, droneName);
 	}
@@ -91,7 +91,7 @@ void Utility::DeployDrone(uint iClientID, const DroneBuildTimerWrapper& timerWra
 
 	Utility::CreateNPC(iClientID, shipPos, shipRot, shipSys, timerWrapper.reqDrone);
 	PrintUserCmdText(iClientID, L"Info :: Drone Launched");
-	
+
 	// Log event
 	const wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
 	wstring logString = L"Player %s launched drone";
@@ -330,7 +330,7 @@ pub::AI::SetPersonalityParams Utility::MakePersonality()
 	p.personality.Job.attack_order[0].distance = 5000;
 	p.personality.Job.attack_order[0].type = 11;
 	p.personality.Job.attack_order[0].flag = 15;
-	p.personality.Job.attack_order[1].type = 12;	
+	p.personality.Job.attack_order[1].type = 12;
 
 	return p;
 }

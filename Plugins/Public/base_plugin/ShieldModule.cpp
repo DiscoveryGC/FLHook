@@ -48,7 +48,7 @@ void ShieldModule::SaveState(FILE *file)
 bool ShieldModule::HasShieldPower()
 {
 	for (map<uint, uint>::iterator i = shield_power_items.begin();
-			i != shield_power_items.end(); ++i)
+		i != shield_power_items.end(); ++i)
 	{
 		uint good = i->first;
 		uint quantity_consumed = i->second;

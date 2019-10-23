@@ -48,13 +48,13 @@ typedef unsigned long ulong;
 typedef unsigned __int64 mstime;
 
 // custom fl wstring (vc6 strings)
-typedef class std::basic_string<unsigned short,struct ci_wchar_traits> flstr;
-typedef class std::basic_string<char,struct ci_char_traits> flstrs;
+typedef class std::basic_string<unsigned short, struct ci_wchar_traits> flstr;
+typedef class std::basic_string<char, struct ci_char_traits> flstrs;
 
 typedef flstr* (*_CreateWString)(const wchar_t *wszStr);
-typedef void (*_FreeWString)(flstr *wscStr);
+typedef void(*_FreeWString)(flstr *wscStr);
 typedef flstrs* (*_CreateString)(const char *szStr);
-typedef void (*_FreeString)(flstrs *scStr);
+typedef void(*_FreeString)(flstrs *scStr);
 typedef char* (*_GetCString)(flstrs *scStr);
 typedef wchar_t* (*_GetWCString)(flstr *wscStr);
 typedef wchar_t* (*_WStringAssign)(flstr *wscStr, const wchar_t *wszStr);

@@ -39,9 +39,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -310,7 +310,7 @@ void LoadNPCInfo()
 						setnpcstruct.Loadout = CreateID(ini.get_value_string(2));
 
 						// IFF calc
-						 pub::Reputation::GetReputationGroup(setnpcstruct.IFF, ini.get_value_string(3));
+						pub::Reputation::GetReputationGroup(setnpcstruct.IFF, ini.get_value_string(3));
 
 						// Selected graph
 						setnpcstruct.Graph = ini.get_value_int(4);
@@ -360,7 +360,7 @@ void LoadNPCInfo()
 	}
 
 
-	
+
 }
 
 void LoadSettings()
@@ -478,60 +478,60 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 
 void CreateNPC(wstring name, Vector pos, Matrix rot, uint iSystem)
 {
-		NPC_ARCHTYPESSTRUCT arch = mapNPCArchtypes[name];
+	NPC_ARCHTYPESSTRUCT arch = mapNPCArchtypes[name];
 
-		pub::SpaceObj::ShipInfo si;
-		memset(&si, 0, sizeof(si));
-		si.iFlag = 1;
-		si.iSystem = iSystem;
-		si.iShipArchetype = arch.Shiparch;
-		si.vPos = pos;
-		si.vPos.x = pos.x + rand_FloatRange(0, 1000);
-		si.vPos.y = pos.y + rand_FloatRange(0, 1000);
-		si.vPos.z = pos.z + rand_FloatRange(0, 2000);
-		si.mOrientation = rot;
-		si.iLoadout = arch.Loadout;
-		si.iLook1 = CreateID("li_newscaster_head_gen_hat");
-		si.iLook2 = CreateID("pl_female1_journeyman_body");
-		si.iComm = CreateID("comm_br_darcy_female");
-		si.iPilotVoice = CreateID("pilot_f_leg_f01a");
-		si.iHealth = -1;
-		si.iLevel = 19;
+	pub::SpaceObj::ShipInfo si;
+	memset(&si, 0, sizeof(si));
+	si.iFlag = 1;
+	si.iSystem = iSystem;
+	si.iShipArchetype = arch.Shiparch;
+	si.vPos = pos;
+	si.vPos.x = pos.x + rand_FloatRange(0, 1000);
+	si.vPos.y = pos.y + rand_FloatRange(0, 1000);
+	si.vPos.z = pos.z + rand_FloatRange(0, 2000);
+	si.mOrientation = rot;
+	si.iLoadout = arch.Loadout;
+	si.iLook1 = CreateID("li_newscaster_head_gen_hat");
+	si.iLook2 = CreateID("pl_female1_journeyman_body");
+	si.iComm = CreateID("comm_br_darcy_female");
+	si.iPilotVoice = CreateID("pilot_f_leg_f01a");
+	si.iHealth = -1;
+	si.iLevel = 19;
 
-		// Define the string used for the scanner name. Because the
-		// following entry is empty, the pilot_name is used. This
-		// can be overriden to display the ship type instead.
-		FmtStr scanner_name(0, 0);
-		scanner_name.begin_mad_lib(0);
-		scanner_name.end_mad_lib();
+	// Define the string used for the scanner name. Because the
+	// following entry is empty, the pilot_name is used. This
+	// can be overriden to display the ship type instead.
+	FmtStr scanner_name(0, 0);
+	scanner_name.begin_mad_lib(0);
+	scanner_name.end_mad_lib();
 
-		// Define the string used for the pilot name. The example
-		// below shows the use of multiple part names.
-		FmtStr pilot_name(0, 0);
-		pilot_name.begin_mad_lib(16163); // ids of "%s0 %s1"
-		if (arch.Infocard != 0) {
-			pilot_name.append_string(arch.Infocard);
-			if (arch.Infocard2 != 0) {
-				pilot_name.append_string(arch.Infocard2);
-			}
+	// Define the string used for the pilot name. The example
+	// below shows the use of multiple part names.
+	FmtStr pilot_name(0, 0);
+	pilot_name.begin_mad_lib(16163); // ids of "%s0 %s1"
+	if (arch.Infocard != 0) {
+		pilot_name.append_string(arch.Infocard);
+		if (arch.Infocard2 != 0) {
+			pilot_name.append_string(arch.Infocard2);
 		}
-		else {
-			pilot_name.append_string(rand_name());  // ids that replaces %s0
-			pilot_name.append_string(rand_name()); // ids that replaces %s1
-		}
-		pilot_name.end_mad_lib();
+	}
+	else {
+		pilot_name.append_string(rand_name());  // ids that replaces %s0
+		pilot_name.append_string(rand_name()); // ids that replaces %s1
+	}
+	pilot_name.end_mad_lib();
 
-		pub::Reputation::Alloc(si.iRep, scanner_name, pilot_name);
-		pub::Reputation::SetAffiliation(si.iRep, arch.IFF);
+	pub::Reputation::Alloc(si.iRep, scanner_name, pilot_name);
+	pub::Reputation::SetAffiliation(si.iRep, arch.IFF);
 
-		uint iSpaceObj;
+	uint iSpaceObj;
 
-		pub::SpaceObj::Create(iSpaceObj, si);
+	pub::SpaceObj::Create(iSpaceObj, si);
 
-		pub::AI::SetPersonalityParams pers = HkMakePersonality(arch.Graph);
-		pub::AI::SubmitState(iSpaceObj, &pers);
+	pub::AI::SetPersonalityParams pers = HkMakePersonality(arch.Graph);
+	pub::AI::SubmitState(iSpaceObj, &pers);
 
-		npcs.push_back(iSpaceObj);
+	npcs.push_back(iSpaceObj);
 
 	return;
 }
@@ -723,7 +723,7 @@ void AdminCmd_ListNPCFleets(CCmds* cmds)
 
 	cmds->Print(L"Available fleets: %d\n", mapNPCFleets.size());
 	for (map<wstring, NPC_FLEETSTRUCT>::iterator i = mapNPCFleets.begin();
-	i != mapNPCFleets.end(); ++i)
+		i != mapNPCFleets.end(); ++i)
 	{
 		cmds->Print(L"|%s\n", i->first.c_str());
 	}
@@ -894,7 +894,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->sShortName = "npc";
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
-	p_PI->ePluginReturnCode = &returncode;	
+	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	//p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));

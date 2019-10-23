@@ -6,7 +6,7 @@ void HkGetPlayerIP(uint iClientID, wstring &wscIP)
 {
 	wscIP = L"";
 	CDPClientProxy *cdpClient = g_cClientProxyArray[iClientID - 1];
-	if(!cdpClient)
+	if (!cdpClient)
 		return;
 
 	// get ip
@@ -20,16 +20,16 @@ void HkGetPlayerIP(uint iClientID, wstring &wscIP)
 	long lDataType = 1;
 	__asm
 	{
-		push 0			; dwFlags
+		push 0; dwFlags
 		lea edx, szIDirectPlay8Address
-		push edx		; pAddress 
+		push edx; pAddress
 		mov edx, [cdpClient]
-		mov edx, [edx+8]
-		push edx		; dpnid
+		mov edx, [edx + 8]
+		push edx; dpnid
 		mov eax, [szP1]
 		push eax
 		mov ecx, [eax]
-		call dword ptr[ecx + 0x28]	; GetClientAddress
+		call dword ptr[ecx + 0x28]; GetClientAddress
 		cmp eax, 0
 		jnz some_error
 
@@ -44,13 +44,13 @@ void HkGetPlayerIP(uint iClientID, wstring &wscIP)
 		mov ecx, [szIDirectPlay8Address]
 		push ecx
 		mov ecx, [ecx]
-		call dword ptr[ecx+0x40] ; GetComponentByName
+		call dword ptr[ecx + 0x40]; GetComponentByName
 
 		mov ecx, [szIDirectPlay8Address]
 		push ecx
 		mov ecx, [ecx]
-		call dword ptr[ecx+0x08] ; Release
-some_error:
+		call dword ptr[ecx + 0x08]; Release
+		some_error :
 	}
 
 	wscIP = wszIP;
@@ -62,7 +62,7 @@ HK_ERROR HkGetPlayerInfo(const wstring &wscCharname, HKPLAYERINFO &pi, bool bAls
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1 || (HkIsInCharSelectMenu(iClientID) && !bAlsoCharmenu))
+	if (iClientID == -1 || (HkIsInCharSelectMenu(iClientID) && !bAlsoCharmenu))
 		return HKE_PLAYER_NOT_LOGGED_IN; // not on server
 
 	const wchar_t *wszActiveCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
@@ -77,14 +77,14 @@ HK_ERROR HkGetPlayerInfo(const wstring &wscCharname, HKPLAYERINFO &pi, bool bAls
 	pub::Player::GetSystem(iClientID, iSystem);
 	pub::Player::GetShip(iClientID, pi.iShip);
 
-	if(iBase)
+	if (iBase)
 	{
 		char szBasename[1024] = "";
 		pub::GetBaseNickname(szBasename, sizeof(szBasename), iBase);
 		pi.wscBase = stows(szBasename);
 	}
 
-	if(iSystem)
+	if (iSystem)
 	{
 		char szSystemname[1024] = "";
 		pub::GetSystemNickname(szSystemname, sizeof(szSystemname), iSystem);
@@ -94,7 +94,7 @@ HK_ERROR HkGetPlayerInfo(const wstring &wscCharname, HKPLAYERINFO &pi, bool bAls
 
 	// get ping
 	DPN_CONNECTION_INFO ci;
-	HkGetConnectionStats(iClientID,ci);
+	HkGetConnectionStats(iClientID, ci);
 	pi.ci = ci;
 
 	// get ip
@@ -111,11 +111,11 @@ list<HKPLAYERINFO> HkGetPlayers()
 	wstring wscRet;
 
 	struct PlayerData *pPD = 0;
-	while(pPD = Players.traverse_active(pPD))
+	while (pPD = Players.traverse_active(pPD))
 	{
 		uint iClientID = HkGetClientIdFromPD(pPD);
 
-		if(HkIsInCharSelectMenu(iClientID))
+		if (HkIsInCharSelectMenu(iClientID))
 			continue;
 
 		HKPLAYERINFO pi;
@@ -135,9 +135,9 @@ HK_ERROR HkGetConnectionStats(uint iClientID, DPN_CONNECTION_INFO &ci)
 
 	CDPClientProxy *cdpClient = g_cClientProxyArray[iClientID - 1];
 
-	if(!cdpClient || !cdpClient->GetConnectionStats(&ci))
-		return HKE_INVALID_CLIENT_ID; 
-	
+	if (!cdpClient || !cdpClient->GetConnectionStats(&ci))
+		return HKE_INVALID_CLIENT_ID;
+
 	return HKE_OK;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -146,13 +146,14 @@ HK_ERROR HkSetAdmin(const wstring &wscCharname, const wstring &wscRights)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 	CAccount *acc;
-	if(iClientID == -1) {
+	if (iClientID == -1) {
 		flstr *str = CreateWString(wscCharname.c_str());
 		acc = Players.FindAccountFromCharacterName(*str);
 		FreeWString(str);
-		if(!acc)
+		if (!acc)
 			return HKE_CHAR_DOES_NOT_EXIST;;
-	} else {
+	}
+	else {
 		acc = Players.FindAccountFromClientID(iClientID);
 	}
 
@@ -170,13 +171,14 @@ HK_ERROR HkGetAdmin(const wstring &wscCharname, wstring &wscRights)
 	wscRights = L"";
 	HK_GET_CLIENTID(iClientID, wscCharname);
 	CAccount *acc;
-	if(iClientID == -1) {
+	if (iClientID == -1) {
 		flstr *str = CreateWString(wscCharname.c_str());
 		acc = Players.FindAccountFromCharacterName(*str);
 		FreeWString(str);
-		if(!acc)
+		if (!acc)
 			return HKE_CHAR_DOES_NOT_EXIST;;
-	} else {
+	}
+	else {
 		acc = Players.FindAccountFromClientID(iClientID);
 	}
 
@@ -186,7 +188,7 @@ HK_ERROR HkGetAdmin(const wstring &wscCharname, wstring &wscRights)
 
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = FindFirstFile(scAdminFile.c_str(), &fd);
-	if(hFind == INVALID_HANDLE_VALUE)
+	if (hFind == INVALID_HANDLE_VALUE)
 		return HKE_PLAYER_NO_ADMIN;;
 
 	FindClose(hFind);
@@ -201,13 +203,14 @@ HK_ERROR HkDelAdmin(const wstring &wscCharname)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 	CAccount *acc;
-	if(iClientID == -1) {
+	if (iClientID == -1) {
 		flstr *str = CreateWString(wscCharname.c_str());
 		acc = Players.FindAccountFromCharacterName(*str);
 		FreeWString(str);
-		if(!acc)
+		if (!acc)
 			return HKE_CHAR_DOES_NOT_EXIST;;
-	} else {
+	}
+	else {
 		acc = Players.FindAccountFromClientID(iClientID);
 	}
 
@@ -224,17 +227,18 @@ bool g_bNPCDisabled = false;
 
 HK_ERROR HkChangeNPCSpawn(bool bDisable)
 {
-	if(g_bNPCDisabled && bDisable)
+	if (g_bNPCDisabled && bDisable)
 		return HKE_OK;
-	else if(!g_bNPCDisabled && !bDisable)
+	else if (!g_bNPCDisabled && !bDisable)
 		return HKE_OK;
 
 	char szJump[1];
 	char szCmp[1];
-	if(bDisable) {
+	if (bDisable) {
 		szJump[0] = '\xEB';
 		szCmp[0] = '\xFF';
-	} else {
+	}
+	else {
 		szJump[0] = '\x75';
 		szCmp[0] = '\xF9';
 	}
@@ -253,13 +257,13 @@ HK_ERROR HkGetBaseStatus(const wstring &wscBasename, float &fHealth, float &fMax
 {
 	uint iBaseID = 0;
 	pub::GetBaseID(iBaseID, wstos(wscBasename).c_str());
-	if(!iBaseID)
+	if (!iBaseID)
 	{
 		string scBaseShortcut = IniGetS(set_scCfgFile, "names", wstos(wscBasename), "");
-		if(!scBaseShortcut.length())
+		if (!scBaseShortcut.length())
 			return HKE_INVALID_BASENAME;
 
-		if(pub::GetBaseID(iBaseID, scBaseShortcut.c_str()) == -4)
+		if (pub::GetBaseID(iBaseID, scBaseShortcut.c_str()) == -4)
 			return HKE_INVALID_BASENAME;
 	}
 
@@ -287,12 +291,12 @@ Fuse* HkGetFuseFromID(uint iFuseID)
 		mov edx, 0x6D15D10
 		call edx
 		mov edx, [iDunno]
-		mov edi, [edx+0x10]
+		mov edi, [edx + 0x10]
 		mov fuse, edi
 	}
 	return fuse;
 }
-	
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -300,15 +304,15 @@ __declspec(naked) bool __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float f
 {
 	__asm
 	{
-		lea eax, [esp+8] //iFuseID
-		push [esp+20] //fSkip
-		push [esp+16] //fDelay
+		lea eax, [esp + 8] //iFuseID
+		push[esp + 20] //fSkip
+		push[esp + 16] //fDelay
 		push 0 //SUBOBJ_ID_NONE
 		push eax
-		push [esp+32] //fLifetime
-		mov ecx, [esp+24]
+		push[esp + 32] //fLifetime
+		mov ecx, [esp + 24]
 		mov eax, [ecx]
-		call [eax+0x1E4]
+		call[eax + 0x1E4]
 		ret 20
 	}
 }
@@ -320,13 +324,13 @@ __declspec(naked) bool __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float
 {
 	__asm
 	{
-		mov ecx, [esp+4]
-		lea eax, [esp+8] //iFuseID
-		push [esp+12] //fDunno
+		mov ecx, [esp + 4]
+		lea eax, [esp + 8] //iFuseID
+		push[esp + 12] //fDunno
 		push 0 //SUBOBJ_ID_NONE
 		push eax //iFuseID
 		mov eax, [ecx]
-		call [eax+0x1E8]
+		call[eax + 0x1E8]
 		ret 12
 	}
 }

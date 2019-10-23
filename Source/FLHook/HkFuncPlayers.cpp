@@ -7,34 +7,36 @@ HK_ERROR HkGetCash(const wstring &wscCharname, int &iCash)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if((iClientID != -1) && bIdString && HkIsInCharSelectMenu(iClientID))
+	if ((iClientID != -1) && bIdString && HkIsInCharSelectMenu(iClientID))
 		return HKE_NO_CHAR_SELECTED;
-	else if((iClientID != -1) && !HkIsInCharSelectMenu(iClientID)) { // player logged in
+	else if ((iClientID != -1) && !HkIsInCharSelectMenu(iClientID)) { // player logged in
 		pub::Player::InspectCash(iClientID, iCash);
 		return HKE_OK;
-	} else { // player not logged in
+	}
+	else { // player not logged in
 		wstring wscDir;
-		if(!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
+		if (!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
 			return HKE_CHAR_DOES_NOT_EXIST;
 		wstring wscFile;
 		HkGetCharFileName(wscCharname, wscFile);
 
-		string scCharFile  = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
+		string scCharFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
 
 		FILE* fTest = fopen(scCharFile.c_str(), "r");
-		if(!fTest)
+		if (!fTest)
 			return HKE_CHAR_DOES_NOT_EXIST;
 		else
 			fclose(fTest);
 
-		if(HkIsEncoded(scCharFile)) {
+		if (HkIsEncoded(scCharFile)) {
 			string scCharFileNew = scCharFile + ".ini";
-			if(!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
+			if (!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
 				return HKE_COULD_NOT_DECODE_CHARFILE;
 
 			iCash = IniGetI(scCharFileNew, "Player", "money", -1);
 			DeleteFile(scCharFileNew.c_str());
-		} else {
+		}
+		else {
 			iCash = IniGetI(scCharFile, "Player", "money", -1);
 		}
 
@@ -49,58 +51,61 @@ HK_ERROR HkAddCash(const wstring &wscCharname, int iAmount)
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	uint iClientIDAcc = 0;
-	if(iClientID == -1) {
+	if (iClientID == -1) {
 		CAccount *acc = HkGetAccountByCharname(wscCharname);
-		if(!acc)
+		if (!acc)
 			return HKE_CHAR_DOES_NOT_EXIST;
 		iClientIDAcc = HkGetClientIdFromAccount(acc);
-	} else
+	}
+	else
 		iClientIDAcc = iClientID;
 
-	if((iClientID != -1) && bIdString && HkIsInCharSelectMenu(iClientID))
+	if ((iClientID != -1) && bIdString && HkIsInCharSelectMenu(iClientID))
 		return HKE_NO_CHAR_SELECTED;
-	else if((iClientID != -1) && !HkIsInCharSelectMenu(iClientID)) { // player logged in
+	else if ((iClientID != -1) && !HkIsInCharSelectMenu(iClientID)) { // player logged in
 		pub::Player::AdjustCash(iClientID, iAmount);
 		return HKE_OK;
-	} else { // player not logged in
+	}
+	else { // player not logged in
 		wstring wscDir;
-		if(!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
+		if (!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
 			return HKE_CHAR_DOES_NOT_EXIST;
 		wstring wscFile;
 		HkGetCharFileName(wscCharname, wscFile);
 
-		string scCharFile  = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
+		string scCharFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
 		int iRet;
-		if(HkIsEncoded(scCharFile)) {
+		if (HkIsEncoded(scCharFile)) {
 			string scCharFileNew = scCharFile + ".ini";
 
-			if(!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
+			if (!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
 				return HKE_COULD_NOT_DECODE_CHARFILE;
 
 			iRet = IniGetI(scCharFileNew, "Player", "money", -1);
 			// Add a space to the value so the ini file line looks like "<key> = <value>"
 			// otherwise IFSO can't decode the file correctly
-			IniWrite(scCharFileNew, "Player", "money", " "+itos(iRet + iAmount));
+			IniWrite(scCharFileNew, "Player", "money", " " + itos(iRet + iAmount));
 
 			if (!set_bDisableCharfileEncryption)
-				if(!flc_encode(scCharFileNew.c_str(), scCharFile.c_str()))
+				if (!flc_encode(scCharFileNew.c_str(), scCharFile.c_str()))
 					return HKE_COULD_NOT_ENCODE_CHARFILE;
 
 			DeleteFile(scCharFileNew.c_str());
-		} else {
+		}
+		else {
 			iRet = IniGetI(scCharFile, "Player", "money", -1);
 			// Add a space to the value so the ini file line looks like "<key> = <value>"
 			// otherwise IFSO can't decode the file correctly
-			IniWrite(scCharFile, "Player", "money", " "+itos(iRet + iAmount));
+			IniWrite(scCharFile, "Player", "money", " " + itos(iRet + iAmount));
 		}
 
-		if(HkIsInCharSelectMenu(wscCharname) || (iClientIDAcc != -1))
+		if (HkIsInCharSelectMenu(wscCharname) || (iClientIDAcc != -1))
 		{ // money fix in case player logs in with this account
 			bool bFound = false;
 			wstring wscCharnameLower = ToLower(wscCharname);
 			foreach(ClientInfo[iClientIDAcc].lstMoneyFix, MONEY_FIX, i)
 			{
-				if((*i).wscCharname == wscCharnameLower)
+				if ((*i).wscCharname == wscCharnameLower)
 				{
 					(*i).iAmount += iAmount;
 					bFound = true;
@@ -108,7 +113,7 @@ HK_ERROR HkAddCash(const wstring &wscCharname, int iAmount)
 				}
 			}
 
-			if(!bFound)
+			if (!bFound)
 			{
 				MONEY_FIX mf;
 				mf.wscCharname = wscCharnameLower;
@@ -133,7 +138,7 @@ HK_ERROR HkKick(const wstring &wscCharname)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	CAccount *acc = Players.FindAccountFromClientID(iClientID);
@@ -145,10 +150,10 @@ HK_ERROR HkKickReason(const wstring &wscCharname, const wstring &wscReason)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
-	if(wscReason.length())
+	if (wscReason.length())
 		HkMsgAndKick(iClientID, wscReason, set_iKickMsgPeriod);
 	else
 		HkKick(Players.FindAccountFromClientID(iClientID));
@@ -163,10 +168,10 @@ HK_ERROR HkBan(const wstring &wscCharname, bool bBan)
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	CAccount *acc;
-	if(iClientID != -1)
+	if (iClientID != -1)
 		acc = Players.FindAccountFromClientID(iClientID);
 	else {
-		if(!(acc = HkGetAccountByCharname(wscCharname)))
+		if (!(acc = HkGetAccountByCharname(wscCharname)))
 			return HKE_CHAR_DOES_NOT_EXIST;
 	}
 
@@ -184,25 +189,25 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	// check if logged in
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	string scBasename = wstos(wscBasename);
 	// check if ship in space
 	uint iShip = 0;
 	pub::Player::GetShip(iClientID, iShip);
-	if(!iShip)
+	if (!iShip)
 		return HKE_PLAYER_NOT_IN_SPACE;
 
 	// get base id
 	uint iBaseID;
 
-	if(pub::GetBaseID(iBaseID, scBasename.c_str()) == -4)
+	if (pub::GetBaseID(iBaseID, scBasename.c_str()) == -4)
 	{
 		string scBaseShortcut = IniGetS(set_scCfgFile, "names", wstos(wscBasename), "");
-		if(!scBaseShortcut.length())
+		if (!scBaseShortcut.length())
 		{
-			typedef int (*_GetString)(LPVOID, uint, wchar_t*, uint);
+			typedef int(*_GetString)(LPVOID, uint, wchar_t*, uint);
 			_GetString GetString = (_GetString)0x4176b0;
 			Universe::IBase *pBase = Universe::GetFirstBase();
 			while (pBase)
@@ -223,7 +228,7 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 			if (iBaseID == 0)
 				return HKE_INVALID_BASENAME;
 		}
-		else if(pub::GetBaseID(iBaseID, scBaseShortcut.c_str()) == -4)
+		else if (pub::GetBaseID(iBaseID, scBaseShortcut.c_str()) == -4)
 			return HKE_INVALID_BASENAME;
 	}
 
@@ -234,14 +239,14 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 	pub::Player::ForceLand(iClientID, iBaseID); // beam
 
 	// if not in the same system, emulate F1 charload
-	if(base->iSystemID != iSysID) {
-		Server.BaseEnter(iBaseID,iClientID);
-		Server.BaseExit(iBaseID,iClientID);
+	if (base->iSystemID != iSysID) {
+		Server.BaseEnter(iBaseID, iClientID);
+		Server.BaseExit(iBaseID, iClientID);
 		wstring wscCharFileName;
-		HkGetCharFileName(ARG_CLIENTID(iClientID),wscCharFileName);
+		HkGetCharFileName(ARG_CLIENTID(iClientID), wscCharFileName);
 		wscCharFileName += L".fl";
 		CHARACTER_ID cID;
-		strcpy(cID.szCharFilename,wstos(wscCharFileName.substr(0,14)).c_str());
+		strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
 		Server.CharacterSelect(cID, iClientID);
 	}
 
@@ -254,7 +259,7 @@ HK_ERROR HkSaveChar(const wstring &wscCharname)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	void *pJmp = (char*)hModServer + 0x7EFA8;
@@ -288,7 +293,7 @@ HK_ERROR HkEnumCargo(const wstring &wscCharname, list<CARGO_INFO> &lstCargo, int
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1 || HkIsInCharSelectMenu(iClientID))
+	if (iClientID == -1 || HkIsInCharSelectMenu(iClientID))
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	lstCargo.clear();
@@ -301,9 +306,9 @@ HK_ERROR HkEnumCargo(const wstring &wscCharname, list<CARGO_INFO> &lstCargo, int
 	memcpy(&eqLst, szClassPtr + 0x27C, 4);
 	EQ_ITEM *eq;
 	eq = eqLst->next;
-	while(eq != eqLst)
+	while (eq != eqLst)
 	{
-		CARGO_INFO ci = {eq->sID, (int)eq->iCount, eq->iGoodID, eq->fStatus, eq->bMission, eq->bMounted, eq->hardpoint};
+		CARGO_INFO ci = { eq->sID, (int)eq->iCount, eq->iGoodID, eq->fStatus, eq->bMission, eq->bMounted, eq->hardpoint };
 		lstCargo.push_back(ci);
 
 		eq = eq->next;
@@ -321,7 +326,7 @@ HK_ERROR HkRemoveCargo(const wstring &wscCharname, uint iID, int iCount)
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1 || HkIsInCharSelectMenu(iClientID))
+	if (iClientID == -1 || HkIsInCharSelectMenu(iClientID))
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	list <CARGO_INFO> lstCargo;
@@ -329,7 +334,7 @@ HK_ERROR HkRemoveCargo(const wstring &wscCharname, uint iID, int iCount)
 	HkEnumCargo(wscCharname, lstCargo, iHold);
 	foreach(lstCargo, CARGO_INFO, it)
 	{
-		if(((*it).iID == iID) && ((*it).iCount < iCount))
+		if (((*it).iID == iID) && ((*it).iCount < iCount))
 			iCount = (*it).iCount; // trying to remove more than actually there, thus fix
 	}
 
@@ -357,21 +362,21 @@ HK_ERROR HkAddCargo(const wstring &wscCharname, uint iGoodID, int iCount, bool b
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if(iClientID == -1 || HkIsInCharSelectMenu(iClientID))
+	if (iClientID == -1 || HkIsInCharSelectMenu(iClientID))
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
-/*	// anti-cheat related
-	char *szClassPtr;
-	memcpy(&szClassPtr, &Players, 4);
-	szClassPtr += 0x418 * (iClientID - 1);
-	EquipDescList *edlList = (EquipDescList*)szClassPtr + 0x328;
-	bool bCargoFound = true;
-	if(!edlList->find_matching_cargo(iGoodID, 0, 1))
-		bCargoFound = false;*/
+	/*	// anti-cheat related
+		char *szClassPtr;
+		memcpy(&szClassPtr, &Players, 4);
+		szClassPtr += 0x418 * (iClientID - 1);
+		EquipDescList *edlList = (EquipDescList*)szClassPtr + 0x328;
+		bool bCargoFound = true;
+		if(!edlList->find_matching_cargo(iGoodID, 0, 1))
+			bCargoFound = false;*/
 
-	// add
+			// add
 	const GoodInfo *gi;
-	if(!(gi = GoodList::find_by_id(iGoodID)))
+	if (!(gi = GoodList::find_by_id(iGoodID)))
 		return HKE_INVALID_GOOD;
 
 	bool bMultiCount;
@@ -384,15 +389,15 @@ HK_ERROR HkAddCargo(const wstring &wscCharname, uint iGoodID, int iCount, bool b
 	pub::Player::GetLocation(iClientID, iLocation);
 
 	// trick cheat detection
-	if(iBase) {
-		if(iLocation)
-			Server.LocationExit(iLocation,iClientID);
-		Server.BaseExit(iBase,iClientID);
-		if(!HkIsValidClientID(iClientID)) // got cheat kicked
+	if (iBase) {
+		if (iLocation)
+			Server.LocationExit(iLocation, iClientID);
+		Server.BaseExit(iBase, iClientID);
+		if (!HkIsValidClientID(iClientID)) // got cheat kicked
 			return HKE_PLAYER_NOT_LOGGED_IN;
 	}
 
-	if(bMultiCount) { // it's a good that can have multiple units(commodities, missile ammo, etc)
+	if (bMultiCount) { // it's a good that can have multiple units(commodities, missile ammo, etc)
 		int iRet;
 
 		// we need to do this, else server or client may crash
@@ -400,7 +405,7 @@ HK_ERROR HkAddCargo(const wstring &wscCharname, uint iGoodID, int iCount, bool b
 		HkEnumCargo(wscCharname, lstCargo, iRet);
 		foreach(lstCargo, CARGO_INFO, it)
 		{
-			if(((*it).iArchID == iGoodID) && ((*it).bMission != bMission))
+			if (((*it).iArchID == iGoodID) && ((*it).bMission != bMission))
 			{
 				HkRemoveCargo(wscCharname, (*it).iID, (*it).iCount);
 				iCount += (*it).iCount;
@@ -408,12 +413,13 @@ HK_ERROR HkAddCargo(const wstring &wscCharname, uint iGoodID, int iCount, bool b
 		}
 
 		pub::Player::AddCargo(iClientID, iGoodID, iCount, 1, bMission);
-	} else {
-		for(int i = 0; (i < iCount); i++)
+	}
+	else {
+		for (int i = 0; (i < iCount); i++)
 			pub::Player::AddCargo(iClientID, iGoodID, 1, 1, bMission);
 	}
 
-	if(iBase)
+	if (iBase)
 	{ // player docked on base
 		///////////////////////////////////////////////////
 		// fix, else we get anti-cheat msg when undocking
@@ -421,35 +427,35 @@ HK_ERROR HkAddCargo(const wstring &wscCharname, uint iGoodID, int iCount, bool b
 		// just making some adjustments so that we dont get kicked
 
 		Server.BaseEnter(iBase, iClientID);
-		if(iLocation)
+		if (iLocation)
 			Server.LocationEnter(iLocation, iClientID);
-		
-/*		// fix "Ship or Equipment not sold on base" kick
-		if(!bCargoFound)
-		{
-			// get last equipid
-			char *szLastEquipID = szClassPtr + 0x3C8;
-			ushort sEquipID;
-			memcpy(&sEquipID, szLastEquipID, 2);
 
-			// add to check-list which is being compared to the users equip-list when saving char
-			EquipDesc ed;
-			memset(&ed, 0, sizeof(ed));
-			ed.id = sEquipID;
-			ed.count = iCount;
-			ed.archid = iGoodID;
-			edlList->add_equipment_item(ed, true);
-		}
+		/*		// fix "Ship or Equipment not sold on base" kick
+				if(!bCargoFound)
+				{
+					// get last equipid
+					char *szLastEquipID = szClassPtr + 0x3C8;
+					ushort sEquipID;
+					memcpy(&sEquipID, szLastEquipID, 2);
 
-		// fix "Ship Related" kick, update crc
-		ulong lCRC;
-		__asm
-		{
-			mov ecx, [szClassPtr]
-			call [CRCAntiCheat]
-			mov [lCRC], eax
-		}
-		memcpy(szClassPtr + 0x320, &lCRC, 4);*/
+					// add to check-list which is being compared to the users equip-list when saving char
+					EquipDesc ed;
+					memset(&ed, 0, sizeof(ed));
+					ed.id = sEquipID;
+					ed.count = iCount;
+					ed.archid = iGoodID;
+					edlList->add_equipment_item(ed, true);
+				}
+
+				// fix "Ship Related" kick, update crc
+				ulong lCRC;
+				__asm
+				{
+					mov ecx, [szClassPtr]
+					call [CRCAntiCheat]
+					mov [lCRC], eax
+				}
+				memcpy(szClassPtr + 0x320, &lCRC, 4);*/
 	}
 
 	return HKE_OK;
@@ -458,9 +464,9 @@ HK_ERROR HkAddCargo(const wstring &wscCharname, uint iGoodID, int iCount, bool b
 HK_ERROR HkAddCargo(const wstring &wscCharname, const wstring &wscGood, int iCount, bool bMission)
 {
 	uint iGoodID = ToInt(wscGood.c_str());
-	if(!iGoodID)
+	if (!iGoodID)
 		pub::GetGoodID(iGoodID, wstos(wscGood).c_str());
-	if(!iGoodID)
+	if (!iGoodID)
 		return HKE_INVALID_GOOD;
 
 	return HkAddCargo(wscCharname, iGoodID, iCount, bMission);
@@ -472,28 +478,29 @@ HK_ERROR HkRename(const wstring &wscCharname, const wstring &wscNewCharname, boo
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
-	if((iClientID == -1) && !HkGetAccountByCharname(wscCharname))
+	if ((iClientID == -1) && !HkGetAccountByCharname(wscCharname))
 		return HKE_CHAR_DOES_NOT_EXIST;
 
-	if(!bOnlyDelete && HkGetAccountByCharname(wscNewCharname))
+	if (!bOnlyDelete && HkGetAccountByCharname(wscNewCharname))
 		return HKE_CHARNAME_ALREADY_EXISTS;
 
-	if(!bOnlyDelete && (wscNewCharname.length() > 23))
+	if (!bOnlyDelete && (wscNewCharname.length() > 23))
 		return HKE_CHARNAME_TOO_LONG;
-	
-	if(!bOnlyDelete && !wscNewCharname.length())
+
+	if (!bOnlyDelete && !wscNewCharname.length())
 		return HKE_CHARNAME_TOO_SHORT;
-	
+
 	INI_Reader ini;
-	if(!bOnlyDelete && !(ini.open("..\\DATA\\CHARACTERS\\newcharacter.ini", false)))
+	if (!bOnlyDelete && !(ini.open("..\\DATA\\CHARACTERS\\newcharacter.ini", false)))
 		return HKE_MPNEWCHARACTERFILE_NOT_FOUND_OR_INVALID;
 
 	CAccount *acc;
 	wstring wscOldCharname;
-	if(iClientID != -1) {
+	if (iClientID != -1) {
 		acc = Players.FindAccountFromClientID(iClientID);
 		wscOldCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
-	} else {
+	}
+	else {
 		wscOldCharname = wscCharname;
 		acc = HkGetAccountByCharname(wscCharname);
 	}
@@ -508,22 +515,22 @@ HK_ERROR HkRename(const wstring &wscCharname, const wstring &wscNewCharname, boo
 	string scNewCharfilePath = scAcctPath + wstos(wscAccountDirname) + "\\" + wstos(wscNewFilename) + ".fl";
 	string scOldCharfilePath = scAcctPath + wstos(wscAccountDirname) + "\\" + wstos(wscOldFilename) + ".fl";
 
-	if(bOnlyDelete) {
+	if (bOnlyDelete) {
 		// delete character
 		flstr *str = CreateWString(wscOldCharname.c_str());
 		HkLockAccountAccess(acc, true); // also kicks player on this account
 		Players.DeleteCharacterFromName(*str);
 		FreeWString(str);
 		HkUnlockAccountAccess(acc);
-		return HKE_OK; 
+		return HKE_OK;
 	}
 
-		
+
 	HkLockAccountAccess(acc, true); // kick player if online
 	HkUnlockAccountAccess(acc);
 
 	// Copy existing char file into tmp
-	string scTmpPath = scOldCharfilePath+".tmp";
+	string scTmpPath = scOldCharfilePath + ".tmp";
 	DeleteFile(scTmpPath.c_str());
 	CopyFile(scOldCharfilePath.c_str(), scTmpPath.c_str(), FALSE);
 
@@ -546,19 +553,19 @@ HK_ERROR HkRename(const wstring &wscCharname, const wstring &wscNewCharname, boo
 	newcharinfo.iPackage = 0;
 	newcharinfo.iPilot = 0;
 
-	while(ini.read_header())
+	while (ini.read_header())
 	{
-		if(ini.is_header("Faction"))
+		if (ini.is_header("Faction"))
 		{
-			while(ini.read_value())
+			while (ini.read_value())
 			{
-				if(ini.is_value("nickname"))
+				if (ini.is_value("nickname"))
 					newcharinfo.iNickName = CreateID(ini.get_value_string());
-				else if(ini.is_value("base"))
+				else if (ini.is_value("base"))
 					newcharinfo.iBase = CreateID(ini.get_value_string());
-				else if(ini.is_value("Package"))
+				else if (ini.is_value("Package"))
 					newcharinfo.iPackage = CreateID(ini.get_value_string());
-				else if(ini.is_value("Pilot"))
+				else if (ini.is_value("Pilot"))
 					newcharinfo.iPilot = CreateID(ini.get_value_string());
 			}
 			break;
@@ -566,13 +573,13 @@ HK_ERROR HkRename(const wstring &wscCharname, const wstring &wscNewCharname, boo
 	}
 	ini.close();
 
-	if(newcharinfo.iNickName == 0)
-		newcharinfo.iNickName = CreateID("new_player"); 
-	if(newcharinfo.iBase == 0)
+	if (newcharinfo.iNickName == 0)
+		newcharinfo.iNickName = CreateID("new_player");
+	if (newcharinfo.iBase == 0)
 		newcharinfo.iBase = CreateID("Li01_01_Base");
-	if(newcharinfo.iPackage == 0)
+	if (newcharinfo.iPackage == 0)
 		newcharinfo.iPackage = CreateID("ge_fighter");
-	if(newcharinfo.iPilot == 0)
+	if (newcharinfo.iPilot == 0)
 		newcharinfo.iPilot = CreateID("trent");
 
 	// Fill struct with valid data (though it isnt used it is needed)
@@ -593,7 +600,7 @@ HK_ERROR HkRename(const wstring &wscCharname, const wstring &wscNewCharname, boo
 	Players.logout(MAX_CLIENT_ID + 1);
 
 	// Decode the backup of the old char and overwrite the new char file
-	if(!flc_decode(scTmpPath.c_str(), scNewCharfilePath.c_str()))
+	if (!flc_decode(scTmpPath.c_str(), scNewCharfilePath.c_str()))
 	{ // file wasn't encoded, thus simply rename it
 		DeleteFile(scNewCharfilePath.c_str()); // just to get sure...
 		CopyFile(scTmpPath.c_str(), scNewCharfilePath.c_str(), FALSE);
@@ -604,7 +611,7 @@ HK_ERROR HkRename(const wstring &wscCharname, const wstring &wscNewCharname, boo
 	// Add a space to the value so the ini file line looks like "<key> = <value>"
 	// otherwise Ioncross Server Operator can't decode the file correctly
 	string scValue = " ";
-	for(uint i = 0; (i < wscNewCharname.length()); i++)
+	for (uint i = 0; (i < wscNewCharname.length()); i++)
 	{
 		char cHiByte = wscNewCharname[i] >> 8;
 		char cLoByte = wscNewCharname[i] & 0xFF;
@@ -616,17 +623,17 @@ HK_ERROR HkRename(const wstring &wscCharname, const wstring &wscNewCharname, boo
 
 	// Re-encode the char file if needed.
 	if (!set_bDisableCharfileEncryption)
-		if (!flc_encode(scNewCharfilePath.c_str(),scNewCharfilePath.c_str()))
+		if (!flc_encode(scNewCharfilePath.c_str(), scNewCharfilePath.c_str()))
 			return HKE_COULD_NOT_ENCODE_CHARFILE;
 
-	return HKE_OK; 
+	return HKE_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 HK_ERROR HkMsgAndKick(uint iClientID, const wstring &wscReason, uint iIntervall)
 {
-	if(!ClientInfo[iClientID].tmKickTime)
+	if (!ClientInfo[iClientID].tmKickTime)
 	{
 		wstring wscMsg = ReplaceStr(set_wscKickMsg, L"%reason", XMLText(wscReason));
 		HkFMsg(iClientID, wscMsg);
@@ -643,12 +650,12 @@ HK_ERROR HkKill(const wstring &wscCharname)
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	// check if logged in
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	uint iShip;
 	pub::Player::GetShip(iClientID, iShip);
-	if(!iShip)
+	if (!iShip)
 		return HKE_PLAYER_NOT_IN_SPACE;
 
 	pub::SpaceObj::SetRelativeHealth(iShip, 0.0f);
@@ -662,16 +669,16 @@ HK_ERROR HkGetReservedSlot(const wstring &wscCharname, bool &bResult)
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	CAccount *acc;
-	if(iClientID != -1)
+	if (iClientID != -1)
 		acc = Players.FindAccountFromClientID(iClientID);
 	else
 		acc = HkGetAccountByCharname(wscCharname);
 
-	if(!acc)
+	if (!acc)
 		return HKE_CHAR_DOES_NOT_EXIST;
 
-	wstring wscDir; 
-	HkGetAccountDirName(acc, wscDir); 
+	wstring wscDir;
+	HkGetAccountDirName(acc, wscDir);
 	string scUserFile = scAcctPath + wstos(wscDir) + "\\flhookuser.ini";
 
 	bResult = IniGetB(scUserFile, "Settings", "ReservedSlot", false);
@@ -685,19 +692,19 @@ HK_ERROR HkSetReservedSlot(const wstring &wscCharname, bool bReservedSlot)
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	CAccount *acc;
-	if(iClientID != -1)
+	if (iClientID != -1)
 		acc = Players.FindAccountFromClientID(iClientID);
 	else
 		acc = HkGetAccountByCharname(wscCharname);
 
-	if(!acc)
+	if (!acc)
 		return HKE_CHAR_DOES_NOT_EXIST;
 
-	wstring wscDir; 
-	HkGetAccountDirName(acc, wscDir); 
+	wstring wscDir;
+	HkGetAccountDirName(acc, wscDir);
 	string scUserFile = scAcctPath + wstos(wscDir) + "\\flhookuser.ini";
 
-	if(bReservedSlot)
+	if (bReservedSlot)
 		IniWrite(scUserFile, "Settings", "ReservedSlot", "yes");
 	else
 		IniWrite(scUserFile, "Settings", "ReservedSlot", "no");
@@ -771,16 +778,16 @@ void HkPlayerAutoBuy(uint iClientID, uint iBaseID)
 			}
 		}
 
-		if(!bNanobotsFound) 
+		if(!bNanobotsFound)
 		{ // no nanos found -> add all
 			AUTOBUY_CARTITEM aci;
 			aci.iArchID = iNanobotsID;
 			aci.iCount = ship->iMaxNanobots;
 			aci.wscDescription = L"Nanobots";
 			lstCart.push_back(aci);
-		} 
+		}
 
-		if(!bShieldBattsFound) 
+		if(!bShieldBattsFound)
 		{ // no batts found -> add all
 			AUTOBUY_CARTITEM aci;
 			aci.iArchID = iShieldBatsID;
@@ -834,7 +841,7 @@ void HkPlayerAutoBuy(uint iClientID, uint iBaseID)
 			{
 				if(ClientInfo[iClientID].bAutoBuyCM)
 					ADD_EQUIP_TO_CART(L"Countermeasures")
-			} 
+			}
 			else if(eq_type == ET_TORPEDO)
 			{
 				if(ClientInfo[iClientID].bAutoBuyTorps)
@@ -949,15 +956,15 @@ HK_ERROR HkResetRep(const wstring &wscCharname)
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	// check if logged in
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	INI_Reader ini;
-	if(!ini.open("mpnewcharacter.fl", false))
+	if (!ini.open("mpnewcharacter.fl", false))
 		return HKE_MPNEWCHARACTERFILE_NOT_FOUND_OR_INVALID;
 
 	ini.read_header();
-	if(!ini.is_header("Player"))
+	if (!ini.is_header("Player"))
 	{
 		ini.close();
 		return HKE_MPNEWCHARACTERFILE_NOT_FOUND_OR_INVALID;
@@ -965,9 +972,9 @@ HK_ERROR HkResetRep(const wstring &wscCharname)
 
 	int iPlayerRep;
 	pub::Player::GetRep(iClientID, iPlayerRep);
-	while(ini.read_value())
+	while (ini.read_value())
 	{
-		if(ini.is_value("house"))
+		if (ini.is_value("house"))
 		{
 			float fRep = ini.get_value_float(0);
 			const char *szRepGroupName = ini.get_value_string(1);
@@ -988,12 +995,12 @@ HK_ERROR HkSetRep(const wstring &wscCharname, const wstring &wscRepGroup, float 
 {
 	HK_GET_CLIENTID(iClientID, wscCharname);
 	// check if logged in
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	uint iRepGroupID;
 	pub::Reputation::GetReputationGroup(iRepGroupID, wstos(wscRepGroup).c_str());
-	if(iRepGroupID == -1)
+	if (iRepGroupID == -1)
 		return HKE_INVALID_REP_GROUP;
 
 	int iPlayerRep;
@@ -1004,21 +1011,21 @@ HK_ERROR HkSetRep(const wstring &wscCharname, const wstring &wscRepGroup, float 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-HK_ERROR HkGetRep(const wstring &wscCharname, const wstring &wscRepGroup, float &fValue) 
-{ 
-   HK_GET_CLIENTID(iClientID, wscCharname); 
-   if(iClientID == -1) 
-      return HKE_PLAYER_NOT_LOGGED_IN; 
+HK_ERROR HkGetRep(const wstring &wscCharname, const wstring &wscRepGroup, float &fValue)
+{
+	HK_GET_CLIENTID(iClientID, wscCharname);
+	if (iClientID == -1)
+		return HKE_PLAYER_NOT_LOGGED_IN;
 
-   uint iRepGroupID; 
-   pub::Reputation::GetReputationGroup(iRepGroupID, wstos(wscRepGroup).c_str()); 
-   if(iRepGroupID == -1) 
-      return HKE_INVALID_REP_GROUP; 
-    
-   int iPlayerRep; 
-   pub::Player::GetRep(iClientID, iPlayerRep); 
-   pub::Reputation::GetGroupFeelingsTowards(iPlayerRep, iRepGroupID, fValue); 
-   return HKE_OK; 
+	uint iRepGroupID;
+	pub::Reputation::GetReputationGroup(iRepGroupID, wstos(wscRepGroup).c_str());
+	if (iRepGroupID == -1)
+		return HKE_INVALID_REP_GROUP;
+
+	int iPlayerRep;
+	pub::Player::GetRep(iClientID, iPlayerRep);
+	pub::Reputation::GetGroupFeelingsTowards(iPlayerRep, iRepGroupID, fValue);
+	return HKE_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1029,14 +1036,14 @@ HK_ERROR HkGetGroupMembers(const wstring &wscCharname, list<GROUP_MEMBER> &lstMe
 	HK_GET_CLIENTID(iClientID, wscCharname);
 
 	// check if logged in
-	if(iClientID == -1)
+	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
 	// hey, at least it works! beware of the VC optimiser.
 	uint* vMembers[100] = { 0 };
 	pub::Player::GetGroupMembers(iClientID, (vector<uint>&)vMembers);
 
-	for(uint *i = vMembers[1] ; i != vMembers[2]; i++)
+	for (uint *i = vMembers[1]; i != vMembers[2]; i++)
 	{
 		GROUP_MEMBER gm;
 		gm.iClientID = *i;
@@ -1056,45 +1063,47 @@ HK_ERROR HkReadCharFile(const wstring &wscCharname, list<wstring> &lstOutput)
 
 	wstring wscDir;
 	CAccount *acc;
-	if(iClientID != -1) {
+	if (iClientID != -1) {
 		acc = Players.FindAccountFromClientID(iClientID);
 		const wchar_t *wszCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
-		if(!wszCharname)
+		if (!wszCharname)
 			return HKE_NO_CHAR_SELECTED;
 
-		if(!HKHKSUCCESS(HkGetAccountDirName(wszCharname, wscDir)))
+		if (!HKHKSUCCESS(HkGetAccountDirName(wszCharname, wscDir)))
 			return HKE_CHAR_DOES_NOT_EXIST;
-	} else {
-		if(!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
+	}
+	else {
+		if (!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
 			return HKE_CHAR_DOES_NOT_EXIST;
 	}
 
 	wstring wscFile;
 	HkGetCharFileName(wscCharname, wscFile);
-	string scCharFile  = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
+	string scCharFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
 	string scFileToRead;
 	bool bDeleteAfter;
-	if(HkIsEncoded(scCharFile)) {
+	if (HkIsEncoded(scCharFile)) {
 		string scCharFileNew = scCharFile + ".ini";
-		if(!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
+		if (!flc_decode(scCharFile.c_str(), scCharFileNew.c_str()))
 			return HKE_COULD_NOT_DECODE_CHARFILE;
 		scFileToRead = scCharFileNew;
 		bDeleteAfter = true;
-	} else {
+	}
+	else {
 		scFileToRead = scCharFile;
 		bDeleteAfter = false;
 	}
 
 	ifstream ifs;
 	ifs.open(scFileToRead.c_str(), ios_base::in);
-	if(!ifs.is_open())
+	if (!ifs.is_open())
 		return HKE_UNKNOWN_ERROR;
 
 	string scLine;
-	while(getline(ifs, scLine))
+	while (getline(ifs, scLine))
 		lstOutput.push_back(stows(scLine));
 	ifs.close();
-	if(bDeleteAfter)
+	if (bDeleteAfter)
 		DeleteFile(scFileToRead.c_str());
 	return HKE_OK;
 }
@@ -1107,50 +1116,52 @@ HK_ERROR HkWriteCharFile(const wstring &wscCharname, wstring wscData)
 
 	wstring wscDir;
 	CAccount *acc;
-	if(iClientID != -1) {
+	if (iClientID != -1) {
 		acc = Players.FindAccountFromClientID(iClientID);
 		const wchar_t *wszCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
-		if(!wszCharname)
+		if (!wszCharname)
 			return HKE_NO_CHAR_SELECTED;
 
-		if(!HKHKSUCCESS(HkGetAccountDirName(wszCharname, wscDir)))
+		if (!HKHKSUCCESS(HkGetAccountDirName(wszCharname, wscDir)))
 			return HKE_CHAR_DOES_NOT_EXIST;
-	} else {
-		if(!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
+	}
+	else {
+		if (!HKHKSUCCESS(HkGetAccountDirName(wscCharname, wscDir)))
 			return HKE_CHAR_DOES_NOT_EXIST;
 	}
 
 	wstring wscFile;
 	HkGetCharFileName(wscCharname, wscFile);
-	string scCharFile  = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
+	string scCharFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
 	string scFileToWrite;
 	bool bEncode;
-	if(HkIsEncoded(scCharFile)) {
+	if (HkIsEncoded(scCharFile)) {
 		scFileToWrite = scCharFile + ".ini";
 		bEncode = true;
-	} else {
+	}
+	else {
 		scFileToWrite = scCharFile;
 		bEncode = false;
 	}
 
 	ofstream ofs;
 	ofs.open(scFileToWrite.c_str(), ios_base::out);
-	if(!ofs.is_open())
+	if (!ofs.is_open())
 		return HKE_UNKNOWN_ERROR;
 
 	size_t iPos;
-	while((iPos = wscData.find(L"\\n")) != -1)
+	while ((iPos = wscData.find(L"\\n")) != -1)
 	{
 		wstring wscLine = wscData.substr(0, iPos);
 		ofs << wstos(wscLine) << endl;
 		wscData.erase(0, iPos + 2);
 	}
 
-	if(wscData.length())
+	if (wscData.length())
 		ofs << wstos(wscData);
 
 	ofs.close();
-	if(bEncode)
+	if (bEncode)
 	{
 		flc_encode(scFileToWrite.c_str(), scCharFile.c_str());
 		DeleteFile(scFileToWrite.c_str());

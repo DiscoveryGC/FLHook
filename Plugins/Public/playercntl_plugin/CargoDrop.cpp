@@ -69,7 +69,7 @@ namespace CargoDrop
 		set_fDisconnectingPlayersRange = IniGetF(scPluginCfgFile, "General", "DisconnectingPlayersRange", 5000.0f);
 
 		set_fHullFct = ToFloat(stows(IniGetS(scPluginCfgFile, "General", "HullDropFactor", "0.1")));
-		set_iLootCrateID = CreateID(IniGetS(scPluginCfgFile, "General", "CargoDropContainer","lootcrate_ast_loot_metal").c_str());
+		set_iLootCrateID = CreateID(IniGetS(scPluginCfgFile, "General", "CargoDropContainer", "lootcrate_ast_loot_metal").c_str());
 		set_iHullItem1ID = CreateID(IniGetS(scPluginCfgFile, "General", "HullDrop1NickName", "commodity_super_alloys").c_str());
 		set_iHullItem2ID = CreateID(IniGetS(scPluginCfgFile, "General", "HullDrop2NickName", "commodity_engine_components").c_str());
 		set_wscDisconnectInSpaceMsg = stows(IniGetS(scPluginCfgFile, "General", "DisconnectMsg", "%player is attempting to engage cloaking device"));
@@ -78,7 +78,7 @@ namespace CargoDrop
 		list<INISECTIONVALUE> lstItems;
 		IniGetSection(scPluginCfgFile, "NoLootItems", lstItems);
 		set_mapNoLootItems.clear();
-		foreach (lstItems, INISECTIONVALUE, iter)
+		foreach(lstItems, INISECTIONVALUE, iter)
 		{
 			uint itemID = CreateID(iter->scKey.c_str());
 			set_mapNoLootItems[itemID] = itemID;
@@ -88,7 +88,7 @@ namespace CargoDrop
 	void CargoDrop::Timer()
 	{
 		// Disconnecting while interacting checks.
-		for (map<uint, INFO>::iterator iter = mapInfo.begin(); iter!=mapInfo.end(); iter++)
+		for (map<uint, INFO>::iterator iter = mapInfo.begin(); iter != mapInfo.end(); iter++)
 		{
 			int iClientID = iter->first;
 
@@ -104,7 +104,7 @@ namespace CargoDrop
 
 			if (ClientInfo[iClientID].tmF1Time || ClientInfo[iClientID].tmF1TimeDisconnect)
 			{
-				wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+				wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 
 				// Drain the ship's shields.
 				pub::SpaceObj::DrainShields(iShip);
@@ -121,7 +121,7 @@ namespace CargoDrop
 
 				if (!iter->second.bF1DisconnectProcessed)
 				{
-					iter->second.bF1DisconnectProcessed = true;			
+					iter->second.bF1DisconnectProcessed = true;
 
 					// Send disconnect report to all ships in scanner range.
 					if (set_bReportDisconnectingPlayers)
@@ -138,7 +138,7 @@ namespace CargoDrop
 						uint iSystem = 0;
 						pub::Player::GetSystem(iClientID, iSystem);
 						uint iShip = 0;
-						pub::Player::GetShip(iClientID, iShip);  
+						pub::Player::GetShip(iClientID, iShip);
 						Vector vLoc = { 0.0f, 0.0f, 0.0f };
 						Matrix mRot = { 0.0f, 0.0f, 0.0f };
 						pub::SpaceObj::GetLocation(iShip, vLoc, mRot);
@@ -146,11 +146,11 @@ namespace CargoDrop
 
 						list<CARGO_INFO> lstCargo;
 						int iRemainingHoldSize = 0;
-						if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize)==HKE_OK)
+						if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize) == HKE_OK)
 						{
-							foreach (lstCargo, CARGO_INFO, item)
+							foreach(lstCargo, CARGO_INFO, item)
 							{
-								if (!item->bMounted && set_mapNoLootItems.find(item->iArchID)==set_mapNoLootItems.end())
+								if (!item->bMounted && set_mapNoLootItems.find(item->iArchID) == set_mapNoLootItems.end())
 								{
 									HkRemoveCargo(wscCharname, item->iID, item->iCount);
 									Server.MineAsteroid(iSystem, vLoc, set_iLootCrateID, item->iArchID, item->iCount, iClientID);
@@ -176,18 +176,18 @@ namespace CargoDrop
 	/// Hook for ship distruction. It's easier to hook this than the PlayerDeath one.
 	/// Drop a percentage of cargo + some loot representing ship bits.
 	void CargoDrop::SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller)
-	{	
+	{
 		// If player ship loot dropping is enabled then check for a loot drop.
-		if (set_fHullFct==0.0f)
+		if (set_fHullFct == 0.0f)
 			return;
 
 		list<CARGO_INFO> lstCargo;
 		int iRemainingHoldSize;
-		if (HkEnumCargo((const wchar_t*) Players.GetActiveCharacterName(iClientIDVictim), lstCargo, iRemainingHoldSize)!=HKE_OK)
+		if (HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientIDVictim), lstCargo, iRemainingHoldSize) != HKE_OK)
 			return;
 
 		int iShipSizeEst = iRemainingHoldSize;
-		foreach (lstCargo, CARGO_INFO, iter)
+		foreach(lstCargo, CARGO_INFO, iter)
 		{
 			if (!(iter->bMounted))
 			{
@@ -196,10 +196,10 @@ namespace CargoDrop
 		}
 
 		int iHullDrop = (int)(set_fHullFct*(float)iShipSizeEst);
-		if (iHullDrop>0)
+		if (iHullDrop > 0)
 		{
-			uint iShip; 
-			pub::Player::GetShip(iClientIDVictim, iShip);  
+			uint iShip;
+			pub::Player::GetShip(iClientIDVictim, iShip);
 			Vector myLocation;
 			Matrix myRot;
 			pub::SpaceObj::GetLocation(iShip, myLocation, myRot);

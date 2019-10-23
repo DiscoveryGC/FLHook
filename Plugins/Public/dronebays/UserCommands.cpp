@@ -6,7 +6,7 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	//Verify that the user is in space
 	uint playerShip;
 	pub::Player::GetShip(iClientID, playerShip);
-	if(!playerShip)
+	if (!playerShip)
 	{
 		PrintUserCmdText(iClientID, L"ERR Not in space");
 		return true;
@@ -17,9 +17,9 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	bool foundBay = false;
 	for (auto& item : Players[iClientID].equipDescList.equip)
 	{
-		if (item.bMounted) 
+		if (item.bMounted)
 		{
-			if(availableDroneBays.find(item.iArchID) != availableDroneBays.end())
+			if (availableDroneBays.find(item.iArchID) != availableDroneBays.end())
 			{
 				foundBay = true;
 				bayArch = availableDroneBays[item.iArchID];
@@ -37,14 +37,14 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	clientDroneInfo[iClientID].droneBay = bayArch;
 
 	// Verify that the user doesn't already have a drone in space
-	if(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
+	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj != 0)
 	{
 		PrintUserCmdText(iClientID, L"You may only have one drone deployed at a time");
 		return true;
 	}
 
 	// Verify that the user isn't already building a drone
-	if(clientDroneInfo[iClientID].buildState != STATE_DRONE_OFF)
+	if (clientDroneInfo[iClientID].buildState != STATE_DRONE_OFF)
 	{
 		PrintUserCmdText(iClientID, L"You are already prepping a drone for takeoff!");
 		return true;
@@ -52,7 +52,7 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 
 	// Verify that the client isn't cruising or in a tradelane
 	const ENGINE_STATE engineState = HkGetEngineState(iClientID);
-	if(engineState == ES_TRADELANE || engineState == ES_CRUISE)
+	if (engineState == ES_TRADELANE || engineState == ES_CRUISE)
 	{
 		PrintUserCmdText(iClientID, L"Engine state inoppertune for drone deployment, aborting launch");
 		return true;
@@ -62,7 +62,7 @@ bool UserCommands::UserCmd_Deploy(uint iClientID, const wstring& wscCmd, const w
 	const string reqDroneType = wstos(GetParam(wscParam, L' ', 0));
 
 	// Verify that the requested drone type is a member of the bay's available drones
-	if(find(bayArch.availableDrones.begin(), bayArch.availableDrones.end(), reqDroneType) == bayArch.availableDrones.end())
+	if (find(bayArch.availableDrones.begin(), bayArch.availableDrones.end(), reqDroneType) == bayArch.availableDrones.end())
 	{
 		PrintUserCmdText(iClientID, L"Your drone bay does not support this type of deployment.");
 		PrintUserCmdText(iClientID, L"---Valid drones---");
@@ -99,14 +99,14 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 	// Verify that the user is in space
 	uint iShipObj;
 	pub::Player::GetShip(iClientID, iShipObj);
-	if(!iShipObj)
+	if (!iShipObj)
 	{
 		PrintUserCmdText(iClientID, L"You must be in space to use this command");
 		return true;
 	}
 
 	// Verify that the user has a drone currently deployed
-	if(clientDroneInfo[iClientID].deployedInfo.deployedDroneObj == 0)
+	if (clientDroneInfo[iClientID].deployedInfo.deployedDroneObj == 0)
 	{
 		PrintUserCmdText(iClientID, L"You must have a drone deployed for this to work");
 		return true;
@@ -116,7 +116,7 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 	uint iTargetObj;
 	pub::SpaceObj::GetTarget(iShipObj, iTargetObj);
 
-	if(!iTargetObj)
+	if (!iTargetObj)
 	{
 		PrintUserCmdText(iClientID, L"Please target the vessel which the drone should be directed to");
 		return true;
@@ -135,7 +135,7 @@ bool UserCommands::UserCmd_AttackTarget(uint iClientID, const wstring& wscCmd, c
 
 	//Validate that we're only engaging a shipclass that we're allowed to engage
 	const auto it = find(clientBayArch.validShipclassTargets.begin(), clientBayArch.validShipclassTargets.end(), targetShiparch->iShipClass);
-	if(it == clientBayArch.validShipclassTargets.end())
+	if (it == clientBayArch.validShipclassTargets.end())
 	{
 		PrintUserCmdText(iClientID, L"Invalid target: This drone is not equipped to handle ships of that size");
 		return true;
@@ -213,7 +213,7 @@ bool UserCommands::UserCmd_RecallDrone(uint iClientID, const wstring& wscCmd, co
 
 	// Set the NPC to fly to your current position
 	pub::AI::DirectiveGotoOp gotoOp;
-	
+
 	// Type zero says to fly to a spaceObj
 	gotoOp.iGotoType = 0;
 	gotoOp.iTargetID = iShipObj;
@@ -227,7 +227,7 @@ bool UserCommands::UserCmd_RecallDrone(uint iClientID, const wstring& wscCmd, co
 	DroneDespawnWrapper wrapper;
 	wrapper.droneObj = clientDroneInfo[iClientID].deployedInfo.deployedDroneObj;
 	wrapper.parentObj = iShipObj;
-	
+
 	droneDespawnMap[iClientID] = wrapper;
 
 	PrintUserCmdText(iClientID, L"Drone recall operation sent");

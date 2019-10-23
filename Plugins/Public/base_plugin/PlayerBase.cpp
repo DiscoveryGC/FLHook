@@ -8,7 +8,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 {
 	nickname = CreateBaseNickname(wstos(basename));
 	base = CreateID(nickname.c_str());
-	
+
 	// The creating ship is an ally by default.
 	BasePassword bp;
 	bp.pass = password;
@@ -51,7 +51,7 @@ PlayerBase::PlayerBase(const string &the_path)
 
 PlayerBase::~PlayerBase()
 {
-	for (vector<Module*>::iterator i=modules.begin(); i!=modules.end(); ++i)
+	for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i)
 	{
 		if (*i)
 		{
@@ -62,14 +62,14 @@ PlayerBase::~PlayerBase()
 
 void PlayerBase::Spawn()
 {
-	for (vector<Module*>::iterator i=modules.begin(); i!=modules.end(); ++i)
+	for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i)
 	{
 		if (*i)
 		{
 			(*i)->Spawn();
 		}
 	}
-	
+
 	SyncReputationForBase();
 }
 
@@ -77,7 +77,7 @@ void PlayerBase::Spawn()
 // that this base has been deleted.
 bool PlayerBase::Timer(uint curr_time)
 {
-	for (uint i=0; i<modules.size(); i++)
+	for (uint i = 0; i < modules.size(); i++)
 	{
 		Module *module = modules[i];
 		if (module)
@@ -107,7 +107,7 @@ void PlayerBase::SetupDefaults()
 	if (!proxy_base)
 	{
 		char system_nick[1024];
-		pub::GetSystemNickname(system_nick, sizeof(system_nick), system);	
+		pub::GetSystemNickname(system_nick, sizeof(system_nick), system);
 
 		char proxy_base_nick[1024];
 		sprintf(proxy_base_nick, "%s_proxy_base", system_nick);
@@ -123,7 +123,7 @@ void PlayerBase::SetupDefaults()
 
 		char tpath[1024];
 		sprintf(tpath, "%s\\Accts\\MultiPlayer\\player_bases\\base_%08x.ini", datapath, base);
-		path=tpath;
+		path = tpath;
 	}
 
 	// Build the infocard text
@@ -385,7 +385,7 @@ void PlayerBase::Save()
 			ini_write_wstring(file, "infocardpara", infocard_para[i]);
 		}
 		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
-		i != market_items.end(); ++i)
+			i != market_items.end(); ++i)
 		{
 			fprintf(file, "commodity = %u, %u, %f, %u, %u\n",
 				i->first, i->second.quantity, i->second.price, i->second.min_stock, i->second.max_stock);
@@ -397,7 +397,7 @@ void PlayerBase::Save()
 			ini_write_wstring(file, "ally_tag", *i);
 		}
 		for (map<wstring, wstring>::iterator i = hostile_tags.begin();
-		i != hostile_tags.end(); ++i)
+			i != hostile_tags.end(); ++i)
 		{
 			ini_write_wstring(file, "hostile_tag", (wstring&)i->first);
 		}
@@ -483,7 +483,7 @@ uint PlayerBase::GetRemainingCargoSpace()
 uint PlayerBase::GetMaxCargoSpace()
 {
 	uint max_capacity = 30000;
-	for (vector<Module*>::iterator i=modules.begin(); i!=modules.end(); ++i)
+	for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i)
 	{
 		if ((*i) && (*i)->type == Module::TYPE_STORAGE)
 		{
@@ -532,7 +532,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client)
 	// Make base friendly if player is on the friendly list.
 	for (std::list<wstring>::const_iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
 	{
-		if (charname.find(*i)==0)
+		if (charname.find(*i) == 0)
 		{
 			return 1.0;
 		}
@@ -577,7 +577,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client)
 // of this base.
 void PlayerBase::SyncReputationForBase()
 {
-	struct PlayerData *pd = 0;		
+	struct PlayerData *pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		if (pd->iShipID && pd->iSystemID == system)
@@ -585,7 +585,7 @@ void PlayerBase::SyncReputationForBase()
 			int player_rep;
 			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
 			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
-			for (vector<Module*>::iterator i=modules.begin(); i!=modules.end(); ++i)
+			for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i)
 			{
 				if (*i)
 				{
@@ -599,7 +599,7 @@ void PlayerBase::SyncReputationForBase()
 // For all players in the base's system, resync their reps towards this object.
 void PlayerBase::SyncReputationForBaseObject(uint space_obj)
 {
-	struct PlayerData *pd = 0;		
+	struct PlayerData *pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		if (pd->iShipID && pd->iSystemID == system)
@@ -607,7 +607,7 @@ void PlayerBase::SyncReputationForBaseObject(uint space_obj)
 			int player_rep;
 			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
 			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
-			
+
 			int obj_rep;
 			pub::SpaceObj::GetRep(space_obj, obj_rep);
 			pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
@@ -666,7 +666,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			bool is_ally = false;
 			for (list<wstring>::iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
 			{
-				if (charname.find(*i)==0)
+				if (charname.find(*i) == 0)
 				{
 					is_ally = true;
 					break;
@@ -675,7 +675,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 			if (!is_ally)
 			{
-				if (set_plugin_debug>1)
+				if (set_plugin_debug > 1)
 					ConPrint(L"PlayerBase::damaged space_obj=%u\n", space_obj);
 				hostile_tags[charname] = charname;
 				SyncReputationForBase();
@@ -689,8 +689,8 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		ReportAttack(this->basename, charname, this->system);
-		this->shield_active_time =  60 + (rand() % 512);	
-		if (set_plugin_debug>1)
+		this->shield_active_time = 60 + (rand() % 512);
+		if (set_plugin_debug > 1)
 			ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_active_time);
 	}
 

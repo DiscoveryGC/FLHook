@@ -36,7 +36,7 @@ struct CLIENT_DATA
 
 	// A base pointer used to teleport the ship into a base on undock
 	Universe::IBase *undockBase;
-	
+
 	// A flag denoting that the above base should be used as an undock point
 	bool baseUndock = false;
 

@@ -37,20 +37,20 @@ void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item)
 				// If the base has none of the item then it is buy-only at the client.
 				if (item.quantity == 0)
 				{
-					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u", 
+					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
 						base->proxy_base, good, item.price, 1, 0);
 				}
 				// If the item is buy only and this is not an admin then it is
 				// buy only at the client
 				else if (item.min_stock >= item.quantity && !clients[client].admin)
 				{
-					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u", 
+					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
 						base->proxy_base, good, item.price, 1, 0);
 				}
 				// Otherwise this item is for sale by the client.
 				else
 				{
-					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u", 
+					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
 						base->proxy_base, good, item.price, 0, item.quantity);
 				}
 				SendCommand(client, buf);
@@ -64,11 +64,11 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 {
 	// Reset the client's market
 	SendResetMarketOverride(client);
-	
+
 	// Send a dummy entry if there are no goods at this base
 	if (!base->market_items.size())
 		SendCommand(client, L" SetMarketOverride 0 0 0 0");
-	
+
 	// Send the market
 	for (map<uint, MARKET_ITEM>::iterator i = base->market_items.begin();
 		i != base->market_items.end(); i++)
@@ -79,20 +79,20 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 		// If the base has none of the item then it is buy-only at the client.
 		if (item.quantity == 0)
 		{
-			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u", 
+			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
 				base->proxy_base, good, item.price, 1, 0);
 		}
 		// If the item is buy only and this is not an admin then it is
 		// buy only at the client
 		else if (item.min_stock >= item.quantity && !clients[client].admin)
 		{
-			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u", 
+			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
 				base->proxy_base, good, item.price, 1, 0);
 		}
 		// Otherwise this item is for sale by the client.
 		else
 		{
-			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u", 
+			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
 				base->proxy_base, good, item.price, 0, item.quantity);
 		}
 		SendCommand(client, buf);
@@ -106,14 +106,14 @@ static wstring Int64ToPrettyStr(INT64 iValue)
 	int len = wcslen(buf);
 
 	wstring wscBuf;
-	for (int i = len - 1, j=0; i>=0; i--, j++)
+	for (int i = len - 1, j = 0; i >= 0; i--, j++)
 	{
 		if (j == 3)
 		{
 			j = 0;
 			wscBuf.insert(0, L".");
 		}
-		wscBuf.insert(0, wstring(1,buf[i]));
+		wscBuf.insert(0, wstring(1, buf[i]));
 	}
 	return wscBuf;
 }
@@ -130,7 +130,7 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	const Universe::ISystem *sys = Universe::get_system(base->system);
 
 	wstring base_status = L"<RDL><PUSH/>";
-	base_status += L"<TEXT>" + XMLText(base->basename) + L", " + HkGetWStringFromIDS(sys->strid_name) +  L"</TEXT><PARA/><PARA/>";
+	base_status += L"<TEXT>" + XMLText(base->basename) + L", " + HkGetWStringFromIDS(sys->strid_name) + L"</TEXT><PARA/><PARA/>";
 
 	base_status += base->infocard;
 
@@ -141,7 +141,7 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	base_status += L"<TEXT>Hit Points: " + Int64ToPrettyStr((INT64)base->base_health) + L"</TEXT><PARA/>";
 	base_status += L"<TEXT>Max Hit Points: " + Int64ToPrettyStr((INT64)base->max_base_health) + L"</TEXT><PARA/>";
 	base_status += L"<TEXT>Population: " + Int64ToPrettyStr((INT64)base->HasMarketItem(set_base_crew_type)) + L"</TEXT><PARA/>";
-	
+
 	if (base->affiliation)
 	{
 		base_status += L"<TEXT>Affiliation: " + HkGetWStringFromIDS(Reputation::get_name(base->affiliation)) + L"</TEXT><PARA/>";
@@ -166,8 +166,8 @@ void SendBaseStatus(uint client, PlayerBase *base)
 
 	base_status += L"<PARA/>";
 	base_status += L"<TEXT>Modules:</TEXT><PARA/>";
-	
-	for (uint i=1; i<base->modules.size(); i++)
+
+	for (uint i = 1; i < base->modules.size(); i++)
 	{
 		base_status += L"<TEXT>  " + stows(itos(i)) + L": ";
 		Module *module = base->modules[i];

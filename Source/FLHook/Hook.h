@@ -105,7 +105,7 @@ class CTimer
 {
 public:
 	EXPORT CTimer(string sFunction, uint iWarning);
-    EXPORT void start();
+	EXPORT void start();
 	EXPORT uint stop();
 
 private:
@@ -122,7 +122,7 @@ struct PLUGIN_HOOKDATA
 	HMODULE hDLL;
 	int iPriority;
 	bool bPaused;
-	FARPROC* pFunc;	
+	FARPROC* pFunc;
 	PLUGIN_RETURNCODE* ePluginReturnCode;
 };
 
@@ -138,12 +138,12 @@ struct PLUGIN_DATA
 };
 
 struct PLUGIN_SORTCRIT {
-  bool operator()(const PLUGIN_HOOKDATA& lhs, const PLUGIN_HOOKDATA& rhs) const {
-	  if(lhs.iPriority > rhs.iPriority)
-		  return true;
-	  else
-		  return false;
-  }
+	bool operator()(const PLUGIN_HOOKDATA& lhs, const PLUGIN_HOOKDATA& rhs) const {
+		if (lhs.iPriority > rhs.iPriority)
+			return true;
+		else
+			return false;
+	}
 };
 
 
@@ -241,17 +241,17 @@ struct PLUGIN_SORTCRIT {
 	} catch(...) { AddLog("ERROR: Exception %s", __FUNCTION__); LOG_EXCEPTION } \
 } \
 
-typedef PLUGIN_RETURNCODE (*PLUGIN_Get_PluginReturnCode)();
+typedef PLUGIN_RETURNCODE(*PLUGIN_Get_PluginReturnCode)();
 typedef PLUGIN_INFO* (*PLUGIN_Get_PluginInfo)();
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // typedefs
-typedef void (__stdcall *_RCSendChatMsg)(uint iId, uint iTo, uint iSize, void *pRDL);
-typedef void (__stdcall *_CRCAntiCheat)();
-typedef void (__stdcall *_CreateChar)(const wchar_t *wszName);
-typedef int (__cdecl *_GetFLName)(char *szBuf, const wchar_t *wszStr);
-typedef bool (__cdecl *_GetShipInspect)(uint &iShip, IObjInspectImpl* &inspect, uint &iDunno);
+typedef void(__stdcall *_RCSendChatMsg)(uint iId, uint iTo, uint iSize, void *pRDL);
+typedef void(__stdcall *_CRCAntiCheat)();
+typedef void(__stdcall *_CreateChar)(const wchar_t *wszName);
+typedef int(__cdecl *_GetFLName)(char *szBuf, const wchar_t *wszStr);
+typedef bool(__cdecl *_GetShipInspect)(uint &iShip, IObjInspectImpl* &inspect, uint &iDunno);
 
 EXPORT extern _GetShipInspect GetShipInspect;
 
@@ -379,7 +379,7 @@ struct MONEY_FIX
 
 	bool operator==(MONEY_FIX mf1)
 	{
-		if(!wscCharname.compare(mf1.wscCharname))
+		if (!wscCharname.compare(mf1.wscCharname))
 			return true;
 
 		return false;
@@ -404,71 +404,71 @@ struct RESOLVE_IP
 
 struct CLIENT_INFO
 {
-// kill msgs
+	// kill msgs
 	uint		iShip;
 	uint		iShipOld;
 	mstime		tmSpawnTime;
 
 	DamageList	dmgLast;
 
-// money cmd
+	// money cmd
 	list<MONEY_FIX> lstMoneyFix;
 
-// anticheat
+	// anticheat
 	uint		iTradePartner;
 
-// change cruise disruptor behaviour
+	// change cruise disruptor behaviour
 	bool		bCruiseActivated;
 	bool		bThrusterActivated;
 	bool		bEngineKilled;
 	bool		bTradelane;
 
-// idle kicks
+	// idle kicks
 	uint		iBaseEnterTime;
 	uint		iCharMenuEnterTime;
 
-// msg, wait and kick
+	// msg, wait and kick
 	mstime		tmKickTime;
 
-// eventmode
+	// eventmode
 	uint		iLastExitedBaseID;
 	bool		bDisconnected;
 
-// f1 laming
+	// f1 laming
 	bool		bCharSelected;
 	mstime		tmF1Time;
 	mstime		tmF1TimeDisconnect;
 
-// ignore usercommand
+	// ignore usercommand
 	list<IGNORE_INFO> lstIgnore;
 
-// user settings
+	// user settings
 	DIEMSGTYPE	dieMsg;
 	CHATSIZE	dieMsgSize;
 	CHATSTYLE	dieMsgStyle;
 	CHATSIZE	chatSize;
 	CHATSTYLE	chatStyle;
 
-// autobuy
-	/*
-	bool		bAutoBuyMissiles;
-	bool		bAutoBuyMines;
-	bool		bAutoBuyTorps;
-	bool		bAutoBuyCD;
-	bool		bAutoBuyCM;
-	bool		bAutoBuyReload;
-	*/
+	// autobuy
+		/*
+		bool		bAutoBuyMissiles;
+		bool		bAutoBuyMines;
+		bool		bAutoBuyTorps;
+		bool		bAutoBuyCD;
+		bool		bAutoBuyCM;
+		bool		bAutoBuyReload;
+		*/
 
-// MultiKillMessages
+		// MultiKillMessages
 	uint		iKillsInARow;
 
-// bans
+	// bans
 	uint		iConnects; // incremented when player connects
 
 //cloak bool, this allows us to have a status on it shared between plugins to prevent possible bugs.
 	bool bCloaked;
 
-// other
+	// other
 	wstring		wscHostname;
 
 	bool		bSpawnProtected;
@@ -477,30 +477,30 @@ struct CLIENT_INFO
 };
 
 // taken from directplay
-typedef struct _DPN_CONNECTION_INFO{
-    DWORD   dwSize;
-    DWORD   dwRoundTripLatencyMS;
-    DWORD   dwThroughputBPS;
-    DWORD   dwPeakThroughputBPS;
-    DWORD   dwBytesSentGuaranteed;
-    DWORD   dwPacketsSentGuaranteed;
-    DWORD   dwBytesSentNonGuaranteed;
-    DWORD   dwPacketsSentNonGuaranteed;
-    DWORD   dwBytesRetried;
-    DWORD   dwPacketsRetried;
-    DWORD   dwBytesDropped;   
-    DWORD   dwPacketsDropped; 
-    DWORD   dwMessagesTransmittedHighPriority;
-    DWORD   dwMessagesTimedOutHighPriority;
-    DWORD   dwMessagesTransmittedNormalPriority;
-    DWORD   dwMessagesTimedOutNormalPriority;
-    DWORD   dwMessagesTransmittedLowPriority;
-    DWORD   dwMessagesTimedOutLowPriority;
-    DWORD   dwBytesReceivedGuaranteed;
-    DWORD   dwPacketsReceivedGuaranteed;
-    DWORD   dwBytesReceivedNonGuaranteed;
-    DWORD   dwPacketsReceivedNonGuaranteed;
-    DWORD   dwMessagesReceived;
+typedef struct _DPN_CONNECTION_INFO {
+	DWORD   dwSize;
+	DWORD   dwRoundTripLatencyMS;
+	DWORD   dwThroughputBPS;
+	DWORD   dwPeakThroughputBPS;
+	DWORD   dwBytesSentGuaranteed;
+	DWORD   dwPacketsSentGuaranteed;
+	DWORD   dwBytesSentNonGuaranteed;
+	DWORD   dwPacketsSentNonGuaranteed;
+	DWORD   dwBytesRetried;
+	DWORD   dwPacketsRetried;
+	DWORD   dwBytesDropped;
+	DWORD   dwPacketsDropped;
+	DWORD   dwMessagesTransmittedHighPriority;
+	DWORD   dwMessagesTimedOutHighPriority;
+	DWORD   dwMessagesTransmittedNormalPriority;
+	DWORD   dwMessagesTimedOutNormalPriority;
+	DWORD   dwMessagesTransmittedLowPriority;
+	DWORD   dwMessagesTimedOutLowPriority;
+	DWORD   dwBytesReceivedGuaranteed;
+	DWORD   dwPacketsReceivedGuaranteed;
+	DWORD   dwBytesReceivedNonGuaranteed;
+	DWORD   dwPacketsReceivedNonGuaranteed;
+	DWORD   dwMessagesReceived;
 } DPN_CONNECTION_INFO, *PDPN_CONNECTION_INFO;
 
 struct HKPLAYERINFO
@@ -667,8 +667,8 @@ EXPORT HK_ERROR HkDelAdmin(const wstring &wscCharname);
 EXPORT HK_ERROR HkChangeNPCSpawn(bool bDisable);
 EXPORT HK_ERROR HkGetBaseStatus(const wstring &wscBasename, float &fHealth, float &fMaxHealth);
 EXPORT Fuse* HkGetFuseFromID(uint iFuseID);
-EXPORT bool __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float fDelay=0, float fLifetime=0, float fSkip=-1.0f);
-EXPORT bool __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno=0.0f);
+EXPORT bool __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float fDelay = 0, float fLifetime = 0, float fSkip = -1.0f);
+EXPORT bool __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno = 0.0f);
 void HkTest(int iArg, int iArg2, int iArg3);
 
 // HkFLIni
@@ -714,7 +714,7 @@ namespace HkIEngine
 	int __cdecl FreeReputationVibe(int const &p1);
 	void __cdecl Update_Time(double);
 	void __stdcall Elapse_Time(float p1);
-	int __cdecl Dock_Call(unsigned int const &,unsigned int const &,int,enum DOCK_HOST_RESPONSE);
+	int __cdecl Dock_Call(unsigned int const &, unsigned int const &, int, enum DOCK_HOST_RESPONSE);
 	void _LaunchPos();
 	void _CShip_init();
 	void _CShip_destroy();
@@ -739,7 +739,7 @@ extern list<RESOLVE_IP> g_lstResolveIPsResult;
 extern HANDLE hThreadResolver;
 
 // namespaces
-namespace HkIServerImpl 
+namespace HkIServerImpl
 {
 	void __stdcall SubmitChat(struct CHAT_ID cId, unsigned long lP1, void const *rdlReader, struct CHAT_ID cIdTo, int iP2);
 	int __stdcall Update(void);
@@ -785,7 +785,7 @@ extern EXPORT _CreateChar CreateChar;
 extern EXPORT string scAcctPath;
 
 #define MAX_CLIENT_ID 249
-extern EXPORT CLIENT_INFO ClientInfo[MAX_CLIENT_ID+1];
+extern EXPORT CLIENT_INFO ClientInfo[MAX_CLIENT_ID + 1];
 extern EXPORT CDPServer *cdpSrv;
 extern EXPORT uint g_iServerLoad;
 extern EXPORT uint g_iPlayerCount;
@@ -797,7 +797,7 @@ extern EXPORT bool g_bPlugin_nofunctioncall;
 
 // help
 
-typedef bool (*_HelpEntryDisplayed)(uint);
+typedef bool(*_HelpEntryDisplayed)(uint);
 struct stHelpEntry {
 	wstring wszCommand;
 	wstring wszArguments;

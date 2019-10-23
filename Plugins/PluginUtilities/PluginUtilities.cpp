@@ -47,55 +47,55 @@ size_t WstrInsensitiveFind(wstring haystack, wstring needle)
 // Return true if this player is within the specified distance of any other player.
 bool IsInRange(uint iClientID, float fDistance)
 {
-        list<GROUP_MEMBER> lstMembers;
-        HkGetGroupMembers((const wchar_t*) Players.GetActiveCharacterName(iClientID), lstMembers);
+	list<GROUP_MEMBER> lstMembers;
+	HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstMembers);
 
-        uint iShip;
-        pub::Player::GetShip(iClientID, iShip);
+	uint iShip;
+	pub::Player::GetShip(iClientID, iShip);
 
-        Vector pos;
-        Matrix rot;
-        pub::SpaceObj::GetLocation(iShip, pos, rot);
+	Vector pos;
+	Matrix rot;
+	pub::SpaceObj::GetLocation(iShip, pos, rot);
 
-        uint iSystem;
-        pub::Player::GetSystem(iClientID, iSystem);
+	uint iSystem;
+	pub::Player::GetSystem(iClientID, iSystem);
 
-        // For all players in system...
-        struct PlayerData *pPD = 0;
-        while(pPD = Players.traverse_active(pPD))
-        {
-                // Get the this player's current system and location in the system.
-                uint iClientID2 = HkGetClientIdFromPD(pPD);
-                uint iSystem2 = 0;
-                pub::Player::GetSystem(iClientID2, iSystem2);
-                if (iSystem != iSystem2)
-                        continue;
+	// For all players in system...
+	struct PlayerData *pPD = 0;
+	while (pPD = Players.traverse_active(pPD))
+	{
+		// Get the this player's current system and location in the system.
+		uint iClientID2 = HkGetClientIdFromPD(pPD);
+		uint iSystem2 = 0;
+		pub::Player::GetSystem(iClientID2, iSystem2);
+		if (iSystem != iSystem2)
+			continue;
 
-                uint iShip2;
-                pub::Player::GetShip(iClientID2, iShip2);
+		uint iShip2;
+		pub::Player::GetShip(iClientID2, iShip2);
 
-                Vector pos2;
-                Matrix rot2;
-                pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
+		Vector pos2;
+		Matrix rot2;
+		pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
 
-                // Ignore players who are in your group.
-                bool bGrouped = false;
-                foreach (lstMembers, GROUP_MEMBER, gm)
-                {
-                        if (gm->iClientID == iClientID2)
-                        {
-                                bGrouped = true;
-                                break;
-                        }
-                }
-                if (bGrouped)
-                        continue;
+		// Ignore players who are in your group.
+		bool bGrouped = false;
+		foreach(lstMembers, GROUP_MEMBER, gm)
+		{
+			if (gm->iClientID == iClientID2)
+			{
+				bGrouped = true;
+				break;
+			}
+		}
+		if (bGrouped)
+			continue;
 
-                // Is player within the specified range of the sending char.
-                if (HkDistance3D(pos, pos2) < fDistance)
-                        return true;
-        }
-        return false;
+		// Is player within the specified range of the sending char.
+		if (HkDistance3D(pos, pos2) < fDistance)
+			return true;
+	}
+	return false;
 }
 
 CAccount* HkGetAccountByClientID(uint iClientID)
@@ -110,7 +110,7 @@ CAccount* HkGetAccountByClientID(uint iClientID)
 float HkDistance3D(Vector v1, Vector v2)
 {
 	float sq1 = v1.x - v2.x, sq2 = v1.y - v2.y, sq3 = v1.z - v2.z;
-	return sqrt(sq1*sq1 + sq2*sq2 + sq3*sq3);
+	return sqrt(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
 }
 
 // Calculate the distance between the two vectors
@@ -123,7 +123,7 @@ float HkDistance3DByShip(uint iShip1, uint iShip2)
 	Matrix m2;
 	pub::SpaceObj::GetLocation(iShip2, v2, m2);
 	float sq1 = v1.x - v2.x, sq2 = v1.y - v2.y, sq3 = v1.z - v2.z;
-	return sqrt(sq1*sq1 + sq2*sq2 + sq3*sq3);
+	return sqrt(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
 }
 
 bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
@@ -243,7 +243,7 @@ HK_ERROR HkAntiCheat(uint iClientID)
 	{
 		mov ecx, [szObjPtr]
 		call[FLAntiCheat1]
-			mov[cRes], al
+		mov[cRes], al
 	}
 
 	if (cRes != 0)
@@ -257,7 +257,7 @@ HK_ERROR HkAntiCheat(uint iClientID)
 	{
 		mov ecx, [szObjPtr]
 		call[FLAntiCheat2]
-			mov[cRes], al
+		mov[cRes], al
 	}
 
 	if (cRes != 0)
@@ -273,9 +273,9 @@ HK_ERROR HkAntiCheat(uint iClientID)
 	{
 		mov ecx, [szObjPtr]
 		mov eax, [ecx + 0x320]
-			mov[lCompare], eax
-			call[FLAntiCheat3]
-			mov[lRet], eax
+		mov[lCompare], eax
+		call[FLAntiCheat3]
+		mov[lRet], eax
 	}
 
 	if (lRet > lCompare)
@@ -289,7 +289,7 @@ HK_ERROR HkAntiCheat(uint iClientID)
 	{
 		mov ecx, [szObjPtr]
 		call[FLAntiCheat4]
-			mov[cRes], al
+		mov[cRes], al
 	}
 
 	if (cRes != 0)
@@ -558,7 +558,7 @@ HK_ERROR HkNewCharacter(CAccount *acc, wstring &wscCharname)
 	// Fill struct with valid data (though it isnt used it is needed)
 	newcharinfo.iDunno[4] = 65536;
 	newcharinfo.iDunno[5] = 65538;
-	
+
 	newcharinfo.iDunno[7] = 1058642330;
 	newcharinfo.iDunno[8] = 3206125978;
 	newcharinfo.iDunno[9] = 65537;
@@ -649,39 +649,39 @@ vector<HINSTANCE> vDLLs;
 
 void HkLoadStringDLLs()
 {
-        HkUnloadStringDLLs();
+	HkUnloadStringDLLs();
 
-        HINSTANCE hDLL = LoadLibraryEx("resources.dll", NULL, LOAD_LIBRARY_AS_DATAFILE); //typically resources.dll
-        if(hDLL)
-                vDLLs.push_back(hDLL);
+	HINSTANCE hDLL = LoadLibraryEx("resources.dll", NULL, LOAD_LIBRARY_AS_DATAFILE); //typically resources.dll
+	if (hDLL)
+		vDLLs.push_back(hDLL);
 
-        INI_Reader ini;
-        if (ini.open("freelancer.ini", false))
-        {
-                while (ini.read_header())
-                {
-                        if (ini.is_header("Resources"))
-                        {
-                                while (ini.read_value())
-                                {
-                                        if (ini.is_value("DLL"))
-                                        {
-                                                hDLL = LoadLibraryEx(ini.get_value_string(0), NULL, LOAD_LIBRARY_AS_DATAFILE);
-                                                if (hDLL)
-                                                        vDLLs.push_back(hDLL);
-                                        }
-                                }
-                        }
-                }
-                ini.close();
-        }
+	INI_Reader ini;
+	if (ini.open("freelancer.ini", false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("Resources"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("DLL"))
+					{
+						hDLL = LoadLibraryEx(ini.get_value_string(0), NULL, LOAD_LIBRARY_AS_DATAFILE);
+						if (hDLL)
+							vDLLs.push_back(hDLL);
+					}
+				}
+			}
+		}
+		ini.close();
+	}
 }
 
 void HkUnloadStringDLLs()
 {
-        for (uint i=0; i<vDLLs.size(); i++)
-                FreeLibrary(vDLLs[i]);
-        vDLLs.clear();
+	for (uint i = 0; i < vDLLs.size(); i++)
+		FreeLibrary(vDLLs[i]);
+	vDLLs.clear();
 }
 
 wstring HkGetAccountIDByClientID(uint iClientID)
@@ -750,11 +750,11 @@ string itohexs(uint value)
 
 string HkGetPlayerSystemS(uint iClientID)
 {
-        uint iSystemID;
-        pub::Player::GetSystem(iClientID, iSystemID);
-        char szSystemname[1024] = "";
-        pub::GetSystemNickname(szSystemname, sizeof(szSystemname), iSystemID);
-        return szSystemname;
+	uint iSystemID;
+	pub::Player::GetSystem(iClientID, iSystemID);
+	char szSystemname[1024] = "";
+	pub::GetSystemNickname(szSystemname, sizeof(szSystemname), iSystemID);
+	return szSystemname;
 }
 
 string GetParam(string scLine, char cSplitChar, uint iPos)
@@ -783,15 +783,15 @@ string GetParam(string scLine, char cSplitChar, uint iPos)
 // Remove leading and trailing spaces from the string ~FlakCommon by Motah.
 string Trim(string scIn)
 {
-        while (scIn.length() && (scIn[0] == ' ' || scIn[0] == '	' || scIn[0] == '\n' || scIn[0] == '\r'))
-        {
-                scIn = scIn.substr(1);
-        }
-        while (scIn.length() && (scIn[scIn.length() - 1] == L' ' || scIn[scIn.length() - 1] == '	' || scIn[scIn.length() - 1] == '\n' || scIn[scIn.length() - 1] == '\r'))
-        {
-                scIn = scIn.substr(0, scIn.length() - 1);
-        }
-        return scIn;
+	while (scIn.length() && (scIn[0] == ' ' || scIn[0] == '	' || scIn[0] == '\n' || scIn[0] == '\r'))
+	{
+		scIn = scIn.substr(1);
+	}
+	while (scIn.length() && (scIn[scIn.length() - 1] == L' ' || scIn[scIn.length() - 1] == '	' || scIn[scIn.length() - 1] == '\n' || scIn[scIn.length() - 1] == '\r'))
+	{
+		scIn = scIn.substr(0, scIn.length() - 1);
+	}
+	return scIn;
 }
 
 // This function is similar to GetParam but instead returns everything from the parameter 
@@ -835,54 +835,54 @@ wstring Trim(wstring wscIn)
 
 wstring VectorToSectorCoord(uint iSystemID, Vector vPos)
 {
-        float scale = 1.0;
-        const Universe::ISystem *iSystem = Universe::get_system(iSystemID);
-        if (iSystem)
-                scale = iSystem->NavMapScale;
+	float scale = 1.0;
+	const Universe::ISystem *iSystem = Universe::get_system(iSystemID);
+	if (iSystem)
+		scale = iSystem->NavMapScale;
 
-        float fGridsize = 34000.0f / scale;
-        int gridRefX = (int)((vPos.x + (fGridsize * 5)) / fGridsize) - 1;
-        int gridRefZ = (int)((vPos.z + (fGridsize * 5)) / fGridsize) - 1;
+	float fGridsize = 34000.0f / scale;
+	int gridRefX = (int)((vPos.x + (fGridsize * 5)) / fGridsize) - 1;
+	int gridRefZ = (int)((vPos.z + (fGridsize * 5)) / fGridsize) - 1;
 
-        wstring wscXPos = L"X";
-        if (gridRefX >= 0 && gridRefX < 8)
-        {
-                wchar_t* gridXLabel[] = { L"A", L"B", L"C", L"D", L"E", L"F", L"G", L"H" };
-                wscXPos = gridXLabel[gridRefX];
-        }
+	wstring wscXPos = L"X";
+	if (gridRefX >= 0 && gridRefX < 8)
+	{
+		wchar_t* gridXLabel[] = { L"A", L"B", L"C", L"D", L"E", L"F", L"G", L"H" };
+		wscXPos = gridXLabel[gridRefX];
+	}
 
-        wstring wscZPos = L"X";
-        if (gridRefZ >= 0 && gridRefZ < 8)
-        {
-                wchar_t* gridZLabel[] = { L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8" };
-                wscZPos = gridZLabel[gridRefZ];
-        }
+	wstring wscZPos = L"X";
+	if (gridRefZ >= 0 && gridRefZ < 8)
+	{
+		wchar_t* gridZLabel[] = { L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8" };
+		wscZPos = gridZLabel[gridRefZ];
+	}
 
-        wchar_t wszCurrentLocation[100];
-        _snwprintf(wszCurrentLocation, sizeof(wszCurrentLocation), L"%s-%s", wscXPos.c_str(), 
+	wchar_t wszCurrentLocation[100];
+	_snwprintf(wszCurrentLocation, sizeof(wszCurrentLocation), L"%s-%s", wscXPos.c_str(),
 		wscZPos.c_str());
 
-        return wszCurrentLocation;
+	return wszCurrentLocation;
 }
 
 // Return the ship location in nav-map coordinates
 wstring GetLocation(unsigned int iClientID)
 {
-        uint iSystemID = 0;
-        uint iShip = 0;
-        pub::Player::GetSystem(iClientID, iSystemID);
-        pub::Player::GetShip(iClientID, iShip);
-        if (!iSystemID || !iShip)
-        {
-                PrintUserCmdText(iClientID, L"ERR Not in space");
-                return false;
-        }
+	uint iSystemID = 0;
+	uint iShip = 0;
+	pub::Player::GetSystem(iClientID, iSystemID);
+	pub::Player::GetShip(iClientID, iShip);
+	if (!iSystemID || !iShip)
+	{
+		PrintUserCmdText(iClientID, L"ERR Not in space");
+		return false;
+	}
 
-        Vector pos;
-        Matrix rot;
-        pub::SpaceObj::GetLocation(iShip, pos, rot);
+	Vector pos;
+	Matrix rot;
+	pub::SpaceObj::GetLocation(iShip, pos, rot);
 
-        return VectorToSectorCoord(iSystemID, pos);
+	return VectorToSectorCoord(iSystemID, pos);
 }
 
 // Return the current time as a string
@@ -927,21 +927,21 @@ Vector MatrixToEuler(const Matrix& mat)
 
 Quaternion HkMatrixToQuaternion(Matrix m)
 {
-        Quaternion quaternion;
-        quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
-        quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
-        quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
-        quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
-        quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
-        quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
-        quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);
-        return quaternion;
+	Quaternion quaternion;
+	quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
+	quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
+	quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
+	quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
+	quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
+	quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
+	quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);
+	return quaternion;
 }
 
 // Format a chat string in accordance with the receiver's preferences and send it. Will
 // check that the receiver accepts messages from wscSender and refuses to send if necessary.
-void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &wscText, 
-		const wstring &wscTextColor)
+void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &wscText,
+	const wstring &wscTextColor)
 {
 	if (set_bUserCmdIgnore)
 	{
@@ -958,18 +958,18 @@ void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &w
 	// adjust chatsize
 	switch (ClientInfo[iToClientID].chatSize)
 	{
-		case CS_SMALL: cFormat = 0x90; break;
-		case CS_BIG: cFormat = 0x10; break;
-		default: cFormat = 0x00; break;
+	case CS_SMALL: cFormat = 0x90; break;
+	case CS_BIG: cFormat = 0x10; break;
+	default: cFormat = 0x00; break;
 	}
 
 	// adjust chatstyle
 	switch (ClientInfo[iToClientID].chatStyle)
 	{
-		case CST_BOLD: cFormat += 0x01; break;
-		case CST_ITALIC: cFormat += 0x02; break;
-		case CST_UNDERLINE: cFormat += 0x04; break;
-		default: cFormat += 0x00; break;
+	case CST_BOLD: cFormat += 0x01; break;
+	case CST_ITALIC: cFormat += 0x02; break;
+	case CST_UNDERLINE: cFormat += 0x04; break;
+	default: cFormat += 0x00; break;
 	}
 
 	wchar_t wszFormatBuf[8];
@@ -977,9 +977,9 @@ void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &w
 	wstring wscTRADataFormat = wszFormatBuf;
 	const wstring wscTRADataSenderColor = L"FFFFFF"; // white
 
-	wstring wscXML = L"<TRA data=\"0x" + wscTRADataSenderColor + wscTRADataFormat + 
+	wstring wscXML = L"<TRA data=\"0x" + wscTRADataSenderColor + wscTRADataFormat +
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(wscSender) + L": </TEXT>" +
-		L"<TRA data=\"0x" + wscTextColor + wscTRADataFormat + 
+		L"<TRA data=\"0x" + wscTextColor + wscTRADataFormat +
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(wscText) + L"</TEXT>";
 
 	HkFMsg(iToClientID, wscXML);
@@ -1014,46 +1014,46 @@ void ini_write_wstring(FILE *file, const string &parmname, wstring &in)
 // Print message to all ships within the specific number of meters of the player.
 void PrintLocalUserCmdText(uint iClientID, const wstring &wscMsg, float fDistance)
 {
-        uint iShip;
-        pub::Player::GetShip(iClientID, iShip);
+	uint iShip;
+	pub::Player::GetShip(iClientID, iShip);
 
-        Vector pos;
-        Matrix rot;
-        pub::SpaceObj::GetLocation(iShip, pos, rot);
+	Vector pos;
+	Matrix rot;
+	pub::SpaceObj::GetLocation(iShip, pos, rot);
 
-        uint iSystem;
-        pub::Player::GetSystem(iClientID, iSystem);
+	uint iSystem;
+	pub::Player::GetSystem(iClientID, iSystem);
 
-        // For all players in system...
-        struct PlayerData *pPD = 0;
-        while(pPD = Players.traverse_active(pPD))
-        {
-                // Get the this player's current system and location in the system.
-                uint iClientID2 = HkGetClientIdFromPD(pPD);
-                uint iSystem2 = 0;
-                pub::Player::GetSystem(iClientID2, iSystem2);
-                if (iSystem != iSystem2)
-                        continue;
+	// For all players in system...
+	struct PlayerData *pPD = 0;
+	while (pPD = Players.traverse_active(pPD))
+	{
+		// Get the this player's current system and location in the system.
+		uint iClientID2 = HkGetClientIdFromPD(pPD);
+		uint iSystem2 = 0;
+		pub::Player::GetSystem(iClientID2, iSystem2);
+		if (iSystem != iSystem2)
+			continue;
 
-                uint iShip2;
-                pub::Player::GetShip(iClientID2, iShip2);
+		uint iShip2;
+		pub::Player::GetShip(iClientID2, iShip2);
 
-                Vector pos2;
-                Matrix rot2;
-                pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
+		Vector pos2;
+		Matrix rot2;
+		pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
 
-                // Is player within the specified range of the sending char.
-                if (HkDistance3D(pos, pos2) > fDistance)
-                        continue;
+		// Is player within the specified range of the sending char.
+		if (HkDistance3D(pos, pos2) > fDistance)
+			continue;
 
-                PrintUserCmdText(iClientID2, L"%s", wscMsg.c_str());
-        }
+		PrintUserCmdText(iClientID2, L"%s", wscMsg.c_str());
+	}
 }
 
 // Send a player to group message
 void SendGroupChat(uint iFromClientID, const wstring &wscText)
 {
-	const wchar_t *wscSender = (const wchar_t*) Players.GetActiveCharacterName(iFromClientID);
+	const wchar_t *wscSender = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
 
 	// Format and send the message a player in this group.
 	list<GROUP_MEMBER> lstMembers;
@@ -1100,16 +1100,16 @@ void TranslateZ(Vector &pos, Matrix &rot, float z)
 // (which happens due to other bugs). Used by playercntl.
 mstime GetTimeInMS()
 {
-        static mstime msBaseTime = 0;
-        static mstime msLastTickCount = 0;
+	static mstime msBaseTime = 0;
+	static mstime msLastTickCount = 0;
 
-        mstime msCurTime = GetTickCount();
-        // GetTickCount is 32 bits and so wraps around ever 49.5 days
-        // If a wrap around has occurred then 
-        if (msCurTime < msLastTickCount)
-                msBaseTime += (2^32);
-        msLastTickCount = msCurTime;
-        return msBaseTime + msLastTickCount;
+	mstime msCurTime = GetTickCount();
+	// GetTickCount is 32 bits and so wraps around ever 49.5 days
+	// If a wrap around has occurred then 
+	if (msCurTime < msLastTickCount)
+		msBaseTime += (2 ^ 32);
+	msLastTickCount = msCurTime;
+	return msBaseTime + msLastTickCount;
 }
 
 #define PI 3.14159265f
@@ -1141,47 +1141,47 @@ float degrees(float rad)
 // Return the CEqObj from the IObjRW
 __declspec(naked) CEqObj * __stdcall HkGetEqObjFromObjRW(struct IObjRW *objRW)
 {
-   __asm
-   {
-      push ecx
-      push edx
-      mov ecx, [esp+12]
-      mov edx, [ecx]
-      call dword ptr[edx+0x150]
-      pop edx
-      pop ecx
-      ret 4
-   }
+	__asm
+	{
+		push ecx
+		push edx
+		mov ecx, [esp + 12]
+		mov edx, [ecx]
+		call dword ptr[edx + 0x150]
+		pop edx
+		pop ecx
+		ret 4
+	}
 }
 
 __declspec(naked) void __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float fDelay, float fLifetime, float fSkip)
 {
-        __asm
-        {
-                lea eax, [esp+8] //iFuseID
-                push [esp+20] //fSkip
-                push [esp+16] //fDelay
-                push 0 //SUBOBJ_ID_NONE
-                push eax
-                push [esp+32] //fLifetime
-                mov ecx, [esp+24]
-                mov eax, [ecx]
-                call [eax+0x1E4]
-                ret 20
-        }
+	__asm
+	{
+		lea eax, [esp + 8] //iFuseID
+		push[esp + 20] //fSkip
+		push[esp + 16] //fDelay
+		push 0 //SUBOBJ_ID_NONE
+		push eax
+		push[esp + 32] //fLifetime
+		mov ecx, [esp + 24]
+		mov eax, [ecx]
+		call[eax + 0x1E4]
+		ret 20
+	}
 }
 
 __declspec(naked) void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno)
 {
-        __asm
-        {
-                mov ecx, [esp+4]
-                lea eax, [esp+8] //iFuseID
-                push [esp+12] //fDunno
-                push 0 //SUBOBJ_ID_NONE
-                push eax //iFuseID
-                mov eax, [ecx]
-                call [eax+0x1E8]
-                ret 12
-        }
+	__asm
+	{
+		mov ecx, [esp + 4]
+		lea eax, [esp + 8] //iFuseID
+		push[esp + 12] //fDunno
+		push 0 //SUBOBJ_ID_NONE
+		push eax //iFuseID
+		mov eax, [ecx]
+		call[eax + 0x1E8]
+		ret 12
+	}
 }

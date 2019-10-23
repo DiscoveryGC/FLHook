@@ -52,7 +52,7 @@ void ExportData::ToHTML()
 			PlayerBase *base = iter->second;
 
 			//do nothing if it's something we don't care about
-			if ( mapArchs[base->basetype].display == false)
+			if (mapArchs[base->basetype].display == false)
 			{
 				++iter;
 			}
@@ -63,13 +63,13 @@ void ExportData::ToHTML()
 				fprintf(file, "<tr>");
 				fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(base->basename)).c_str());
 				fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(theaffiliation)).c_str());
-				fprintf(file, "<td class=\"column0\">%0.0f</td>", 100 * (base->base_health/base->max_base_health));
-				fprintf(file, "<td class=\"column0\">%s</td>", base->shield_state==PlayerBase::SHIELD_STATE_ACTIVE ? "On" : "Off");
+				fprintf(file, "<td class=\"column0\">%0.0f</td>", 100 * (base->base_health / base->max_base_health));
+				fprintf(file, "<td class=\"column0\">%s</td>", base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE ? "On" : "Off");
 				fprintf(file, "<td class=\"column0\">%I64d</td>", base->money);
 
 
 				string desc;
-				for (int i=1; i<=MAX_PARAGRAPHS; i++)
+				for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 				{
 					desc += "<p>";
 					desc += wstos(HtmlEncode(base->infocard_para[i]));
@@ -104,7 +104,7 @@ void ExportData::ToHTML()
 
 				fprintf(file, "<td class=\"column0\">%s</td>", theblacklist.c_str());
 
-				fprintf(file, "</tr>\n");   
+				fprintf(file, "</tr>\n");
 				++iter;
 			}
 		}
@@ -135,40 +135,40 @@ void ExportData::ToJSON()
 		//else
 		//{
 			//grab the affiliation before we begin
-			wstring theaffiliation = HtmlEncode(HkGetWStringFromIDS(Reputation::get_name(base->affiliation)));
-			if (theaffiliation == L"Object Unknown")
-			{
-				theaffiliation = L"No Affiliation";
-			}
-			
-			//begin the object writer
-			minijson::object_writer pw = pwc.nested_object( wstos(HtmlEncode(base->basename)).c_str() );
-			
-			minijson::array_writer pwds = pw.nested_array("passwords");
-			// first thing we'll do is grab all administrator passwords, encoded.
-			for (list<BasePassword>::iterator it=base->passwords.begin(); it != base->passwords.end(); ++it)
-			{
-				BasePassword bp = *it;
-				wstring l = bp.pass;
-				if (!bp.admin && bp.viewshop)
-					l += L" viewshop";
-				pwds.write(wstos(HtmlEncode(l)).c_str());
-			}
-			pwds.close();
-			
-			//add basic elements
-			pw.write("affiliation", wstos(HtmlEncode(theaffiliation)).c_str() );
-			pw.write("type", base->basetype.c_str());
-			pw.write("solar", base->basesolar.c_str());
-			pw.write("loadout", base->baseloadout.c_str());
-			pw.write("level", base->base_level);
-			pw.write("health", 100 * (base->base_health/base->max_base_health));
-			pw.write("defensemode", base->defense_mode);
-			pw.close();
+		wstring theaffiliation = HtmlEncode(HkGetWStringFromIDS(Reputation::get_name(base->affiliation)));
+		if (theaffiliation == L"Object Unknown")
+		{
+			theaffiliation = L"No Affiliation";
+		}
 
-			++iter;
+		//begin the object writer
+		minijson::object_writer pw = pwc.nested_object(wstos(HtmlEncode(base->basename)).c_str());
+
+		minijson::array_writer pwds = pw.nested_array("passwords");
+		// first thing we'll do is grab all administrator passwords, encoded.
+		for (list<BasePassword>::iterator it = base->passwords.begin(); it != base->passwords.end(); ++it)
+		{
+			BasePassword bp = *it;
+			wstring l = bp.pass;
+			if (!bp.admin && bp.viewshop)
+				l += L" viewshop";
+			pwds.write(wstos(HtmlEncode(l)).c_str());
+		}
+		pwds.close();
+
+		//add basic elements
+		pw.write("affiliation", wstos(HtmlEncode(theaffiliation)).c_str());
+		pw.write("type", base->basetype.c_str());
+		pw.write("solar", base->basesolar.c_str());
+		pw.write("loadout", base->baseloadout.c_str());
+		pw.write("level", base->base_level);
+		pw.write("health", 100 * (base->base_health / base->max_base_health));
+		pw.write("defensemode", base->defense_mode);
+		pw.close();
+
+		++iter;
 		//}
-		
+
 	}
 	pwc.close();
 

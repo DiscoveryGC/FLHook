@@ -257,9 +257,9 @@ enum PLUGIN_MESSAGE
 
 struct ANTICHEAT_TELEPORT_STRUCT // in
 {
-	uint iClientID; 
-	Vector vNewPos; 
-	Matrix mNewOrient; 
+	uint iClientID;
+	Vector vNewPos;
+	Matrix mNewOrient;
 };
 
 enum ANTICHEAT_CHEAT_CODE
@@ -272,7 +272,7 @@ enum ANTICHEAT_CHEAT_CODE
 
 struct ANTICHEAT_CHEATER_STRUCT
 {
-	uint iClientID; 
+	uint iClientID;
 	wstring wscCharname;
 	ANTICHEAT_CHEAT_CODE CheatCode;
 	wstring wscLog;
@@ -292,13 +292,13 @@ struct	CONDATA_EXCEPTION_STRUCT // in
 {
 	uint iClientID;
 	bool bException;
-    string sReason;
+	string sReason;
 };
 
 struct	TEMPBAN_BAN_STRUCT // in
 {
 	uint iClientID;
-    uint iDuration;
+	uint iDuration;
 };
 
 struct DSACE_CHANGE_INFOCARD_STRUCT

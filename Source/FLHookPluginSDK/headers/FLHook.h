@@ -74,13 +74,13 @@ typedef unsigned long ulong;
 typedef unsigned __int64 mstime;
 
 // custom fl wstring (vc6 strings)
-typedef class std::basic_string<unsigned short,struct ci_wchar_traits> flstr;
-typedef class std::basic_string<char,struct ci_char_traits> flstrs;
+typedef class std::basic_string<unsigned short, struct ci_wchar_traits> flstr;
+typedef class std::basic_string<char, struct ci_char_traits> flstrs;
 
 typedef flstr* (*_CreateWString)(const wchar_t *wszStr);
-typedef void (*_FreeWString)(flstr *wscStr);
+typedef void(*_FreeWString)(flstr *wscStr);
 typedef flstrs* (*_CreateString)(const char *szStr);
-typedef void (*_FreeString)(flstrs *scStr);
+typedef void(*_FreeString)(flstrs *scStr);
 typedef char* (*_GetCString)(flstrs *scStr);
 typedef wchar_t* (*_GetWCString)(flstr *wscStr);
 typedef wchar_t* (*_WStringAssign)(flstr *wscStr, const wchar_t *wszStr);
@@ -95,11 +95,11 @@ typedef flstr* (*_CPlayerAccount_GetServerSignature)(class CPlayerAccount* cpa, 
 
 #include "plugin.h"
 
-typedef void (__stdcall *_RCSendChatMsg)(uint iId, uint iTo, uint iSize, void *pRDL);
-typedef void (__stdcall *_CRCAntiCheat)();
-typedef void (__stdcall *_CreateChar)(const wchar_t *wszName);
-typedef int (__cdecl *_GetFLName)(char *szBuf, const wchar_t *wszStr);
-typedef bool (__cdecl *_GetShipInspect)(uint &iShip, IObjInspectImpl* &inspect, uint &iDunno);
+typedef void(__stdcall *_RCSendChatMsg)(uint iId, uint iTo, uint iSize, void *pRDL);
+typedef void(__stdcall *_CRCAntiCheat)();
+typedef void(__stdcall *_CreateChar)(const wchar_t *wszName);
+typedef int(__cdecl *_GetFLName)(char *szBuf, const wchar_t *wszStr);
+typedef bool(__cdecl *_GetShipInspect)(uint &iShip, IObjInspectImpl* &inspect, uint &iDunno);
 
 extern IMPORT _GetShipInspect GetShipInspect;
 
@@ -228,7 +228,7 @@ struct MONEY_FIX
 
 	bool operator==(MONEY_FIX mf1)
 	{
-		if(!wscCharname.compare(mf1.wscCharname))
+		if (!wscCharname.compare(mf1.wscCharname))
 			return true;
 
 		return false;
@@ -253,65 +253,65 @@ struct RESOLVE_IP
 
 struct CLIENT_INFO
 {
-// kill msgs
+	// kill msgs
 	uint		iShip;
 	uint		iShipOld;
 	mstime		tmSpawnTime;
 
 	DamageList	dmgLast;
 
-// money cmd
+	// money cmd
 	list<MONEY_FIX> lstMoneyFix;
 
-// anticheat
+	// anticheat
 	uint		iTradePartner;
 
-// change cruise disruptor behaviour
+	// change cruise disruptor behaviour
 	bool		bCruiseActivated;
 	bool		bThrusterActivated;
 	bool		bEngineKilled;
 	bool		bTradelane;
 
-// idle kicks
+	// idle kicks
 	uint		iBaseEnterTime;
 	uint		iCharMenuEnterTime;
 
-// msg, wait and kick
+	// msg, wait and kick
 	mstime		tmKickTime;
 
-// eventmode
+	// eventmode
 	uint		iLastExitedBaseID;
 	bool		bDisconnected;
 
-// f1 laming
+	// f1 laming
 	bool		bCharSelected;
 	mstime		tmF1Time;
 	mstime		tmF1TimeDisconnect;
 
-// ignore usercommand
+	// ignore usercommand
 	list<IGNORE_INFO> lstIgnore;
 
-// user settings
+	// user settings
 	DIEMSGTYPE	dieMsg;
 	CHATSIZE	dieMsgSize;
 	CHATSTYLE	dieMsgStyle;
 	CHATSIZE	chatSize;
 	CHATSTYLE	chatStyle;
 
-// autobuy
-/*
-	bool		bAutoBuyMissiles;
-	bool		bAutoBuyMunitions;
-	bool		bAutoBuyMines;
-	bool		bAutoBuyTorps;
-	bool		bAutoBuyCD;
-	bool		bAutoBuyCM;
-	bool		bAutoBuyReload;
-*/
-// MultiKillMessages
+	// autobuy
+	/*
+		bool		bAutoBuyMissiles;
+		bool		bAutoBuyMunitions;
+		bool		bAutoBuyMines;
+		bool		bAutoBuyTorps;
+		bool		bAutoBuyCD;
+		bool		bAutoBuyCM;
+		bool		bAutoBuyReload;
+	*/
+	// MultiKillMessages
 	uint		iKillsInARow;
 
-// bans
+	// bans
 	uint		iConnects; // incremented when player connects
 
 	//cloak bool, this allows us to have a status on it shared between plugins to prevent possible bugs.
@@ -344,30 +344,30 @@ struct EVENT_PLUGIN_POB_TRANSFER
 };
 
 // taken from directplay
-typedef struct _DPN_CONNECTION_INFO{
-    DWORD   dwSize;
-    DWORD   dwRoundTripLatencyMS;
-    DWORD   dwThroughputBPS;
-    DWORD   dwPeakThroughputBPS;
-    DWORD   dwBytesSentGuaranteed;
-    DWORD   dwPacketsSentGuaranteed;
-    DWORD   dwBytesSentNonGuaranteed;
-    DWORD   dwPacketsSentNonGuaranteed;
-    DWORD   dwBytesRetried;
-    DWORD   dwPacketsRetried;
-    DWORD   dwBytesDropped;
-    DWORD   dwPacketsDropped;
-    DWORD   dwMessagesTransmittedHighPriority;
-    DWORD   dwMessagesTimedOutHighPriority;
-    DWORD   dwMessagesTransmittedNormalPriority;
-    DWORD   dwMessagesTimedOutNormalPriority;
-    DWORD   dwMessagesTransmittedLowPriority;
-    DWORD   dwMessagesTimedOutLowPriority;
-    DWORD   dwBytesReceivedGuaranteed;
-    DWORD   dwPacketsReceivedGuaranteed;
-    DWORD   dwBytesReceivedNonGuaranteed;
-    DWORD   dwPacketsReceivedNonGuaranteed;
-    DWORD   dwMessagesReceived;
+typedef struct _DPN_CONNECTION_INFO {
+	DWORD   dwSize;
+	DWORD   dwRoundTripLatencyMS;
+	DWORD   dwThroughputBPS;
+	DWORD   dwPeakThroughputBPS;
+	DWORD   dwBytesSentGuaranteed;
+	DWORD   dwPacketsSentGuaranteed;
+	DWORD   dwBytesSentNonGuaranteed;
+	DWORD   dwPacketsSentNonGuaranteed;
+	DWORD   dwBytesRetried;
+	DWORD   dwPacketsRetried;
+	DWORD   dwBytesDropped;
+	DWORD   dwPacketsDropped;
+	DWORD   dwMessagesTransmittedHighPriority;
+	DWORD   dwMessagesTimedOutHighPriority;
+	DWORD   dwMessagesTransmittedNormalPriority;
+	DWORD   dwMessagesTimedOutNormalPriority;
+	DWORD   dwMessagesTransmittedLowPriority;
+	DWORD   dwMessagesTimedOutLowPriority;
+	DWORD   dwBytesReceivedGuaranteed;
+	DWORD   dwPacketsReceivedGuaranteed;
+	DWORD   dwBytesReceivedNonGuaranteed;
+	DWORD   dwPacketsReceivedNonGuaranteed;
+	DWORD   dwMessagesReceived;
 } DPN_CONNECTION_INFO, *PDPN_CONNECTION_INFO;
 
 struct HKPLAYERINFO
@@ -583,30 +583,30 @@ IMPORT bool flc_encode(const char *ifile, const char *ofile);
 // enums
 enum CCMDS_RIGHTS
 {
-	RIGHT_NOTHING		= 0,
-	RIGHT_SUPERADMIN	= 0xFFFFFFFF,
-	RIGHT_MSG			= (1 << 0),
-	RIGHT_BAN			= (1 << 1),
-	RIGHT_EVENTMODE		= (1 << 2),
-	RIGHT_CASH			= (1 << 3),
-	RIGHT_BEAMKILL		= (1 << 4),
-	RIGHT_REPUTATION	= (1 << 5),
-	RIGHT_CARGO			= (1 << 6),
-	RIGHT_CHARACTERS	= (1 << 7),
-	RIGHT_SETTINGS		= (1 << 8),
-	RIGHT_PLUGINS		= (1 << 9),
-	RIGHT_OTHER			= (1 << 10),
-	RIGHT_SPECIAL1		= (1 << 11),
-	RIGHT_SPECIAL2		= (1 << 12),
-	RIGHT_SPECIAL3		= (1 << 13),
-	RIGHT_KICK			= (1 << 14),
+	RIGHT_NOTHING = 0,
+	RIGHT_SUPERADMIN = 0xFFFFFFFF,
+	RIGHT_MSG = (1 << 0),
+	RIGHT_BAN = (1 << 1),
+	RIGHT_EVENTMODE = (1 << 2),
+	RIGHT_CASH = (1 << 3),
+	RIGHT_BEAMKILL = (1 << 4),
+	RIGHT_REPUTATION = (1 << 5),
+	RIGHT_CARGO = (1 << 6),
+	RIGHT_CHARACTERS = (1 << 7),
+	RIGHT_SETTINGS = (1 << 8),
+	RIGHT_PLUGINS = (1 << 9),
+	RIGHT_OTHER = (1 << 10),
+	RIGHT_SPECIAL1 = (1 << 11),
+	RIGHT_SPECIAL2 = (1 << 12),
+	RIGHT_SPECIAL3 = (1 << 13),
+	RIGHT_KICK = (1 << 14),
 };
 
 class CTimer
 {
 public:
 	IMPORT CTimer(string sFunction, uint iWarning);
-    IMPORT void start();
+	IMPORT void start();
 	IMPORT uint stop();
 
 private:
@@ -630,7 +630,7 @@ public:
 
 	IMPORT void PrintError();
 
-// commands
+	// commands
 	void CmdGetCash(const wstring &wscCharname);
 	void CmdSetCash(const wstring &wscCharname, int iAmount);
 	void CmdSetCashSec(const wstring &wscCharname, int iAmountCheck, int iAmount);
@@ -700,7 +700,7 @@ public:
 	void CmdUnpausePlugin(const wstring &wscPlugin);
 
 	void CmdTest(int iArg, int iArg2, int iArg3);
-//
+	//
 	IMPORT wstring ArgCharname(uint iArg);
 	IMPORT int ArgInt(uint iArg);
 	IMPORT uint ArgUInt(uint iArg);
@@ -838,7 +838,7 @@ extern IMPORT _CreateChar CreateChar;
 extern IMPORT string scAcctPath;
 
 #define MAX_CLIENT_ID 249
-extern IMPORT CLIENT_INFO ClientInfo[MAX_CLIENT_ID+1];
+extern IMPORT CLIENT_INFO ClientInfo[MAX_CLIENT_ID + 1];
 extern IMPORT CDPServer *cdpSrv;
 extern IMPORT uint g_iServerLoad;
 extern IMPORT uint g_iPlayerCount;
@@ -849,7 +849,7 @@ extern IMPORT float g_LastHitPts;
 
 // help
 
-typedef bool (*_HelpEntryDisplayed)(uint);
+typedef bool(*_HelpEntryDisplayed)(uint);
 extern IMPORT void HkAddHelpEntry(const wstring &c, const wstring &t, const wstring &shelp, const wstring &lhelp, _HelpEntryDisplayed check);
 extern IMPORT void HkRemoveHelpEntry(const wstring &c, const wstring &t);
 extern IMPORT bool get_bTrue(uint iClientID);
@@ -857,8 +857,8 @@ extern IMPORT bool get_bTrue(uint iClientID);
 //blowfish
 
 typedef struct {
-  unsigned long P[16 + 2];
-  unsigned long S[4][256];
+	unsigned long P[16 + 2];
+	unsigned long S[4][256];
 } BLOWFISH_CTX;
 
 IMPORT void Blowfish_Init(BLOWFISH_CTX *ctx, unsigned char *key, int keyLen);

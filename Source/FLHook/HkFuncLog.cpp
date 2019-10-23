@@ -4,10 +4,10 @@
 
 void AddDebugLog(const char *szString, ...)
 {
-	if(!set_bDebug)
+	if (!set_bDebug)
 		return;
-	
-	if(ftell(fLogDebug) > ((int)set_iDebugMaxSize<<10)){
+
+	if (ftell(fLogDebug) > ((int)set_iDebugMaxSize << 10)) {
 		fclose(fLogDebug);
 		_unlink(sDebugLog.c_str());
 		fLogDebug = fopen(sDebugLog.c_str(), "at");
@@ -16,7 +16,7 @@ void AddDebugLog(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	if (fLogDebug) {
 		char szBuf[64];
@@ -25,7 +25,8 @@ void AddDebugLog(const char *szString, ...)
 		strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
 		fprintf(fLogDebug, "[%s] %s\n", szBuf, szBufString);
 		fflush(fLogDebug);
-	} else {
+	}
+	else {
 		ConPrint(L"Failed to write debug log! This might be due to inability to create the directory - are you running as an administrator?\n");
 	}
 }
@@ -38,7 +39,7 @@ void AddLog(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	if (fLog) {
 		char szBuf[64];
@@ -47,7 +48,8 @@ void AddLog(const char *szString, ...)
 		strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
 		fprintf(fLog, "[%s] %s\n", szBuf, szBufString);
 		fflush(fLog);
-	} else {
+	}
+	else {
 		ConPrint(L"Failed to write log! This might be due to inability to create the directory - are you running as an administrator?\n");
 	}
 }
@@ -56,15 +58,15 @@ void AddLog(const char *szString, ...)
 
 void HkHandleCheater(uint iClientID, bool bBan, wstring wscReason, ...)
 {
-	wchar_t wszBuf[1024*8] = L"";
+	wchar_t wszBuf[1024 * 8] = L"";
 	va_list marker;
 	va_start(marker, wscReason);
 
 	_vsnwprintf(wszBuf, (sizeof(wszBuf) / 2) - 1, wscReason.c_str(), marker);
-	
+
 	HkAddCheaterLog(iClientID, wszBuf);
 
-	if(wscReason[0] != '#' && Players.GetActiveCharacterName(iClientID))
+	if (wscReason[0] != '#' && Players.GetActiveCharacterName(iClientID))
 	{
 		wstring wscCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
 
@@ -73,9 +75,9 @@ void HkHandleCheater(uint iClientID, bool bBan, wstring wscReason, ...)
 		HkMsgU(wszBuf2);
 	}
 
-	if(bBan)
+	if (bBan)
 		HkBan(ARG_CLIENTID(iClientID), true);
-	if(wscReason[0] != '#')
+	if (wscReason[0] != '#')
 		HkKick(ARG_CLIENTID(iClientID));
 }
 
@@ -84,13 +86,13 @@ void HkHandleCheater(uint iClientID, bool bBan, wstring wscReason, ...)
 bool HkAddCheaterLog(const wstring &wscCharname, const wstring &wscReason)
 {
 	FILE *f = fopen(("./flhook_logs/flhook_cheaters.log"), "at");
-	if(!f)
+	if (!f)
 		return false;
 
 	CAccount *acc = HkGetAccountByCharname(wscCharname);
 	wstring wscAccountDir = L"???";
 	wstring wscAccountID = L"???";
-	if(acc)
+	if (acc)
 	{
 		HkGetAccountDirName(acc, wscAccountDir);
 		wscAccountID = HkGetAccountID(acc);
@@ -99,12 +101,12 @@ bool HkAddCheaterLog(const wstring &wscCharname, const wstring &wscReason)
 	uint iClientID = HkGetClientIdFromCharname(wscCharname);
 	wstring wscHostName = L"???";
 	wstring wscIp = L"???";
-	if(iClientID != -1) 
+	if (iClientID != -1)
 	{
 		wscHostName = ClientInfo[iClientID].wscHostname;
-		HkGetPlayerIP(iClientID,wscIp);
+		HkGetPlayerIP(iClientID, wscIp);
 	}
-	
+
 
 	time_t tNow = time(0);
 	struct tm *stNow = localtime(&tNow);
@@ -119,13 +121,13 @@ bool HkAddCheaterLog(const wstring &wscCharname, const wstring &wscReason)
 bool HkAddCheaterLog(const uint &iClientID, const wstring &wscReason)
 {
 	FILE *f = fopen(("./flhook_logs/flhook_cheaters.log"), "at");
-	if(!f)
+	if (!f)
 		return false;
 
 	CAccount *acc = Players.FindAccountFromClientID(iClientID);
 	wstring wscAccountDir = L"???";
 	wstring wscAccountID = L"???";
-	if(acc)
+	if (acc)
 	{
 		HkGetAccountDirName(acc, wscAccountDir);
 		wscAccountID = HkGetAccountID(acc);
@@ -135,10 +137,10 @@ bool HkAddCheaterLog(const uint &iClientID, const wstring &wscReason)
 	wstring wscIp = L"???";
 
 	wscHostName = ClientInfo[iClientID].wscHostname;
-	HkGetPlayerIP(iClientID,wscIp);
+	HkGetPlayerIP(iClientID, wscIp);
 
 	wstring wscCharname = L"? ? ?"; //spaces to make clear it's not a player name
-	if(Players.GetActiveCharacterName(iClientID))
+	if (Players.GetActiveCharacterName(iClientID))
 	{
 		wscCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
 	}
@@ -155,18 +157,18 @@ bool HkAddCheaterLog(const uint &iClientID, const wstring &wscReason)
 
 bool HkAddKickLog(uint iClientID, wstring wscReason, ...)
 {
-	wchar_t wszBuf[1024*8] = L"";
+	wchar_t wszBuf[1024 * 8] = L"";
 	va_list marker;
 	va_start(marker, wscReason);
 
 	_vsnwprintf(wszBuf, (sizeof(wszBuf) / 2) - 1, wscReason.c_str(), marker);
 
 	FILE *f = fopen(("./flhook_logs/flhook_kicks.log"), "at");
-	if(!f)
+	if (!f)
 		return false;
 
 	const wchar_t *wszCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
-	if(!wszCharname)
+	if (!wszCharname)
 		wszCharname = L"";
 
 	CAccount *acc = Players.FindAccountFromClientID(iClientID);
@@ -184,18 +186,18 @@ bool HkAddKickLog(uint iClientID, wstring wscReason, ...)
 
 bool HkAddConnectLog(uint iClientID, wstring wscReason, ...)
 {
-	wchar_t wszBuf[1024*8] = L"";
+	wchar_t wszBuf[1024 * 8] = L"";
 	va_list marker;
 	va_start(marker, wscReason);
 
 	_vsnwprintf(wszBuf, (sizeof(wszBuf) / 2) - 1, wscReason.c_str(), marker);
 
 	FILE *f = fopen(("./flhook_logs/flhook_connects.log"), "at");
-	if(!f)
+	if (!f)
 		return false;
 
 	const wchar_t *wszCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
-	if(!wszCharname)
+	if (!wszCharname)
 		wszCharname = L"";
 
 	CAccount *acc = Players.FindAccountFromClientID(iClientID);
@@ -217,7 +219,7 @@ static void AddLog(FILE* fLog, const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	if (fLog) {
 		char szBuf[64];
@@ -226,7 +228,8 @@ static void AddLog(FILE* fLog, const char *szString, ...)
 		strftime(szBuf, sizeof(szBuf), "%d.%m.%Y %H:%M:%S", t);
 		fprintf(fLog, "[%s] %s\n", szBuf, szBufString);
 		fflush(fLog);
-	} else {
+	}
+	else {
 		ConPrint(L"Failed to write log! This might be due to inability to create the directory - are you running as an administrator?\n");
 	}
 }
@@ -238,13 +241,13 @@ void HkAddAdminCmdLog(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	FILE *f = fopen(("./flhook_logs/flhook_admincmds.log"), "at");
-	if(!f)
+	if (!f)
 		return;
 
-    AddLog(f, "%s", szBufString);
+	AddLog(f, "%s", szBufString);
 
 	fclose(f);
 	return;
@@ -257,13 +260,13 @@ void HkAddSocketCmdLog(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	FILE *f = fopen(("./flhook_logs/flhook_socketcmds.log"), "at");
-	if(!f)
+	if (!f)
 		return;
 
-    AddLog(f, "%s", szBufString);
+	AddLog(f, "%s", szBufString);
 
 	fclose(f);
 	return;
@@ -276,13 +279,13 @@ void HkAddUserCmdLog(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	FILE *f = fopen(("./flhook_logs/flhook_usercmds.log"), "at");
-	if(!f)
+	if (!f)
 		return;
 
-    AddLog(f, "%s", szBufString);
+	AddLog(f, "%s", szBufString);
 
 	fclose(f);
 	return;
@@ -295,13 +298,13 @@ void HkAddPerfTimerLog(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	FILE *f = fopen(("./flhook_logs/flhook_perftimers.log"), "at");
-	if(!f)
+	if (!f)
 		return;
 
-    AddLog(f, "%s", szBufString);
+	AddLog(f, "%s", szBufString);
 
 	fclose(f);
 	return;

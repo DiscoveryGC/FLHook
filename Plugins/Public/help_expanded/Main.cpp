@@ -35,9 +35,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -60,7 +60,7 @@ struct HELPSTRUCT
 };
 
 bool bPluginEnabled = true; // So we can disable it with ease.
-map<wstring, HELPSTRUCT> mapHelp; 
+map<wstring, HELPSTRUCT> mapHelp;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
@@ -82,7 +82,7 @@ void LoadSettings()
 
 	foreach(iniSection, INISECTIONVALUE, iter) // Loop through the list
 	{
-		if(iter->scKey == "help") // Imitate ini reader
+		if (iter->scKey == "help") // Imitate ini reader
 		{
 			wstring getValueString = stows(iter->scValue); // Get around the character limit glitch
 
@@ -287,7 +287,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 

@@ -24,7 +24,7 @@
 #include <FLCoreCommon.h>
 
 
-IMPORT unsigned int  MakeLocationID(unsigned int,char const *);
+IMPORT unsigned int  MakeLocationID(unsigned int, char const *);
 
 namespace PimpShip
 {
@@ -138,7 +138,7 @@ namespace PimpShip
 							uint iLocationID = CreateID(nickname.c_str());
 							if (!BaseDataList_get()->get_room_data(iLocationID))
 							{
-								if (set_iPluginDebug>0)
+								if (set_iPluginDebug > 0)
 								{
 									ConPrint(L"NOTICE: Room %s does not exist\n", stows(nickname).c_str());
 								}
@@ -186,11 +186,11 @@ namespace PimpShip
 		if (!set_bEnablePimpShip)
 			return;
 
-		if (set_mapDealers.find(iLocationID)==set_mapDealers.end())
+		if (set_mapDealers.find(iLocationID) == set_mapDealers.end())
 		{
 			uint iBaseID = 0;
 			pub::Player::GetBase(iClientID, iBaseID);
-			if (set_mapDealers.find(iBaseID)==set_mapDealers.end())
+			if (set_mapDealers.find(iBaseID) == set_mapDealers.end())
 			{
 				mapInfo[iClientID].bInPimpDealer = false;
 				mapInfo[iClientID].mapCurrEquip.clear();

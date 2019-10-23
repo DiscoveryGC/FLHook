@@ -38,9 +38,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -91,80 +91,80 @@ void LoadSettings()
 	if (ini.open(marketshipsfile.c_str(), false))
 	{
 		while (ini.read_header())
+		{
+			if (ini.is_header("BaseGood"))
 			{
-				if (ini.is_header("BaseGood"))
+				while (ini.read_value())
 				{
-					while (ini.read_value())
+					uint currentbase;
+					if (ini.is_value("base"))
 					{
-						uint currentbase;
-						if (ini.is_value("base"))
-						{
-							currentbase = CreateID(ini.get_value_string(0));
-							shipamount1 = shipamount1 + 1;
-						}
-						else if (ini.is_value("marketgood"))
-						{
-						    mapACShips[currentbase].push_back(CreateID(ini.get_value_string(0)));
-							shipamount2 = shipamount2 + 1;
-						}
-					}				
+						currentbase = CreateID(ini.get_value_string(0));
+						shipamount1 = shipamount1 + 1;
+					}
+					else if (ini.is_value("marketgood"))
+					{
+						mapACShips[currentbase].push_back(CreateID(ini.get_value_string(0)));
+						shipamount2 = shipamount2 + 1;
+					}
 				}
 			}
+		}
 		ini.close();
 	}
 	if (ini.open(marketcommoditiesfile.c_str(), false))
 	{
 		while (ini.read_header())
+		{
+			if (ini.is_header("BaseGood"))
 			{
-				if (ini.is_header("BaseGood"))
+				while (ini.read_value())
 				{
-					while (ini.read_value())
+					//uint temple = CreateID("st04_03_base");
+					uint bastilleguard = CreateID("iw09_03_base");
+					uint currentbase;
+					if (ini.is_value("base"))
 					{
-						//uint temple = CreateID("st04_03_base");
-						uint bastilleguard = CreateID("iw09_03_base");
-						uint currentbase;
-						if (ini.is_value("base"))
+						currentbase = CreateID(ini.get_value_string(0));
+						//we don't record operations from the temple of the damned so when we come across it we'll ignore it.
+						//if (currentbase == temple)
+						//{							
+						//	ConPrint(L"MARKETFUCKER: Ignoring Temple of the Damned. \n");		
+						//}
+						if (currentbase == bastilleguard)
 						{
-							currentbase = CreateID(ini.get_value_string(0));
-							//we don't record operations from the temple of the damned so when we come across it we'll ignore it.
-							//if (currentbase == temple)
-							//{							
-							//	ConPrint(L"MARKETFUCKER: Ignoring Temple of the Damned. \n");		
-							//}
-							if (currentbase == bastilleguard)
-							{							
-								ConPrint(L"MARKETFUCKER: Ignoring Bastille Guard Station. \n");		
-							}
-							else
-							{
-								mapACBases.push_back(currentbase);
-								commodamount1 = commodamount1 + 1;
-							}
+							ConPrint(L"MARKETFUCKER: Ignoring Bastille Guard Station. \n");
 						}
-					}				
+						else
+						{
+							mapACBases.push_back(currentbase);
+							commodamount1 = commodamount1 + 1;
+						}
+					}
 				}
 			}
+		}
 		ini.close();
 	}
 	if (ini.open(flhookitems.c_str(), false))
 	{
 		while (ini.read_header())
+		{
+			if (ini.is_header("items"))
 			{
-				if (ini.is_header("items"))
+				while (ini.read_value())
 				{
-					while (ini.read_value())
+					uint currentitem;
+					if (ini.is_value("item"))
 					{
-						uint currentitem;
-						if (ini.is_value("item"))
-						{
-								currentitem = CreateID(ini.get_value_string(0));
-								//mapACItems.push_back(currentitem);
-								mapACItems[currentitem] = ini.get_value_string(0);
-								commodamount2 = commodamount2 + 1;
-						}
-					}				
+						currentitem = CreateID(ini.get_value_string(0));
+						//mapACItems.push_back(currentitem);
+						mapACItems[currentitem] = ini.get_value_string(0);
+						commodamount2 = commodamount2 + 1;
+					}
 				}
 			}
+		}
 		ini.close();
 	}
 
@@ -186,14 +186,14 @@ void HkTimerCheckKick()
 bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
-	
+
 	if (IS_CMD("showmarket"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		//AdminCmd_GenerateID(cmds, cmds->ArgStrToEnd(1));
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -204,7 +204,7 @@ void Logging(const char *szString, ...)
 	char szBufString[1024];
 	va_list marker;
 	va_start(marker, szString);
-	_vsnprintf(szBufString, sizeof(szBufString)-1, szString, marker);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
 
 	char szBuf[64];
 	time_t tNow = time(0);
@@ -234,21 +234,21 @@ void LogCheater(uint client, const wstring &reason)
 	// stack corruption.
 	HkDelayedKick(client, 1);
 
-		// Ban the account.
-		flstr *flStr = CreateWString(acc->wszAccID);
-		Players.BanAccount(*flStr, true);
-		FreeWString(flStr);
+	// Ban the account.
+	flstr *flStr = CreateWString(acc->wszAccID);
+	Players.BanAccount(*flStr, true);
+	FreeWString(flStr);
 
-		// Overwrite the ban file so that it contains the ban reason
-		wstring wscDir;
-		HkGetAccountDirName(acc, wscDir);
-		string scBanPath = scAcctPath + wstos(wscDir) + "\\banned";
-		FILE *file = fopen(scBanPath.c_str(), "wb");
-		if (file)
-		{
-			fprintf(file, "Autobanned by Marketfucker\n");
-			fclose(file);
-		}
+	// Overwrite the ban file so that it contains the ban reason
+	wstring wscDir;
+	HkGetAccountDirName(acc, wscDir);
+	string scBanPath = scAcctPath + wstos(wscDir) + "\\banned";
+	FILE *file = fopen(scBanPath.c_str(), "wb");
+	if (file)
+	{
+		fprintf(file, "Autobanned by Marketfucker\n");
+		fclose(file);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -265,212 +265,212 @@ void ClearClientInfo(uint iClientID)
 
 void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int iClientID)
 {
-		returncode = DEFAULT_RETURNCODE;
+	returncode = DEFAULT_RETURNCODE;
 
-		const GoodInfo *packageInfo = GoodList::find_by_id(gsi.iArchID);
-		// check for equipments only
-		if (packageInfo->iType == 1)
+	const GoodInfo *packageInfo = GoodList::find_by_id(gsi.iArchID);
+	// check for equipments only
+	if (packageInfo->iType == 1)
+	{
+		uint iBase;
+		pub::Player::GetBase(iClientID, iBase);
+
+		//in this case, it's more efficent to check if it's an item under watch first.
+		for (map<uint, string>::iterator iter = mapACItems.begin(); iter != mapACItems.end(); iter++)
+		{
+			if (iter->first == gsi.iArchID)
 			{
-				uint iBase;
-				pub::Player::GetBase(iClientID, iBase);
-
-				//in this case, it's more efficent to check if it's an item under watch first.
-				for (map<uint, string>::iterator iter = mapACItems.begin(); iter!=mapACItems.end(); iter++)
+				//PrintUserCmdText(iClientID, L"I have found commodity %s.", stows(iter->second).c_str());
+				//We iterate through the base names to see if it's a non-POB base
+				list<uint>::iterator i = mapACBases.begin();
+				while (i != mapACBases.end())
 				{
-					if (iter->first == gsi.iArchID)
+					if (*i == iBase)
 					{
-						//PrintUserCmdText(iClientID, L"I have found commodity %s.", stows(iter->second).c_str());
-						//We iterate through the base names to see if it's a non-POB base
-							list<uint>::iterator i = mapACBases.begin();
-							while (i != mapACBases.end())
-							{
-								if (*i == iBase)
-								{
-									wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
-									wstring wscBaseName = HkGetBaseNickByID(iBase);
-									
+						wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+						wstring wscBaseName = HkGetBaseNickByID(iBase);
 
-									//PrintUserCmdText(iClientID, L"I have found this base, logging the purchase.");
-									// check if this item is already under watch, if so increase amount by 1
-									if (mapACSales[iClientID].items.find(gsi.iArchID) != mapACSales[iClientID].items.end())
-									{
-										++mapACSales[iClientID].items.find(gsi.iArchID)->second;
-										//PrintUserCmdText(iClientID, L"DEBUG: I have logged %i sales.", mapACSales[iClientID].items.find(gsi.iArchID)->second);
-										wstring wscMsgLog = L"<%sender> has sold <%item> to base <%basename> (Already recorded %isale sales of this item)";
-										wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
-										wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
-										wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(iter->second).c_str());
-										wscMsgLog = ReplaceStr(wscMsgLog, L"%isale", stows(itos(mapACSales[iClientID].items.find(gsi.iArchID)->second))).c_str();
-										string scText = wstos(wscMsgLog);
-										Logging("%s", scText.c_str());
-										
-									}
-									else
-									{
-										mapACSales[iClientID].items[gsi.iArchID] = 1;
-										wstring wscMsgLog = L"<%sender> has sold <%item> to base <%basename> (First sale)";
-										wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
-										wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
-										wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(iter->second).c_str());
-										string scText = wstos(wscMsgLog);
-										Logging("%s", scText.c_str());
-									}
-									break;
-								}
-								i++;
-							}
+
+						//PrintUserCmdText(iClientID, L"I have found this base, logging the purchase.");
+						// check if this item is already under watch, if so increase amount by 1
+						if (mapACSales[iClientID].items.find(gsi.iArchID) != mapACSales[iClientID].items.end())
+						{
+							++mapACSales[iClientID].items.find(gsi.iArchID)->second;
+							//PrintUserCmdText(iClientID, L"DEBUG: I have logged %i sales.", mapACSales[iClientID].items.find(gsi.iArchID)->second);
+							wstring wscMsgLog = L"<%sender> has sold <%item> to base <%basename> (Already recorded %isale sales of this item)";
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(iter->second).c_str());
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%isale", stows(itos(mapACSales[iClientID].items.find(gsi.iArchID)->second))).c_str();
+							string scText = wstos(wscMsgLog);
+							Logging("%s", scText.c_str());
+
+						}
+						else
+						{
+							mapACSales[iClientID].items[gsi.iArchID] = 1;
+							wstring wscMsgLog = L"<%sender> has sold <%item> to base <%basename> (First sale)";
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(iter->second).c_str());
+							string scText = wstos(wscMsgLog);
+							Logging("%s", scText.c_str());
+						}
 						break;
 					}
+					i++;
 				}
+				break;
 			}
+		}
+	}
 }
 
 void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	const GoodInfo *packageInfo = GoodList::find_by_id(gbi.iGoodID);
+	/*
+	if (packageInfo->iType == 0)
 	{
-		returncode = DEFAULT_RETURNCODE;
+	PrintUserCmdText(iClientID, L"This should be a commodity (equipment?) purchase");
+	}
+	*/
+	if (packageInfo->iType == 1)
+	{
+		//PrintUserCmdText(iClientID, L"This should be an equipment (maybe?) purchase");
+		uint iBase;
+		pub::Player::GetBase(iClientID, iBase);
+		bool aminiceitem = true;
+		string itemname;
+		int wearecool = 0;
 
-			const GoodInfo *packageInfo = GoodList::find_by_id(gbi.iGoodID);
-			/*
-			if (packageInfo->iType == 0)
-			{
-			PrintUserCmdText(iClientID, L"This should be a commodity (equipment?) purchase");
-			}
-			*/
-			if (packageInfo->iType == 1)
-			{
-			//PrintUserCmdText(iClientID, L"This should be an equipment (maybe?) purchase");
-			uint iBase;
-			pub::Player::GetBase(iClientID, iBase);
-			bool aminiceitem = true;
-			string itemname;
-			int wearecool = 0;
-			
-				//in this case, it's more efficent to check if it's an item under watch first.
+		//in this case, it's more efficent to check if it's an item under watch first.
 
-				for (map<uint, string>::iterator iter = mapACItems.begin(); iter!=mapACItems.end(); iter++)
+		for (map<uint, string>::iterator iter = mapACItems.begin(); iter != mapACItems.end(); iter++)
+		{
+			if (iter->first == gbi.iGoodID)
+			{
+				//PrintUserCmdText(iClientID, L"I have found this commodity");
+				//We iterate through the base names to see if it's a non-POB base
+				list<uint>::iterator i = mapACBases.begin();
+				while (i != mapACBases.end())
 				{
-					if (iter->first == gbi.iGoodID)
+					if (*i == iBase)
 					{
-									//PrintUserCmdText(iClientID, L"I have found this commodity");
-									//We iterate through the base names to see if it's a non-POB base
-									list<uint>::iterator i = mapACBases.begin();
-									while (i != mapACBases.end())
-									{
-										if (*i == iBase)
-										{
-											
-												if (mapACSales[iClientID].items.find(gbi.iGoodID) != mapACSales[iClientID].items.end())
-												{
-														--mapACSales[iClientID].items.find(gbi.iGoodID)->second;
-													
-															//PrintUserCmdText(iClientID, L"DEBUG: I have found this sale, letting the purchase go through.");
-															aminiceitem = true;
-															wearecool = 1;
 
-															wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
-															wstring wscBaseName = HkGetBaseNickByID(iBase);
-															
-															//PrintUserCmdText(iClientID, L"DEBUG: %i purchases left.", mapACSales[iClientID].items.find(gbi.iGoodID)->second);
-															wstring wscMsgLog = L"<%sender> has bought back <%item> from base <%basename> (%isale purchases left)";
-															wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
-															wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
-															wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(iter->second).c_str());
-															wscMsgLog = ReplaceStr(wscMsgLog, L"%isale", stows(itos(mapACSales[iClientID].items.find(gbi.iGoodID)->second))).c_str();
-															string scText = wstos(wscMsgLog);
-															Logging("%s", scText.c_str());
+						if (mapACSales[iClientID].items.find(gbi.iGoodID) != mapACSales[iClientID].items.end())
+						{
+							--mapACSales[iClientID].items.find(gbi.iGoodID)->second;
 
-															if (mapACSales[iClientID].items.find(gbi.iGoodID)->second == 0)
-															{
-																mapACSales[iClientID].items.erase(gbi.iGoodID);
-																//PrintUserCmdText(iClientID, L"DEBUG: no purchases left");
-															}
+							//PrintUserCmdText(iClientID, L"DEBUG: I have found this sale, letting the purchase go through.");
+							aminiceitem = true;
+							wearecool = 1;
 
-															break;
-													
-												}
-
-											if (wearecool == 0)
-											{
-											//PrintUserCmdText(iClientID, L"DEBUG: I have found this base, not good");
-											aminiceitem = false;
-											itemname = iter->second;
-											}
-										}
-										i++;
-									}
-					}
-
-					if (aminiceitem == false)
-					{
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-						wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+							wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 							wstring wscBaseName = HkGetBaseNickByID(iBase);
-							
-							pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_anomaly_detected"));
-							wstring wscMsgU = L"MF: %name has been permabanned. (Type 2)";
-							wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
 
-							HkMsgU(wscMsgU);
-
-							wstring wscMsgLog = L"<%sender> was permabanned for attempting to buy an illegal item <%item> from base <%basename> (see DSAM)";
+							//PrintUserCmdText(iClientID, L"DEBUG: %i purchases left.", mapACSales[iClientID].items.find(gbi.iGoodID)->second);
+							wstring wscMsgLog = L"<%sender> has bought back <%item> from base <%basename> (%isale purchases left)";
 							wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
 							wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
-							wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(itemname).c_str());
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(iter->second).c_str());
+							wscMsgLog = ReplaceStr(wscMsgLog, L"%isale", stows(itos(mapACSales[iClientID].items.find(gbi.iGoodID)->second))).c_str();
+							string scText = wstos(wscMsgLog);
+							Logging("%s", scText.c_str());
 
-							LogCheater(iClientID, wscMsgLog);
-					}
-				}
-			}
-			else if (packageInfo->iType == 3)
-			{
-					uint iBase;
-					pub::Player::GetBase(iClientID, iBase);
-					//PrintUserCmdText(iClientID, L"This should be a ship purchase");
-					bool aminiceship = false;
-
-					for (map<uint, list<uint>>::iterator iter = mapACShips.begin(); iter!=mapACShips.end(); iter++)
-					{
-						if (iter->first == iBase)
-						{
-							//PrintUserCmdText(iClientID, L"This should be a base");
-							// we check if one of the three packages sold here is the correct one
-							list<uint>::iterator i = iter->second.begin();
-							while (i != iter->second.end())
+							if (mapACSales[iClientID].items.find(gbi.iGoodID)->second == 0)
 							{
-								if (*i == gbi.iGoodID)
-								{
-									//PrintUserCmdText(iClientID, L"I have found this ship");
-									aminiceship = true;
-									break;
-								}
-								i++;
-							}								
+								mapACSales[iClientID].items.erase(gbi.iGoodID);
+								//PrintUserCmdText(iClientID, L"DEBUG: no purchases left");
+							}
+
+							break;
+
+						}
+
+						if (wearecool == 0)
+						{
+							//PrintUserCmdText(iClientID, L"DEBUG: I have found this base, not good");
+							aminiceitem = false;
+							itemname = iter->second;
 						}
 					}
+					i++;
+				}
+			}
 
-					if (aminiceship == false)
-					{
-						wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
-						wstring wscBaseName = HkGetBaseNickByID(iBase);
-						
-						pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_anomaly_detected"));
-						wstring wscMsgU = L"MF: %name has been permabanned. (Type 1)";
-						wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
+			if (aminiceitem == false)
+			{
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+				wstring wscBaseName = HkGetBaseNickByID(iBase);
 
-						HkMsgU(wscMsgU);
+				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_anomaly_detected"));
+				wstring wscMsgU = L"MF: %name has been permabanned. (Type 2)";
+				wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
 
-						wstring wscMsgLog = L"<%sender> was permabanned for attempting to buy an illegal ship from base <%basename> (see DSAM)";
-						wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
-						wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
+				HkMsgU(wscMsgU);
 
-						LogCheater(iClientID, wscMsgLog);
-					}
-			}	
+				wstring wscMsgLog = L"<%sender> was permabanned for attempting to buy an illegal item <%item> from base <%basename> (see DSAM)";
+				wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
+				wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
+				wscMsgLog = ReplaceStr(wscMsgLog, L"%item", stows(itemname).c_str());
 
-
-
-
+				LogCheater(iClientID, wscMsgLog);
+			}
+		}
 	}
+	else if (packageInfo->iType == 3)
+	{
+		uint iBase;
+		pub::Player::GetBase(iClientID, iBase);
+		//PrintUserCmdText(iClientID, L"This should be a ship purchase");
+		bool aminiceship = false;
+
+		for (map<uint, list<uint>>::iterator iter = mapACShips.begin(); iter != mapACShips.end(); iter++)
+		{
+			if (iter->first == iBase)
+			{
+				//PrintUserCmdText(iClientID, L"This should be a base");
+				// we check if one of the three packages sold here is the correct one
+				list<uint>::iterator i = iter->second.begin();
+				while (i != iter->second.end())
+				{
+					if (*i == gbi.iGoodID)
+					{
+						//PrintUserCmdText(iClientID, L"I have found this ship");
+						aminiceship = true;
+						break;
+					}
+					i++;
+				}
+			}
+		}
+
+		if (aminiceship == false)
+		{
+			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+			wstring wscBaseName = HkGetBaseNickByID(iBase);
+
+			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_anomaly_detected"));
+			wstring wscMsgU = L"MF: %name has been permabanned. (Type 1)";
+			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
+
+			HkMsgU(wscMsgU);
+
+			wstring wscMsgLog = L"<%sender> was permabanned for attempting to buy an illegal ship from base <%basename> (see DSAM)";
+			wscMsgLog = ReplaceStr(wscMsgLog, L"%sender", wscCharname.c_str());
+			wscMsgLog = ReplaceStr(wscMsgLog, L"%basename", wscBaseName.c_str());
+
+			LogCheater(iClientID, wscMsgLog);
+		}
+	}
+
+
+
+
+}
 
 void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
@@ -495,7 +495,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));

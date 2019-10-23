@@ -21,10 +21,10 @@ Connecticut Plugin by MadHunter
 #define CLIENT_STATE_TRANSFER	1
 #define CLIENT_STATE_RETURN		2
 
-int transferFlags[MAX_CLIENT_ID+1];
+int transferFlags[MAX_CLIENT_ID + 1];
 
-const std::wstring STR_INFO1		= L"Please dock at nearest base";
-const std::wstring STR_INFO2		= L"Cargo hold is not empty";
+const std::wstring STR_INFO1 = L"Please dock at nearest base";
+const std::wstring STR_INFO2 = L"Cargo hold is not empty";
 
 int set_iPluginDebug = 0;
 // Base to beam to.
@@ -78,8 +78,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// calls load settings on FLHook startup and .rehash.
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
-			LoadSettings();	
+		if (set_scCfgFile.length() > 0)
+			LoadSettings();
 	}
 	return true;
 }
@@ -122,7 +122,7 @@ uint GetCustomBaseForClient(unsigned int client)
 	// Pass to plugins incase this ship is docked at a custom base.
 	CUSTOM_BASE_IS_DOCKED_STRUCT info;
 	info.iClientID = client;
-	info.iDockedBaseID = 0; 
+	info.iDockedBaseID = 0;
 	Plugin_Communication(CUSTOM_BASE_IS_DOCKED, &info);
 	return info.iDockedBaseID;
 }
@@ -149,7 +149,7 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 	// Ask that another plugin handle the beam.
 	CUSTOM_BASE_BEAM_STRUCT info;
 	info.iClientID = client;
-	info.iTargetBaseID = targetBase; 
+	info.iTargetBaseID = targetBase;
 	info.bBeamed = false;
 	Plugin_Communication(CUSTOM_BASE_BEAM, &info);
 	if (info.bBeamed)
@@ -190,7 +190,7 @@ bool CheckReturnDock(unsigned int client, unsigned int target)
 bool UserCmd_Process(uint client, const wstring &cmd)
 {
 	returncode = DEFAULT_RETURNCODE;
-	
+
 	if (!cmd.compare(L"/conn"))
 	{
 		// Prohibit jump if in a restricted system or in the target system
@@ -256,7 +256,7 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 
 	return false;
 }
-	
+
 void __stdcall CharacterSelect(struct CHARACTER_ID const &charid, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -300,7 +300,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	}
 }
 
-	
+
 /** Functions to hook */
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
@@ -312,7 +312,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));	
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	return p_PI;

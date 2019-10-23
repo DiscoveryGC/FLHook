@@ -40,7 +40,7 @@ string itos(int i)
 wstring ToLower(const wstring &wscStr)
 {
 	wstring wscResult;
-	for(uint i = 0; (i < wscStr.length()); i++)
+	for (uint i = 0; (i < wscStr.length()); i++)
 		wscResult += towlower(wscStr[i]);
 
 	return wscResult;
@@ -51,7 +51,7 @@ wstring ToLower(const wstring &wscStr)
 string ToLower(const string &scStr)
 {
 	string scResult;
-	for(uint i = 0; (i < scStr.length()); i++)
+	for (uint i = 0; (i < scStr.length()); i++)
 		scResult += tolower(scStr[i]);
 
 	return scResult;
@@ -87,10 +87,10 @@ wstring ToMoneyStr(int iCash)
 	int iThousands = (iCash % 1000000) / 1000;
 	int iRest = (iCash % 1000);
 	wchar_t wszBuf[32];
-	
-	if(iMillions)
+
+	if (iMillions)
 		swprintf(wszBuf, L"%d.%.3d.%.3d", iMillions, abs(iThousands), abs(iRest));
-	else if(iThousands)
+	else if (iThousands)
 		swprintf(wszBuf, L"%d.%.3d", iThousands, abs(iRest));
 	else
 		swprintf(wszBuf, L"%d", iRest);
@@ -102,7 +102,7 @@ wstring ToMoneyStr(int iCash)
 
 string IniGetS(const string &scFile, const string &scApp, const string &scKey, const string &scDefault)
 {
-	char szRet[2048*2];
+	char szRet[2048 * 2];
 	GetPrivateProfileString(scApp.c_str(), scKey.c_str(), scDefault.c_str(), szRet, sizeof(szRet), scFile.c_str());
 	return szRet;
 }
@@ -118,7 +118,7 @@ int IniGetI(const string &scFile, const string &scApp, const string &scKey, int 
 
 float IniGetF(const string &scFile, const string &scApp, const string &scKey, float fDefault)
 {
-	char szRet[2048*2];
+	char szRet[2048 * 2];
 	char szDefault[16];
 	sprintf(szDefault, "%f", fDefault);
 	GetPrivateProfileString(scApp.c_str(), scKey.c_str(), szDefault, szRet, sizeof(szRet), scFile.c_str());
@@ -144,7 +144,7 @@ void IniWrite(const string &scFile, const string &scApp, const string &scKey, co
 void IniWriteW(const string &scFile, const string &scApp, const string &scKey, const wstring &wscValue)
 {
 	string scValue = "";
-	for(uint i = 0; (i < wscValue.length()); i++)
+	for (uint i = 0; (i < wscValue.length()); i++)
 	{
 		char cHiByte = wscValue[i] >> 8;
 		char cLoByte = wscValue[i] & 0xFF;
@@ -159,16 +159,16 @@ void IniWriteW(const string &scFile, const string &scApp, const string &scKey, c
 
 wstring IniGetWS(const string &scFile, const string &scApp, const string &scKey, const wstring &wscDefault)
 {
-	char szRet[2048*2];
+	char szRet[2048 * 2];
 	GetPrivateProfileString(scApp.c_str(), scKey.c_str(), "", szRet, sizeof(szRet), scFile.c_str());
 	string scValue = szRet;
-	if(!scValue.length())
+	if (!scValue.length())
 		return wscDefault;
 
 	wstring wscValue = L"";
 	long lHiByte;
 	long lLoByte;
-	while(sscanf(scValue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
+	while (sscanf(scValue.c_str(), "%02X%02X", &lHiByte, &lLoByte) == 2)
 	{
 		scValue = scValue.substr(4);
 		wchar_t wChar = (wchar_t)((lHiByte << 8) | lLoByte);
@@ -200,7 +200,7 @@ void IniGetSection(const string &scFile, const string &scApp, list<INISECTIONVAL
 	char szBuf[0xFFFF];
 	GetPrivateProfileSection(scApp.c_str(), szBuf, sizeof(szBuf), scFile.c_str());
 	char *szNext = szBuf;
-	while(strlen(szNext) > 0)
+	while (strlen(szNext) > 0)
 	{
 		INISECTIONVALUE isv;
 		char szKey[0xFFFF] = "";
@@ -219,13 +219,13 @@ void IniGetSection(const string &scFile, const string &scApp, list<INISECTIONVAL
 wstring XMLText(const wstring &wscText)
 {
 	wstring wscRet;
-	for(uint i = 0; (i < wscText.length()); i++)
+	for (uint i = 0; (i < wscText.length()); i++)
 	{
-		if(wscText[i] == '<')
+		if (wscText[i] == '<')
 			wscRet.append(L"&#60;");
-		else if(wscText[i] == '>')
+		else if (wscText[i] == '>')
 			wscRet.append(L"&#62;");
-		else if(wscText[i] == '&')
+		else if (wscText[i] == '&')
 			wscRet.append(L"&#38;");
 		else
 			wscRet.append(1, wscText[i]);
@@ -238,7 +238,7 @@ wstring XMLText(const wstring &wscText)
 
 void WriteProcMem(void *pAddress, void *pMem, int iSize)
 {
-	HANDLE hProc = OpenProcess(PROCESS_VM_OPERATION|PROCESS_VM_WRITE|PROCESS_VM_READ, FALSE, GetCurrentProcessId());
+	HANDLE hProc = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ, FALSE, GetCurrentProcessId());
 	DWORD dwOld;
 	VirtualProtectEx(hProc, pAddress, iSize, PAGE_EXECUTE_READWRITE, &dwOld);
 	WriteProcessMemory(hProc, pAddress, pMem, iSize, 0);
@@ -249,7 +249,7 @@ void WriteProcMem(void *pAddress, void *pMem, int iSize)
 
 void ReadProcMem(void *pAddress, void *pMem, int iSize)
 {
-	HANDLE hProc = OpenProcess(PROCESS_VM_OPERATION|PROCESS_VM_WRITE|PROCESS_VM_READ, FALSE, GetCurrentProcessId());
+	HANDLE hProc = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ, FALSE, GetCurrentProcessId());
 	DWORD dwOld;
 	VirtualProtectEx(hProc, pAddress, iSize, PAGE_EXECUTE_READWRITE, &dwOld);
 	ReadProcessMemory(hProc, pAddress, pMem, iSize, 0);
@@ -261,23 +261,23 @@ void ReadProcMem(void *pAddress, void *pMem, int iSize)
 wstring GetParam(const wstring &wscLine, wchar_t wcSplitChar, uint iPos)
 {
 	uint i = 0, j = 0;
- 
+
 	wstring wscResult = L"";
-	for(i = 0, j = 0; (i <= iPos) && (j < wscLine.length()); j++)
+	for (i = 0, j = 0; (i <= iPos) && (j < wscLine.length()); j++)
 	{
-		if(wscLine[j] == wcSplitChar)
+		if (wscLine[j] == wcSplitChar)
 		{
-			while(((j + 1) < wscLine.length()) && (wscLine[j+1] == wcSplitChar))
+			while (((j + 1) < wscLine.length()) && (wscLine[j + 1] == wcSplitChar))
 				j++; // skip "whitechar"
 
 			i++;
 			continue;
 		}
- 
-		if(i == iPos)
+
+		if (i == iPos)
 			wscResult += wscLine[j];
 	}
- 
+
 	return wscResult;
 }
 
@@ -288,7 +288,7 @@ wstring ReplaceStr(const wstring &wscSource, const wstring &wscSearchFor, const 
 	uint lPos, sPos = 0;
 
 	wstring wscResult = wscSource;
-	while((lPos = (uint)wscResult.find(wscSearchFor, sPos)) != -1)
+	while ((lPos = (uint)wscResult.find(wscSearchFor, sPos)) != -1)
 	{
 		wscResult.replace(lPos, wscSearchFor.length(), wscReplaceWith);
 		sPos = lPos + wscReplaceWith.length();
@@ -312,19 +312,19 @@ mstime timeInMS()
 
 void SwapBytes(void *ptr, uint iLen)
 {
-	if(iLen % 4)
+	if (iLen % 4)
 		return;
 
-	for(uint i=0; i<iLen; i+=4)
+	for (uint i = 0; i < iLen; i += 4)
 	{
 		char *ptr1 = (char*)ptr + i;
 		unsigned long temp;
 		memcpy(&temp, ptr1, 4);
 		char *ptr2 = (char*)&temp;
-		memcpy(ptr1, ptr2+3, 1);
-		memcpy(ptr1+1, ptr2+2, 1);
-		memcpy(ptr1+2, ptr2+1, 1);
-		memcpy(ptr1+3, ptr2, 1);
+		memcpy(ptr1, ptr2 + 3, 1);
+		memcpy(ptr1 + 1, ptr2 + 2, 1);
+		memcpy(ptr1 + 2, ptr2 + 1, 1);
+		memcpy(ptr1 + 3, ptr2, 1);
 	}
 }
 
@@ -359,17 +359,17 @@ HMODULE GetModuleAddr(uint iAddr)
 	HMODULE hModArr[1024];
 	DWORD iArrSizeNeeded;
 	HANDLE hProcess = GetCurrentProcess();
-	if(EnumProcessModules(hProcess, hModArr, sizeof(hModArr), &iArrSizeNeeded))
+	if (EnumProcessModules(hProcess, hModArr, sizeof(hModArr), &iArrSizeNeeded))
 	{
-		if(iArrSizeNeeded > sizeof(hModArr))
+		if (iArrSizeNeeded > sizeof(hModArr))
 			iArrSizeNeeded = sizeof(hModArr);
 		iArrSizeNeeded /= sizeof(HMODULE);
-		for(uint i = 0; i < iArrSizeNeeded; i++)
+		for (uint i = 0; i < iArrSizeNeeded; i++)
 		{
 			MODULEINFO mi;
-			if(GetModuleInformation(hProcess, hModArr[i], &mi, sizeof(mi)))
+			if (GetModuleInformation(hProcess, hModArr[i], &mi, sizeof(mi)))
 			{
-				if(((uint)mi.lpBaseOfDll) < iAddr && (uint)mi.lpBaseOfDll + (uint)mi.SizeOfImage > iAddr)
+				if (((uint)mi.lpBaseOfDll) < iAddr && (uint)mi.lpBaseOfDll + (uint)mi.SizeOfImage > iAddr)
 				{
 					return hModArr[i];
 				}
@@ -383,20 +383,20 @@ HMODULE GetModuleAddr(uint iAddr)
 #include "dbghelp.h"
 
 // based on dbghelp.h
-typedef BOOL (WINAPI *MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
-									CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-									CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-									CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam
-									);
+typedef BOOL(WINAPI *MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
+	CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+	CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+	CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+	);
 
 void WriteMiniDump(struct _EXCEPTION_POINTERS *pExceptionInfo)
 {
 	AddLog("Attempting to write minidump...");
 	AddDebugLog("Attempting to write minidump...");
-	HMODULE hDll = ::LoadLibrary( "DBGHELP.DLL" );
+	HMODULE hDll = ::LoadLibrary("DBGHELP.DLL");
 	if (hDll)
 	{
-		MINIDUMPWRITEDUMP pDump = (MINIDUMPWRITEDUMP)::GetProcAddress( hDll, "MiniDumpWriteDump" );
+		MINIDUMPWRITEDUMP pDump = (MINIDUMPWRITEDUMP)::GetProcAddress(hDll, "MiniDumpWriteDump");
 		if (pDump)
 		{
 			// put the dump file in the flhook logs/debug directory
@@ -415,10 +415,10 @@ void WriteMiniDump(struct _EXCEPTION_POINTERS *pExceptionInfo)
 			} while (FileExists(szDumpPath));
 
 			// create the file
-			HANDLE hFile = ::CreateFile( szDumpPath, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS,
-				FILE_ATTRIBUTE_NORMAL, NULL );
+			HANDLE hFile = ::CreateFile(szDumpPath, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS,
+				FILE_ATTRIBUTE_NORMAL, NULL);
 
-			if (hFile!=INVALID_HANDLE_VALUE)
+			if (hFile != INVALID_HANDLE_VALUE)
 			{
 				_MINIDUMP_EXCEPTION_INFORMATION ExInfo;
 
@@ -427,11 +427,11 @@ void WriteMiniDump(struct _EXCEPTION_POINTERS *pExceptionInfo)
 					ExInfo.ThreadId = ::GetCurrentThreadId();
 					ExInfo.ExceptionPointers = pExceptionInfo;
 					ExInfo.ClientPointers = NULL;
-					pDump( GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &ExInfo, NULL, NULL );
+					pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &ExInfo, NULL, NULL);
 				}
 				else
 				{
-					pDump( GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, NULL, NULL, NULL );
+					pDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, NULL, NULL, NULL);
 				}
 				::CloseHandle(hFile);
 
@@ -484,7 +484,8 @@ void AddExceptionInfoLog(LPEXCEPTION_POINTERS pep)
 
 		WriteMiniDump(pep);
 
-	} catch(...) { AddLog("Exception in AddExceptionInfoLog!"); }
+	}
+	catch (...) { AddLog("Exception in AddExceptionInfoLog!"); }
 }
 
 #endif

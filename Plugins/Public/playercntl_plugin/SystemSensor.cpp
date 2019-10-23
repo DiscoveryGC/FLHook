@@ -71,7 +71,7 @@ namespace SystemSensor
 	static map<UINT, INFO> mapInfo;
 
 	void LoadSettings(const string &scPluginCfgFile)
-	{	
+	{
 		INI_Reader ini;
 		if (ini.open(scPluginCfgFile.c_str(), false))
 		{
@@ -94,7 +94,7 @@ namespace SystemSensor
 					while (ini.read_value())
 					{
 						if (ini.is_value("Hackers"))
-						{ 
+						{
 							systemsensor_hackersid = CreateID(ini.get_value_string(0));
 						}
 					}
@@ -107,11 +107,11 @@ namespace SystemSensor
 	bool UserCmd_Net(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		wstring wscMode = ToLower(GetParam(wscParam, ' ', 0));
-		if (wscMode.size()==0)
+		if (wscMode.size() == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
-			return true;	
+			return true;
 		}
 
 		if (!mapInfo[iClientID].iAvailableNetworkID)
@@ -121,12 +121,12 @@ namespace SystemSensor
 			return true;
 		}
 
-		if (wscMode==L"all")
+		if (wscMode == L"all")
 		{
 			PrintUserCmdText(iClientID, L"OK Sensor network monitoring all traffic");
 			mapInfo[iClientID].iMode = MODE_JUMPGATE | MODE_TRADELANE;
 		}
-		else if (wscMode==L"jumponly")
+		else if (wscMode == L"jumponly")
 		{
 			PrintUserCmdText(iClientID, L"OK Sensor network monitoring jumpgate traffic only");
 			mapInfo[iClientID].iMode = MODE_JUMPGATE;
@@ -144,11 +144,11 @@ namespace SystemSensor
 		uint HasRestrictedAccess = 0;
 		HasRestrictedAccess = mapInfo[iClientID].HasRestrictedAccess;
 
-		if (HasRestrictedAccess) 
-		{ 
-				PrintUserCmdText(iClientID, L"3rr 0u7d473d 50f7w4r3");
-				return false;
-		}				
+		if (HasRestrictedAccess)
+		{
+			PrintUserCmdText(iClientID, L"3rr 0u7d473d 50f7w4r3");
+			return false;
+		}
 		else
 		{
 
@@ -238,7 +238,7 @@ namespace SystemSensor
 		// enable access.
 		uint iAvailableNetworkID = 0;
 		uint HasRestrictedAccess = 0;
-		foreach (lstCargo, CARGO_INFO, i)
+		foreach(lstCargo, CARGO_INFO, i)
 		{
 			if (i->bMounted)
 			{
@@ -265,12 +265,15 @@ namespace SystemSensor
 		{
 			mapInfo[iClientID].iAvailableNetworkID = iAvailableNetworkID;
 			mapInfo[iClientID].HasRestrictedAccess = HasRestrictedAccess;
-			if (HasRestrictedAccess) { 
-				PrintUserCmdText(iClientID, L"C0nn3c710n 70 7r4d3l4n3 53n50r n37w0rk 3574bl15h3d. 7yp3 /net 70 4cc355 n37w0rk.");}
+			if (HasRestrictedAccess) {
+				PrintUserCmdText(iClientID, L"C0nn3c710n 70 7r4d3l4n3 53n50r n37w0rk 3574bl15h3d. 7yp3 /net 70 4cc355 n37w0rk.");
+			}
 			else if (iAvailableNetworkID) {
-				PrintUserCmdText(iClientID, L"Connection to tradelane sensor network established. Type /net to access network.");}
+				PrintUserCmdText(iClientID, L"Connection to tradelane sensor network established. Type /net to access network.");
+			}
 			else {
-				PrintUserCmdText(iClientID, L"Connection to tradelane sensor network lost.");}
+				PrintUserCmdText(iClientID, L"Connection to tradelane sensor network lost.");
+			}
 		}
 	}
 
@@ -280,7 +283,7 @@ namespace SystemSensor
 	}
 
 	static void DumpSensorAccess(uint iClientID, const wstring &wscType, uint iType)
-	{	
+	{
 		unsigned int iSystemID;
 		pub::Player::GetSystem(iClientID, iSystemID);
 
@@ -290,7 +293,7 @@ namespace SystemSensor
 		if (siter == send)
 			return;
 
-		if (mapInfo.find(iClientID)==mapInfo.end())
+		if (mapInfo.find(iClientID) == mapInfo.end())
 		{
 			SystemSensor::ClearClientInfo(iClientID);
 		}
@@ -312,19 +315,19 @@ namespace SystemSensor
 				{
 					if (piter->second.iMode & iType)
 					{
-						if (piter->second.HasRestrictedAccess) 
+						if (piter->second.HasRestrictedAccess)
 						{
-						wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
-						PrintUserCmdText(piter->first, L"%s[$%u] %s at %s",
-						Players.GetActiveCharacterName(iClientID), iClientID,
-						wscType.c_str(), wscSysName.c_str(), GetLocation(iClientID).c_str());
+							wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
+							PrintUserCmdText(piter->first, L"%s[$%u] %s at %s",
+								Players.GetActiveCharacterName(iClientID), iClientID,
+								wscType.c_str(), wscSysName.c_str(), GetLocation(iClientID).c_str());
 						}
-						else 
+						else
 						{
-						wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
-						PrintUserCmdText(piter->first, L"%s[$%u] %s at %s %s",
-							Players.GetActiveCharacterName(iClientID), iClientID,
-							wscType.c_str(), wscSysName.c_str(), GetLocation(iClientID).c_str());
+							wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
+							PrintUserCmdText(piter->first, L"%s[$%u] %s at %s %s",
+								Players.GetActiveCharacterName(iClientID), iClientID,
+								wscType.c_str(), wscSysName.c_str(), GetLocation(iClientID).c_str());
 						}
 					}
 				}
@@ -337,11 +340,11 @@ namespace SystemSensor
 	void Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
 	{
 		uint iClientID = HkGetClientIDByShip(iShip);
-		if (iClientID && (response==PROCEED_DOCK || response==DOCK) && !iCancel)
+		if (iClientID && (response == PROCEED_DOCK || response == DOCK) && !iCancel)
 		{
 			uint iTypeID;
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);
-			if (iTypeID==OBJ_JUMP_GATE)
+			if (iTypeID == OBJ_JUMP_GATE)
 			{
 				mapInfo[iClientID].bInJumpGate = true;
 			}
@@ -354,18 +357,18 @@ namespace SystemSensor
 
 
 	void JumpInComplete(unsigned int iSystem, unsigned int iShip, unsigned int iClientID)
-	{	
+	{
 		EnableSensorAccess(iClientID);
 		if (mapInfo[iClientID].bInJumpGate)
 		{
 			mapInfo[iClientID].bInJumpGate = false;
-			DumpSensorAccess(iClientID, L"exited jumpgate", MODE_JUMPGATE);		
+			DumpSensorAccess(iClientID, L"exited jumpgate", MODE_JUMPGATE);
 		}
 	}
 
 	void GoTradelane(unsigned int iClientID, struct XGoTradelane const &xgt)
 	{
-		DumpSensorAccess(iClientID, L"entered tradelane", MODE_TRADELANE);		
+		DumpSensorAccess(iClientID, L"entered tradelane", MODE_TRADELANE);
 	}
 
 	void StopTradelane(unsigned int iClientID, unsigned int p1, unsigned int p2, unsigned int p3)

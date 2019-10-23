@@ -29,7 +29,7 @@ namespace Log
 {
 	void Logging(string basename, const char *szString, ...)
 	{
-		
+
 	}
 
 	void LogBaseAction(string basename, const char *message)

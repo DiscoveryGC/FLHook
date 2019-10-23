@@ -93,7 +93,7 @@ struct CLIENTCDSTRUCT
 };
 
 static map<uint, CLOAK_INFO> mapClientsCloak;
-static map<uint, CLIENTCDSTRUCT> mapClientsCD; 
+static map<uint, CLIENTCDSTRUCT> mapClientsCD;
 
 static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
@@ -108,9 +108,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if(fdwReason == DLL_PROCESS_ATTACH)
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		if (set_scCfgFile.length()>0)
+		if (set_scCfgFile.length() > 0)
 			LoadSettings();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
@@ -235,11 +235,11 @@ void SetCloak(uint iClientID, uint iShipID, bool bOn)
 	ActivateEq.bActivate = bOn;
 	ActivateEq.iSpaceID = iShipID;
 	ActivateEq.sID = mapClientsCloak[iClientID].iCloakSlot;
-	Server.ActivateEquip(iClientID,ActivateEq);
+	Server.ActivateEquip(iClientID, ActivateEq);
 }
 
 void SetState(uint iClientID, uint iShipID, int iNewState)
-{	
+{
 	if (mapClientsCloak[iClientID].iState != iNewState)
 	{
 		mapClientsCloak[iClientID].iState = iNewState;
@@ -300,7 +300,7 @@ bool removeSingleFuel(uint iClientID, CLOAK_INFO &info)
 			info.singleCloakConsumed = true;
 			return true;
 		}
-	} 
+	}
 
 	return false;
 
@@ -344,25 +344,25 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		if (mapCloakDisruptors.find(item->iArchID) != mapCloakDisruptors.end())
+		{
+			if (item->bMounted)
 			{
-				if (mapCloakDisruptors.find(item->iArchID) != mapCloakDisruptors.end())
-				{
-					if (item->bMounted)
-					{
-						//PrintUserCmdText(iClientID, L"DEBUG: Found relevant item: %s", stows(mapCloakDisruptors[item->equip.iArchID].nickname).c_str());
-						pub::Audio::PlaySoundEffect(iClientID, CreateID("cargo_jettison"));
+				//PrintUserCmdText(iClientID, L"DEBUG: Found relevant item: %s", stows(mapCloakDisruptors[item->equip.iArchID].nickname).c_str());
+				pub::Audio::PlaySoundEffect(iClientID, CreateID("cargo_jettison"));
 
-						CDSTRUCT cd;
-						CLIENTCDSTRUCT cdclient;
+				CDSTRUCT cd;
+				CLIENTCDSTRUCT cdclient;
 
-						cdclient.cdwn = 0;
-						cdclient.cd = mapCloakDisruptors[item->iArchID];
+				cdclient.cdwn = 0;
+				cdclient.cd = mapCloakDisruptors[item->iArchID];
 
-						mapClientsCD[iClientID] = cdclient;
-						//PrintUserCmdText(iClientID, L"DEBUG: Checking data is correct: CD name is %s", stows(mapClientsCD[iClientID].cd.nickname).c_str());
-					}
-				}
+				mapClientsCD[iClientID] = cdclient;
+				//PrintUserCmdText(iClientID, L"DEBUG: Checking data is correct: CD name is %s", stows(mapClientsCD[iClientID].cd.nickname).c_str());
 			}
+		}
+	}
 
 	//Legacy code for the cloaks, needs to be rewritten at some point. - Alley
 
@@ -378,10 +378,10 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 		while (equip)
 		{
 			if (CECloakingDevice::cast(equip))
-			{		
-				mapClientsCloak[iClientID].iCloakSlot = equip->GetID();			
-				
-				if (mapCloakingDevices.find(equip->EquipArch()->iArchID)!=mapCloakingDevices.end())
+			{
+				mapClientsCloak[iClientID].iCloakSlot = equip->GetID();
+
+				if (mapCloakingDevices.find(equip->EquipArch()->iArchID) != mapCloakingDevices.end())
 				{
 					// Otherwise set the fuel usage and warm up time
 					mapClientsCloak[iClientID].arch = mapCloakingDevices[equip->EquipArch()->iArchID];
@@ -421,14 +421,14 @@ void HkTimerCheckKick()
 {
 	mstime now = timeInMS();
 	uint curr_time = (uint)time(0);
-	
+
 
 	for (map<uint, CLOAK_INFO>::iterator ci = mapClientsCloak.begin(); ci != mapClientsCloak.end(); ++ci)
 	{
 		uint iClientID = ci->first;
 		uint iShipID = Players[iClientID].iShipID;
 		CLOAK_INFO &info = ci->second;
-	
+
 		//code to check if the player is disrupted. We run this separately to not cause issues with the bugfix
 		//first we check if it's 0. If it is, it's useless to process the other conditions, even if it means an additional check to begin with.
 		if (info.DisruptTime != 0)
@@ -455,14 +455,14 @@ void HkTimerCheckKick()
 				ActivateEq.bActivate = false;
 				ActivateEq.iSpaceID = iShipID;
 				ActivateEq.sID = info.iCloakSlot;
-				Server.ActivateEquip(iClientID,ActivateEq);
+				Server.ActivateEquip(iClientID, ActivateEq);
 				break;
 
 			case STATE_CLOAK_CHARGING:
 				if (!ProcessFuel(iClientID, info))
 				{
-					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");	
-					SetState(iClientID, iShipID, STATE_CLOAK_OFF);	
+					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");
+					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
 				}
 				else if (setJumpingClients.find(iClientID) != setJumpingClients.end())
 				{
@@ -485,54 +485,54 @@ void HkTimerCheckKick()
 			case STATE_CLOAK_ON:
 				if (!ProcessFuel(iClientID, info))
 				{
-					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");	
-					SetState(iClientID, iShipID, STATE_CLOAK_OFF);	
+					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");
+					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
 				}
 				else if (info.arch.bDropShieldsOnUncloak && !info.bAdmin)
 				{
 					pub::SpaceObj::DrainShields(iShipID);
-					
 
-						if ((curr_time % 5) == 0)
+
+					if ((curr_time % 5) == 0)
+					{
+						uint iShip;
+						pub::Player::GetShip(iClientID, iShip);
+
+						Vector pos;
+						Matrix rot;
+						pub::SpaceObj::GetLocation(iShipID, pos, rot);
+
+						uint iSystem;
+						pub::Player::GetSystem(iClientID, iSystem);
+
+						uint MusictoID = CreateID("dsy_jumpdrive_survey");
+						//pub::Audio::PlaySoundEffect(iClientID, MusictoID);
+
+						// For all players in system...
+						struct PlayerData *pPD = 0;
+						while (pPD = Players.traverse_active(pPD))
 						{
-							uint iShip;
-							pub::Player::GetShip(iClientID, iShip);
+							// Get the this player's current system and location in the system.
+							uint client2 = HkGetClientIdFromPD(pPD);
+							uint iSystem2 = 0;
+							pub::Player::GetSystem(client2, iSystem2);
+							if (iSystem != iSystem2)
+								continue;
 
-							Vector pos;
-							Matrix rot;
-							pub::SpaceObj::GetLocation(iShipID, pos, rot);
+							uint iShip2;
+							pub::Player::GetShip(client2, iShip2);
 
-							uint iSystem;
-							pub::Player::GetSystem(iClientID, iSystem);
+							Vector pos2;
+							Matrix rot2;
+							pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
 
-							uint MusictoID = CreateID("dsy_jumpdrive_survey");
-							//pub::Audio::PlaySoundEffect(iClientID, MusictoID);
+							// Is player within the specified range of the sending char.
+							if (HkDistance3D(pos, pos2) > 4000)
+								continue;
 
-							// For all players in system...
-							struct PlayerData *pPD = 0;
-							while(pPD = Players.traverse_active(pPD))
-							{
-								// Get the this player's current system and location in the system.
-								uint client2 = HkGetClientIdFromPD(pPD);
-								uint iSystem2 = 0;
-								pub::Player::GetSystem(client2, iSystem2);
-								if (iSystem != iSystem2)
-									continue;
-
-								uint iShip2;
-								pub::Player::GetShip(client2, iShip2);
-
-								Vector pos2;
-								Matrix rot2;
-								pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
-
-								// Is player within the specified range of the sending char.
-								if (HkDistance3D(pos, pos2) > 4000)
-									continue;
-							
-								pub::Audio::PlaySoundEffect(client2, MusictoID);
-							}
+							pub::Audio::PlaySoundEffect(client2, MusictoID);
 						}
+					}
 				}
 				break;
 			}
@@ -628,7 +628,7 @@ void SetFuse(uint iClientID, uint fuse, float lifetime)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-{		
+{
 	uint iShip;
 	pub::Player::GetShip(iClientID, iShip);
 	if (!iShip)
@@ -648,7 +648,7 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 		PrintUserCmdText(iClientID, L"Cloaking Device Disrupted. Please wait %d seconds", mapClientsCloak[iClientID].DisruptTime);
 		return true;
 	}
-	
+
 	// If this cloaking device requires more power than the ship can provide
 	// no cloaking device is available.
 	IObjInspectImpl *obj = HkGetInspect(iClientID);
@@ -725,18 +725,18 @@ bool UserCmd_Disruptor(uint iClientID, const wstring &wscCmd, const wstring &wsc
 				HkLightFuse((IObjRW*)obj, mapClientsCD[iClientID].cd.effect, 0, mapClientsCD[iClientID].cd.effectlifetime, 0);
 			}
 
-			pub::Audio::PlaySoundEffect(iClientID, CreateID("cloak_osiris"));			
+			pub::Audio::PlaySoundEffect(iClientID, CreateID("cloak_osiris"));
 			CloakDisruptor(iClientID);
 			mapClientsCD[iClientID].cdwn = mapClientsCD[iClientID].cd.cooldown;
 			PrintUserCmdText(iClientID, L"Cloak Disruptor engaged. Cooldown: %d seconds.", mapClientsCD[iClientID].cdwn);
-		}		
+		}
 	}
 
 	return true;
 }
 
 
-typedef bool (*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
+typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
 struct USERCMD
 {
@@ -751,12 +751,12 @@ USERCMD UserCmds[] =
 	{ L"/cloak*", UserCmd_Cloak, L"Usage: /cloak"},
 	{ L"/disruptor", UserCmd_Disruptor, L"Usage: /disruptor"},
 	{ L"/disruptor*", UserCmd_Disruptor, L"Usage: /disruptor"},
-	
+
 };
 
 /**
 This function is called by FLHook when a user types a chat string. We look at the
-string they've typed and see if it starts with one of the above commands. If it 
+string they've typed and see if it starts with one of the above commands. If it
 does we try to process it.
 */
 bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
@@ -767,18 +767,18 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 
 	// If the chat string does not match the USER_CMD then we do not handle the
 	// command, so let other plugins or FLHook kick in. We require an exact match
-	for(uint i = 0; (i < sizeof(UserCmds)/sizeof(USERCMD)); i++)
+	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
 	{
 		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
-        {
+		{
 			// Extract the parameters string from the chat string. It should
-            // be immediately after the command and a space.
-            wstring wscParam = L"";
-            if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
+			// be immediately after the command and a space.
+			wstring wscParam = L"";
+			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
 			{
 				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
 					continue;
-				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd)+1);
+				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
 			}
 
 			// Dispatch the command to the appropriate processing function.
@@ -805,12 +805,12 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 		uint iClientID = HkGetClientIdFromCharname(cmds->GetAdminName());
-		if (iClientID==-1)
+		if (iClientID == -1)
 		{
 			cmds->Print(L"ERR On console");
 			return true;
-		}	
-		
+		}
+
 		uint iShip;
 		pub::Player::GetShip(iClientID, iShip);
 		if (!iShip)
@@ -871,17 +871,17 @@ void __stdcall JumpInComplete_AFTER(unsigned int iSystem, unsigned int iShip)
 	uint iClientID = HkGetClientIDByShip(iShip);
 	setJumpingClients.erase(iClientID);
 
-		if (iClientID && mapClientsCloak[iClientID].iState == STATE_CLOAK_CHARGING)
-		{
-			
+	if (iClientID && mapClientsCloak[iClientID].iState == STATE_CLOAK_CHARGING)
+	{
 
-			SetState(iClientID, iShip, STATE_CLOAK_OFF);
-			pub::Audio::PlaySoundEffect(iClientID, CreateID("cloak_osiris"));
-			PrintUserCmdText(iClientID, L"Alert: Cloaking device overheat detected. Shutting down.");
 
-			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-			HkAddCheaterLog(wscCharname, L"Switched system while under cloak charging mode");
-		}
+		SetState(iClientID, iShip, STATE_CLOAK_OFF);
+		pub::Audio::PlaySoundEffect(iClientID, CreateID("cloak_osiris"));
+		PrintUserCmdText(iClientID, L"Alert: Cloaking device overheat detected. Shutting down.");
+
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+		HkAddCheaterLog(wscCharname, L"Switched system while under cloak charging mode");
+	}
 }
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
@@ -937,7 +937,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
-	
+
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
@@ -948,7 +948,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JumpInComplete_AFTER, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
-	
-	
+
+
 	return p_PI;
 }

@@ -88,7 +88,7 @@ namespace MiscCmds
 		{
 			mapInfo[iClientID].bSelfDestruct = false;
 			uint dummy[3] = { 0 };
-			pub::Player::SetShipAndLoadout(iClientID, CreateID("dsy_ge_fighter"),(const EquipDescVector&) dummy);
+			pub::Player::SetShipAndLoadout(iClientID, CreateID("dsy_ge_fighter"), (const EquipDescVector&)dummy);
 		}
 		mapInfo.erase(iClientID);
 	}
@@ -99,7 +99,7 @@ namespace MiscCmds
 		{
 			mapInfo[iClientID].bSelfDestruct = false;
 			uint dummy[3] = { 0 };
-			pub::Player::SetShipAndLoadout(iClientID, CreateID("dsy_ge_fighter"),(const EquipDescVector&) dummy);
+			pub::Player::SetShipAndLoadout(iClientID, CreateID("dsy_ge_fighter"), (const EquipDescVector&)dummy);
 		}
 	}
 
@@ -107,12 +107,12 @@ namespace MiscCmds
 	void MiscCmds::Timer()
 	{
 		// Drop player sheilds and keep them down.
-		for (mapInfo_map_iter_t iter = mapInfo.begin(); iter!=mapInfo.end(); iter++)
+		for (mapInfo_map_iter_t iter = mapInfo.begin(); iter != mapInfo.end(); iter++)
 		{
 			if (iter->second.bShieldsDown)
 			{
 				HKPLAYERINFO p;
-				if (HkGetPlayerInfo((const wchar_t*) Players.GetActiveCharacterName(iter->first), p, false)==HKE_OK && p.iShip)
+				if (HkGetPlayerInfo((const wchar_t*)Players.GetActiveCharacterName(iter->first), p, false) == HKE_OK && p.iShip)
 				{
 					pub::SpaceObj::DrainShields(p.iShip);
 				}
@@ -124,7 +124,7 @@ namespace MiscCmds
 	bool MiscCmds::UserCmd_Pos(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		HKPLAYERINFO p;
-		if (HkGetPlayerInfo((const wchar_t*) Players.GetActiveCharacterName(iClientID), p, false)!=HKE_OK || p.iShip==0)
+		if (HkGetPlayerInfo((const wchar_t*)Players.GetActiveCharacterName(iClientID), p, false) != HKE_OK || p.iShip == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR Not in space");
 			return true;
@@ -147,10 +147,10 @@ namespace MiscCmds
 	bool MiscCmds::UserCmd_Stuck(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		float fTradeLaneRingRadiusSafeDistance = 245.0f;
-		wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 
 		HKPLAYERINFO p;
-		if (HkGetPlayerInfo(wscCharname, p, false)!=HKE_OK)
+		if (HkGetPlayerInfo(wscCharname, p, false) != HKE_OK)
 		{
 			PrintUserCmdText(iClientID, L"ERR Not in space");
 			return true;
@@ -159,7 +159,7 @@ namespace MiscCmds
 		Vector dir1;
 		Vector dir2;
 		pub::SpaceObj::GetMotion(p.iShip, dir1, dir2);
-		if (dir1.x>5 || dir1.y>5 || dir1.z>5)
+		if (dir1.x > 5 || dir1.y > 5 || dir1.z > 5)
 		{
 			PrintUserCmdText(iClientID, L"ERR Ship is moving");
 			return true;
@@ -208,12 +208,12 @@ namespace MiscCmds
 	/** A command to help remove any affiliation that you might have */
 	bool MiscCmds::UserCmd_DropRep(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
-		HK_ERROR err; 
+		HK_ERROR err;
 
-		wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iClientID);
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 
 		wstring wscRepGroupNick;
-		if (HkFLIniGet(wscCharname, L"rep_group", wscRepGroupNick)!=HKE_OK || wscRepGroupNick.length()==0)
+		if (HkFLIniGet(wscCharname, L"rep_group", wscRepGroupNick) != HKE_OK || wscRepGroupNick.length() == 0)
 		{
 			PrintUserCmdText(iClientID, L"ERR No affiliation");
 			return true;
@@ -227,7 +227,7 @@ namespace MiscCmds
 			PrintUserCmdText(iClientID, L"ERR %s", HkErrGetText(err).c_str());
 			return true;
 		}
-		if (set_iRepdropCost>0 && iCash<set_iRepdropCost)
+		if (set_iRepdropCost > 0 && iCash < set_iRepdropCost)
 		{
 			PrintUserCmdText(iClientID, L"ERR Insufficient credits");
 			return true;
@@ -244,9 +244,9 @@ namespace MiscCmds
 		PrintUserCmdText(iClientID, L"OK Reputation dropped, logout for change to take effect.");
 
 		// Remove cash if we're charging for it.
-		if (set_iRepdropCost>0)
+		if (set_iRepdropCost > 0)
 		{
-			HkAddCash(wscCharname, 0-set_iRepdropCost);
+			HkAddCash(wscCharname, 0 - set_iRepdropCost);
 		}
 
 		return true;
@@ -350,12 +350,12 @@ namespace MiscCmds
 	/** Throw the dice and tell all players within 6 km */
 	bool MiscCmds::UserCmd_Coin(uint iFromClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
-		wstring wscCharname = (const wchar_t*) Players.GetActiveCharacterName(iFromClientID);
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
 
-		uint number = (rand()%2);
+		uint number = (rand() % 2);
 		wstring wscMsg = set_wscCoinMsg;
 		wscMsg = ReplaceStr(wscMsg, L"%player", wscCharname);
-		wscMsg = ReplaceStr(wscMsg, L"%result", (number==1)?L"heads":L"tails");
+		wscMsg = ReplaceStr(wscMsg, L"%result", (number == 1) ? L"heads" : L"tails");
 		PrintLocalUserCmdText(iFromClientID, wscMsg, set_iLocalChatRange);
 		return true;
 	}
@@ -363,20 +363,20 @@ namespace MiscCmds
 	/** Smite all players in radar range */
 	void MiscCmds::AdminCmd_SmiteAll(CCmds* cmds)
 	{
-		if(!(cmds->rights & RIGHT_SUPERADMIN))
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
 		}
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
 		}
 
-		bool bKillAll = cmds->ArgStr(1)==L"die";
+		bool bKillAll = cmds->ArgStr(1) == L"die";
 
 		Vector vFromShipLoc;
 		Matrix mFromShipDir;
@@ -391,7 +391,7 @@ namespace MiscCmds
 
 		// For all players in system...
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
 			// Get the this player's current system and location in the system.
 			uint iClientID = HkGetClientIdFromPD(pPD);
@@ -409,12 +409,12 @@ namespace MiscCmds
 			Vector vShipLoc;
 			Matrix mShipDir;
 			pub::SpaceObj::GetLocation(iShip, vShipLoc, mShipDir);
-		
+
 			// Is player within scanner range (15K) of the sending char.
 			float fDistance = HkDistance3D(vShipLoc, vFromShipLoc);
-			if (fDistance>14999)
+			if (fDistance > 14999)
 				continue;
-		
+
 			pub::Audio::Tryptich music;
 			music.iDunno = 0;
 			music.iDunno2 = 0;
@@ -433,8 +433,8 @@ namespace MiscCmds
 				}
 			}
 		}
-		
-		cmds->Print(L"OK\n"); 
+
+		cmds->Print(L"OK\n");
 		return;
 	}
 
@@ -448,19 +448,19 @@ namespace MiscCmds
 		}
 
 		HKPLAYERINFO targetPlyr;
-		if (HkGetPlayerInfo(wscCharname, targetPlyr, false)!=HKE_OK)
+		if (HkGetPlayerInfo(wscCharname, targetPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR Player not found\n");
 			return;
 		}
-		
+
 		pub::Player::SetMonkey(targetPlyr.iClientID);
 
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
 			uint iClientsID = HkGetClientIdFromPD(pPD);
-			
+
 			wstring wscMsg = L"<TRA data=\"0xfffc3b5b\" mask=\"-1\"/><TEXT>Player %p has been spurdofied!</TEXT>";
 			wscMsg = ReplaceStr(wscMsg, L"%p", wscCharname);
 			HkFMsg(iClientsID, wscMsg);
@@ -482,13 +482,13 @@ namespace MiscCmds
 		for (list<EquipDesc>::iterator eq = eqLst.begin(); eq != eqLst.end(); eq++)
 		{
 			string hp = ToLower(eq->szHardPoint.value);
-			if (hp.find("dock")!=string::npos)
+			if (hp.find("dock") != string::npos)
 			{
 				XActivateEquip ActivateEq;
 				ActivateEq.bActivate = bOn;
 				ActivateEq.iSpaceID = iShip;
 				ActivateEq.sID = eq->sID;
-				Server.ActivateEquip(iClientID,ActivateEq);
+				Server.ActivateEquip(iClientID, ActivateEq);
 				bLights = true;
 			}
 		}
@@ -545,7 +545,7 @@ namespace MiscCmds
 	bool MiscCmds::UserCmd_Shields(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		mapInfo[iClientID].bShieldsDown = !mapInfo[iClientID].bShieldsDown;
-		PrintUserCmdText(iClientID, L"Shields %s", mapInfo[iClientID].bShieldsDown ? L"Disabled":L"Enabled");
+		PrintUserCmdText(iClientID, L"Shields %s", mapInfo[iClientID].bShieldsDown ? L"Disabled" : L"Enabled");
 		return true;
 	}
 
@@ -560,7 +560,7 @@ namespace MiscCmds
 		uint MusictoID = CreateID(wstos(wscMusicname).c_str());
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
@@ -579,7 +579,7 @@ namespace MiscCmds
 
 		// For all players in system...
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
 			// Get the this player's current system and location in the system.
 			uint iClientID = HkGetClientIdFromPD(pPD);
@@ -597,12 +597,12 @@ namespace MiscCmds
 			Vector vShipLoc;
 			Matrix mShipDir;
 			pub::SpaceObj::GetLocation(iShip, vShipLoc, mShipDir);
-		
+
 			// Is player within (50K) of the sending char.
 			float fDistance = HkDistance3D(vShipLoc, vFromShipLoc);
-			if (fDistance>50000)
+			if (fDistance > 50000)
 				continue;
-		
+
 			pub::Audio::Tryptich music;
 			music.iDunno = 0;
 			music.iDunno2 = 0;
@@ -611,8 +611,8 @@ namespace MiscCmds
 			pub::Audio::SetMusic(iClientID, music);
 
 		}
-		
-		cmds->Print(L"OK\n"); 
+
+		cmds->Print(L"OK\n");
 		return;
 	}
 
@@ -627,7 +627,7 @@ namespace MiscCmds
 		uint MusictoID = CreateID(wstos(wscSoundname).c_str());
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
@@ -641,7 +641,7 @@ namespace MiscCmds
 
 		// For all players in system...
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
 			// Get the this player's current system and location in the system.
 			uint iClientID = HkGetClientIdFromPD(pPD);
@@ -659,16 +659,16 @@ namespace MiscCmds
 			Vector vShipLoc;
 			Matrix mShipDir;
 			pub::SpaceObj::GetLocation(iShip, vShipLoc, mShipDir);
-		
+
 			// Is player within (50K) of the sending char.
 			float fDistance = HkDistance3D(vShipLoc, vFromShipLoc);
-			if (fDistance>50000)
+			if (fDistance > 50000)
 				continue;
-		
+
 			pub::Audio::PlaySoundEffect(iClientID, MusictoID);
 		}
-		
-		cmds->Print(L"OK\n"); 
+
+		cmds->Print(L"OK\n");
 		return;
 	}
 
@@ -683,7 +683,7 @@ namespace MiscCmds
 		string MusictoID = wstos(wscSoundname);
 
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false)!=HKE_OK || adminPlyr.iShip==0)
+		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
 		{
 			cmds->Print(L"ERR Not in space\n");
 			return;
@@ -697,7 +697,7 @@ namespace MiscCmds
 
 		// For all players in system...
 		struct PlayerData *pPD = 0;
-		while(pPD = Players.traverse_active(pPD))
+		while (pPD = Players.traverse_active(pPD))
 		{
 			// Get the this player's current system and location in the system.
 			uint iClientID = HkGetClientIdFromPD(pPD);
@@ -715,16 +715,16 @@ namespace MiscCmds
 			Vector vShipLoc;
 			Matrix mShipDir;
 			pub::SpaceObj::GetLocation(iShip, vShipLoc, mShipDir);
-		
+
 			// Is player within (50K) of the sending char.
 			float fDistance = HkDistance3D(vShipLoc, vFromShipLoc);
-			if (fDistance>50000)
+			if (fDistance > 50000)
 				continue;
-		
+
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId(MusictoID.c_str()));
 		}
-		
-		cmds->Print(L"OK\n"); 
+
+		cmds->Print(L"OK\n");
 		return;
 	}
 }

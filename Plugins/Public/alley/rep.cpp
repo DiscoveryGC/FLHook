@@ -40,25 +40,25 @@ void REP::LoadSettings()
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
 		while (ini.read_header())
+		{
+			if (ini.is_header("reputations"))
 			{
-				if (ini.is_header("reputations"))
+				while (ini.read_value())
 				{
-					while (ini.read_value())
+					if (ini.is_value("rep"))
 					{
-						if (ini.is_value("rep"))
-						{
-							uint solarnick = CreateID(ini.get_value_string(0));
-							const char* newrep = ini.get_value_string(1);
+						uint solarnick = CreateID(ini.get_value_string(0));
+						const char* newrep = ini.get_value_string(1);
 
-							ConPrint(L"DEBUG: Rep of %s is %s \n", stows(ini.get_value_string(0)).c_str(), stows(ini.get_value_string(1)).c_str());
-							
-							uint obj_rep_group;
-							pub::Reputation::GetReputationGroup(obj_rep_group, newrep);
-							pub::Reputation::SetAffiliation(solarnick, obj_rep_group);
-						}
-					}				
+						ConPrint(L"DEBUG: Rep of %s is %s \n", stows(ini.get_value_string(0)).c_str(), stows(ini.get_value_string(1)).c_str());
+
+						uint obj_rep_group;
+						pub::Reputation::GetReputationGroup(obj_rep_group, newrep);
+						pub::Reputation::SetAffiliation(solarnick, obj_rep_group);
+					}
 				}
 			}
+		}
 		ini.close();
 	}
 }

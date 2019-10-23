@@ -38,13 +38,13 @@ void Timers::processDroneBuildRequests(map<uint, DroneBuildTimerWrapper>& buildL
 	{
 		// Verify that the user isn't in a tradelane or cruising
 		const ENGINE_STATE engineState = HkGetEngineState(dt->first);
-		if(engineState == ES_TRADELANE || engineState == ES_CRUISE)
+		if (engineState == ES_TRADELANE || engineState == ES_CRUISE)
 		{
 			PrintUserCmdText(dt->first, L"Engine state inoppertune for drone deployment, aborting launch");
 			clientDroneInfo[dt->first].buildState = STATE_DRONE_OFF;
 			buildTimerMap.erase(dt);
 		}
-		
+
 		if ((dt->second.startBuildTime + (dt->second.buildTimeRequired * 1000)) < now)
 		{
 			Utility::DeployDrone(dt->first, dt->second);

@@ -393,15 +393,6 @@ struct IGNORE_INFO
 	wstring wscFlags;
 };
 
-// resolver
-struct RESOLVE_IP
-{
-	uint iClientID;
-	uint iConnects;
-	wstring wscIP;
-	wstring wscHostname;
-};
-
 struct CLIENT_INFO
 {
 	// kill msgs
@@ -729,14 +720,8 @@ namespace HkIEngine
 // HkTimers
 void HkTimerCheckKick();
 void HkTimerNPCAndF1Check();
-void HkThreadResolver();
-void HkTimerCheckResolveResults();
 
 extern EXPORT list<BASE_INFO> lstBases;
-extern CRITICAL_SECTION csIPResolve;
-extern list<RESOLVE_IP> g_lstResolveIPs;
-extern list<RESOLVE_IP> g_lstResolveIPsResult;
-extern HANDLE hThreadResolver;
 
 // namespaces
 namespace HkIServerImpl

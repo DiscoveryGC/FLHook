@@ -242,15 +242,6 @@ struct IGNORE_INFO
 	wstring wscFlags;
 };
 
-// resolver
-struct RESOLVE_IP
-{
-	uint iClientID;
-	uint iConnects;
-	wstring wscIP;
-	wstring wscHostname;
-};
-
 struct CLIENT_INFO
 {
 	// kill msgs

@@ -281,12 +281,6 @@ bool InitHookExports()
 {
 	char	*pAddress;
 
-	// init critial sections
-	InitializeCriticalSection(&csIPResolve);
-	DWORD dwID;
-	DWORD dwParam[34]; // else release version crashes, dont ask me why...
-	hThreadResolver = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)HkThreadResolver, &dwParam, 0, &dwID);
-
 	GetShipInspect = (_GetShipInspect)SRV_ADDR(ADDR_SRV_GETINSPECT);
 
 	// install IServerImpl callbacks in remoteclient.dll

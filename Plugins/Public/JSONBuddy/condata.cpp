@@ -493,8 +493,7 @@ bool Condata::UserCmd_PingTarget(uint iClientID, const wstring &wscCmd, const ws
 	if (ConData[iClientIDTarget].lstPing.size() < set_iPingKickFrame)
 		Response += L"n/a Fluct: n/a ";
 	else {
-		Response += stows(itos(ConData[iClientIDTarget].iAveragePing)).c_str();
-		Response += L"ms ";
+		Response += L"[target ping data redacted due to privacy concerns] ";
 		if (set_iPingKick > 0) {
 			Response += L"(Max: ";
 			Response += stows(itos(set_iPingKick)).c_str();

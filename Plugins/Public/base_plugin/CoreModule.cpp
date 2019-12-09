@@ -583,7 +583,7 @@ bool CoreModule::Timer(uint time)
 				if (time % 43200 == 0)
 				{
 					int moneyForOneRepair = CalcMoneyForOneRepair();
-					if (!(base->money > moneyForOneRepair))
+					if (base->money < moneyForOneRepair)
 					{
 						base->RemoveMarketGood(set_base_crew_type, (number_of_crew >= 10) ? 10 : number_of_crew);
 					}

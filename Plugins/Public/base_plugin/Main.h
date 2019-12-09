@@ -592,5 +592,5 @@ extern const char* MODULE_TYPE_NICKNAMES[13];
 extern bool MoneyRepair_IsDisabled;//If repairing with money is enabled
 extern uint MoneyRepair_BaseQuantity; //Value of money consumed during one repair cycle.
 extern uint MoneyRepair_PerBaseLevelModifier;//How increses money consuming with each base level
-extern float MoneyRepair_RelativeHealthBaseToStart = 0.95;
+extern float MoneyRepair_RelativeHealthBaseToStart;
 #endif

@@ -447,7 +447,7 @@ void CoreModule::RepairDamage(float max_base_health)
 		for (uint repair_cycles = 0; repair_cycles < base->base_level; ++repair_cycles)
 		{
 			//If moneyrepairing_is_disabled or shield is online or base health is less than 99% then repair with repair materials
-			if (MoneyRepair_IsDisabled || (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE || rhealth < 0.99))
+			if (MoneyRepair_IsDisabled || (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE || rhealth < MoneyRepair_RelativeHealthBaseToStart))
 			{
 				foreach(set_base_repair_items, REPAIR_ITEM, item)
 				{
@@ -577,7 +577,7 @@ bool CoreModule::Timer(uint time)
 					ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
 
 			}
-			else
+			else if (!MoneyRepair_IsDisabled)
 			{
 				//If they don't eat food, then check if base has money for one repair to pay them salary, if base has not enough of money. then riots. kill 10 crew every 12 hours.
 				if (time % 43200 == 0)

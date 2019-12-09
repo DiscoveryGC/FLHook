@@ -104,14 +104,14 @@ map<string, ARCHTYPE_STRUCT> mapArchs;
 //commodities to watch for logging
 map<uint, wstring> listCommodities;
 
-//Money Repairing settings. They will work, when shield is offline and base health more than 99%.
+//Money Repairing settings. They will work, when shield is offline and base health more than MoneyRepair_RelativeHealthBaseToStart(0.95 for example).
 //Where before two repair items where consumed per one repair cycle, money consumed = (MoneyRepair_BaseQuantity + BaseLevel*MoneyRepair_PerBaseLevelModifier)
 //Don't forget in .cfg file to add "dont_eat = true" for disabling Food, Water, Oxygen consuming
 //Settings to change additions "money_repair = false, 500, 500" to base.cfg file
 bool MoneyRepair_IsDisabled = false;//If repairing with money is enabled
 uint MoneyRepair_BaseQuantity = 500; //Value of money consumed during one repair cycle.
 uint MoneyRepair_PerBaseLevelModifier = 500;//How increses money consuming with each base level
-
+float MoneyRepair_RelativeHealthBaseToStart = 0.95;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PlayerBase *GetPlayerBase(uint base)
@@ -493,6 +493,7 @@ void LoadSettingsActual()
 						MoneyRepair_IsDisabled = ini.get_value_bool(0);
 						MoneyRepair_BaseQuantity = ini.get_value_int(1);
 						MoneyRepair_PerBaseLevelModifier = ini.get_value_int(2);
+						MoneyRepair_RelativeHealthBaseToStart = ini.get_value_float(3);
 					}
 				}
 			}

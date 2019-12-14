@@ -199,7 +199,6 @@ void ClearClientInfo(uint iClientID)
 
 	ClientInfo[iClientID].lstIgnore.clear();
 	ClientInfo[iClientID].iKillsInARow = 0;
-	ClientInfo[iClientID].wscHostname = L"";
 	ClientInfo[iClientID].bEngineKilled = false;
 	ClientInfo[iClientID].bThrusterActivated = false;
 	ClientInfo[iClientID].bTradelane = false;

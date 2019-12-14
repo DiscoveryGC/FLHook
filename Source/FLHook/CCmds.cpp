@@ -413,7 +413,7 @@ void CCmds::PrintPlayerInfo(HKPLAYERINFO pi)
 {
 	RIGHT_CHECK(RIGHT_OTHER);
 
-	Print(L"charname=%s clientid=%u ip=%s host=%s ping=%u base=%s system=%s\n", pi.wscCharname.c_str(), pi.iClientID, pi.wscIP.c_str(), pi.wscHostname.c_str(), pi.ci.dwRoundTripLatencyMS, pi.wscBase.c_str(), pi.wscSystem.c_str());
+	Print(L"charname=%s clientid=%u ip=%s ping=%u base=%s system=%s\n", pi.wscCharname.c_str(), pi.iClientID, pi.wscIP.c_str(), pi.ci.dwRoundTripLatencyMS, pi.wscBase.c_str(), pi.wscSystem.c_str());
 }
 
 void CCmds::CmdGetPlayerInfo(const wstring &wscCharname)
@@ -446,7 +446,7 @@ void CCmds::XPrintPlayerInfo(HKPLAYERINFO pi)
 {
 	RIGHT_CHECK(RIGHT_OTHER);
 
-	Print(L"Name: %s, ID: %u, IP: %s, Host: %s, Ping: %u, Base: %s, System: %s\n", pi.wscCharname.c_str(), pi.iClientID, pi.wscIP.c_str(), pi.wscHostname.c_str(), pi.ci.dwRoundTripLatencyMS, pi.wscBase.c_str(), pi.wscSystem.c_str());
+	Print(L"Name: %s, ID: %u, IP: %s, Ping: %u, Base: %s, System: %s\n", pi.wscCharname.c_str(), pi.iClientID, pi.wscIP.c_str(), pi.ci.dwRoundTripLatencyMS, pi.wscBase.c_str(), pi.wscSystem.c_str());
 }
 
 void CCmds::CmdXGetPlayerInfo(const wstring &wscCharname)

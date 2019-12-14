@@ -459,9 +459,6 @@ struct CLIENT_INFO
 //cloak bool, this allows us to have a status on it shared between plugins to prevent possible bugs.
 	bool bCloaked;
 
-	// other
-	wstring		wscHostname;
-
 	bool		bSpawnProtected;
 	bool		bUseServersideHitDetection; //used by AC Plugin
 	byte		unused_data[128];
@@ -504,7 +501,6 @@ struct HKPLAYERINFO
 	uint iShip;
 	DPN_CONNECTION_INFO ci;
 	wstring wscIP;
-	wstring wscHostname;
 };
 
 // patch stuff

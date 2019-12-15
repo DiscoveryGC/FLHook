@@ -1037,7 +1037,7 @@ namespace HkIServerImpl
 			{
 				if (Wildcard::wildcardfit(wstos(*itb).c_str(), wstos(wscIP).c_str()))
 				{
-					HkAddKickLog(iClientID, L"IP/Hostname ban(%s matches %s)", wscIP.c_str(), (*itb).c_str());
+					HkAddKickLog(iClientID, L"IP ban(%s matches %s)", wscIP.c_str(), (*itb).c_str());
 					if (set_bBanAccountOnMatch)
 						HkBan(ARG_CLIENTID(iClientID), true);
 					HkKick(ARG_CLIENTID(iClientID));

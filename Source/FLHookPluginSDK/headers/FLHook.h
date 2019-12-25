@@ -12,13 +12,6 @@
 #pragma comment(lib,"../../../Source/FLHookPluginSDK/libs/FLCoreRemoteClient.lib")
 #pragma comment(lib,"../../../Source/FLHookPluginSDK/libs/FLCoreServer.lib")
 #pragma comment(lib,"../../../Source/FLHookPluginSDK/libs/FLHook.lib")
-//#if _MSC_VER == 1900 || _MSC_VER == 1910
-//#pragma comment(lib,"../flhookplugin_sdk/libs/FLHook-vc14.lib")
-//#elif _MSC_VER == 1800
-//#pragma comment(lib,"../flhookplugin_sdk/libs/FLHook-vc12.lib")
-//#else
-//#pragma comment(lib,"../flhookplugin_sdk/libs/FLHook.lib")
-//#endif
 #endif
 
 #include <windows.h>
@@ -26,7 +19,7 @@
 #include <string>
 #include <list>
 #include <time.h>
-using namespace std;
+#include "..//..//Defines.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,18 +53,7 @@ using namespace std;
 		} \
 	} \
 
-#define IMPORT __declspec(dllimport)
-#define EXPORT __declspec(dllexport)
-
-#define foreach(lst, type, var) for(list<type>::iterator var = lst.begin(); (var != lst.end()); var++)
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// typedefs
-typedef unsigned int uint;
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned long ulong;
-typedef unsigned __int64 mstime;
 
 // custom fl wstring (vc6 strings)
 typedef class std::basic_string<unsigned short, struct ci_wchar_traits> flstr;

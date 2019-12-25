@@ -17,35 +17,8 @@
 #include <string>
 #include <list>
 #include <functional>
-using namespace std;
+#include "..//Defines.h"
 
-// defines
-#if _MSC_VER == 1500
-#define VERSION L"3.1.0-vc9 plugin"
-#elif _MSC_VER == 1900
-#define VERSION L"3.1.0-vc14 plugin"
-#elif _MSC_VER == 1910
-#define VERSION L"3.1.0-vc141 plugin"
-#else
-#define VERSION L"3.1.0-UNKNOWN plugin"
-#endif
-
-
-#define TIME_UPDATE 50
-#define IMPORT __declspec(dllimport)
-#define EXPORT __declspec(dllexport)
-#define foreach(lst, type, var) for(list<type>::iterator var = lst.begin(); (var != lst.end()); var++)
-#define foreachreverse(lst, type, var) for(list<type>::reverse_iterator var = lst.rbegin(); (var != lst.rend()); var++)
-
-#define IMPORT __declspec(dllimport)
-#define EXPORT __declspec(dllexport)
-
-// typedefs
-typedef unsigned int uint;
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned long ulong;
-typedef unsigned __int64 mstime;
 
 // custom fl wstring (vc6 strings)
 typedef class std::basic_string<unsigned short, struct ci_wchar_traits> flstr;

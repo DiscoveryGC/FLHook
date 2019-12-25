@@ -166,6 +166,7 @@ copy /Y  $(OutDir)$(TargetName).lib  $(SolutionDir)\Source\FLHookPluginSDK\libs\
     <ClCompile Include="FLHook\Tools.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Defines.h" />
     <ClInclude Include="FLHook\flcodec.h" />
     <ClInclude Include="FLHook\Hook.h" />
     <ClInclude Include="FLHook\wildcards.hh" />
@@ -185,10 +186,6 @@ copy /Y  $(OutDir)$(TargetName).lib  $(SolutionDir)\Source\FLHookPluginSDK\libs\
     <ClInclude Include="FLHook\CSocket.h" />
     <ClInclude Include="FLHook\blowfish.h" />
     <ClInclude Include="FLHook\global.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\Solution\plugin_documentation.txt" />
-    <Text Include="..\Solution\readme.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Binaries\bin-vc14\FLHook.ini" />

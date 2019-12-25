@@ -1,3 +1,78 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\Source\FLHook\flcodec.cpp" />
+    <ClCompile Include="FLHook\HkError.cpp" />
+    <ClCompile Include="FLHook\HkFLIni.cpp" />
+    <ClCompile Include="FLHook\HkHelp.cpp" />
+    <ClCompile Include="FLHook\HkInit.cpp" />
+    <ClCompile Include="FLHook\HkCbChat.cpp" />
+    <ClCompile Include="FLHook\HkCbDamage.cpp" />
+    <ClCompile Include="FLHook\HkCbDeath.cpp" />
+    <ClCompile Include="FLHook\HkCbDisconnect.cpp" />
+    <ClCompile Include="FLHook\HkCbIClientImpl.cpp" />
+    <ClCompile Include="FLHook\HkCbIEngine.cpp" />
+    <ClCompile Include="FLHook\HkCbIServerImpl.cpp" />
+    <ClCompile Include="FLHook\HkTimers.cpp" />
+    <ClCompile Include="FLHook\HkUserCmd.cpp" />
+    <ClCompile Include="FLHook\HkFuncLog.cpp" />
+    <ClCompile Include="FLHook\HkFuncMsg.cpp" />
+    <ClCompile Include="FLHook\HkFuncOther.cpp" />
+    <ClCompile Include="FLHook\HkFuncPlayers.cpp" />
+    <ClCompile Include="FLHook\HkFuncTools.cpp" />
+    <ClCompile Include="FLHook\HkPluginManager.cpp" />
+    <ClCompile Include="FLHook\HkDataBaseMarket.cpp" />
+    <ClCompile Include="FLHook\wildcards.cpp" />
+    <ClCompile Include="FLHook\CCmds.cpp" />
+    <ClCompile Include="FLHook\CConsole.cpp" />
+    <ClCompile Include="FLHook\CInGame.cpp" />
+    <ClCompile Include="FLHook\CSocket.cpp" />
+    <ClCompile Include="FLHook\blowfish.cpp" />
+    <ClCompile Include="FLHook\FLHook.cpp" />
+    <ClCompile Include="FLHook\Settings.cpp" />
+    <ClCompile Include="FLHook\Tools.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FLHook\flcodec.h" />
+    <ClInclude Include="FLHook\Hook.h" />
+    <ClInclude Include="FLHook\wildcards.hh" />
+    <ClInclude Include="FLHookPluginSDK\headers\FLHook.h" />
+    <ClInclude Include="FLHookPluginSDK\headers\plugin.h" />
+    <ClInclude Include="FLHookPluginSDK\headers\flmap.h" />
+    <ClInclude Include="FLHook\CCmds.h" />
+    <ClInclude Include="FLHook\CConsole.h" />
+    <ClInclude Include="FLHook\CInGame.h" />
+    <ClInclude Include="FLHook\CSocket.h" />
+    <ClInclude Include="FLHook\blowfish.h" />
+    <ClInclude Include="FLHook\global.h" />
+    <ClInclude Include="FLHookPluginSDK\headers\FLCoreServer.h">
+      <Filter>Imports</Filter>
+    </ClInclude>
+    <ClInclude Include="FLHookPluginSDK\headers\FLCoreRemoteClient.h">
+      <Filter>Imports</Filter>
+    </ClInclude>
+    <ClInclude Include="FLHookPluginSDK\headers\FLCoreCommon.h">
+      <Filter>Imports</Filter>
+    </ClInclude>
+    <ClInclude Include="FLHookPluginSDK\headers\FLCoreDACom.h">
+      <Filter>Imports</Filter>
+    </ClInclude>
+    <ClInclude Include="FLHookPluginSDK\headers\FLCoreFLServerEXE.h">
+      <Filter>Imports</Filter>
+    </ClInclude>
+    <ClInclude Include="FLHookPluginSDK\headers\FLCoreDefs.h">
+      <Filter>Imports</Filter>
+    </ClInclude>
+    <ClInclude Include="FLHookPluginSDK\headers\FLCoreDALib.h">
+      <Filter>Imports</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Binaries\bin-vc14\FLHook.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Imports">
+      <UniqueIdentifier>{43086503-40b7-4e24-b89b-ef483e17815a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
 </Project>

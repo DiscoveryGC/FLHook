@@ -2,9 +2,6 @@
 #define _HOOK_
 
 #include <time.h>
-#if _MSC_VER == 1200
-#include "xtrace.h" // __FUNCTION__ macro for vc6
-#endif
 #include "global.h"
 #include "flcodec.h"
 
@@ -85,7 +82,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#define EXTENDED_EXCEPTION_LOGGING
 #ifdef EXTENDED_EXCEPTION_LOGGING
 EXPORT extern void WriteMiniDump(LPEXCEPTION_POINTERS pep);
 EXPORT extern void AddExceptionInfoLog(LPEXCEPTION_POINTERS pep);
@@ -784,7 +780,6 @@ extern EXPORT _CreateChar CreateChar;
 
 extern EXPORT string scAcctPath;
 
-#define MAX_CLIENT_ID 249
 extern EXPORT CLIENT_INFO ClientInfo[MAX_CLIENT_ID + 1];
 extern EXPORT CDPServer *cdpSrv;
 extern EXPORT uint g_iServerLoad;

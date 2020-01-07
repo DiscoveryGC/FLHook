@@ -1,4 +1,3 @@
-
 #pragma once
 
 // only supports unsigned int keys with less comparison for now

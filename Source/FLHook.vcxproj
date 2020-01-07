@@ -187,9 +187,6 @@ copy /Y  $(OutDir)$(TargetName).lib  $(SolutionDir)\Source\FLHookPluginSDK\libs\
     <ClInclude Include="FLHook\blowfish.h" />
     <ClInclude Include="FLHook\global.h" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\Binaries\bin-vc14\FLHook.ini" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

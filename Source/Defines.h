@@ -2,7 +2,15 @@
 
 
 // Current version of FLHook.
-#define VERSION L"3.1.0-Discovery"
+#define VERSION L"3.1"
+
+
+// Maximum limit of players.
+// Setting it to greater value may lead to bugs?
+#define MAX_CLIENT_ID 249
+
+
+#define EXTENDED_EXCEPTION_LOGGING
 
 
 // Extra types
@@ -43,8 +51,8 @@ typedef unsigned __int64 mstime;
 using namespace std;
 
 
-// The namespace contains only other namespaces which you can optionally use.
-namespace FLHook 
+// The namespace should contain only other namespaces which can be optionally used.
+namespace FLHook
 {
 	// All solution-wide global variables must be here.
 	namespace $Globals

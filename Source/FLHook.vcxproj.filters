@@ -66,9 +66,7 @@
     <ClInclude Include="FLHookPluginSDK\headers\FLCoreDALib.h">
       <Filter>Imports</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\Binaries\bin-vc14\FLHook.ini" />
+    <ClInclude Include="Defines.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Imports">

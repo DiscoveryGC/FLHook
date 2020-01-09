@@ -449,17 +449,7 @@ struct CLIENT_INFO
 	CHATSIZE	chatSize;
 	CHATSTYLE	chatStyle;
 
-	// autobuy
-		/*
-		bool		bAutoBuyMissiles;
-		bool		bAutoBuyMines;
-		bool		bAutoBuyTorps;
-		bool		bAutoBuyCD;
-		bool		bAutoBuyCM;
-		bool		bAutoBuyReload;
-		*/
-
-		// MultiKillMessages
+	// MultiKillMessages
 	uint		iKillsInARow;
 
 	// bans
@@ -635,7 +625,6 @@ EXPORT HK_ERROR HkMsgAndKick(uint iClientID, const wstring &wscReason, uint iInt
 EXPORT HK_ERROR HkKill(const wstring &wscCharname);
 EXPORT HK_ERROR HkGetReservedSlot(const wstring &wscCharname, bool &bResult);
 EXPORT HK_ERROR HkSetReservedSlot(const wstring &wscCharname, bool bReservedSlot);
-//EXPORT void HkPlayerAutoBuy(uint iClientID, uint iBaseID);
 EXPORT HK_ERROR HkResetRep(const wstring &wscCharname);
 EXPORT HK_ERROR HkGetGroupMembers(const wstring &wscCharname, list<GROUP_MEMBER> &lstMembers);
 EXPORT HK_ERROR HkSetRep(const wstring &wscCharname, const wstring &wscRepGroup, float fValue);

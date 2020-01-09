@@ -88,7 +88,6 @@ void UserCmd_SetDieMsgSize(uint iClientID, const wstring &wscParam)
 	};
 
 	wstring wscDieMsgSize = ToLower(GetParam(wscParam, ' ', 0));
-	//	wstring wscDieMsgStyle = ToLower(GetParam(wscParam, ' ', 1));
 
 	CHATSIZE dieMsgSize;
 	if (!wscDieMsgSize.compare(L"small"))
@@ -98,28 +97,14 @@ void UserCmd_SetDieMsgSize(uint iClientID, const wstring &wscParam)
 	else
 		PRINT_ERROR();
 
-	/*	CHATSTYLE dieMsgStyle;
-		if(!wscDieMsgStyle.compare(L"default"))
-			dieMsgStyle = CST_DEFAULT;
-		else if(!wscDieMsgStyle.compare(L"bold"))
-			dieMsgStyle = CST_BOLD;
-		else if(!wscDieMsgStyle.compare(L"italic"))
-			dieMsgStyle = CST_ITALIC;
-		else if(!wscDieMsgStyle.compare(L"underline"))
-			dieMsgStyle = CST_UNDERLINE;
-		else
-			PRINT_ERROR(); */
-
-			// save to ini
+	// save to ini
 	GET_USERFILE(scUserFile);
 	IniWrite(scUserFile, "Settings", "DieMsgSize", itos(dieMsgSize));
-	//	IniWrite(scUserFile, "Settings", "DieMsgStyle", itos(dieMsgStyle));
 
-		// save in ClientInfo
+	// save in ClientInfo
 	ClientInfo[iClientID].dieMsgSize = dieMsgSize;
-	//	ClientInfo[iClientID].dieMsgStyle = dieMsgStyle;
 
-		// send confirmation msg
+	// send confirmation msg
 	PRINT_OK();
 }
 
@@ -393,97 +378,6 @@ void UserCmd_DelIgnore(uint iClientID, const wstring &wscParam)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-void UserCmd_AutoBuy(uint iClientID, const wstring &wscParam)
-{
-	if(!set_bAutoBuy)
-	{
-		PRINT_DISABLED();
-		return;
-	}
-
-	wstring wscError[] =
-	{
-		L"Error: Invalid parameters",
-		L"Usage: /autobuy <param> [<on/off>]",
-		L"<Param>:",
-		L"   info - display current autobuy-settings",
-		L"   missiles - enable/disable autobuy for missiles",
-		L"   torps - enable/disable autobuy for torpedos",
-		L"   mines - enable/disable autobuy for mines",
-		L"   cd - enable/disable autobuy for cruise disruptors",
-		L"   cm - enable/disable autobuy for countermeasures",
-		L"   reload - enable/disable autobuy for nanobots/shield batteries",
-		L"   all: enable/disable autobuy for all of the above",
-		L"Examples:",
-		L"\"/autobuy missiles on\" enable autobuy for missiles",
-		L"\"/autobuy all off\" completely disable autobuy",
-		L"\"/autobuy info\" show autobuy info",
-	};
-
-	wstring wscType = ToLower(GetParam(wscParam, ' ', 0));
-	wstring wscSwitch = ToLower(GetParam(wscParam, ' ', 1));
-
-	if(!wscType.compare(L"info"))
-	{
-		PrintUserCmdText(iClientID, L"Missiles: %s", ClientInfo[iClientID].bAutoBuyMissiles ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Mine: %s", ClientInfo[iClientID].bAutoBuyMines ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Torpedos: %s", ClientInfo[iClientID].bAutoBuyTorps ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Cruise Disruptors: %s", ClientInfo[iClientID].bAutoBuyCD ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Countermeasures: %s", ClientInfo[iClientID].bAutoBuyCM ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Nanobots/Shield Batteries: %s", ClientInfo[iClientID].bAutoBuyReload ? L"On" : L"Off");
-		return;
-	}
-
-	if(!wscType.length() || !wscSwitch.length() || ((wscSwitch.compare(L"on") != 0) && (wscSwitch.compare(L"off") != 0)))
-		PRINT_ERROR();
-
-	GET_USERFILE(scUserFile);
-
-	wstring wscFilename;
-	HkGetCharFileName(ARG_CLIENTID(iClientID), wscFilename);
-	string scSection = "autobuy_" + wstos(wscFilename);
-
-	bool bEnable = !wscSwitch.compare(L"on") ? true : false;
-	if(!wscType.compare(L"all")) {
-		ClientInfo[iClientID].bAutoBuyMissiles = bEnable;
-		ClientInfo[iClientID].bAutoBuyMines = bEnable;
-		ClientInfo[iClientID].bAutoBuyTorps = bEnable;
-		ClientInfo[iClientID].bAutoBuyCD = bEnable;
-		ClientInfo[iClientID].bAutoBuyCM = bEnable;
-		ClientInfo[iClientID].bAutoBuyReload = bEnable;
-		IniWrite(scUserFile, scSection, "missiles", bEnable ? "yes" : "no");
-		IniWrite(scUserFile, scSection, "mines", bEnable ? "yes" : "no");
-		IniWrite(scUserFile, scSection, "torps", bEnable ? "yes" : "no");
-		IniWrite(scUserFile, scSection, "cd", bEnable ? "yes" : "no");
-		IniWrite(scUserFile, scSection, "cm", bEnable ? "yes" : "no");
-		IniWrite(scUserFile, scSection, "reload", bEnable ? "yes" : "no");
-	} else if(!wscType.compare(L"missiles")) {
-		ClientInfo[iClientID].bAutoBuyMissiles = bEnable;
-		IniWrite(scUserFile, scSection, "missiles", bEnable ? "yes" : "no");
-	} else if(!wscType.compare(L"mines")) {
-		ClientInfo[iClientID].bAutoBuyMines = bEnable;
-		IniWrite(scUserFile, scSection, "mines", bEnable ? "yes" : "no");
-	} else if(!wscType.compare(L"torps")) {
-		ClientInfo[iClientID].bAutoBuyTorps = bEnable;
-		IniWrite(scUserFile, scSection, "torps", bEnable ? "yes" : "no");
-	} else if(!wscType.compare(L"cd")) {
-		ClientInfo[iClientID].bAutoBuyCD = bEnable;
-		IniWrite(scUserFile, scSection, "cd", bEnable ? "yes" : "no");
-	} else if(!wscType.compare(L"cm")) {
-		ClientInfo[iClientID].bAutoBuyCM = bEnable;
-		IniWrite(scUserFile, scSection, "cm", bEnable ? "yes" : "no");
-	} else if(!wscType.compare(L"reload")) {
-		ClientInfo[iClientID].bAutoBuyReload = bEnable;
-		IniWrite(scUserFile, scSection, "reload", bEnable ? "yes" : "no");
-	} else
-		PRINT_ERROR();
-
-	PRINT_OK();
-}
-*/
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void UserCmd_IDs(uint iClientID, const wstring &wscParam)
 {
@@ -512,47 +406,6 @@ void UserCmd_ID(uint iClientID, const wstring &wscParam)
 {
 	PrintUserCmdText(iClientID, L"Your client-id: %u", iClientID);
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-void UserCmd_InviteID(uint iClientID, const wstring &wscParam)
-{
-	wstring wscError[] =
-	{
-		L"Error: Invalid parameters",
-		L"Usage: /i$ <client-id>",
-	};
-
-	wstring wscClientID = GetParam(wscParam, ' ', 0);
-
-	if(!wscClientID.length())
-		PRINT_ERROR();
-
-	uint iClientIDTarget = ToInt(wscClientID);
-	if(!HkIsValidClientID(iClientIDTarget) || HkIsInCharSelectMenu(iClientIDTarget))
-	{
-		PrintUserCmdText(iClientID, L"Error: Invalid client-id");
-		return;
-	}
-
-	wstring wscCharname = (wchar_t*)Players.GetActiveCharacterName(iClientIDTarget);
-
-	wstring wscXML = L"<TEXT>/i " + XMLText(wscCharname) + L"</TEXT>";
-	char szBuf[0xFFFF];
-	uint iRet;
-	if(!HKHKSUCCESS(HkFMsgEncodeXML(wscXML, szBuf, sizeof(szBuf), iRet)))
-	{
-		PrintUserCmdText(iClientID, L"Error: Could not encode XML");
-		return;
-	}
-
-	CHAT_ID cID;
-	cID.iID = iClientID;
-	CHAT_ID cIDTo;
-	cIDTo.iID = 0x00010001;
-	Server.SubmitChat(cID, iRet, szBuf, cIDTo, -1);
-}
-*/
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -641,22 +494,15 @@ USERCMD UserCmds[] =
 	{ L"/delignore",			UserCmd_DelIgnore},
 	{ L"/ignore",				UserCmd_Ignore},
 	{ L"/ignoreid",				UserCmd_IgnoreID},
-	//{ L"/autobuy",				UserCmd_AutoBuy},
 	{ L"/ids",					UserCmd_IDs},
 	{ L"/id",					UserCmd_ID},
-	//{ L"/i",					UserCmd_InviteID},
-	  //{ L"/i$",					UserCmd_InviteID},
-	//{ L"/invite",				UserCmd_InviteID},
-	  //{ L"/invite$",				UserCmd_InviteID},
-	  { L"/credits",				UserCmd_Credits},
-	  { L"/help",					UserCmd_Help},
+	{ L"/credits",				UserCmd_Credits},
+	{ L"/help",					UserCmd_Help},
 };
 
 bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 {
-
 	CALL_PLUGINS(PLUGIN_UserCmd_Process, bool, , (uint iClientID, const wstring &wscCmd), (iClientID, wscCmd));
-
 
 	wstring wscCmdLower = ToLower(wscCmd);
 

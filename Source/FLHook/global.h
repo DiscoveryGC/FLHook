@@ -187,7 +187,6 @@ extern EXPORT wstring set_wscDeathMsgTextAdminKill;
 extern EXPORT uint	set_iUserCmdMaxIgnoreList;
 extern EXPORT uint	set_iReservedSlots;
 extern EXPORT uint	set_iDisconnectDelay;
-extern EXPORT bool	set_bAutoBuy;
 extern EXPORT float set_fTorpMissileBaseDamageMultiplier;
 extern EXPORT bool set_MKM_bActivated;
 extern EXPORT wstring set_MKM_wscStyle;

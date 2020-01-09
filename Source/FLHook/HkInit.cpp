@@ -188,15 +188,6 @@ void ClearClientInfo(uint iClientID)
 	ClientInfo[iClientID].chatSize = CS_DEFAULT;
 	ClientInfo[iClientID].chatStyle = CST_DEFAULT;
 
-	/*
-	ClientInfo[iClientID].bAutoBuyMissiles = false;
-	ClientInfo[iClientID].bAutoBuyMines = false;
-	ClientInfo[iClientID].bAutoBuyTorps = false;
-	ClientInfo[iClientID].bAutoBuyCD = false;
-	ClientInfo[iClientID].bAutoBuyCM = false;
-	ClientInfo[iClientID].bAutoBuyReload = false;
-	*/
-
 	ClientInfo[iClientID].lstIgnore.clear();
 	ClientInfo[iClientID].iKillsInARow = 0;
 	ClientInfo[iClientID].wscHostname = L"";
@@ -254,21 +245,6 @@ void LoadUserCharSettings(uint iClientID)
 	wstring wscDir;
 	HkGetAccountDirName(acc, wscDir);
 	string scUserFile = scAcctPath + wstos(wscDir) + "\\flhookuser.ini";
-
-	/*
-	// read autobuy
-	wstring wscFilename;
-	HkGetCharFileName(ARG_CLIENTID(iClientID), wscFilename);
-	string scSection = "autobuy_" + wstos(wscFilename);
-
-	ClientInfo[iClientID].bAutoBuyMissiles = IniGetB(scUserFile, scSection, "missiles", false);
-	ClientInfo[iClientID].bAutoBuyMines = IniGetB(scUserFile, scSection, "mines", false);
-	ClientInfo[iClientID].bAutoBuyTorps = IniGetB(scUserFile, scSection, "torps", false);
-	ClientInfo[iClientID].bAutoBuyCD = IniGetB(scUserFile, scSection, "cd", false);
-	ClientInfo[iClientID].bAutoBuyCM = IniGetB(scUserFile, scSection, "cm", false);
-	ClientInfo[iClientID].bAutoBuyReload = IniGetB(scUserFile, scSection, "reload", false);
-	*/
-
 
 	CALL_PLUGINS_V(PLUGIN_LoadUserCharSettings, , (uint), (iClientID));
 }

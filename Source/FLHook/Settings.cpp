@@ -66,7 +66,6 @@ bool			set_bUserCmdSetDieMsgSize;
 bool			set_bUserCmdSetChatFont;
 bool			set_bUserCmdIgnore;
 uint			set_iUserCmdMaxIgnoreList;
-bool			set_bAutoBuy;
 bool			set_bUserCmdHelp;
 bool			set_bDefaultLocalChat;
 
@@ -91,7 +90,6 @@ bool get_bUserCmdSetDieMsg(uint iClientID) { return set_bUserCmdSetDieMsg; }
 bool get_bUserCmdSetDieMsgSize(uint iClientID) { return set_bUserCmdSetDieMsgSize; }
 bool get_bUserCmdSetChatFont(uint iClientID) { return set_bUserCmdSetChatFont; }
 bool get_bUserCmdIgnore(uint iClientID) { return set_bUserCmdIgnore; }
-bool get_bAutoBuy(uint iClientID) { return set_bAutoBuy; }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -174,7 +172,6 @@ void LoadSettings()
 	set_bUserCmdSetChatFont = IniGetB(set_scCfgFile, "UserCommands", "SetChatFont", false);
 	set_bUserCmdIgnore = IniGetB(set_scCfgFile, "UserCommands", "Ignore", false);
 	set_iUserCmdMaxIgnoreList = IniGetI(set_scCfgFile, "UserCommands", "MaxIgnoreListEntries", 30);
-	set_bAutoBuy = IniGetB(set_scCfgFile, "UserCommands", "AutoBuy", false);
 	set_bUserCmdHelp = IniGetB(set_scCfgFile, "UserCommands", "Help", false);
 	set_bDefaultLocalChat = IniGetB(set_scCfgFile, "UserCommands", "DefaultLocalChat", false);
 
@@ -245,11 +242,8 @@ void LoadSettings()
 	HkAddHelpEntry(L"/ignoreid", L"<client-id> [<flags>]", L"Ignores all messages from the character with the associated client ID (see /id). Use the p flag to only affect private chat.", L"", get_bUserCmdIgnore);
 	HkAddHelpEntry(L"/ignorelist", L"", L"Displays all currently ignored characters.", L"", get_bUserCmdIgnore);
 	HkAddHelpEntry(L"/delignore", L"<id> [<id2> <id3> ...]", L"Removes the characters with the associated ignore ID (see /ignorelist) from the ignore list. * deletes all.", L"", get_bUserCmdIgnore);
-	HkAddHelpEntry(L"/autobuy", L"<param> [<on/off>]", L"Auomatically buys the given elements upon docking. See detailed help for more information.", L"<param> can take one of the following values:\tinfo - display current autobuy-settings\n\tmissiles - enable/disable autobuy for missiles\n\ttorps - enable/disable autobuy for torpedos\n\tmines - enable/disable autobuy for mines\n\tcd - enable/disable autobuy for cruise disruptors\n\tcm - enable/disable autobuy for countermeasures\n\treload - enable/disable autobuy for nanobots/shield batteries\n\tall - enable/disable autobuy for all of the above\nExamples:\n\"/autobuy missiles on\" enable autobuy for missiles\n\"/autobuy all off\" completely disable autobuy\n\"/autobuy info\" show autobuy info", get_bAutoBuy);
 	HkAddHelpEntry(L"/ids", L"", L"Lists all characters with their respective client IDs.", L"", get_bTrue);
 	HkAddHelpEntry(L"/id", L"", L"Gives your own client ID.", L"", get_bTrue);
-	HkAddHelpEntry(L"/i$", L"<client-id>", L"Invites the given client ID.", L"", get_bTrue);
-	HkAddHelpEntry(L"/invite$", L"<client-id>", L"Invites the given client ID.", L"", get_bTrue);
 	HkAddHelpEntry(L"/credits", L"", L"Displays FLHook's credits.", L"", get_bTrue);
 	HkAddHelpEntry(L"/help", L"[<command>]", L"Displays the help screen. Giving a <command> gives detailed info for that command.", L"", get_bTrue);
 

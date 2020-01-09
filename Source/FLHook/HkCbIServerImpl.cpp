@@ -336,27 +336,7 @@ namespace HkIServerImpl
 
 	void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
 	{
-		/*ISERVER_LOG();
-		ISERVER_LOGARG_UI(iClientID);
-		ISERVER_LOGARG_UI(ui.iShip);
-		ISERVER_LOGARG_V(ui.vPos);
-		ISERVER_LOGARG_Q(ui.vDir);
-		ISERVER_LOGARG_F(ui.throttle);*/
-
 		CHECK_FOR_DISCONNECT;
-
-		// NAN check
-		//Commented out because it's conflicting with Anti-F1
-		/*
-		if (!(ui.vPos.x == ui.vPos.x) || !(ui.vPos.y == ui.vPos.y) || !(ui.vPos.z == ui.vPos.z)
-			|| !(ui.vDir.x == ui.vDir.x) || !(ui.vDir.y == ui.vDir.y) || !(ui.vDir.z == ui.vDir.z)
-			|| !(ui.throttle == ui.throttle))
-		{
-			AddLog("ERROR: NAN found in " __FUNCTION__ " for id=%u", iClientID);
-			HkKick(Players[iClientID].Account);
-			return;
-		};
-		*/
 
 		float n = ui.vDir.w * ui.vDir.w + ui.vDir.x * ui.vDir.x + ui.vDir.y * ui.vDir.y + ui.vDir.z * ui.vDir.z;
 		if (n > 1.21f || n < 0.81f)
@@ -524,14 +504,6 @@ namespace HkIServerImpl
 		CHECK_FOR_DISCONNECT
 
 			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_BaseEnter, __stdcall, (unsigned int iBaseID, unsigned int iClientID), (iBaseID, iClientID));
-
-		/*
-		try {
-			// autobuy
-			if(set_bAutoBuy)
-				HkPlayerAutoBuy(iClientID, iBaseID);
-		} catch(...) { AddLog("Exception in " __FUNCTION__ " on autobuy"); LOG_EXCEPTION }
-		*/
 
 		EXECUTE_SERVER_CALL(Server.BaseEnter(iBaseID, iClientID));
 
@@ -883,10 +855,6 @@ namespace HkIServerImpl
 				swprintf(wszBuf, L"Sold good player does not have (buggy test), item=%08x", gsi.iArchID);
 				HkAddCheaterLog(wszCharname, wszBuf);
 
-				//swprintf(wszBuf, L"Possible cheating detected (%s)", wszCharname);
-				//HkMsgU(wszBuf);
-				//HkBan(ARG_CLIENTID(iClientID), true);
-				//HkKick(ARG_CLIENTID(iClientID));
 				return;
 			}
 		}

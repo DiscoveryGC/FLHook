@@ -298,16 +298,6 @@ struct CLIENT_INFO
 	CHATSIZE	chatSize;
 	CHATSTYLE	chatStyle;
 
-	// autobuy
-	/*
-		bool		bAutoBuyMissiles;
-		bool		bAutoBuyMunitions;
-		bool		bAutoBuyMines;
-		bool		bAutoBuyTorps;
-		bool		bAutoBuyCD;
-		bool		bAutoBuyCM;
-		bool		bAutoBuyReload;
-	*/
 	// MultiKillMessages
 	uint		iKillsInARow;
 
@@ -501,7 +491,6 @@ IMPORT HK_ERROR HkMsgAndKick(uint iClientID, const wstring &wscReason, uint iInt
 IMPORT HK_ERROR HkKill(const wstring &wscCharname);
 IMPORT HK_ERROR HkGetReservedSlot(const wstring &wscCharname, bool &bResult);
 IMPORT HK_ERROR HkSetReservedSlot(const wstring &wscCharname, bool bReservedSlot);
-//IMPORT void HkPlayerAutoBuy(uint iClientID, uint iBaseID);
 IMPORT HK_ERROR HkResetRep(const wstring &wscCharname);
 IMPORT HK_ERROR HkGetGroupMembers(const wstring &wscCharname, list<GROUP_MEMBER> &lstMembers);
 IMPORT HK_ERROR HkSetRep(const wstring &wscCharname, const wstring &wscRepGroup, float fValue);
@@ -807,7 +796,6 @@ extern IMPORT wstring set_wscDeathMsgTextAdminKill;
 extern IMPORT uint	set_iUserCmdMaxIgnoreList;
 extern IMPORT uint	set_iReservedSlots;
 extern IMPORT uint	set_iDisconnectDelay;
-//extern IMPORT bool	set_bAutoBuy;
 extern IMPORT float set_fTorpMissileBaseDamageMultiplier;
 extern IMPORT bool set_MKM_bActivated;
 extern IMPORT wstring set_MKM_wscStyle;

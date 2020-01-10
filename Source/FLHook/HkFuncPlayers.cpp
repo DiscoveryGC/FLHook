@@ -407,33 +407,6 @@ HK_ERROR HkAddCargo(const wstring &wscCharname, uint iGoodID, int iCount, bool b
 		Server.BaseEnter(iBase, iClientID);
 		if (iLocation)
 			Server.LocationEnter(iLocation, iClientID);
-
-		/*		// fix "Ship or Equipment not sold on base" kick
-				if(!bCargoFound)
-				{
-					// get last equipid
-					char *szLastEquipID = szClassPtr + 0x3C8;
-					ushort sEquipID;
-					memcpy(&sEquipID, szLastEquipID, 2);
-
-					// add to check-list which is being compared to the users equip-list when saving char
-					EquipDesc ed;
-					memset(&ed, 0, sizeof(ed));
-					ed.id = sEquipID;
-					ed.count = iCount;
-					ed.archid = iGoodID;
-					edlList->add_equipment_item(ed, true);
-				}
-
-				// fix "Ship Related" kick, update crc
-				ulong lCRC;
-				__asm
-				{
-					mov ecx, [szClassPtr]
-					call [CRCAntiCheat]
-					mov [lCRC], eax
-				}
-				memcpy(szClassPtr + 0x320, &lCRC, 4);*/
 	}
 
 	return HKE_OK;

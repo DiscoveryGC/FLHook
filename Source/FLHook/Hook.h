@@ -393,15 +393,6 @@ struct IGNORE_INFO
 	wstring wscFlags;
 };
 
-// resolver
-struct RESOLVE_IP
-{
-	uint iClientID;
-	uint iConnects;
-	wstring wscIP;
-	wstring wscHostname;
-};
-
 struct CLIENT_INFO
 {
 	// kill msgs
@@ -468,9 +459,6 @@ struct CLIENT_INFO
 //cloak bool, this allows us to have a status on it shared between plugins to prevent possible bugs.
 	bool bCloaked;
 
-	// other
-	wstring		wscHostname;
-
 	bool		bSpawnProtected;
 	bool		bUseServersideHitDetection; //used by AC Plugin
 	byte		unused_data[128];
@@ -513,7 +501,6 @@ struct HKPLAYERINFO
 	uint iShip;
 	DPN_CONNECTION_INFO ci;
 	wstring wscIP;
-	wstring wscHostname;
 };
 
 // patch stuff
@@ -729,14 +716,8 @@ namespace HkIEngine
 // HkTimers
 void HkTimerCheckKick();
 void HkTimerNPCAndF1Check();
-void HkThreadResolver();
-void HkTimerCheckResolveResults();
 
 extern EXPORT list<BASE_INFO> lstBases;
-extern CRITICAL_SECTION csIPResolve;
-extern list<RESOLVE_IP> g_lstResolveIPs;
-extern list<RESOLVE_IP> g_lstResolveIPsResult;
-extern HANDLE hThreadResolver;
 
 // namespaces
 namespace HkIServerImpl

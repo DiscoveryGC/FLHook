@@ -143,10 +143,11 @@ bool AP::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 	// system of our choosing.
 	if (mapDeferredJumps.find(iClientID) != mapDeferredJumps.end())
 	{
+		uint iSystemID = mapDeferredJumps[iClientID].system;
 		SwitchOut[0x0d7] = 0xeb;				// ignore exit object
 		SwitchOut[0x0d8] = 0x40;
 		SwitchOut[0x119] = 0xbb;				// set the destination system
-		*(PDWORD)(SwitchOut + 0x11a) = mapDeferredJumps[iClientID].system;
+		*(PDWORD)(SwitchOut + 0x11a) = iSystemID;
 		SwitchOut[0x266] = 0x45;				// don't generate warning
 		*(float*)(SwitchOut + 0x2b0) = mapDeferredJumps[iClientID].pos.z;		// set entry location
 		*(float*)(SwitchOut + 0x2b8) = mapDeferredJumps[iClientID].pos.y;
@@ -183,6 +184,11 @@ bool AP::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 			*(float*)(SwitchOut + 0x300) =
 			*(float*)(SwitchOut + 0x308) = 0;
 		*(PDWORD)(SwitchOut + 0x388) = 0xcf8b178b;
+
+		CUSTOM_JUMP_STRUCT info;
+		info.iShipID = iShip;
+		info.iSystemID = iSystemID;
+		Plugin_Communication(CUSTOM_JUMP, &info);
 
 		return true;
 	}

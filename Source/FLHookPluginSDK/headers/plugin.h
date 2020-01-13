@@ -249,7 +249,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_BASE_IS_DOCKED = 43,
 	CUSTOM_BASE_LAST_DOCKED = 46,
 	CLIENT_CLOAK_INFO = 44,
-	COMBAT_DAMAGE_OVERRIDE = 45
+	COMBAT_DAMAGE_OVERRIDE = 45,
+	CUSTOM_JUMP = 47
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -344,6 +345,12 @@ struct COMBAT_DAMAGE_OVERRIDE_STRUCT
 	uint iMunitionID;
 	uint iTargetTypeID;
 	float fDamageMultiplier;
+};
+
+struct CUSTOM_JUMP_STRUCT
+{
+	uint iShipID;
+	uint iSystemID;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

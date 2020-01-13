@@ -2505,6 +2505,12 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			info->iLastDockedBaseID = base->base;
 		}
 	}
+	else if (msg == CUSTOM_JUMP)
+	{
+		CUSTOM_JUMP_STRUCT* info = reinterpret_cast<CUSTOM_JUMP_STRUCT*>(data);
+		uint client = HkGetClientIDByShip(info->iShipID);
+		SyncReputationForClientShip(info->iShipID, client);
+	}
 	return;
 }
 

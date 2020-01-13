@@ -1554,6 +1554,16 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 
 		HyperJump::ClientCloakCallback(info);
 	}
+	else if (msg == CUSTOM_JUMP)
+	{
+		CUSTOM_JUMP_STRUCT* info = reinterpret_cast<CUSTOM_JUMP_STRUCT*>(data);
+
+		uint iClientID = HkGetClientIDByShip(info->iShipID);
+		if (iClientID)
+		{
+			SystemSensor::JumpInComplete(info->iSystemID, info->iShipID, iClientID);
+		}
+	}
 	return;
 }
 

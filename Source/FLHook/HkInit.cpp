@@ -199,6 +199,7 @@ void ClearClientInfo(uint iClientID)
 
 	ClientInfo[iClientID].lstIgnore.clear();
 	ClientInfo[iClientID].iKillsInARow = 0;
+	ClientInfo[iClientID].wscHostname = L"";
 	ClientInfo[iClientID].bEngineKilled = false;
 	ClientInfo[iClientID].bThrusterActivated = false;
 	ClientInfo[iClientID].bTradelane = false;
@@ -279,6 +280,12 @@ install the callback hooks
 bool InitHookExports()
 {
 	char	*pAddress;
+
+	// init critial sections
+	InitializeCriticalSection(&csIPResolve);
+	DWORD dwID;
+	DWORD dwParam[34]; // else release version crashes, dont ask me why...
+	hThreadResolver = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)HkThreadResolver, &dwParam, 0, &dwID);
 
 	GetShipInspect = (_GetShipInspect)SRV_ADDR(ADDR_SRV_GETINSPECT);
 

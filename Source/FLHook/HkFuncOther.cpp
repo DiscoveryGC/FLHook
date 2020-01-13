@@ -100,6 +100,8 @@ HK_ERROR HkGetPlayerInfo(const wstring &wscCharname, HKPLAYERINFO &pi, bool bAls
 	// get ip
 	HkGetPlayerIP(iClientID, pi.wscIP);
 
+	pi.wscHostname = ClientInfo[iClientID].wscHostname;
+
 	return HKE_OK;
 }
 

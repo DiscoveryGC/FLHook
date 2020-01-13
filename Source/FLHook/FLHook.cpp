@@ -484,6 +484,8 @@ void FLHookUnload()
 
 void FLHookShutdown()
 {
+	TerminateThread(hThreadResolver, 0);
+
 	// unload update hook
 	void *pAddress = (void*)((char*)hProcFL + ADDR_UPDATE);
 	WriteProcMem(pAddress, &fpOldUpdate, 4);

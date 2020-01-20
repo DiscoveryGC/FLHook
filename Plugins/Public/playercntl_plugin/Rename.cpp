@@ -1109,8 +1109,8 @@ bool Rename::DestroyCharacter(struct CHARACTER_ID const &cId, unsigned int iClie
 
 bool Rename::IsLockedShip(uint iClientID, int PermissionLevel)
 {
-	wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	if (MapLockedShips.find(ToLower(wsccharname)) != MapLockedShips.end())
+	wstring wsccharname = ToLower((const wchar_t*)Players.GetActiveCharacterName(iClientID));
+	if (MapLockedShips.find(wsccharname) != MapLockedShips.end())
 	{
 		if (MapLockedShips[wsccharname].LockLevel >= PermissionLevel)
 		{

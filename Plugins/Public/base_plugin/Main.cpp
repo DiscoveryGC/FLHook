@@ -1573,14 +1573,11 @@ void __stdcall ReqRemoveItem(unsigned short slot, int count, unsigned int client
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (clients[client].player_base)
+	if (clients[client].player_base && clients[client].reverse_sell)
 	{
 		returncode = SKIPPLUGINS;
-		if (clients[client].reverse_sell)
-		{
-			int hold_size;
-			HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(client), clients[client].cargo, hold_size);
-		}
+		int hold_size;
+		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(client), clients[client].cargo, hold_size);
 	}
 }
 
@@ -1591,9 +1588,9 @@ void __stdcall ReqRemoveItem_AFTER(unsigned short iID, int count, unsigned int c
 	uint player_base = clients[client].player_base;
 	if (player_base)
 	{
-		returncode = SKIPPLUGINS;
 		if (clients[client].reverse_sell)
 		{
+			returncode = SKIPPLUGINS;
 			clients[client].reverse_sell = false;
 
 			foreach(clients[client].cargo, CARGO_INFO, ci)

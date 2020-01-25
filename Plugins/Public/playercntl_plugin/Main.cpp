@@ -1597,7 +1597,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqModifyItem, PLUGIN_HkIServerImpl_ReqModifyItem, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 16));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqChangeCash, PLUGIN_HkIServerImpl_ReqChangeCash, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqSetCash, PLUGIN_HkIServerImpl_ReqSetCash, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqEquipment, PLUGIN_HkIServerImpl_ReqEquipment, 0));

@@ -627,6 +627,10 @@ namespace HkIServerImpl
 						AddLog("SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
 						ConPrint(L"SHIPLOCK: Attempt to sell ID/Armor on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
 
+						CUSTOM_REVERSE_TRANSACTION_STRUCT info;
+						info.iClientID = iClientID;
+						Plugin_Communication(CUSTOM_REVERSE_TRANSACTION, &info);
+
 						HkDelayedKick(iClientID, 1);
 
 						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -639,6 +643,11 @@ namespace HkIServerImpl
 						HkGetPlayerIP(iClientID, spurdoip);
 						AddLog("SHIPLOCK: Attempt to sell item on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
 						ConPrint(L"SHIPLOCK: Attempt to sell item on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
+
+						CUSTOM_REVERSE_TRANSACTION_STRUCT info;
+						info.iClientID = iClientID;
+						Plugin_Communication(CUSTOM_REVERSE_TRANSACTION, &info);
+
 						HkDelayedKick(iClientID, 1);
 						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 					}

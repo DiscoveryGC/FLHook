@@ -250,7 +250,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_BASE_LAST_DOCKED = 46,
 	CLIENT_CLOAK_INFO = 44,
 	COMBAT_DAMAGE_OVERRIDE = 45,
-	CUSTOM_JUMP = 47
+	CUSTOM_JUMP = 47,
+	CUSTOM_REVERSE_TRANSACTION = 48
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -351,6 +352,11 @@ struct CUSTOM_JUMP_STRUCT
 {
 	uint iShipID;
 	uint iSystemID;
+};
+
+struct CUSTOM_REVERSE_TRANSACTION_STRUCT
+{
+	uint iClientID;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

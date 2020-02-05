@@ -1429,9 +1429,14 @@ void __stdcall JumpInComplete(unsigned int system, unsigned int ship)
 	}
 }
 
+bool lastTransactionBase = false;
+uint lastTransactionArchID = 0;
+int lastTransactionCount = 0;
+uint lastTransactionClientID = 0;
 void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
+	lastTransactionBase = false;
 
 	// If the client is in a player controlled base
 	PlayerBase *base = GetPlayerBaseForClient(client);
@@ -1522,7 +1527,14 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 			return;
 		}
 
-		if (!base->AddMarketGood(gsi.iArchID, gsi.iCount))
+		if (base->AddMarketGood(gsi.iArchID, gsi.iCount))
+		{
+			lastTransactionBase = true;
+			lastTransactionArchID = gsi.iArchID;
+			lastTransactionCount = gsi.iCount;
+			lastTransactionClientID = client;
+		}
+		else
 		{
 			PrintUserCmdText(client, L"ERR: Base will not accept goods");
 			clients[client].reverse_sell = true;
@@ -2507,6 +2519,27 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		CUSTOM_JUMP_STRUCT* info = reinterpret_cast<CUSTOM_JUMP_STRUCT*>(data);
 		uint client = HkGetClientIDByShip(info->iShipID);
 		SyncReputationForClientShip(info->iShipID, client);
+	}
+	else if (msg == CUSTOM_REVERSE_TRANSACTION)
+	{
+		if (lastTransactionBase)
+		{
+			CUSTOM_REVERSE_TRANSACTION_STRUCT* info = reinterpret_cast<CUSTOM_REVERSE_TRANSACTION_STRUCT*>(data);
+			if (info->iClientID != lastTransactionClientID) {
+				ConPrint(L"base: CUSTOM_REVERSE_TRANSACTION: Something is very wrong! Expected client ID %d but got %d\n", lastTransactionClientID, info->iClientID);
+				return;
+			}
+			PlayerBase *base = GetPlayerBaseForClient(info->iClientID);
+
+			MARKET_ITEM &item = base->market_items[lastTransactionArchID];
+			int price = (int)item.price * lastTransactionCount;
+
+			base->RemoveMarketGood(lastTransactionArchID, lastTransactionCount);
+
+			pub::Player::AdjustCash(info->iClientID, -price);
+			base->ChangeMoney(price);
+			base->Save();
+		}
 	}
 	return;
 }

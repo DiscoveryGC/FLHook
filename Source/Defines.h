@@ -5,8 +5,7 @@
 #define VERSION L"3.1"
 
 
-// Maximum limit of players.
-// Setting it to greater value may lead to bugs?
+// Maximum players online.
 #define MAX_CLIENT_ID 249
 
 
@@ -38,23 +37,18 @@ typedef unsigned __int64 mstime;
 #define break(loop_name) goto loop_name##_skip
 
 
-// Properties in C++
-#define Property(GET, SET) _declspec(property(get = GET, put = SET))
-#define PropertyReadonly(GET) _declspec(property(get = GET))
-
-
 // Foreach for C++ from old rusty times. Would be great to get rid of this.
 #define foreach(lst, type, var) for(list<type>::iterator var = lst.begin(); (var != lst.end()); var++)
 
 
-// Who actually writes functions whose names coincide with std ones?
+// Who actually names own stuff to be ambiguous with std?
 using namespace std;
 
 
-// The namespace should contain only other namespaces which can be optionally used.
+// The namespace contains only other namespaces which you can optionally use.
 namespace FLHook
 {
-	// All solution-wide global variables must be here.
+	// All solution-wide global variables must be here, somewhen in future.
 	namespace $Globals
 	{
 

@@ -15,6 +15,9 @@
 
 using namespace std;
 
+static uint STORAGE_MODULE_CAPACITY = 40000;
+void LogCheater(uint client, const wstring &reason);
+
 struct RECIPE
 {
 	RECIPE() : produced_item(0), cooking_rate(0) {}

@@ -767,6 +767,23 @@ namespace PlayerCommands
 				return;
 			}
 
+			if (base->modules[index]->type == Module::TYPE_STORAGE && base->GetRemainingCargoSpace() < STORAGE_MODULE_CAPACITY)
+			{
+				PrintUserCmdText(client, L"ERR Need %d free space to destroy a storage module", STORAGE_MODULE_CAPACITY);
+
+				wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
+				pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
+				wstring wscMsgU = L"KITTY ALERT: Possible type 5 POB cheating by %name (Index = %index, RemainingSpace = %space)\n";
+				wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
+				wscMsgU = ReplaceStr(wscMsgU, L"%index", stows(itos(index)).c_str());
+				wscMsgU = ReplaceStr(wscMsgU, L"%space", stows(itos((int)base->GetRemainingCargoSpace())).c_str());
+
+				ConPrint(wscMsgU);
+				LogCheater(client, wscMsgU);
+
+				return;
+			}
+
 			delete base->modules[index];
 			base->modules[index] = 0;
 			base->Save();

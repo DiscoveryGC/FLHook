@@ -487,7 +487,7 @@ uint PlayerBase::GetMaxCargoSpace()
 	{
 		if ((*i) && (*i)->type == Module::TYPE_STORAGE)
 		{
-			max_capacity += 40000;
+			max_capacity += STORAGE_MODULE_CAPACITY;
 		}
 	}
 	return max_capacity;

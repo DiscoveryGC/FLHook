@@ -84,7 +84,8 @@ public:
 	static const int TYPE_DEFENSE_2 = 9;
 	static const int TYPE_DEFENSE_3 = 10;
 	static const int TYPE_M_CLOAKDISRUPTOR = 11;
-	static const int TYPE_LAST = TYPE_M_CLOAKDISRUPTOR;
+	static const int TYPE_FABRICATOR = 12;
+	static const int TYPE_LAST = TYPE_FABRICATOR;
 
 	Module(uint the_type) : type(the_type) {}
 	virtual ~Module() {}
@@ -241,6 +242,19 @@ public:
 
 	bool AddToQueue(uint the_equipment_type);
 	bool ClearQueue();
+};
+
+class FabricatorModule : public Module
+{
+public:
+	PlayerBase *base;
+
+	FabricatorModule(PlayerBase *the_base);
+	~FabricatorModule();
+	wstring GetInfo(bool xml);
+
+	void LoadState(INI_Reader &ini);
+	void SaveState(FILE *file);
 };
 
 class BasePassword
@@ -584,6 +598,6 @@ wstring HtmlEncode(wstring text);
 extern string set_status_path_html;
 extern string set_status_path_json;
 
-extern const char* MODULE_TYPE_NICKNAMES[13];
+extern const char* MODULE_TYPE_NICKNAMES[14];
 
 #endif

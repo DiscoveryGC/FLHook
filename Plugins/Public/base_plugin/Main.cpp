@@ -2541,6 +2541,29 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			base->Save();
 		}
 	}
+	else if (msg == CUSTOM_BASE_QUERY_MODULE)
+	{
+		CUSTOM_BASE_QUERY_MODULE_STRUCT* info = reinterpret_cast<CUSTOM_BASE_QUERY_MODULE_STRUCT*>(data);
+		PlayerBase *base = GetPlayerBaseForClient(info->iClientID);
+		if (base)
+		{
+			returncode = SKIPPLUGINS;
+			bool retbool = false;
+			for (uint index = 1; index < base->modules.size(); index++)
+			{
+				if (base->modules[index])
+				{
+					Module *mod = (Module*)base->modules[index];
+					if (info->iModuleType == mod->type)
+					{
+						retbool = true;
+						break;
+					}
+				}
+			}
+			info->bExists = retbool;
+		}
+	}
 	return;
 }
 

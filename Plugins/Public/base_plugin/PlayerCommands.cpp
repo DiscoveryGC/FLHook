@@ -827,7 +827,8 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|     <type> = 8 - cloaking device manufacturing factory");
 			PrintUserCmdText(client, L"|     <type> = 9 - defense platform array type 2");
 			PrintUserCmdText(client, L"|     <type> = 10 - defense platform array type 3");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloak Disruptor Factory");
+			PrintUserCmdText(client, L"|     <type> = 11 - cloak disruptor factory");
+			PrintUserCmdText(client, L"|     <type> = 12 - equipment fabrication bay");
 		}
 	}
 

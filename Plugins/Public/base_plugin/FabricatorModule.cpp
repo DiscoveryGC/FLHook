@@ -12,7 +12,7 @@ FabricatorModule::~FabricatorModule()
 
 wstring FabricatorModule::GetInfo(bool xml)
 {
-	return L"Equipment Fabricator Bay";
+	return L"Equipment Fabrication Bay";
 }
 
 void FabricatorModule::LoadState(INI_Reader &ini)

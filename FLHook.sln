@@ -69,6 +69,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Balance Magic Plugin", "Plu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiscellaneousCommands", "Plugins\Public\MiscellaneousCommands\MiscellaneousCommands.vcxproj", "{C26DA99F-10F7-421B-AC31-EED1623E7B04}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvE Controller", "Plugins\Public\pvecontroller\pvecontroller.vcxproj", "{22D02598-F2D3-495F-BBA9-72DC156DA723}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{097bffbb-2bbe-4e16-b2fb-3ed8e90ecbd7}*SharedItemsImports = 4
@@ -255,6 +257,13 @@ Global
 		{C26DA99F-10F7-421B-AC31-EED1623E7B04}.Release|Win32.ActiveCfg = Release|Win32
 		{C26DA99F-10F7-421B-AC31-EED1623E7B04}.Release|Win32.Build.0 = Release|Win32
 		{C26DA99F-10F7-421B-AC31-EED1623E7B04}.Release|x64.ActiveCfg = Release|Win32
+		{22D02598-F2D3-495F-BBA9-72DC156DA723}.DebugDONOTUSE|Win32.ActiveCfg = Debug|Win32
+		{22D02598-F2D3-495F-BBA9-72DC156DA723}.DebugDONOTUSE|Win32.Build.0 = Debug|Win32
+		{22D02598-F2D3-495F-BBA9-72DC156DA723}.DebugDONOTUSE|x64.ActiveCfg = Debug|Win32
+		{22D02598-F2D3-495F-BBA9-72DC156DA723}.DebugDONOTUSE|x64.Build.0 = Debug|Win32
+		{22D02598-F2D3-495F-BBA9-72DC156DA723}.Release|Win32.ActiveCfg = Release|Win32
+		{22D02598-F2D3-495F-BBA9-72DC156DA723}.Release|Win32.Build.0 = Release|Win32
+		{22D02598-F2D3-495F-BBA9-72DC156DA723}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -284,6 +293,7 @@ Global
 		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7} = {63F35E63-664C-46D5-8897-D0EB32610F96}
 		{2853796F-8AAF-4E93-A210-08EA11C63D6B} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 		{C26DA99F-10F7-421B-AC31-EED1623E7B04} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
+        {22D02598-F2D3-495F-BBA9-72DC156DA723} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {393C1DF6-B2DC-4FF2-8100-36DD1F304E10}

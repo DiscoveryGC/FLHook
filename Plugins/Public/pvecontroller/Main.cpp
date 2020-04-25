@@ -1,5 +1,5 @@
 // PvE Controller for Discovery FLHook
-// June 2019 by Kazinsal etc.
+// April 2020 by Kazinsal etc.
 //
 // This is free software; you can redistribute it and/or modify it as
 // you wish without restriction. If you do then I would appreciate
@@ -47,6 +47,7 @@ CLIENT_DATA aClientData[250];
 map<uint, stBountyBasePayout> mapBountyPayouts;
 map<uint, stBountyBasePayout> mapBountyShipPayouts;
 map<uint, float> mapBountyGroupScale;
+map<uint, float> mapBountyArmorScales;
 map<uint, float> mapBountySystemScales;
 list<uint> lstRecordedBountyObjs;
 
@@ -60,6 +61,7 @@ int set_iPoolPayoutTimer = 0;
 int iLoadedNPCBountyClasses = 0;
 int iLoadedNPCShipBountyOverrides = 0;
 int iLoadedNPCBountyGroupScale = 0;
+int iLoadedNPCBountyArmorScales = 0;
 int iLoadedNPCBountySystemScales = 0;
 void LoadSettingsNPCBounties(void);
 
@@ -107,6 +109,8 @@ void LoadSettingsNPCBounties()
 	iLoadedNPCShipBountyOverrides = 0;
 	mapBountyGroupScale.clear();
 	iLoadedNPCBountyGroupScale = 0;
+	mapBountyArmorScales.clear();
+	iLoadedNPCBountyArmorScales = 0;
 	mapBountySystemScales.clear();
 	iLoadedNPCBountySystemScales = 0;
 
@@ -155,10 +159,19 @@ void LoadSettingsNPCBounties()
 							ConPrint(L"PVECONTROLLER: Loaded override for \"%s\" == %u, $%d.\n", stows(ini.get_value_string(0)).c_str(), uShiparchHash, mapBountyShipPayouts[uShiparchHash].iBasePayout);
 					}
 
+					if (!strcmp(ini.get_name_ptr(), "armor_multiplier"))
+					{
+						uint uArmorHash = CreateID(ini.get_value_string(0));
+						mapBountyArmorScales[uArmorHash] = ini.get_value_float(1);
+						++iLoadedNPCBountyArmorScales;
+						if (set_iPluginDebug)
+							ConPrint(L"PVECONTROLLER: Loaded fighter armor multiplier for \"%s\" == %u, %f.\n", stows(ini.get_value_string(0)).c_str(), uArmorHash, ini.get_value_float(1));
+					}
+
 					if (!strcmp(ini.get_name_ptr(), "system_multiplier"))
 					{
 						uint uSystemHash = CreateID(ini.get_value_string(0));
-						mapBountyGroupScale[uSystemHash] = ini.get_value_float(1);
+						mapBountySystemScales[uSystemHash] = ini.get_value_float(1);
 						++iLoadedNPCBountySystemScales;
 						if (set_iPluginDebug)
 							ConPrint(L"PVECONTROLLER: Loaded system scale multiplier for \"%s\" == %u, %f.\n", stows(ini.get_value_string(0)).c_str(), uSystemHash, ini.get_value_float(1));
@@ -174,7 +187,8 @@ void LoadSettingsNPCBounties()
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty group scale values.\n", iLoadedNPCBountyGroupScale);
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty classes.\n", iLoadedNPCBountyClasses);
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty ship overrides.\n", iLoadedNPCShipBountyOverrides);
-	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty system scale values.\n", iLoadedNPCBountySystemScales);
+	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty fighter armor multipliers.\n", iLoadedNPCBountyArmorScales);
+	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty system scale multipliers.\n", iLoadedNPCBountySystemScales);
 }
 
 void LoadSettingsNPCDrops()
@@ -385,11 +399,12 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 
 	if (!cmds->ArgStrToEnd(1).compare(L"status"))
 	{
-		cmds->Print(L"PVECONTROLLER: PvE controller is active.\n");
+		cmds->Print(L"PVECONTROLLER: PvE Controller (Phase 1) is active.\n");
 		if (set_iPoolPayoutTimer)
 		{
 			uint next_tick = set_iPoolPayoutTimer - ((uint)time(0) % set_iPoolPayoutTimer);
-			uint pools = 0, poolvalue = 0, poolkills = 0;
+			uint pools = 0, poolkills = 0;
+			uint64_t poolvalue = 0;
 			for (int i = 0; i < 250; i++) {
 				if (aClientData[i].bounty_pool) {
 					pools++;
@@ -397,7 +412,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 					poolkills += aClientData[i].bounty_count;
 				}
 			}
-			cmds->Print(L"  There are %d outstanding bounty pools worth $%s credits for %d kill%s to be paid out in %dm%ds.\n", pools, ToMoneyStr(poolvalue).c_str(), poolkills, (poolkills != 1 ? L"s" : L""), next_tick / 60, next_tick % 60);
+			cmds->Print(L"  There are %d outstanding bounty pools worth $%lld credits for %d kill%s to be paid out in %dm%ds.\n", pools, poolvalue, poolkills, (poolkills != 1 ? L"s" : L""), next_tick / 60, next_tick % 60);
 		}
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		return true;
@@ -406,7 +421,8 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		if (set_iPoolPayoutTimer)
 		{
-			uint pools = 0, poolvalue = 0, poolkills = 0;
+			uint pools = 0, poolkills = 0;
+			uint64_t poolvalue = 0;
 			for (int i = 0; i < 250; i++) {
 				if (aClientData[i].bounty_pool) {
 					pools++;
@@ -415,7 +431,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 					NPCBountyPayout(i);
 				}
 			}
-			cmds->Print(L"PVECONTROLLER: Paid out %d outstanding bounty pools worth $%s credits for %d kill%s.\n", pools, ToMoneyStr(poolvalue).c_str(), poolkills, (poolkills != 1 ? L"s" : L""));
+			cmds->Print(L"PVECONTROLLER: Paid out %d outstanding bounty pools worth $%lld credits for %d kill%s.\n", pools, poolvalue, poolkills, (poolkills != 1 ? L"s" : L""));
 		}
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		return true;
@@ -478,6 +494,8 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			if (find(lstRecordedBountyObjs.begin(), lstRecordedBountyObjs.end(), iDmgToSpaceID) != lstRecordedBountyObjs.end())
 				return;
 
+			lstRecordedBountyObjs.push_back(iDmgToSpaceID);
+
 			unsigned int uArchID = 0;
 			pub::SpaceObj::GetSolarArchetypeID(iDmgToSpaceID, uArchID);
 			Archetype::Ship* victimShiparch = Archetype::GetShip(uArchID);
@@ -488,92 +506,85 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			uint uKillerSystem = 0;
 			pub::Player::GetSystem(iDmgFrom, uKillerSystem);
 
-			int iBountyPayout = 0;
+			// Process bounties if enabled.
+			if (set_bBountiesEnabled) {
+				int iBountyPayout = 0;
 
-			// Determine bounty payout.
-			map<uint, stBountyBasePayout>::iterator iter = mapBountyShipPayouts.find(uArchID);
-			if (iter != mapBountyShipPayouts.end()) {
-				if (set_iPluginDebug >= PLUGIN_DEBUG_VERBOSE)
-					PrintUserCmdText(iDmgFrom, L"Overriding payout for uarch %u to be $%d.", uArchID, iter->second.iBasePayout);
-				iBountyPayout = iter->second.iBasePayout;
-			}
-			else {
-				map<uint, stBountyBasePayout>::iterator iter = mapBountyPayouts.find(victimShiparch->iShipClass);
-				if (iter != mapBountyPayouts.end()) {
+				// Determine bounty payout.
+				map<uint, stBountyBasePayout>::iterator iter = mapBountyShipPayouts.find(uArchID);
+				if (iter != mapBountyShipPayouts.end()) {
+					if (set_iPluginDebug >= PLUGIN_DEBUG_VERBOSE)
+						PrintUserCmdText(iDmgFrom, L"Overriding payout for uarch %u to be $%d.", uArchID, iter->second.iBasePayout);
 					iBountyPayout = iter->second.iBasePayout;
-					if (victimShiparch->iShipClass < 5) {
-						unsigned int iDunno = 0;
-						IObjInspectImpl *obj = NULL;
-						if (GetShipInspect(iDmgToSpaceID, obj, iDunno)) {
-							if (obj) {
-								CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
-								CEquipManager* eqmanager = (CEquipManager*)((char*)cship + 0xE4);
-								CEArmor *cearmor = (CEArmor*)eqmanager->FindFirst(0x1000000);
-								if (cearmor) {
-									switch (cearmor->archetype->iArchID) {
-										case 0x8F502A4A:	// armor_scale_2 - rank 10-13
-											iBountyPayout = iBountyPayout * 2;
-											break;
-										case 0x8F50BA4A:	// armor_scale_6 - rank 14-16
-											iBountyPayout = (int)((float)iBountyPayout * 3.5);
-											break;
-										case 0x8F51624A:	// armor_scale_8 - rank 17-18
-											iBountyPayout = iBountyPayout * 7;
-											break;
-										case 0xB047EE8A:	// armor_scale_10 - rank 19
-											iBountyPayout = iBountyPayout * 10;
-											break;
+				}
+				else {
+					map<uint, stBountyBasePayout>::iterator iter = mapBountyPayouts.find(victimShiparch->iShipClass);
+					if (iter != mapBountyPayouts.end()) {
+						iBountyPayout = iter->second.iBasePayout;
+						if (victimShiparch->iShipClass < 5) {
+							unsigned int iDunno = 0;
+							IObjInspectImpl *obj = NULL;
+							if (GetShipInspect(iDmgToSpaceID, obj, iDunno)) {
+								if (obj) {
+									CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
+									CEquipManager* eqmanager = (CEquipManager*)((char*)cship + 0xE4);
+									CEArmor *cearmor = (CEArmor*)eqmanager->FindFirst(0x1000000);
+
+									// If the NPC has armour, see if we have an armour scale multiplier to use on it.
+									if (cearmor) {
+										map<uint, float>::iterator iter = mapBountyArmorScales.find(cearmor->archetype->iArchID);
+										if (iter != mapBountyArmorScales.end())
+											iBountyPayout = (int)((float)iBountyPayout * iter->second);
 									}
 								}
 							}
 						}
 					}
 				}
-			}
 
-			// Multiply by system multiplier if applicable.
-			if (iLoadedNPCBountySystemScales) {
-				map<uint, float>::iterator itSystemScale = mapBountySystemScales.find(uKillerSystem);
-				if (itSystemScale != mapBountySystemScales.end())
-					iBountyPayout *= itSystemScale->second;
-			}
-
-			// If we've turned bounties off, don't pay it.
-			if (set_bBountiesEnabled == false)
-				iBountyPayout = 0;
-
-			if (iBountyPayout) {
-				list<GROUP_MEMBER> lstMembers;
-				HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iDmgFrom), lstMembers);
-
-				if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-					PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: There are %u players in your group.", lstMembers.size());
-
-				foreach (lstMembers, GROUP_MEMBER, gm) {
-					uint uGroupMemberSystem = 0;
-					pub::Player::GetSystem(gm->iClientID, uGroupMemberSystem);
-					if (uKillerSystem != uGroupMemberSystem)
-						lstMembers.erase(gm);
+				// Multiply by system multiplier if applicable.
+				if (iLoadedNPCBountySystemScales) {
+					map<uint, float>::iterator itSystemScale = mapBountySystemScales.find(uKillerSystem);
+					if (itSystemScale != mapBountySystemScales.end())
+						iBountyPayout *= itSystemScale->second;
 				}
 
-				if (mapBountyGroupScale[lstMembers.size()])
-					iBountyPayout = (int)((float)iBountyPayout * mapBountyGroupScale[lstMembers.size()]);
-				else
-					iBountyPayout = (int)((float)iBountyPayout / lstMembers.size());
+				// If we've turned bounties off, don't pay it.
+				if (set_bBountiesEnabled == false)
+					iBountyPayout = 0;
 
-				if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-					PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Paying out $%d to %u eligible group members in your system.", iBountyPayout, lstMembers.size());
+				if (iBountyPayout) {
+					list<GROUP_MEMBER> lstMembers;
+					HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iDmgFrom), lstMembers);
 
-				foreach(lstMembers, GROUP_MEMBER, gm) {
-					NPCBountyAddToPool(gm->iClientID, iBountyPayout, set_iPoolPayoutTimer);
-					if (!set_iPoolPayoutTimer)
-						NPCBountyPayout(gm->iClientID);
+					if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+						PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: There are %u players in your group.", lstMembers.size());
+
+					foreach(lstMembers, GROUP_MEMBER, gm) {
+						uint uGroupMemberSystem = 0;
+						pub::Player::GetSystem(gm->iClientID, uGroupMemberSystem);
+						if (uKillerSystem != uGroupMemberSystem)
+							lstMembers.erase(gm);
+					}
+
+					if (mapBountyGroupScale[lstMembers.size()])
+						iBountyPayout = (int)((float)iBountyPayout * mapBountyGroupScale[lstMembers.size()]);
+					else
+						iBountyPayout = (int)((float)iBountyPayout / lstMembers.size());
+
+					if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+						PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Paying out $%d to %u eligible group members in your system.", iBountyPayout, lstMembers.size());
+
+					foreach (lstMembers, GROUP_MEMBER, gm) {
+						NPCBountyAddToPool(gm->iClientID, iBountyPayout, set_iPoolPayoutTimer);
+						if (!set_iPoolPayoutTimer)
+							NPCBountyPayout(gm->iClientID);
+					}
+
 				}
-
-				lstRecordedBountyObjs.push_back(iDmgToSpaceID);
 			}
 
-			// Process drops if enabled
+			// Process drops if enabled.
 			if (set_bDropsEnabled) {
 				for (auto it = mmapDropInfo.begin(); it != mmapDropInfo.end(); it++) {
 					if (it->first == victimShiparch->iShipClass) {

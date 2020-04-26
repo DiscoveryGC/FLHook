@@ -54,6 +54,7 @@ list<uint> lstRecordedBountyObjs;
 multimap<uint, stDropInfo> mmapDropInfo;
 
 int set_iPluginDebug = 0;
+float set_fMaximumRewardRep = 0.0f;
 uint set_uLootCrateID = 0;
 
 bool set_bBountiesEnabled = true;
@@ -88,6 +89,7 @@ void LoadSettings()
 
 	// Load generic settings
 	set_iPluginDebug = IniGetI(scPluginCfgFile, "General", "debug", 0);
+	set_fMaximumRewardRep = IniGetF(scPluginCfgFile, "General", "maximum_reward_rep", 0.0f);
 	set_uLootCrateID = CreateID(IniGetS(scPluginCfgFile, "NPCDrops", "drop_crate", "lootcrate_ast_loot_metal").c_str());
 
 	// Load settings blocks
@@ -505,6 +507,20 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			// Grab some info we'll need later.
 			uint uKillerSystem = 0;
 			pub::Player::GetSystem(iDmgFrom, uKillerSystem);
+
+			// Deny bounties and drops for kills on targets above the maximum reward reputation threshold.
+			int iTargetRep, iPlayerRep;
+			uint uTargetAffiliation;
+			float fAttitude = 0.0f;
+			pub::SpaceObj::GetRep(iDmgToSpaceID, iTargetRep);
+			pub::Reputation::GetAffiliation(iTargetRep, uTargetAffiliation);
+			pub::SpaceObj::GetRep(dmg->get_inflictor_id(), iPlayerRep);
+			pub::Reputation::GetGroupFeelingsTowards(iPlayerRep, uTargetAffiliation, fAttitude);
+			if (fAttitude > set_fMaximumRewardRep) {
+				if (set_bBountiesEnabled)
+					PrintUserCmdText(iDmgFrom, L"Can not pay bounty against ineligible combatant (reputation towards target must be %0.2f or lower).", set_fMaximumRewardRep);
+				return;
+			}
 
 			// Process bounties if enabled.
 			if (set_bBountiesEnabled) {

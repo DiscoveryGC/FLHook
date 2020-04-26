@@ -74,6 +74,7 @@ EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{097bffbb-2bbe-4e16-b2fb-3ed8e90ecbd7}*SharedItemsImports = 4
+		Plugins\PluginUtilities\PluginUtilities.vcxitems*{22d02598-f2d3-495f-bba9-72dc156da723}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{2853796f-8aaf-4e93-a210-08ea11c63d6b}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{367d5edc-f360-49e0-b652-587b9e22cf6c}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{45d41acc-2c3c-43d2-bc10-02aa73ffc7c7}*SharedItemsImports = 9
@@ -293,7 +294,7 @@ Global
 		{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7} = {63F35E63-664C-46D5-8897-D0EB32610F96}
 		{2853796F-8AAF-4E93-A210-08EA11C63D6B} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 		{C26DA99F-10F7-421B-AC31-EED1623E7B04} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
-        {22D02598-F2D3-495F-BBA9-72DC156DA723} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
+		{22D02598-F2D3-495F-BBA9-72DC156DA723} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {393C1DF6-B2DC-4FF2-8100-36DD1F304E10}

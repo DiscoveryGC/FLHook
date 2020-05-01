@@ -138,10 +138,14 @@ void ADOCK::Timer()
 	{
 		if (i->second == 0)
 		{
-			wstring wscMsg = L"%time %victim's docking rights have been restored.";
-			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(false));
-			wscMsg = ReplaceStr(wscMsg, L"%victim", (const wchar_t*)Players.GetActiveCharacterName(i->first));
-			PrintLocalUserCmdText(i->first, wscMsg, 10000);
+			const wchar_t* wszCharname = (const wchar_t*)Players.GetActiveCharacterName(i->first);
+			if (wszCharname) {
+				wstring wscMsg = L"%time %victim's docking rights have been restored.";
+				wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(false));
+				wscMsg = ReplaceStr(wscMsg, L"%victim", wszCharname);
+				PrintLocalUserCmdText(i->first, wscMsg, 10000);
+			}
+
 			mapActiveNoDock.erase(i->first);
 		}
 		else

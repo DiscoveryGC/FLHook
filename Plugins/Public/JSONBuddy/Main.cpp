@@ -274,7 +274,15 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	mapActivityData[iClientID].ip = wstos(spurdoip);
 
 	Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
-	mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];
+	mapActivityData[iClientID].shiparch = "UNKNOWN";
+	if (ship)
+	{
+		mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];
+	}
+	else
+	{
+		AddLog("JSONBuddy: CharacterSelect_AFTER: Client %d (%s) logged in with unknown ship archetype %d", iClientID, mapActivityData[iClientID].charname.c_str(), Players[iClientID].iShipArchetype);
+	}
 
 	//ensure the ID is empty, as we want to return something if no ID is found.
 	mapActivityData[iClientID].id = "";
@@ -349,7 +357,10 @@ void HkTimerJSON()
 			}
 
 			Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
-			mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];
+			mapActivityData[iClientID].shiparch = "UNKNOWN";
+			if (ship) {
+				mapActivityData[iClientID].shiparch = mapShips[ship->get_id()];
+			}
 
 			//ensure the ID is empty, as we want to return something if no ID is found.
 			mapActivityData[iClientID].id = "";

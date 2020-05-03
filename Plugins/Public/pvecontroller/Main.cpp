@@ -491,6 +491,13 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 		if (p1 != 1)
 			return;
 
+		uint iTargetType;
+		pub::SpaceObj::GetType(iDmgToSpaceID, iTargetType);
+
+		// If it's not a ship, then we don't care.
+		if (iTargetType != OBJ_FIGHTER && iTargetType != OBJ_FREIGHTER && iTargetType != OBJ_TRANSPORT && iTargetType != OBJ_CAPITAL && iTargetType != OBJ_CRUISER && iTargetType != OBJ_GUNBOAT)
+			return;
+
 		if (damage == 0.0f) {
 			// Prevent paying out the same kill twice
 			if (find(lstRecordedBountyObjs.begin(), lstRecordedBountyObjs.end(), iDmgToSpaceID) != lstRecordedBountyObjs.end())
@@ -648,14 +655,23 @@ void HkTimerCheckKick()
 	}
 }
 
+void __stdcall BaseEnter(uint iBaseID, uint iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	// Pay bounty pool when a client docks so we don't have to screw around with client disconnections and other garbage like that.
+	if (aClientData[iClientID].bounty_pool)
+		NPCBountyPayout(iClientID);
+}
+
 void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 {
 	returncode = DEFAULT_RETURNCODE;
 
 	//ConPrint(L"PVE: DisConnect for id=%d char=%s\n", iClientID, Players.GetActiveCharacterName(iClientID));
 
-	if (ClientInfo[iClientID].bCharSelected)
-		NPCBountyPayout(iClientID);
+	/*if (ClientInfo[iClientID].bCharSelected)
+		NPCBountyPayout(iClientID);*/
 
 	ClearClientInfo(iClientID);
 }
@@ -666,8 +682,8 @@ void __stdcall CharacterInfoReq(uint iClientID, bool p2)
 
 	//ConPrint(L"PVE: CharacterInfoReq for id=%d char=%s, p2=%s\n", iClientID, Players.GetActiveCharacterName(iClientID), p2 ? L"true" : L"false");
 
-	if (ClientInfo[iClientID].bCharSelected)
-		NPCBountyPayout(iClientID);
+	/*if (ClientInfo[iClientID].bCharSelected)
+		NPCBountyPayout(iClientID);*/
 
 	ClearClientInfo(iClientID);
 }
@@ -687,6 +703,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterInfoReq, PLUGIN_HkIServerImpl_CharacterInfoReq, 0));
 

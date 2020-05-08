@@ -752,7 +752,7 @@ bool __stdcall HkCb_IsDockableError(uint dock_with, uint base)
 {
 	if (GetPlayerBase(base))
 		return false;
-	ConPrint(L"ERROR: Base not found dock_with=%08x base=%08x\n", base, base);
+	ConPrint(L"ERROR: Base not found dock_with=%08x base=%08x\n", dock_with, base);
 	return true;
 }
 

@@ -676,18 +676,6 @@ void __stdcall DisConnect(uint iClientID, enum EFLConnection p2)
 	ClearClientInfo(iClientID);
 }
 
-void __stdcall CharacterInfoReq(uint iClientID, bool p2)
-{
-	returncode = DEFAULT_RETURNCODE;
-
-	//ConPrint(L"PVE: CharacterInfoReq for id=%d char=%s, p2=%s\n", iClientID, Players.GetActiveCharacterName(iClientID), p2 ? L"true" : L"false");
-
-	/*if (ClientInfo[iClientID].bCharSelected)
-		NPCBountyPayout(iClientID);*/
-
-	ClearClientInfo(iClientID);
-}
-
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
 	PLUGIN_INFO* p_PI = new PLUGIN_INFO();
@@ -705,7 +693,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterInfoReq, PLUGIN_HkIServerImpl_CharacterInfoReq, 0));
 
 	return p_PI;
 }

@@ -649,8 +649,8 @@ void HkTimerCheckKick()
 		}
 	}
 
-	// Clear our list of recorded bounty objects every 5 seconds.
-	if (curr_time % 5 == 0) {
+	// Clear our list of recorded bounty objects every minute.
+	if (curr_time % 60 == 0) {
 		lstRecordedBountyObjs.clear();
 	}
 }

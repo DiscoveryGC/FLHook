@@ -592,7 +592,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 						fZoneBonus = set_mapZoneBonus[zone->iZoneID].fBonus;
 
 					// If the field is getting mined out, reduce the bonus
-					fZoneBonus *= set_mapZoneBonus[zone->iZoneID].fCurrReserve / set_mapZoneBonus[zone->iZoneID].fMaxReserve;
+					//fZoneBonus *= set_mapZoneBonus[zone->iZoneID].fCurrReserve / set_mapZoneBonus[zone->iZoneID].fMaxReserve;
 
 					uint iLootID = zone->lootableZone->dynamic_loot_commodity;
 					uint iCrateID = zone->lootableZone->dynamic_loot_container;
@@ -660,7 +660,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 					if (set_mapZoneBonus[zone->iZoneID].fCurrReserve <= 0)
 					{
 						set_mapZoneBonus[zone->iZoneID].fCurrReserve = 0;
-						iLootCount = 0;
+						//iLootCount = 0;
 					}
 
 					if (mapClients[iClientID].iDebug)

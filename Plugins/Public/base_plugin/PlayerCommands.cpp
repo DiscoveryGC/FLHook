@@ -27,7 +27,12 @@ namespace PlayerCommands
 			return;
 		}
 
-		wstring help = L"<RDL><PUSH/>"
+		// Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
+		const uint numPages = 4;
+		wstring pages[numPages];
+		pages[0] = L"<TRA bold=\"true\"/><TEXT>/base help [page]</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Show this help page. Specify the page number to see the next page.</TEXT><PARA/><PARA/>" 
+
 			L"<TRA bold=\"true\"/><TEXT>/base login [password]</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Login as base administrator. The following commands are only available if you are logged in as a base administrator.</TEXT><PARA/><PARA/>"
 
@@ -44,9 +49,9 @@ namespace PlayerCommands
 			L"<TEXT>Set the master password for the base.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
+			L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT>";
 
-			L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
+		pages[1] = L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
@@ -60,9 +65,9 @@ namespace PlayerCommands
 			L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/shop [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT><PARA/><PARA/>"
+			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT>";
 
-			L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
+		pages[2] = L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
 			L"<TEXT>Defense Mode 1 - Logic: Blacklist > Whitelist > IFF Standing.</TEXT><PARA/>"
 			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
@@ -76,9 +81,9 @@ namespace PlayerCommands
 			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the base's infocard description.</TEXT><PARA/><PARA/>"
+			L"<TEXT>Set the base's infocard description.</TEXT>";
 
-			L"<TRA bold=\"true\"/><TEXT>/base facmod</TEXT><TRA bold=\"false\"/><PARA/>"
+		pages[3] = L"<TRA bold=\"true\"/><TEXT>/base facmod</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control factory modules.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
@@ -88,12 +93,28 @@ namespace PlayerCommands
 			L"<TEXT>Control shield modules.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base buildmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control the construction and destruction of base modules and upgrades.</TEXT><PARA/><PARA/>"
+			L"<TEXT>Control the construction and destruction of base modules and upgrades.</TEXT>";
 
-			L"<POP/></RDL>";
+		uint page = 0;
+		wstring pageNum = GetParam(args, ' ', 2);
+		if (pageNum.length())
+		{
+			page = ToUInt(pageNum) - 1;
+			if (page < 0 || page > numPages - 1) {
+				page = 0;
+			}
+		}
 
-		HkChangeIDSString(client, 500000, L"Base Help");
-		HkChangeIDSString(client, 500001, help);
+		wstring pagetext = pages[page];
+
+		wchar_t titleBuf[4000];
+		_snwprintf(titleBuf, sizeof(titleBuf), L"Base Help : Page %d/%d", page + 1, numPages);
+
+		wchar_t buf[4000];
+		_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%s<POP/></RDL>", pagetext);
+
+		HkChangeIDSString(client, 500000, titleBuf);
+		HkChangeIDSString(client, 500001, buf);
 
 		FmtStr caption(0, 0);
 		caption.begin_mad_lib(500000);

@@ -627,10 +627,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 				if (iLoadedNPCBountyWarzoneScales) {
 					for (auto it = mmapBountyWarzoneScales.begin(); it != mmapBountyWarzoneScales.end(); it++) {
 						if (it->first == uKillerSystem) {
-							if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-								PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Warzone entry found for system. %u vs %u",it->second.uFaction1, it->second.uFaction2);
-							if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-								PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Checking Killer (%u) and Target (%u) factions for possible warzone multiplier of %0.2f", uKillerAffiliation, uTargetAffiliation, it->second.fMultiplier);
 							if ((it->second.uFaction1 == uKillerAffiliation && it->second.uFaction2 == uTargetAffiliation) || (it->second.uFaction2 == uKillerAffiliation && it->second.uFaction1 == uTargetAffiliation)) {
 								if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
 									PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Killer (%u) and Target (%u) have valid warzone multipliyer of %0.2f", uKillerAffiliation, uTargetAffiliation, it->second.fMultiplier);

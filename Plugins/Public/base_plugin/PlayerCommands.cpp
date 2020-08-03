@@ -1206,9 +1206,22 @@ namespace PlayerCommands
 		}
 	}
 
-	static void ShowShopStatus(uint client, PlayerBase *base, int page)
+	static void ShowShopStatus(uint client, PlayerBase *base, wstring substring, int page)
 	{
-		int pages = (base->market_items.size() / 40) + 1;
+		int matchingItems = 0;
+		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i)
+		{
+			const GoodInfo *gi = GoodList::find_by_id(i->first);
+			if (!gi)
+				continue;
+
+			wstring name = HkGetWStringFromIDS(gi->iIDSName);
+			if (ToLower(name).find(substring) != std::wstring::npos) {
+				matchingItems++;
+			}
+		}
+
+		int pages = (matchingItems / 40) + 1;
 		if (page > pages)
 			page = pages;
 		else if (page < 1)
@@ -1228,27 +1241,36 @@ namespace PlayerCommands
 			status += L"<TEXT>  /shop price [item] [price] [min stock] [max stock]</TEXT><PARA/>";
 			status += L"<TEXT>  /shop remove [item]</TEXT><PARA/>";
 		}
-		status += L"<TEXT>  /shop [page]</TEXT><PARA/><PARA/>";
+		status += L"<TEXT>  /shop [page]</TEXT><PARA/><TEXT>  /shop filter [substring] [page]</TEXT><PARA/><PARA/>";
 
 		status += L"<TEXT>Stock:</TEXT><PARA/>";
 		int item = 1;
+		int globalItem = 1;
 
-		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, item++)
+		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, globalItem++)
 		{
-			if (item < start_item)
-				continue;
 			if (item > end_item)
 				break;
 
 			const GoodInfo *gi = GoodList::find_by_id(i->first);
-			if (!gi)
+			if (!gi) {
+				item++;
 				continue;
+			}
 
-			wchar_t buf[1000];
-			_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max</TEXT><PARA/>",
-				item, i->second.quantity, HtmlEncode(HkGetWStringFromIDS(gi->iIDSName)).c_str(),
-				i->second.price, i->second.min_stock, i->second.max_stock);
-			status += buf;
+			wstring name = HkGetWStringFromIDS(gi->iIDSName);
+			if (ToLower(name).find(substring) != std::wstring::npos) {
+				if (item < start_item) {
+					item++;
+					continue;
+				}
+				wchar_t buf[1000];
+				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max</TEXT><PARA/>",
+					globalItem, i->second.quantity, HtmlEncode(name).c_str(),
+					i->second.price, i->second.min_stock, i->second.max_stock);
+				status += buf;
+				item++;
+			}
 		}
 		status += L"<POP/></RDL>";
 
@@ -1308,7 +1330,7 @@ namespace PlayerCommands
 					base->Save();
 
 					int page = ((curr_item + 39) / 40);
-					ShowShopStatus(client, base, page);
+					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					return;
 				}
@@ -1333,17 +1355,24 @@ namespace PlayerCommands
 					base->Save();
 
 					int page = ((curr_item + 39) / 40);
-					ShowShopStatus(client, base, page);
+					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					return;
 				}
 			}
 			PrintUserCmdText(client, L"ERR Commodity does not exist");
 		}
+		else if (cmd == L"filter")
+		{
+			wstring substring = GetParam(args, ' ', 2);
+			int page = ToInt(GetParam(args, ' ', 3));
+			ShowShopStatus(client, base, ToLower(substring), page);
+			PrintUserCmdText(client, L"OK");
+		}
 		else
 		{
 			int page = ToInt(GetParam(args, ' ', 1));
-			ShowShopStatus(client, base, page);
+			ShowShopStatus(client, base, L"", page);
 			PrintUserCmdText(client, L"OK");
 		}
 	}

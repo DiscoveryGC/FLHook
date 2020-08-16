@@ -136,7 +136,7 @@ namespace RepFixer
 					{
 						if (ini.is_value("name"))
 						{
-							tagname = stows(ini.get_value_string(0));
+							tagname = stows(ini.get_value_string());
 						}
 						else if (ini.is_value("rep"))
 						{

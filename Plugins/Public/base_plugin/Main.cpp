@@ -104,6 +104,8 @@ map<string, ARCHTYPE_STRUCT> mapArchs;
 //commodities to watch for logging
 map<uint, wstring> listCommodities;
 
+//the hostility and weapon platform activation from damage caused by one player
+float damage_threshold = 400000;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PlayerBase *GetPlayerBase(uint base)
@@ -395,6 +397,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("status_path_json"))
 					{
 						set_status_path_json = ini.get_value_string();
+					}
+					else if (ini.is_value("damage_threshold"))
+					{
+						damage_threshold = ini.get_value_float(0);
 					}
 					else if (ini.is_value("status_export_type"))
 					{

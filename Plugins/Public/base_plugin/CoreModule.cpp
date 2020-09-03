@@ -402,12 +402,6 @@ void CoreModule::SaveState(FILE *file)
 	fprintf(file, "dont_rust = %d\n", dont_rust);
 }
 
-int CoreModule::CalcMoneyForOneRepair()
-{
-	//Formula to calculate how much money would be taken per one repair cycle(replaced taking two repair materials)
-	return (MoneyRepair_BaseQuantity + (base->base_level* MoneyRepair_PerBaseLevelModifier));
-}
-
 void CoreModule::RepairDamage(float max_base_health)
 {
 	// We have to add this because of bug abusers
@@ -440,37 +434,18 @@ void CoreModule::RepairDamage(float max_base_health)
 	// no food & no water & no oxygen = RIOTS
 	if ((checkfood != 0) && (checkoxygenwater == 2))
 	{
-		//Get relative base health
-		float rhealth = base->base_health / base->max_base_health;
 		//HkMsgU(L"base can repair");
 		// The bigger the base the more damage can be repaired.
 		for (uint repair_cycles = 0; repair_cycles < base->base_level; ++repair_cycles)
 		{
-			//If moneyrepairing_is_disabled or shield is online or base health is less than 99% then repair with repair materials
-			if (MoneyRepair_IsDisabled || (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE || rhealth < 0.99))
-			{
-				foreach(set_base_repair_items, REPAIR_ITEM, item)
-				{
-					if (base->base_health >= max_base_health)
-						return;
-
-					if (base->HasMarketItem(item->good) >= item->quantity)
-					{
-						base->RemoveMarketGood(item->good, item->quantity);
-						base->base_health += repair_per_repair_cycle;
-						base->repairing = true;
-					}
-				}
-			}
-			else //otherwice repair with money
+			foreach(set_base_repair_items, REPAIR_ITEM, item)
 			{
 				if (base->base_health >= max_base_health)
 					return;
 
-				int moneyForOneRepair = CalcMoneyForOneRepair();
-				if (base->money > moneyForOneRepair)
+				if (base->HasMarketItem(item->good) >= item->quantity)
 				{
-					base->ChangeMoney(0 - moneyForOneRepair);
+					base->RemoveMarketGood(item->good, item->quantity);
 					base->base_health += repair_per_repair_cycle;
 					base->repairing = true;
 				}
@@ -577,20 +552,6 @@ bool CoreModule::Timer(uint time)
 					ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
 
 			}
-			else
-			{
-				//If they don't eat food, then check if base has money for one repair to pay them salary, if base has not enough of money. then riots. kill 10 crew every 12 hours.
-				if (time % 43200 == 0)
-				{
-					int moneyForOneRepair = CalcMoneyForOneRepair();
-					if (!(base->money > moneyForOneRepair))
-					{
-						base->RemoveMarketGood(set_base_crew_type, (number_of_crew >= 10) ? 10 : number_of_crew);
-					}
-
-				}
-			}
-
 		}
 		//else we do not change health, but we still need to send an update to fix the undockable problem. The base either has no logic or is invulnerable, so processing changes is useless.
 		else

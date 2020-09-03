@@ -135,8 +135,6 @@ public:
 	void SetReputation(int player_rep, float attitude);
 
 	void RepairDamage(float max_base_health);
-
-	int CalcMoneyForOneRepair();
 };
 
 class ShieldModule : public Module
@@ -587,10 +585,5 @@ extern string set_status_path_html;
 extern string set_status_path_json;
 
 extern const char* MODULE_TYPE_NICKNAMES[13];
-
-//Money Repairing settings. They work if they are enabled, when shield is offline and base health more than 99%.
-extern bool MoneyRepair_IsDisabled;//If repairing with money is enabled
-extern uint MoneyRepair_BaseQuantity; //Value of money consumed during one repair cycle.
-extern uint MoneyRepair_PerBaseLevelModifier;//How increses money consuming with each base level
 
 #endif

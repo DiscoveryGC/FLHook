@@ -104,14 +104,6 @@ map<string, ARCHTYPE_STRUCT> mapArchs;
 //commodities to watch for logging
 map<uint, wstring> listCommodities;
 
-//Money Repairing settings. They will work, when shield is offline and base health more than 99%.
-//Where before two repair items where consumed per one repair cycle, money consumed = (MoneyRepair_BaseQuantity + BaseLevel*MoneyRepair_PerBaseLevelModifier)
-//Don't forget in .cfg file to add "dont_eat = true" for disabling Food, Water, Oxygen consuming
-//Settings to change additions "money_repair = false, 500, 500" to base.cfg file
-bool MoneyRepair_IsDisabled = false;//If repairing with money is enabled
-uint MoneyRepair_BaseQuantity = 500; //Value of money consumed during one repair cycle.
-uint MoneyRepair_PerBaseLevelModifier = 500;//How increses money consuming with each base level
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PlayerBase *GetPlayerBase(uint base)
@@ -484,15 +476,6 @@ void LoadSettingsActual()
 						uint c = CreateID(ini.get_value_string());
 						listCommodities[c] = stows(ini.get_value_string());
 
-					}
-					else if (ini.is_value("money_repair"))
-					{
-						//bool MoneyRepair_IsDisabled = false;//If repairing with money is enabled
-						//int MoneyRepair_BaseQuantity = 500; //Value of money consumed during one repair cycle.
-						//int MoneyRepair_PerBaseLevelModifier = 500;//How increses money consuming with each base level
-						MoneyRepair_IsDisabled = ini.get_value_bool(0);
-						MoneyRepair_BaseQuantity = ini.get_value_int(1);
-						MoneyRepair_PerBaseLevelModifier = ini.get_value_int(2);
 					}
 				}
 			}

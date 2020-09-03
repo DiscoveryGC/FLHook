@@ -358,6 +358,7 @@ public:
 
 	// List of ships that are hostile to this base
 	map<wstring, wstring> hostile_tags;
+	map<wstring, float> hostile_tags_damage;
 
 	// List of ships that are permanently hostile to this base
 	list<wstring> perma_hostile_tags;
@@ -401,6 +402,9 @@ public:
 
 	//the destination vector
 	Vector destposition;
+
+	//the hostility and weapon platform activation from damage caused by one player
+	float damage_treshold;
 	/////////////////////////////////////////
 };
 

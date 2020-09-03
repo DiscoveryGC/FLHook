@@ -677,7 +677,16 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			{
 				if (set_plugin_debug > 1)
 					ConPrint(L"PlayerBase::damaged space_obj=%u\n", space_obj);
-				hostile_tags[charname] = charname;
+				
+				if (hostile_tags_damage.find(charname) != hostile_tags_damage.end())
+				{
+					if (hostile_tags_damage[charname] < damage_treshold)
+						hostile_tags_damage[charname] += damage;
+					else hostile_tags[charname] = charname;
+				}
+				else hostile_tags_damage[charname] = damage;
+					
+
 				SyncReputationForBase();
 			}
 		}

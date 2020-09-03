@@ -590,6 +590,10 @@ void LoadSettingsActual()
 					{
 						archstruct.radius = ini.get_value_float(0);
 					}
+					else if (ini.is_value("damage_treshold"))
+					{
+						archstruct.radius = ini.get_value_float(0);
+					}
 					else if (ini.is_value("idrestriction"))
 					{
 						archstruct.idrestriction = ini.get_value_int(0);

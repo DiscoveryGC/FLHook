@@ -52,6 +52,8 @@ map<uint, float> mapBountySystemScales;
 list<uint> lstRecordedBountyObjs;
 
 multimap<uint, stDropInfo> mmapDropInfo;
+map<uint, uint> mapShipClassTypes;
+map<int, float> mapClassDiffMultipliers;
 
 int set_iPluginDebug = 0;
 float set_fMaximumRewardRep = 0.0f;
@@ -64,6 +66,8 @@ int iLoadedNPCShipBountyOverrides = 0;
 int iLoadedNPCBountyGroupScale = 0;
 int iLoadedNPCBountyArmorScales = 0;
 int iLoadedNPCBountySystemScales = 0;
+int iLoadedClassTypes = 0;
+int iLoadedClassDiffMultipliers = 0;
 void LoadSettingsNPCBounties(void);
 
 
@@ -115,6 +119,10 @@ void LoadSettingsNPCBounties()
 	iLoadedNPCBountyArmorScales = 0;
 	mapBountySystemScales.clear();
 	iLoadedNPCBountySystemScales = 0;
+	mapShipClassTypes.clear();
+	iLoadedClassTypes = 0;
+	mapClassDiffMultipliers.clear();
+	iLoadedClassDiffMultipliers = 0;
 
 	// Load ratting bounty settings
 	set_iPoolPayoutTimer = IniGetI(scPluginCfgFile, "NPCBounties", "pool_payout_timer", 0);
@@ -178,6 +186,24 @@ void LoadSettingsNPCBounties()
 						if (set_iPluginDebug)
 							ConPrint(L"PVECONTROLLER: Loaded system scale multiplier for \"%s\" == %u, %f.\n", stows(ini.get_value_string(0)).c_str(), uSystemHash, ini.get_value_float(1));
 					}
+
+					if (!strcmp(ini.get_name_ptr(), "class_type"))
+					{
+						for (uint i = 1; i <= ini.get_num_parameters() - 1; i++) {
+							mapShipClassTypes[ini.get_value_int(i)] = ini.get_value_int(0);
+							++iLoadedClassTypes;
+							if (set_iPluginDebug)
+								ConPrint(L"PVECONTROLLER: Loaded ship class (%u) as type (%u) \n", ini.get_value_int(i), ini.get_value_int(0));
+						}
+					}
+
+					if (!strcmp(ini.get_name_ptr(), "class_diff"))
+					{
+						mapClassDiffMultipliers[ini.get_value_int(0)] = ini.get_value_float(1);
+						++iLoadedClassDiffMultipliers;
+						if (set_iPluginDebug)
+							ConPrint(L"PVECONTROLLER: Loaded class difference multiplier for %i == %f.\n", ini.get_value_int(0), ini.get_value_float(1));
+					}
 				}
 			}
 
@@ -191,6 +217,8 @@ void LoadSettingsNPCBounties()
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty ship overrides.\n", iLoadedNPCShipBountyOverrides);
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty fighter armor multipliers.\n", iLoadedNPCBountyArmorScales);
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty system scale multipliers.\n", iLoadedNPCBountySystemScales);
+	ConPrint(L"PVECONTROLLER: Loaded %u ship class types.\n", iLoadedClassTypes);
+	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty class difference multipliers.\n", iLoadedClassDiffMultipliers);
 }
 
 void LoadSettingsNPCDrops()
@@ -570,6 +598,26 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 					map<uint, float>::iterator itSystemScale = mapBountySystemScales.find(uKillerSystem);
 					if (itSystemScale != mapBountySystemScales.end())
 						iBountyPayout *= itSystemScale->second;
+				}
+
+				// Multiply by class diff multiplier if applicable.
+				if (iLoadedClassDiffMultipliers) {
+					uint iDmgFromShipClass = Archetype::GetShip(Players[iDmgFrom].iShipArchetype)->iShipClass;
+
+					int classDiff = 0;
+					map<uint, uint>::iterator itVictimType = mapShipClassTypes.find(victimShiparch->iShipClass);
+					map<uint, uint>::iterator itKillerType = mapShipClassTypes.find(iDmgFromShipClass);
+					if (itVictimType != mapShipClassTypes.end() && itKillerType != mapShipClassTypes.end())
+						classDiff = itVictimType->second - itKillerType->second;
+
+					map<int, float>::iterator itDiffMultiplier = mapClassDiffMultipliers.lower_bound(classDiff);
+					if (itDiffMultiplier != mapClassDiffMultipliers.end())
+						if (itDiffMultiplier->second != 1.0f) //We only need to modify the payout if the multiplier is not 1.
+						{
+							iBountyPayout *= itDiffMultiplier->second;
+							if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+								PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Modifying payout to $%d (%0.2f of normal) due to class difference. %u vs %u \n", iBountyPayout, itDiffMultiplier->second, itKillerType->second, itVictimType->second);
+						}
 				}
 
 				// If we've turned bounties off, don't pay it.

@@ -1653,7 +1653,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 
 		// In theory, these should never be called.
-		if (count == 0 || base->market_items[gbi.iGoodID].min_stock >= base->market_items[gbi.iGoodID].quantity)
+		if (count == 0 || (base->market_items[gbi.iGoodID].min_stock >= base->market_items[gbi.iGoodID].quantity && !clients[client].admin))
 		{
 			PrintUserCmdText(client, L"ERR Base will not sell goods");
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;

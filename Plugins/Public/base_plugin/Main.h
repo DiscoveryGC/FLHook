@@ -403,8 +403,6 @@ public:
 	//the destination vector
 	Vector destposition;
 
-	//the hostility and weapon platform activation from damage caused by one player
-	float damage_treshold;
 	/////////////////////////////////////////
 };
 
@@ -593,4 +591,5 @@ extern string set_status_path_json;
 
 extern const char* MODULE_TYPE_NICKNAMES[13];
 
+extern float damage_treshold;
 #endif

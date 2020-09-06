@@ -1669,7 +1669,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 		}
 
 		if ((base->market_items[gbi.iGoodID].min_stock >= base->market_items[gbi.iGoodID].quantity && clients[client].admin))
-			PrintUserCmdText(client, L"OK Base would not sell goods due to min_stock restriction, but you are an admin, therefore it will");
+			PrintUserCmdText(client, L"Permitted player-owned base good sale in violation of shop's minimum stock value due to base admin login.");
 
 		clients[client].stop_buy = false;
 		base->RemoveMarketGood(gbi.iGoodID, count);

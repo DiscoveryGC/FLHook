@@ -44,6 +44,7 @@
 
 static float set_fGenericFactor = 1.0f;
 static int set_iPluginDebug = 0;
+static bool set_bEnableFieldDrain = false;
 static string set_scStatsPath;
 
 extern void PrintZones();
@@ -319,6 +320,7 @@ EXPORT void LoadSettings()
 	// Load generic settings
 	set_fGenericFactor = IniGetF(scPluginCfgFile, "MiningGeneral", "GenericFactor", 1.0);
 	set_iPluginDebug = IniGetI(scPluginCfgFile, "MiningGeneral", "Debug", 0);
+	set_bEnableFieldDrain = IniGetB(scPluginCfgFile, "MiningGeneral", "EnableFieldDrain", false);
 	set_scStatsPath = IniGetS(scPluginCfgFile, "MiningGeneral", "StatsPath", "");
 
 	if (set_iPluginDebug)
@@ -654,13 +656,17 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 					// Calculate the loot drop and drop it.
 					int iLootCount = (int)(fRand * set_fGenericFactor * fZoneBonus * fPlayerBonus * zone->lootableZone->dynamic_loot_count2);
 
-					// Remove this lootCount from the field
-					set_mapZoneBonus[zone->iZoneID].fCurrReserve -= iLootCount;
-					set_mapZoneBonus[zone->iZoneID].fMined += iLootCount;
-					if (set_mapZoneBonus[zone->iZoneID].fCurrReserve <= 0)
+					// If FieldDrain is turned off, don't deplete the mining field's resources
+					if (set_bEnableFieldDrain)
 					{
-						set_mapZoneBonus[zone->iZoneID].fCurrReserve = 0;
-						//iLootCount = 0;
+						// Remove this lootCount from the field
+						set_mapZoneBonus[zone->iZoneID].fCurrReserve -= iLootCount;
+						set_mapZoneBonus[zone->iZoneID].fMined += iLootCount;
+						if (set_mapZoneBonus[zone->iZoneID].fCurrReserve <= 0)
+						{
+							set_mapZoneBonus[zone->iZoneID].fCurrReserve = 0;
+							//iLootCount = 0;
+						}
 					}
 
 					if (mapClients[iClientID].iDebug)

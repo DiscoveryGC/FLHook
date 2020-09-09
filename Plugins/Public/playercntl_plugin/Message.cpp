@@ -1527,17 +1527,6 @@ namespace Message
 			uint iClientSystemID = 0;
 			pub::Player::GetSystem(iClientID, iClientSystemID);
 
-			bool timeSent = false;
-
-			if (mapInfo[iClientID].bShowChatTime)
-			{
-				// Send time with gray color (BEBEBE) in small text (90) above the chat line.
-				bSendingTime = true;
-				HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
-				bSendingTime = false;
-				timeSent = true;
-			}
-
 			char *szXMLBuf;
 			int iXMLBufRet;
 			char *szXMLBufSys;
@@ -1555,21 +1544,14 @@ namespace Message
 				iXMLBufRetSys = iRetSys;
 			}
 
-			if (!set_bUserCmdSetDieMsg)
-			{ // /set diemsg disabled, thus send to all
-				if (iSystemID == iClientSystemID)
-					HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-				else
-					HkFMsgSendChat(iClientID, szXMLBuf, iXMLBufRet);
+			if (ClientInfo[iClientID].dieMsg == DIEMSG_NONE) {
 				continue;
-			}
 
-			if (ClientInfo[iClientID].dieMsg == DIEMSG_NONE)
-				continue;
+			}
 			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SYSTEM) && (iSystemID == iClientSystemID))
 			{
 				// Append the time information
-				if (mapInfo[iClientID].bShowChatDieTime && !timeSent)
+				if (!mapInfo[iClientID].bShowChatDieTime)
 				{
 					bSendingTime = true;
 					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
@@ -1581,7 +1563,7 @@ namespace Message
 			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SELF) && ((iClientID == iClientIDVictim) || (iClientID == iClientIDKiller)))
 			{
 				// Append the time information
-				if (mapInfo[iClientID].bShowChatDieTime && !timeSent)
+				if (!mapInfo[iClientID].bShowChatDieTime)
 				{
 					bSendingTime = true;
 					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
@@ -1592,7 +1574,7 @@ namespace Message
 			}
 			else if (ClientInfo[iClientID].dieMsg == DIEMSG_ALL)
 			{
-				if (mapInfo[iClientID].bShowChatDieTime && !timeSent)
+				if (!mapInfo[iClientID].bShowChatDieTime)
 				{
 					bSendingTime = true;
 					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
@@ -1600,9 +1582,13 @@ namespace Message
 				}
 
 				if (iSystemID == iClientSystemID)
+				{
 					HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
+				}
 				else
+				{
 					HkFMsgSendChat(iClientID, szXMLBuf, iXMLBufRet);
+				}
 			}
 		}
 	}

@@ -1551,7 +1551,7 @@ namespace Message
 			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SYSTEM) && (iSystemID == iClientSystemID))
 			{
 				// Append the time information
-				if (!mapInfo[iClientID].bShowChatDieTime)
+				if (mapInfo[iClientID].bShowChatDieTime)
 				{
 					bSendingTime = true;
 					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
@@ -1563,7 +1563,7 @@ namespace Message
 			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SELF) && ((iClientID == iClientIDVictim) || (iClientID == iClientIDKiller)))
 			{
 				// Append the time information
-				if (!mapInfo[iClientID].bShowChatDieTime)
+				if (mapInfo[iClientID].bShowChatDieTime)
 				{
 					bSendingTime = true;
 					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
@@ -1574,7 +1574,7 @@ namespace Message
 			}
 			else if (ClientInfo[iClientID].dieMsg == DIEMSG_ALL)
 			{
-				if (!mapInfo[iClientID].bShowChatDieTime)
+				if (mapInfo[iClientID].bShowChatDieTime)
 				{
 					bSendingTime = true;
 					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");

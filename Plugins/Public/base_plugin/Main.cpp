@@ -105,7 +105,7 @@ map<string, ARCHTYPE_STRUCT> mapArchs;
 map<uint, wstring> listCommodities;
 
 //the hostility and weapon platform activation from damage caused by one player
-float damage_treshold = 100000;
+float damage_treshold = 400000;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PlayerBase *GetPlayerBase(uint base)
@@ -400,7 +400,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("damage_treshold"))
 					{
-						damage_treshold; = ini.get_value_float(0);
+						damage_treshold = ini.get_value_float(0);
 					}
 					else if (ini.is_value("status_export_type"))
 					{

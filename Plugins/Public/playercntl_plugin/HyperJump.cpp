@@ -658,7 +658,7 @@ namespace HyperJump
 					Vector dir1;
 					Vector dir2;
 					pub::SpaceObj::GetMotion(iShip, dir1, dir2);
-					if (dir1.x > 5 || dir1.y > 5 || dir1.z > 5)
+					if (dir1.x > 400 || dir1.y > 400 || dir1.z > 400)
 					{
 						sm.charging_on = false;
 					}

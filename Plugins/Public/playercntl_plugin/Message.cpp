@@ -1544,9 +1544,22 @@ namespace Message
 				iXMLBufRetSys = iRetSys;
 			}
 
-			if (ClientInfo[iClientID].dieMsg == DIEMSG_NONE) {
-				continue;
+			if (ClientInfo[iClientID].dieMsg == DIEMSG_ALL || !set_bUserCmdSetDieMsg) {
+				if (mapInfo[iClientID].bShowChatDieTime)
+				{
+					bSendingTime = true;
+					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
+					bSendingTime = false;
+				}
 
+				if (iSystemID == iClientSystemID)
+				{
+					HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
+				}
+				else
+				{
+					HkFMsgSendChat(iClientID, szXMLBuf, iXMLBufRet);
+				}
 			}
 			else if ((ClientInfo[iClientID].dieMsg == DIEMSG_SYSTEM) && (iSystemID == iClientSystemID))
 			{
@@ -1571,24 +1584,6 @@ namespace Message
 				}
 
 				HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-			}
-			else if (ClientInfo[iClientID].dieMsg == DIEMSG_ALL)
-			{
-				if (mapInfo[iClientID].bShowChatDieTime)
-				{
-					bSendingTime = true;
-					HkFMsg(iClientID, L"<TRA data=\"0xBEBEBE90\" mask=\"-1\"/><TEXT>" + XMLText(GetTimeString(set_bLocalTime)) + L"</TEXT>");
-					bSendingTime = false;
-				}
-
-				if (iSystemID == iClientSystemID)
-				{
-					HkFMsgSendChat(iClientID, szXMLBufSys, iXMLBufRetSys);
-				}
-				else
-				{
-					HkFMsgSendChat(iClientID, szXMLBuf, iXMLBufRet);
-				}
 			}
 		}
 	}

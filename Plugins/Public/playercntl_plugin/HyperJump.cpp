@@ -638,7 +638,7 @@ namespace HyperJump
 				SURVEY &sm = iter->second;
 				if (sm.charging_on)
 				{
-					//remember starting location
+					//Remember starting location of survey
 					Matrix ornt;
 					if (sm.curr_charge <= sm.arch.charge_rate)
 						pub::SpaceObj::GetLocation(iShip, sm.pos_start, ornt);
@@ -664,8 +664,8 @@ namespace HyperJump
 					Vector pos_curr;
 					pub::SpaceObj::GetLocation(iShip, pos_curr, ornt);
 					
-					//Turn off if player location was changed greatly by one of axes
-					if (sqrtf(fabsf(pos_curr.x- sm.pos_start.x)*fabsf(pos_curr.x - sm.pos_start.x) + fabsf(pos_curr.y - sm.pos_start.y) * fabsf(pos_curr.y - sm.pos_start.y) + fabsf(pos_curr.z - sm.pos_start.z) * fabsf(pos_curr.z - sm.pos_start.z)) > 500)
+					//Allow hyperspace survey charge to 500m from starting position
+					if (HkDistance3D(pos_curr,sm.pos_start)> 500)
 					{
 						sm.charging_on = false;
 					}

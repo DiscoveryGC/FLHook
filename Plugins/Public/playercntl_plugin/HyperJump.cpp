@@ -655,10 +655,18 @@ namespace HyperJump
 						}
 					}
 
-					Vector dir1;
-					Vector dir2;
-					pub::SpaceObj::GetMotion(iShip, dir1, dir2);
-					if (dir1.x > 400 || dir1.y > 400 || dir1.z > 400)
+					Vector pos_start;
+					Matrix ornt_start;
+
+					if (sm.curr_charge == 0 || sm.curr_charge <= sm.arch.charge_rate)
+						pub::SpaceObj::GetLocation(iShip, pos_start, ornt_start);
+
+					Vector pos_curr;
+					Matrix ornt_curr;
+					pub::SpaceObj::GetLocation(iShip, pos_curr, ornt_curr);
+					
+					//Turn off if player location was changed greatly by one of axes
+					if (fabsf(pos_curr.x- pos_start.x) > 500 || fabsf(pos_curr.y - pos_start.y) > 500 || fabsf(pos_curr.z - pos_start.z) > 500)
 					{
 						sm.charging_on = false;
 					}

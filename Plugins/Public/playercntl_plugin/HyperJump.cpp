@@ -105,6 +105,7 @@ namespace HyperJump
 		SURVEY_ARCH arch;
 		float curr_charge;
 		bool charging_on;
+		Vector pos_start;
 	};
 	static map<uint, SURVEY> mapSurvey;
 
@@ -637,6 +638,11 @@ namespace HyperJump
 				SURVEY &sm = iter->second;
 				if (sm.charging_on)
 				{
+					//remember starting location
+					Matrix ornt;
+					if (sm.curr_charge <= sm.arch.charge_rate)
+						pub::SpaceObj::GetLocation(iShip, sm.pos_start, ornt);
+
 					// Use fuel to charge the jump drive's storage capacitors
 					sm.charging_on = false;
 
@@ -655,18 +661,11 @@ namespace HyperJump
 						}
 					}
 
-					Vector pos_start;
-					Matrix ornt_start;
-
-					if (sm.curr_charge == 0 || sm.curr_charge <= sm.arch.charge_rate)
-						pub::SpaceObj::GetLocation(iShip, pos_start, ornt_start);
-
 					Vector pos_curr;
-					Matrix ornt_curr;
-					pub::SpaceObj::GetLocation(iShip, pos_curr, ornt_curr);
+					pub::SpaceObj::GetLocation(iShip, pos_curr, ornt);
 					
 					//Turn off if player location was changed greatly by one of axes
-					if (fabsf(pos_curr.x- pos_start.x) > 500 || fabsf(pos_curr.y - pos_start.y) > 500 || fabsf(pos_curr.z - pos_start.z) > 500)
+					if (sqrtf(fabsf(pos_curr.x- sm.pos_start.x)*fabsf(pos_curr.x - sm.pos_start.x) + fabsf(pos_curr.y - sm.pos_start.y) * fabsf(pos_curr.y - sm.pos_start.y) + fabsf(pos_curr.z - sm.pos_start.z) * fabsf(pos_curr.z - sm.pos_start.z)) > 500)
 					{
 						sm.charging_on = false;
 					}

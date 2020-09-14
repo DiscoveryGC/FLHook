@@ -1858,7 +1858,7 @@ namespace HyperJump
 				bool AllowedToWhiteListJump = IsSystemJumpable(iSystemID, iTargetSystem);
 				if (!AllowedToWhiteListJump)
 				{
-					const Universe::ISystem *iSysList = Universe::get_system(jd.iTargetSystem);
+					const Universe::ISystem *iSysList = Universe::get_system(iTargetSystem);
 					wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
 					PrintUserCmdText(iClientID, L"ERROR: Gravitational rift detected. Cannot jump to %s from this system.", wscSysNameList.c_str());
 					PrintUserCmdText(iClientID, L"Jump drive disabled. Use /jumpsys for the list of available systems.");

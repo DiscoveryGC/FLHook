@@ -974,6 +974,31 @@ namespace PlayerCommands
 				PrintUserCmdText(client, L"ERR Build queue clear failed");
 			base->Save();
 		}
+		else if (cmd == L"cancel")
+		{
+			uint index = ToInt(GetParam(args, ' ', 3));
+			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			{
+				PrintUserCmdText(client, L"ERR Module index not valid");
+				return;
+			}
+
+			if (!base->modules[index] ||
+				(base->modules[index]->type != Module::TYPE_M_CLOAK
+					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
+					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
+					&& base->modules[index]->type != Module::TYPE_M_DOCKING
+					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			{
+				PrintUserCmdText(client, L"ERR Not factory module");
+				return;
+			}
+
+			FactoryModule *mod = (FactoryModule*)base->modules[index];
+			mod->ClearRecipe();
+			PrintUserCmdText(client, L"OK Active recipe is canceled");
+			base->Save();
+		}
 		else if (cmd == L"add")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
@@ -1005,9 +1030,12 @@ namespace PlayerCommands
 		else
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base facmod [list|clear|add]");
+			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add]");
 			PrintUserCmdText(client, L"|  list - show factory modules and build status");
-			PrintUserCmdText(client, L"|  clear <index> - clear build queue for factory module at <index>");
+			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
+
+			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
+			
 			PrintUserCmdText(client, L"|  add <index> <type> - add item <type> to build queue for factory module at <index>");
 			PrintUserCmdText(client, L"|     For Docking Module Factory:");
 			PrintUserCmdText(client, L"|     <type> = 1 - docking module type 1");

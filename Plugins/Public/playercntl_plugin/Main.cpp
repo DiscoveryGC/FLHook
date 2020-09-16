@@ -227,6 +227,14 @@ static bool IsDockingAllowed(uint iShip, uint iDockTarget, uint iClientID)
 
 	float fAttitude = 0.0f;
 	pub::Reputation::GetAttitude(iSolarRep, iPlayerRep, fAttitude);
+
+	CUSTOM_BASE_IS_IT_POB_STRUCT info;
+	info.iBase = iDockTarget;
+	info.bAnswer = false;
+	Plugin_Communication(CUSTOM_IS_IT_POB, &info);
+	if (info.bAnswer)
+		return true;
+
 	if (fAttitude <= -0.55f)
 	{
 		pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));

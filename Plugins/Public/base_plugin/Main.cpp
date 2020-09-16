@@ -2497,6 +2497,16 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			info->bBeamed = true;
 		}
 	}
+	if (msg == CUSTOM_IS_IT_POB)
+	{
+		CUSTOM_BASE_IS_IT_POB_STRUCT* info = reinterpret_cast<CUSTOM_BASE_IS_IT_POB_STRUCT*>(data);
+		PlayerBase *base = GetPlayerBase(info->iBase);
+		returncode = SKIPPLUGINS;
+		if (base)
+		{
+			info->bAnswer = true;
+		}
+	}
 	else if (msg == CUSTOM_BASE_IS_DOCKED)
 	{
 		CUSTOM_BASE_IS_DOCKED_STRUCT* info = reinterpret_cast<CUSTOM_BASE_IS_DOCKED_STRUCT*>(data);

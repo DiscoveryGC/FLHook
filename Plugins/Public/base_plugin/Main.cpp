@@ -1653,7 +1653,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 
 		// In theory, these should never be called.
-		if (count == 0 || (base->market_items[gbi.iGoodID].min_stock >= base->market_items[gbi.iGoodID].quantity && !clients[client].admin))
+		if (count == 0 || ((base->market_items[gbi.iGoodID].min_stock > (base->market_items[gbi.iGoodID].quantity - count)) && !clients[client].admin))
 		{
 			PrintUserCmdText(client, L"ERR Base will not sell goods");
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1668,7 +1668,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 			return;
 		}
 
-		if ((base->market_items[gbi.iGoodID].min_stock >= base->market_items[gbi.iGoodID].quantity && clients[client].admin))
+		if (((base->market_items[gbi.iGoodID].min_stock > (base->market_items[gbi.iGoodID].quantity - count)) && clients[client].admin))
 			PrintUserCmdText(client, L"Permitted player-owned base good sale in violation of shop's minimum stock value due to base admin login.");
 
 		clients[client].stop_buy = false;

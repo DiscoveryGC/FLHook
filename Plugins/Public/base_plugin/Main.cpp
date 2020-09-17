@@ -106,6 +106,18 @@ map<uint, wstring> listCommodities;
 
 //the hostility and weapon platform activation from damage caused by one player
 float damage_threshold = 400000;
+
+uint GetAffliationFromClient(uint client)
+{
+	int rep;
+	pub::Player::GetRep(client, rep);
+
+	uint affiliation;
+	Reputation::Vibe::Verify(rep);
+	Reputation::Vibe::GetAffiliation(rep, affiliation, false);
+	return affiliation;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PlayerBase *GetPlayerBase(uint base)
@@ -709,6 +721,7 @@ void LoadSettingsActual()
 			}
 		}
 	}
+	PlayerCommands::Aff_initer();
 }
 
 
@@ -982,6 +995,36 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseLstAllyTag(client, args);
 		return true;
 	}
+	else if (args.find(L"/base addfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseAddAllyFac(client, args);
+		return true;
+	}
+	else if (args.find(L"/base rmfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseRmAllyFac(client, args);
+		return true;
+	}
+	else if (args.find(L"/base clearfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseClearAllyFac(client, args);
+		return true;
+	}
+	else if (args.find(L"/base lstfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseLstAllyFac(client, args);
+		return true;
+	}
+	else if (args.find(L"/base myfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseViewMyFac(client, args);
+		return true;
+	}
 	else if (args.find(L"/base addhostile") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1072,6 +1115,8 @@ bool UserCmd_Process(uint client, const wstring &args)
 	return false;
 }
 
+
+
 static bool IsDockingAllowed(PlayerBase *base, uint client)
 {
 	// Allies can always dock.
@@ -1082,6 +1127,22 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 		{
 			return true;
 		}
+	}
+
+	//Hostile listed can't dock even if they are friendly faction listed
+	for (list<wstring>::iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
+	{
+		if (charname.find(*i) == 0)
+		{
+			return false;
+		}
+	}
+
+	//Allow dock if player is on the friendly faction list.
+	uint playeraff = GetAffliationFromClient(client);
+	if (base->ally_factions.find(playeraff) != base->ally_factions.end())
+	{
+		return 1.0;
 	}
 
 	// Base allows neutral ships to dock

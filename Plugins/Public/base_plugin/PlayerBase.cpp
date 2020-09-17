@@ -283,6 +283,10 @@ void PlayerBase::Load()
 						ini_get_wstring(ini, tag);
 						perma_hostile_tags.push_back(tag);
 					}
+					else if (ini.is_value("faction_ally_tag"))
+					{
+						ally_factions.insert(ini.get_value_int(0));
+					}
 					else if (ini.is_value("passwd"))
 					{
 						wstring passwd;
@@ -395,6 +399,10 @@ void PlayerBase::Save()
 		foreach(ally_tags, wstring, i)
 		{
 			ini_write_wstring(file, "ally_tag", *i);
+		}
+		for(auto i : ally_factions)
+		{
+			fprintf(file, "faction_ally_tag = %d\n", i);
 		}
 		for (map<wstring, wstring>::iterator i = hostile_tags.begin();
 			i != hostile_tags.end(); ++i)
@@ -542,6 +550,13 @@ float PlayerBase::GetAttitudeTowardsClient(uint client)
 	if (hostile_tags.find(charname) != hostile_tags.end())
 	{
 		return -1.0;
+	}
+
+	uint playeraff = GetAffliationFromClient(client);
+	// Make base friendly if player is on the friendly faction list.
+	if (ally_factions.find(playeraff) != ally_factions.end())
+	{
+		return 1.0;
 	}
 
 	// if defense mode 3, at this point if player doesn't match any criteria, give him fireworks

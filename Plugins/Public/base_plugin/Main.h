@@ -7,6 +7,7 @@
 #include <time.h>
 #include <math.h>
 #include <list>
+#include <set>
 #include <map>
 #include <algorithm>
 #include <FLHook.h>
@@ -17,6 +18,7 @@ using namespace std;
 
 static uint STORAGE_MODULE_CAPACITY = 40000;
 void LogCheater(uint client, const wstring &reason);
+uint GetAffliationFromClient(uint client);
 
 struct RECIPE
 {
@@ -363,6 +365,9 @@ public:
 	// List of allied ship tags.
 	list<wstring> ally_tags;
 
+	//List of allied factions
+	set<uint> ally_factions;
+
 	// List of ships that are hostile to this base
 	map<wstring, wstring> hostile_tags;
 	map<wstring, float> hostile_tags_damage;
@@ -498,6 +503,11 @@ namespace PlayerCommands
 	void BaseAddAllyTag(uint client, const wstring &args);
 	void BaseRmAllyTag(uint client, const wstring &args);
 	void BaseLstAllyTag(uint client, const wstring &args);
+	void BaseAddAllyFac(uint client, const wstring &args);
+	void BaseRmAllyFac(uint client, const wstring &args);
+	void BaseClearAllyFac(uint client, const wstring &args);
+	void BaseLstAllyFac(uint client, const wstring &args);
+	void BaseViewMyFac(uint client, const wstring &args);
 	void BaseAddHostileTag(uint client, const wstring &args);
 	void BaseRmHostileTag(uint client, const wstring &args);
 	void BaseLstHostileTag(uint client, const wstring &args);
@@ -513,6 +523,8 @@ namespace PlayerCommands
 	void Shop(uint client, const wstring &args);
 
 	void BaseDeploy(uint client, const wstring &args);
+
+	void Aff_initer();
 }
 
 namespace Log {

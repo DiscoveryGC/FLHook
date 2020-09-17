@@ -10,6 +10,8 @@
 #include <plugin.h>
 #include <PluginUtilities.h>
 #include "Main.h"
+#include <functional>
+#include <vector>
 
 #define POPUPDIALOG_BUTTONS_LEFT_YES 1
 #define POPUPDIALOG_BUTTONS_CENTER_NO 2
@@ -31,7 +33,7 @@ namespace PlayerCommands
 		const uint numPages = 4;
 		wstring pages[numPages];
 		pages[0] = L"<TRA bold=\"true\"/><TEXT>/base help [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show this help page. Specify the page number to see the next page.</TEXT><PARA/><PARA/>" 
+			L"<TEXT>Show this help page. Specify the page number to see the next page.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base login [password]</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Login as base administrator. The following commands are only available if you are logged in as a base administrator.</TEXT><PARA/><PARA/>"
@@ -41,6 +43,10 @@ namespace PlayerCommands
 
 			L"<TRA bold=\"true\"/><TEXT>/base addtag [tag], /base rmtag [tag], /base lsttag</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Add, remove and list ally tags for the base.</TEXT><PARA/><PARA/>"
+
+
+			L"<TRA bold=\"true\"/><TEXT>/base addfac [aff tag], /base rmfac [aff tag], /base lstfac, /base myfac</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Add, remove and list ally factions for the base. Show your affiliation ID and all available.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base addhostile [tag], /base rmhostile [tag], /base lsthostile</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Add, remove and list blacklisted tags for the base. They will be shot on sight so use complete tags like =LSF= or IMG| or a shipname like Crunchy_Salad.</TEXT><PARA/><PARA/>"
@@ -69,15 +75,15 @@ namespace PlayerCommands
 
 		pages[2] = L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
-			L"<TEXT>Defense Mode 1 - Logic: Blacklist > Whitelist > IFF Standing.</TEXT><PARA/>"
+			L"<TEXT>Defense Mode 1 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
 			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 2 - Logic: Blacklist > Whitelist > IFF Standing.</TEXT><PARA/>"
+			L"<TEXT>Defense Mode 2 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
 			L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 3 - Logic: Blacklist > Whitelist > Hostile</TEXT><PARA/>"
+			L"<TEXT>Defense Mode 3 - Logic: Blacklist > Whitelist > Faction Whitelist > Hostile</TEXT><PARA/>"
 			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 4 - Logic: Blacklist > Whitelist > Neutral</TEXT><PARA/>"
+			L"<TEXT>Defense Mode 4 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
 			L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Neutral</TEXT><PARA/>"
+			L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
 			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
@@ -495,6 +501,238 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"OK");
 	}
 
+	bool CheckForBase(PlayerBase *base, uint client)
+	{
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return true;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return true;
+		}
+		return false;
+	}
+
+	void BaseAddAllyFac(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (CheckForBase(base, client)) return;
+
+		int tag = 0;
+		try
+		{
+			tag = std::stoi(GetParam(args, ' ', 2));
+		}
+		catch (exception)
+		{
+			PrintUserCmdText(client, L"ERR No tag");
+			return;
+		}
+
+		if (base->ally_factions.find(tag) != base->ally_factions.end())
+		{
+			PrintUserCmdText(client, L"ERR Tag already exists");
+			return;
+		}
+
+		wstring theaffiliation = HkGetWStringFromIDS(Reputation::get_name(tag)).c_str();
+		if (theaffiliation == L"Object Unknown")
+		{
+			PrintUserCmdText(client, L"ERR Undefined faction");
+			return;
+		}
+		base->ally_factions.insert(tag);
+
+		base->Save();
+		PrintUserCmdText(client, L"OK");
+	}
+
+	void BaseClearAllyFac(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (CheckForBase(base, client)) return;
+		base->ally_factions.clear();
+		base->Save();
+		PrintUserCmdText(client, L"OK");
+	}
+
+	void BaseRmAllyFac(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (CheckForBase(base, client)) return;
+
+		uint tag = 0;
+		try
+		{
+			tag = std::stoi(GetParam(args, ' ', 2));
+		}
+		catch (exception)
+		{
+			PrintUserCmdText(client, L"ERR No tag");
+			return;
+		}
+
+		if (base->ally_factions.find(tag) == base->ally_factions.end())
+		{
+			PrintUserCmdText(client, L"ERR Tag does not exist");
+			return;
+		}
+
+		base->ally_factions.erase(tag);
+		base->Save();
+		PrintUserCmdText(client, L"OK");
+	}
+
+	class Affiliations
+	{
+		class AffCell
+		{
+		public:
+			wstring nickname;
+			wstring factionname;
+			uint id;
+			AffCell(wstring a, wstring b, uint c)
+			{
+				nickname = a;
+				factionname = b;
+				id = c;
+			}
+			uint GetID() { return id; }
+		};
+
+		list<AffCell> AffList;
+
+		static bool IDComparision(AffCell & obj, int y)
+		{
+			if (obj.GetID() == y)
+				return true;
+			else
+				return false;
+		}
+
+		map<string, uint> factions;
+		void LoadListOfReps()
+		{
+			INI_Reader ini;
+
+			string factionpropfile = "..\\data\\initialworld.ini";
+			if (ini.open(factionpropfile.c_str(), false))
+			{
+				while (ini.read_header())
+				{
+					if (ini.is_header("Group"))
+					{
+						uint ids_name;
+						string nickname;
+						while (ini.read_value())
+						{
+							if (ini.is_value("nickname"))
+							{
+								nickname = ini.get_value_string();
+							}
+							else if (ini.is_value("ids_name"))
+							{
+								ids_name = ini.get_value_int(0);
+							}
+
+						}
+						factions[nickname] = ids_name;
+					}
+				}
+				ini.close();
+				ConPrint(L"Rep: Loaded %u factions\n", factions.size());
+			}
+		}
+
+		wstring GetFactionName(int ID)
+		{
+			try
+			{
+				wstring theaffiliation = HkGetWStringFromIDS(Reputation::get_name(ID)).c_str();
+				if (theaffiliation == L"Object Unknown")
+				{
+					theaffiliation = L"Unknown Reputation";
+				}
+				return theaffiliation;
+			}
+			catch (exception e)
+			{
+				return L"Unknown Reputation";
+			}
+		}
+
+		void LoadAffList()
+		{
+			if (AffList.size() == 0)
+			{
+				if (factions.size() == 0)
+					LoadListOfReps();
+				
+				for (map<string, uint>::iterator iter = factions.begin(); iter != factions.end(); iter++)
+				{
+					string factionnickname = iter->first;
+					//MakeID function (in built in Flhook) is the same as mentioned here in C# to CreateFactionID https://github.com/DiscoveryGC/FLHook/blob/master/Plugins/Public/playercntl_plugin/setup_src/FLUtility.cs
+					uint ID = MakeId(factionnickname.c_str()); 
+					wstring factionname = GetFactionName(ID);
+					AffList.push_front({ stows(factionnickname), factionname, ID });
+				}
+			}
+			ConPrint(L"base: AffList was loaded succesfully.\n");
+		}
+		public:
+		void Init()
+		{
+			LoadAffList();
+		}
+
+		void FindAndPrintOneAffiliation(uint client, uint AffiliationID)
+		{
+			std::list<Affiliations::AffCell>::iterator found;
+			found = std::find_if(AffList.begin(), AffList.end(), std::bind(IDComparision, std::placeholders::_1, AffiliationID));
+			if (found != AffList.end())
+				PrintUserCmdText(client, L"IFF ID: %u, %s, %s", found->id, (found->nickname).c_str(), (found->factionname).c_str());
+			else
+				PrintUserCmdText(client, L"IFF ID: %u, Unknown, Unknown", AffiliationID);
+		}
+		void PrintAll(uint client)
+		{
+			for (list<Affiliations::AffCell>::iterator iter = AffList.begin(); iter != AffList.end(); iter++)
+			{
+				PrintUserCmdText(client, L"IFF ID: %d, %s, %s", iter->id, (iter->nickname).c_str(), (iter->factionname).c_str());
+			}
+		}
+	};
+	Affiliations A;
+	void Aff_initer() { A.Init(); };
+
+	void BaseLstAllyFac(uint client, const wstring &cmd)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (CheckForBase(base, client)) return;
+
+		for (set<uint>::iterator it = base->ally_factions.begin(); it != base->ally_factions.end(); ++it)
+		{
+			A.FindAndPrintOneAffiliation(client, *it);
+		}
+		PrintUserCmdText(client, L"OK");
+	}
+	void BaseViewMyFac(uint client, const wstring &cmd)
+	{
+		const wstring &secondword = GetParam(cmd, ' ', 1);
+
+		A.PrintAll(client);
+
+		int aff = GetAffliationFromClient(client);
+		wstring theaffiliation = HkGetWStringFromIDS(Reputation::get_name(aff)).c_str();
+		if (theaffiliation == L"Object Unknown")
+			theaffiliation = L"Unknown Reputation";
+		PrintUserCmdText(client, L"Ship IFF ID: %d, %s", aff, theaffiliation.c_str());
+	}
+	
 	void BaseRep(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -774,11 +1012,11 @@ namespace PlayerCommands
 		else
 		{
 			PrintUserCmdText(client, L"/base defensemode <mode>");
-			PrintUserCmdText(client, L"|  <mode> = 1 - Logic: Blacklist > Whitelist > IFF Standing. | Docking Rights: Whitelisted ships only.");
-			PrintUserCmdText(client, L"|  <mode> = 2 - Logic: Blacklist > Whitelist > IFF Standing. | Docking Rights: Anyone with good standing.");
-			PrintUserCmdText(client, L"|  <mode> = 3 - Logic: Blacklist > Whitelist > Hostile       | Docking Rights: Whitelisted ships only.");
-			PrintUserCmdText(client, L"|  <mode> = 4 - Logic: Blacklist > Whitelist > Neutral       | Docking Rights: Anyone with good standing.");
-			PrintUserCmdText(client, L"|  <mode> = 5 - Logic: Blacklist > Whitelist > Neutral       | Docking Rights: Whitelisted ships only.");
+			PrintUserCmdText(client, L"|  <mode> = 1 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing. | Docking Rights: Whitelisted ships only.");
+			PrintUserCmdText(client, L"|  <mode> = 2 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing. | Docking Rights: Anyone with good standing.");
+			PrintUserCmdText(client, L"|  <mode> = 3 - Logic: Blacklist > Whitelist > Faction Whitelist > Hostile       | Docking Rights: Whitelisted ships only.");
+			PrintUserCmdText(client, L"|  <mode> = 4 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral       | Docking Rights: Anyone with good standing.");
+			PrintUserCmdText(client, L"|  <mode> = 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral       | Docking Rights: Whitelisted ships only.");
 			PrintUserCmdText(client, L"defensemode = %u", base->defense_mode);
 			return;
 		}

@@ -1129,11 +1129,6 @@ namespace PlayerCommands
 	void Bank(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
-			return;
-		}
 
 		const wstring &cmd = GetParam(args, ' ', 1);
 		int money = ToInt(GetParam(args, ' ', 2));
@@ -1142,6 +1137,12 @@ namespace PlayerCommands
 
 		if (cmd == L"withdraw")
 		{
+			if (!clients[client].admin)
+			{
+				PrintUserCmdText(client, L"ERR Access denied");
+				return;
+			}
+
 			float fValue;
 			pub::Player::GetAssetValue(client, fValue);
 

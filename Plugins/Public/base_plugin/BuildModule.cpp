@@ -21,9 +21,14 @@ BuildModule::BuildModule(PlayerBase *the_base, uint the_build_type)
 wstring BuildModule::GetInfo(bool xml)
 {
 	wstring info;
+
+	std::wstring Status = L"";
+	if (Paused)	Status = L"(Paused) ";
+	else Status = L"(Active) ";
 	if (xml)
 	{
-		info = L"<TEXT>Constructing " + active_recipe.infotext + L". Waiting for:</TEXT>";
+
+		info = L"<TEXT>Constructing " + Status + active_recipe.infotext + L". Waiting for:</TEXT>";
 
 		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
@@ -43,7 +48,7 @@ wstring BuildModule::GetInfo(bool xml)
 	}
 	else
 	{
-		info = L"Constructing " + active_recipe.infotext + L". Waiting for: ";
+		info = L"Constructing " + Status + active_recipe.infotext + L". Waiting for: ";
 
 		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
@@ -67,10 +72,14 @@ wstring BuildModule::GetInfo(bool xml)
 // and convert this module into the specified type.	
 bool BuildModule::Timer(uint time)
 {
+
 	if ((time%set_tick_time) != 0)
 		return false;
 
 	bool cooked = true;
+
+	if (Paused)
+		return false;
 
 	// Consume goods at the cooking rate.
 	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
@@ -170,6 +179,10 @@ void BuildModule::LoadState(INI_Reader &ini)
 		{
 			build_type = ini.get_value_int(0);
 		}
+		else if (ini.is_value("paused"))
+		{
+			Paused = ini.get_value_bool(0);
+		}
 		else if (ini.is_value("produced_item"))
 		{
 			active_recipe.produced_item = ini.get_value_int(0);
@@ -193,6 +206,7 @@ void BuildModule::SaveState(FILE *file)
 {
 	fprintf(file, "[BuildModule]\n");
 	fprintf(file, "build_type = %u\n", build_type);
+	fprintf(file, "paused = %d\n", Paused);
 	fprintf(file, "produced_item = %u\n", active_recipe.produced_item);
 	fprintf(file, "cooking_rate = %u\n", active_recipe.cooking_rate);
 	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());

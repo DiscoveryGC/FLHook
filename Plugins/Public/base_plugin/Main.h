@@ -218,6 +218,7 @@ public:
 
 	wstring GetInfo(bool xml);
 
+	bool Paused = false;
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
 
@@ -242,6 +243,8 @@ public:
 	void SaveState(FILE *file);
 	bool Timer(uint time);
 
+	bool Paused = false;
+	bool ToggleQueuePaused(bool NewState);
 	bool AddToQueue(uint the_equipment_type);
 	bool ClearQueue();
 	void ClearRecipe();

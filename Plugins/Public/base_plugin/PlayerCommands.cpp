@@ -854,6 +854,66 @@ namespace PlayerCommands
 			base->Save();
 			PrintUserCmdText(client, L"OK Module destroyed");
 		}
+		else if (cmd == L"pause")
+		{
+			uint index = ToInt(GetParam(args, ' ', 3));
+			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			{
+				PrintUserCmdText(client, L"ERR Module not found");
+				return;
+			}
+
+			if (base->modules[index]->type != Module::TYPE_BUILD)
+			{
+				PrintUserCmdText(client, L"ERR This module is not in building stage");
+				return;
+			}
+
+			BuildModule *mod = (BuildModule*)base->modules[index];
+
+			if (mod->Paused)
+			{
+				PrintUserCmdText(client, L"ERR Module is already paused");
+			}
+			else
+			{
+				mod->Paused = true;
+				PrintUserCmdText(client, L"OK Module construction paused");
+			}
+
+			base->Save();
+			
+		}
+		else if (cmd == L"resume")
+		{
+			uint index = ToInt(GetParam(args, ' ', 3));
+			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			{
+				PrintUserCmdText(client, L"ERR Module not found");
+				return;
+			}
+
+			if (base->modules[index]->type != Module::TYPE_BUILD)
+			{
+				PrintUserCmdText(client, L"ERR This module is not in building stage");
+				return;
+			}
+
+			BuildModule *mod = (BuildModule*)base->modules[index];
+
+			if (mod->Paused)
+			{
+				mod->Paused = false;
+				PrintUserCmdText(client, L"OK Module construction resumed");
+			}
+			else
+			{
+				PrintUserCmdText(client, L"ERR Module construction is not paused");
+			}
+
+			base->Save();
+
+		}
 		else if (cmd == L"construct")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
@@ -895,10 +955,12 @@ namespace PlayerCommands
 		else
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base buildmod [list|construct|destroy]");
+			PrintUserCmdText(client, L"/base buildmod [list|construct|destroy|pause|resume]");
 			PrintUserCmdText(client, L"|  list - show modules and build status");
 			PrintUserCmdText(client, L"|  destroy <index> - destroy module at <index>");
 			PrintUserCmdText(client, L"|  construct <index> <type> - start building module <type> at <index>");
+			PrintUserCmdText(client, L"|  pause <index> - pauses building at <index>");
+			PrintUserCmdText(client, L"|  resume <index> - resumes building at <index>");
 			PrintUserCmdText(client, L"|     <type> = 1 - core upgrade");
 			PrintUserCmdText(client, L"|     <type> = 2 - shield generator");
 			PrintUserCmdText(client, L"|     <type> = 3 - cargo storage");
@@ -999,6 +1061,60 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"OK Active recipe is canceled");
 			base->Save();
 		}
+		else if (cmd == L"pause")
+		{
+			uint index = ToInt(GetParam(args, ' ', 3));
+			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			{
+				PrintUserCmdText(client, L"ERR Module index not valid");
+				return;
+			}
+
+			if (!base->modules[index] ||
+				(base->modules[index]->type != Module::TYPE_M_CLOAK
+					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
+					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
+					&& base->modules[index]->type != Module::TYPE_M_DOCKING
+					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			{
+				PrintUserCmdText(client, L"ERR Not factory module");
+				return;
+			}
+
+			FactoryModule *mod = (FactoryModule*)base->modules[index];
+			if (mod->ToggleQueuePaused(true))
+				PrintUserCmdText(client, L"ERR Build queue is already paused");
+			else
+				PrintUserCmdText(client, L"OK Build queue paused");
+			base->Save();
+		}
+		else if (cmd == L"resume")
+		{
+			uint index = ToInt(GetParam(args, ' ', 3));
+			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			{
+				PrintUserCmdText(client, L"ERR Module index not valid");
+				return;
+			}
+
+			if (!base->modules[index] ||
+				(base->modules[index]->type != Module::TYPE_M_CLOAK
+					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
+					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
+					&& base->modules[index]->type != Module::TYPE_M_DOCKING
+					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			{
+				PrintUserCmdText(client, L"ERR Not factory module");
+				return;
+			}
+
+			FactoryModule *mod = (FactoryModule*)base->modules[index];
+			if (mod->ToggleQueuePaused(false))
+				PrintUserCmdText(client, L"OK Build queue resumed");
+			else
+				PrintUserCmdText(client, L"ERR Build queue is not paused");
+			base->Save();
+		}
 		else if (cmd == L"add")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
@@ -1030,7 +1146,7 @@ namespace PlayerCommands
 		else
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add]");
+			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add|pause|resume]");
 			PrintUserCmdText(client, L"|  list - show factory modules and build status");
 			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
 
@@ -1057,6 +1173,8 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|     <type> = 12 - Cloak Disruptor Type-1");
 			PrintUserCmdText(client, L"|     <type> = 13 - Cloak Disruptor Type-2");
 			PrintUserCmdText(client, L"|     <type> = 14 - Cloak Disruptor Type-3");
+			PrintUserCmdText(client, L"|  pause <index> - pause factory module at <index>");
+			PrintUserCmdText(client, L"|  resume <index> - resume factory module at <index>");
 		}
 	}
 

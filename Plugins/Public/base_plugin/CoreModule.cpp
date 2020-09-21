@@ -445,6 +445,36 @@ void CoreModule::RepairDamage(float max_base_health)
 
 				if (base->HasMarketItem(item->good) >= item->quantity)
 				{
+					
+					//This cycle prevents base consuming materials for repair if it is needed in active recipe
+					bool found_the_same_consumed_material = false;
+					for (auto i = base->modules.begin();
+						i != base->modules.end(); ++i)
+						if (!(!(*i) ||
+							((*i)->type != Module::TYPE_M_CLOAK
+								&& (*i)->type != Module::TYPE_M_HYPERSPACE_SCANNER
+								&& (*i)->type != Module::TYPE_M_JUMPDRIVES
+								&& (*i)->type != Module::TYPE_M_DOCKING
+								&& (*i)->type != Module::TYPE_M_CLOAKDISRUPTOR)))
+						{
+							FactoryModule *mod = (FactoryModule*)(*i);
+							if (mod->active_recipe.nickname != 0)
+							{
+								for (map<uint, uint>::iterator i = mod->active_recipe.consumed_items.begin();
+									i != mod->active_recipe.consumed_items.end(); ++i)
+								{
+									uint quantity = i->second > mod->active_recipe.cooking_rate ? mod->active_recipe.cooking_rate : i->second;
+									
+									if (quantity && item->good == i->first)
+									{
+										found_the_same_consumed_material = true; break;
+									}
+								}
+							}
+						}
+
+					if (found_the_same_consumed_material) continue;
+
 					base->RemoveMarketGood(item->good, item->quantity);
 					base->base_health += repair_per_repair_cycle;
 					base->repairing = true;

@@ -127,10 +127,49 @@ namespace PlayerCommands
 		pub::Player::PopUpDialog(client, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
 	}
 
+	bool RateLimitLogins(uint client, PlayerBase *base, wstring charname)
+	{
+		uint curr_time = (uint)time(0);
+		uint big_penalty_time = 300;
+		uint amount_of_attempts_to_reach_penalty = 15;
+
+		//initiate
+		if (base->unsuccessful_logins_in_a_row.find(charname) == base->unsuccessful_logins_in_a_row.end())
+			base->unsuccessful_logins_in_a_row[charname] = 0;
+
+		if (base->last_login_attempt_time.find(charname) == base->last_login_attempt_time.end())
+			base->last_login_attempt_time[charname] = 0;
+
+		//nulify counter if more than N seconds passed.
+		if ((curr_time - base->last_login_attempt_time[charname]) > big_penalty_time)
+			base->unsuccessful_logins_in_a_row[charname] = 0;
+
+		uint blocktime = 1;
+		if (base->unsuccessful_logins_in_a_row[charname] >= amount_of_attempts_to_reach_penalty)
+			blocktime = big_penalty_time;
+
+		uint waittime = blocktime - (curr_time - base->last_login_attempt_time[charname]);
+		//You are attempting to log in too often
+		if ((curr_time - base->last_login_attempt_time[charname]) < blocktime)
+		{
+			PrintUserCmdText(client, L"ERR You are attempting to log in too often. %d unsuccesful attempts. Wait %d seconds before repeating attempt.", base->unsuccessful_logins_in_a_row[charname], waittime);
+			return true;
+		} 
+		
+		if (base->unsuccessful_logins_in_a_row[charname] >= amount_of_attempts_to_reach_penalty) 
+			base->unsuccessful_logins_in_a_row[charname] = 0;
+
+		return false;
+	}
 
 	void BaseLogin(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
+
+		//prevent too often login attempts
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		if (RateLimitLogins(client, base, charname)) return;
+
 		if (!base)
 		{
 			PrintUserCmdText(client, L"ERR Not in player base");
@@ -144,10 +183,14 @@ namespace PlayerCommands
 			return;
 		}
 
+		//remember last time attempt to login
+		base->last_login_attempt_time[charname] = (uint)time(0);
+
 		BasePassword searchBp;
 		searchBp.pass = password;
 		list<BasePassword>::iterator ret = find(base->passwords.begin(), base->passwords.end(), searchBp);
 		if (ret == base->passwords.end()) {
+			base->unsuccessful_logins_in_a_row[charname]++; //count password failures
 			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
@@ -164,6 +207,7 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"OK Access granted");
 			PrintUserCmdText(client, L"Welcome shop viewer.");
 		}
+
 	}
 
 	void BaseAddPwd(uint client, const wstring &args)

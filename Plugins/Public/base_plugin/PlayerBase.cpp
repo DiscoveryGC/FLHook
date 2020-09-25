@@ -264,6 +264,15 @@ void PlayerBase::Load()
 							defense_mode = 1;
 						}
 					}
+					else if (ini.is_value("repairmode"))
+					{
+						set_repairing_way = ini.get_value_int(0);
+
+						if (set_repairing_way <0 || set_repairing_way >=2)
+						{
+							set_repairing_way = 1;
+						}
+					}
 					else if (ini.is_value("ally_tag"))
 					{
 						wstring tag;
@@ -392,6 +401,7 @@ void PlayerBase::Save()
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);
+		fprintf(file, "repairmode = %u\n", set_repairing_way);
 		foreach(ally_tags, wstring, i)
 		{
 			ini_write_wstring(file, "ally_tag", *i);

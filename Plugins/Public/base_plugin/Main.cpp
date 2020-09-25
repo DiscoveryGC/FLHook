@@ -95,6 +95,10 @@ bool load_settings_required = true;
 /// holiday mode
 bool set_holiday_mode = false;
 
+// repair with money
+bool disable_fow_for_all_bases = true;
+INT64 money_per_repair_material = 1000;
+
 //pob sounds struct
 POBSOUNDS pbsounds;
 
@@ -458,6 +462,14 @@ void LoadSettingsActual()
 						uint good = CreateID(ini.get_value_string(0));
 						uint quantity = ini.get_value_int(1);
 						shield_power_items[good] = quantity;
+					}
+					else if (ini.is_value("disable_fow_for_all_bases"))
+					{
+						disable_fow_for_all_bases = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("money_per_repair_material"))
+					{
+						money_per_repair_material = ini.get_value_int(0);
 					}
 					else if (ini.is_value("set_new_spawn"))
 					{
@@ -997,7 +1009,7 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseLstHostileTag(client, args);
 		return true;
 	}
-	else if (args.find(L"/base rep") == 0)
+	else if (args.find(L"/base setrep") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseRep(client, args);
@@ -1049,6 +1061,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseShieldMod(client, args);
+		return true;
+	}
+	else if (args.find(L"/base repair") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseRepairMod(client, args);
 		return true;
 	}
 	else if (args.find(L"/base buildmod") == 0)

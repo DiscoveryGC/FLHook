@@ -1126,6 +1126,56 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"OK");
 	}
 
+	void BaseRepairMod(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return;
+		}
+
+		const wstring &cmd = GetParam(args, ' ', 2);
+		if (cmd == L"on")
+		{
+			base->set_repairing_way = 1;
+		}
+		else if (cmd == L"off")
+		{
+			base->set_repairing_way = 0;
+		}
+		else if (cmd == L"legacy")
+		{
+			base->set_repairing_way = 2;
+		}
+		else if (cmd == L"status")
+		{
+			if (base->set_repairing_way == 0)
+				PrintUserCmdText(client, L"|  repair status: off");
+			if (base->set_repairing_way == 1)
+				PrintUserCmdText(client, L"|  repair status: on");
+			if (base->set_repairing_way == 2)
+				PrintUserCmdText(client, L"|  repair status: legacy");
+		}
+		else
+		{
+			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"/base repair [on|off]nomoney|status");
+			PrintUserCmdText(client, L"|  on - repair with everything");
+			PrintUserCmdText(client, L"|  off - turn the repairs off");
+			PrintUserCmdText(client, L"|  legacy - repair with repair materials only");
+			PrintUserCmdText(client, L"|  status - shows your repair way");
+		}
+
+		PrintUserCmdText(client, L"OK");
+	}
+
 	void Bank(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);

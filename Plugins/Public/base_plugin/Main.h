@@ -374,6 +374,9 @@ public:
 	// if true, the base was repaired or is able to be repaired
 	bool repairing;
 
+	//Set repairing way (0 - off, 1 - on(with repair materials + credits if health is full), 2 - nomoney(with repair materials only))
+	int set_repairing_way = 1;
+
 	// The state of the shield
 	static const int SHIELD_STATE_OFFLINE = 0;
 	static const int SHIELD_STATE_ONLINE = 1;
@@ -500,6 +503,7 @@ namespace PlayerCommands
 	void BaseBuildMod(uint client, const wstring &args);
 	void BaseFacMod(uint client, const wstring &args);
 	void BaseShieldMod(uint client, const wstring &args);
+	void BaseRepairMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
 
@@ -581,6 +585,10 @@ extern float set_shield_damage_multiplier;
 
 /// Holiday mode
 extern bool set_holiday_mode;
+
+// repair with money
+extern bool disable_fow_for_all_bases;
+extern INT64 money_per_repair_material;
 
 wstring HtmlEncode(wstring text);
 

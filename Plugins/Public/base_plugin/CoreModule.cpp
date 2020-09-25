@@ -404,6 +404,26 @@ void CoreModule::SaveState(FILE *file)
 
 void CoreModule::RepairDamage(float max_base_health)
 {
+	if (disable_fow_for_all_bases)
+	{
+		for (uint repair_cycles = 0; repair_cycles < base->base_level; ++repair_cycles)
+		{
+			foreach(set_base_repair_items, REPAIR_ITEM, item)
+			{
+				if (base->base_health >= max_base_health)
+					return;
+
+				if (base->HasMarketItem(item->good) >= item->quantity)
+				{
+					base->RemoveMarketGood(item->good, item->quantity);
+					base->base_health += repair_per_repair_cycle;
+					base->repairing = true;
+				}
+			}
+		}
+		return;
+	}
+
 	// We have to add this because of bug abusers
 	// Check for Oxygen and Water
 	int checkoxygenwater = 0;
@@ -480,14 +500,22 @@ bool CoreModule::Timer(uint time)
 			{
 				// Reduce hitpoints to reflect wear and tear. This will eventually
 				// destroy the base unless it is able to repair itself.
-				base->base_health -= set_damage_per_tick + (set_damage_per_tick * base->base_level);
+				if (base->base_health != base->max_base_health || base->set_repairing_way!=1 || base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE)
+					base->base_health -= set_damage_per_tick + (set_damage_per_tick * base->base_level);
+				else
+				{
+					INT64 MoneyToRemove = INT64(double(set_damage_per_tick + (set_damage_per_tick * base->base_level))/ double(repair_per_repair_cycle) * double(money_per_repair_material));
+					if (base->money >= MoneyToRemove)
+						base->ChangeMoney(INT64(0 - MoneyToRemove));
+					else base->base_health -= set_damage_per_tick + (set_damage_per_tick * base->base_level);
+				}
 			}
 
 			// Repair damage if we have sufficient crew on the base.
 			base->repairing = false;
 			uint number_of_crew = base->HasMarketItem(set_base_crew_type);
 			if (number_of_crew >= (base->base_level * 200)) {
-				RepairDamage(base->max_base_health);
+				if (base->set_repairing_way) RepairDamage(base->max_base_health);
 				if (dont_eat) {
 					// We won't save base health below, so do it here
 					float rhealth = base->base_health / base->max_base_health;
@@ -506,42 +534,51 @@ bool CoreModule::Timer(uint time)
 				// the crew or kill 10 crew off and repeat this every 12 hours.
 				if (time % 43200 == 0)
 				{
-					for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
-						i != set_base_crew_consumption_items.end(); ++i)
+					if (!disable_fow_for_all_bases)
 					{
-						// Use water and oxygen.
-						if (base->HasMarketItem(i->first) >= number_of_crew)
+						for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
+							i != set_base_crew_consumption_items.end(); ++i)
 						{
-							base->RemoveMarketGood(i->first, number_of_crew);
+							// Use water and oxygen.
+							if (base->HasMarketItem(i->first) >= number_of_crew)
+							{
+								base->RemoveMarketGood(i->first, number_of_crew);
+							}
+							// Insufficient water and oxygen, kill crew.
+							else
+							{
+								base->RemoveMarketGood(set_base_crew_type, (number_of_crew >= 10) ? 10 : number_of_crew);
+							}
 						}
-						// Insufficient water and oxygen, kill crew.
-						else
+
+						// Humans use food but may eat one of a number of types.
+						uint crew_to_feed = number_of_crew;
+						for (map<uint, uint>::iterator i = set_base_crew_food_items.begin();
+							i != set_base_crew_food_items.end(); ++i)
 						{
-							base->RemoveMarketGood(set_base_crew_type, (number_of_crew >= 10) ? 10 : number_of_crew);
+							if (!crew_to_feed)
+								break;
+
+							uint food_available = base->HasMarketItem(i->first);
+							if (food_available)
+							{
+								uint food_to_use = (food_available >= crew_to_feed) ? crew_to_feed : food_available;
+								base->RemoveMarketGood(i->first, food_to_use);
+								crew_to_feed -= food_to_use;
+							}
+						}
+
+						// Insufficent food so kill crew.
+						if (crew_to_feed)
+						{
+							base->RemoveMarketGood(set_base_crew_type, (crew_to_feed >= 10) ? 10 : crew_to_feed);
 						}
 					}
-
-					// Humans use food but may eat one of a number of types.
-					uint crew_to_feed = number_of_crew;
-					for (map<uint, uint>::iterator i = set_base_crew_food_items.begin();
-						i != set_base_crew_food_items.end(); ++i)
+					else
 					{
-						if (!crew_to_feed)
-							break;
-
-						uint food_available = base->HasMarketItem(i->first);
-						if (food_available)
-						{
-							uint food_to_use = (food_available >= crew_to_feed) ? crew_to_feed : food_available;
-							base->RemoveMarketGood(i->first, food_to_use);
-							crew_to_feed -= food_to_use;
-						}
-					}
-
-					// Insufficent food so kill crew.
-					if (crew_to_feed)
-					{
-						base->RemoveMarketGood(set_base_crew_type, (crew_to_feed >= 10) ? 10 : crew_to_feed);
+						//riotes if low money
+						if (base->money < int(repair_per_repair_cycle))
+							base->RemoveMarketGood(set_base_crew_type, 10);
 					}
 				}
 

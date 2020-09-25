@@ -61,6 +61,7 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 }
 
 struct TRADE_EVENT {
+	uint uHashID;
 	string sEventName;
 	string sURL;
 	int iBonusCash;
@@ -201,6 +202,7 @@ void LoadSettings()
 					if (ini.is_value("id"))
 					{
 						id = ini.get_value_string(0);
+						te.uHashID = CreateID(ini.get_value_string(0));
 					}
 					else if (ini.is_value("name"))
 					{
@@ -1323,19 +1325,19 @@ void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uin
 	const wchar_t *victim = (const wchar_t*)Players.GetActiveCharacterName(iClientIDVictim);
 	const wchar_t *killer = (const wchar_t*)Players.GetActiveCharacterName(iClientIDKiller);
 
+	string sIDVictimEvent;
 	if (victim)
 	{
+		sIDVictimEvent = wstos(HookExt::IniGetWS(iClientIDVictim, "event.eventid"));
 		if (HookExt::IniGetB(iClientIDVictim, "event.enabled"))
 		{
-			string eventid = wstos(HookExt::IniGetWS(iClientIDVictim, "event.eventid"));
-
 			//else disable event mode
 			HookExt::IniSetB(iClientIDVictim, "event.enabled", false);
 			HookExt::IniSetWS(iClientIDVictim, "event.eventid", L"");
 			HookExt::IniSetWS(iClientIDVictim, "event.eventpob", L"");
 			HookExt::IniSetI(iClientIDVictim, "event.eventpobcommodity", 0);
 			HookExt::IniSetI(iClientIDVictim, "event.quantity", 0);
-			PrintUserCmdText(iClientIDVictim, L"You have died and have been unregistered from the event: %s", stows(mapTradeEvents[eventid].sEventName).c_str());
+			PrintUserCmdText(iClientIDVictim, L"You have died and have been unregistered from the event: %s", stows(mapTradeEvents[sIDVictimEvent].sEventName).c_str());
 		}
 
 	}
@@ -1385,7 +1387,7 @@ void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uin
 						bool bFoundIDVictim = false;
 						for (list<uint>::iterator i3 = i->second.lTargetIDs.begin(); i3 != i->second.lTargetIDs.end(); ++i3)
 						{
-							if (*i3 == pIDVictim)
+							if (*i3 == pIDVictim || *i3 == mapTradeEvents[sIDVictimEvent].uHashID)
 							{
 								bFoundIDVictim = true;
 								break;

@@ -345,6 +345,9 @@ public:
 	// The ingame hash of the nickname
 	uint base;
 
+	map<wstring, uint> last_login_attempt_time;
+	map<wstring, int> unsuccessful_logins_in_a_row;
+
 	// The list of administration passwords
 	list<BasePassword> passwords;
 

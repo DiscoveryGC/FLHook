@@ -115,6 +115,8 @@ struct CLIENT_DATA
 	int iPendingMineAsteroidEvents;
 	int iMineAsteroidEvents;
 	time_t tmMineAsteroidSampleStart;
+
+	uint LastTimeMessageAboutBeingFull;
 };
 map<uint, CLIENT_DATA> mapClients;
 
@@ -206,6 +208,7 @@ void CheckClientSetup(uint iClientID)
 		if (set_iPluginDebug > 1)
 			ConPrint(L"NOTICE: iClientID=%d setup bonuses\n", iClientID);
 		mapClients[iClientID].bSetup = true;
+		mapClients[iClientID].LastTimeMessageAboutBeingFull = 0;
 
 		// Get the player affiliation
 		uint iRepGroupID = -1;
@@ -694,7 +697,17 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 						}
 						if (iLootCount == 0)
 						{
-							pub::Player::SendNNMessage(iClientID, CreateID("insufficient_cargo_space"));
+							if (((uint)time(0) - mapClients[iClientID].LastTimeMessageAboutBeingFull) > 1)
+							{
+								PrintUserCmdText(iClientID, L"%s's cargo is now full.", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iSendToClientID)));
+								pub::Player::SendNNMessage(iClientID, CreateID("insufficient_cargo_space"));
+								if (iClientID != iSendToClientID)
+								{
+									PrintUserCmdText(iSendToClientID, L"Your cargo is now full.");
+									pub::Player::SendNNMessage(iSendToClientID, CreateID("insufficient_cargo_space"));
+								}
+								mapClients[iClientID].LastTimeMessageAboutBeingFull = (uint)time(0);
+							}
 							return;
 						}
 						pub::Player::AddCargo(iSendToClientID, iLootID, iLootCount, 1.0, false);

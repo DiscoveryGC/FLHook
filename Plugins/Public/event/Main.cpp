@@ -841,6 +841,7 @@ void __stdcall GFGoodSell_AFTER(struct SGFGoodSellInfo const &gsi, unsigned int 
 	//MiningEvent_Sale(gsi, iClientID);
 }
 
+map<uint, uint> last_time_of_notice;
 void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -916,7 +917,22 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		}
 		if (iLootCount == 0)
 		{
-			pub::Player::SendNNMessage(iClientID, CreateID("insufficient_cargo_space"));
+			uint LastTime;
+			if (last_time_of_notice.find(iClientID) == last_time_of_notice.end())
+				LastTime = 0;
+			else LastTime = last_time_of_notice[iClientID];
+
+			if (((uint)time(0) - LastTime) > 1)
+			{
+				PrintUserCmdText(iClientID, L"%s's cargo is now full.", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iSendToClientID)));
+				pub::Player::SendNNMessage(iClientID, CreateID("insufficient_cargo_space"));
+				if (iClientID != iSendToClientID)
+				{
+					PrintUserCmdText(iSendToClientID, L"Your cargo is now full.");
+					pub::Player::SendNNMessage(iSendToClientID, CreateID("insufficient_cargo_space"));
+				}
+				last_time_of_notice[iClientID] = (uint)time(0);
+			}
 			return;
 		}
 

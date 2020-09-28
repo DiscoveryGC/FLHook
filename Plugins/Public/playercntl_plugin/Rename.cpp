@@ -369,6 +369,8 @@ namespace Rename
 		wstring wscCharname;
 		wstring wscNewCharname;
 
+		string scDir;
+
 		string scSourceFile;
 		string scDestFile;
 		string scDestFileTemp;
@@ -379,6 +381,9 @@ namespace Rename
 	{
 		wstring wscDestinationCharname;
 		wstring wscMovingCharname;
+
+		string scSourceDir;
+		string scDestDir;
 
 		string scSourceFile;
 		string scDestFile;
@@ -425,6 +430,9 @@ namespace Rename
 				HkLockAccountAccess(acc, true);
 				HkUnlockAccountAccess(acc);
 
+				wstring wscCharFileName;
+				HkGetCharFileName(o.wscCharname, wscCharFileName);
+
 				// Move the char file to a temporary one.
 				if (!::MoveFileExA(o.scSourceFile.c_str(), o.scDestFileTemp.c_str(),
 					MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
@@ -455,6 +463,26 @@ namespace Rename
 
 				// The rename worked. Log it and save the rename time.
 				AddLog("NOTICE: User rename %s to %s (%s)", wstos(o.wscCharname).c_str(), wstos(o.wscNewCharname).c_str(), wstos(HkGetAccountID(acc)).c_str());
+
+				//resetrep cooldown
+				wstring wscCharFileName2;
+				HkGetCharFileName(o.wscNewCharname, wscCharFileName2);
+				wstring wscDir;	
+				HK_ERROR err;
+				if ((err = HkGetAccountDirName(o.wscNewCharname, wscDir)) != HKE_OK)
+				{
+					ConPrint(L"ERR 461 " + HkErrGetText(err));
+				}
+				else
+				{
+					string scRenameFile = scAcctPath + wstos(wscDir) + "\\resetrep.ini";
+					map<wstring, uint> wscCharFileNamesWhichAlreadyUsedResetRep = MiscCmds::Resetrep_load_Time_limits_for_player_account(scRenameFile);
+					if (wscCharFileNamesWhichAlreadyUsedResetRep.find(wscCharFileName) != wscCharFileNamesWhichAlreadyUsedResetRep.end())
+					{
+						wscCharFileNamesWhichAlreadyUsedResetRep[wscCharFileName2] = wscCharFileNamesWhichAlreadyUsedResetRep[wscCharFileName];
+						MiscCmds::Resetrep_save_Time_limits_to_player_account(scRenameFile, wscCharFileNamesWhichAlreadyUsedResetRep);
+					}
+				}
 			}
 			catch (char *err)
 			{
@@ -509,6 +537,16 @@ namespace Rename
 					wstos(HkGetAccountID(oldAcc)).c_str(),
 					wstos(HkGetAccountID(acc)).c_str());
 
+				//resetrep cooldown
+				map<wstring, uint> ResetListSource = MiscCmds::Resetrep_load_Time_limits_for_player_account(o.scSourceDir);
+				map<wstring, uint> ResetListDest = MiscCmds::Resetrep_load_Time_limits_for_player_account(o.scDestDir);
+				wstring wscCharFileName;
+				HkGetCharFileName(o.wscMovingCharname, wscCharFileName);
+				if (ResetListSource.find(wscCharFileName) != ResetListSource.end())
+				{
+					ResetListDest[wscCharFileName] = ResetListSource[wscCharFileName];
+					MiscCmds::Resetrep_save_Time_limits_to_player_account(o.scDestDir, ResetListDest);
+				}
 			}
 			catch (char *err)
 			{
@@ -682,6 +720,7 @@ namespace Rename
 		o.scSourceFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscSourceFile) + ".fl";
 		o.scDestFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscDestFile) + ".fl";
 		o.scDestFileTemp = scAcctPath + wstos(wscDir) + "\\" + wstos(wscSourceFile) + ".fl.renaming";
+		o.scDir = scAcctPath + wstos(wscDir);
 		pendingRenames.push_back(o);
 
 		HkKickReason(o.wscCharname, L"Updating character, please wait 10 seconds before reconnecting");
@@ -873,6 +912,8 @@ namespace Rename
 		o.scSourceFile = scAcctPath + wstos(wscSourceDir) + "\\" + wstos(wscSourceFile) + ".fl";
 		o.scDestFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscSourceFile) + ".fl";
 		o.scDestFileTemp = scAcctPath + wstos(wscDir) + "\\" + wstos(wscSourceFile) + ".fl.moving";
+		o.scSourceDir = scAcctPath + wstos(wscSourceDir) + "\\resetrep.ini";
+		o.scDestDir = scAcctPath + wstos(wscDir) + "\\resetrep.ini";
 		pendingMoves.push_back(o);
 
 		// Delete the move code

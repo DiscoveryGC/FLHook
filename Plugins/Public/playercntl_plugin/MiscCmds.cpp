@@ -64,6 +64,13 @@ namespace MiscCmds
 	/// Cost to drop reputation changes.
 	int set_iRepdropCost = 0;
 
+	/// Cost to drop all reputation changes.
+	int set_iResetrepCost = 0;
+	// Resetrep is not allowed until server restart
+	map<string, uint> factions;
+	// Resetrep is not allowed if attempted within the resetrep time limit (in seconds)
+	int set_iResetrepTimeLimit = 0;
+
 	/// Local chat range
 	float set_iLocalChatRange = 9999;
 
@@ -72,6 +79,8 @@ namespace MiscCmds
 	{
 		// Load generic settings
 		set_iRepdropCost = IniGetI(scPluginCfgFile, "General", "RepDropCost", 0);
+		set_iResetrepCost = IniGetI(scPluginCfgFile, "General", "ResetrepCost", 10000000);
+		set_iResetrepTimeLimit = IniGetI(scPluginCfgFile, "General", "ResetrepTimeLimit", 1209600);
 		set_iLocalChatRange = IniGetF(scPluginCfgFile, "General", "LocalChatRange", 0);
 
 		set_wscStuckMsg = stows(IniGetS(scPluginCfgFile, "General", "StuckMsg", "Attention! Stand clear. Towing %player"));
@@ -79,6 +88,8 @@ namespace MiscCmds
 		set_wscCoinMsg = stows(IniGetS(scPluginCfgFile, "General", "CoinMsg", "%player tossed %result"));
 
 		set_iSmiteMusicID = CreateID(IniGetS(scPluginCfgFile, "General", "SmiteMusic", "music_danger").c_str());
+
+		LoadListOfReps();
 	}
 
 	/** Clean up when a client disconnects */
@@ -248,6 +259,185 @@ namespace MiscCmds
 		{
 			HkAddCash(wscCharname, 0 - set_iRepdropCost);
 		}
+
+		return true;
+	}
+
+	void MiscCmds::LoadListOfReps()
+	{
+		INI_Reader ini;
+
+		string factionpropfile = "..\\data\\initialworld.ini";
+		if (ini.open(factionpropfile.c_str(), false))
+		{
+			while (ini.read_header())
+			{
+				if (ini.is_header("Group"))
+				{
+					uint ids_name;
+					string nickname;
+					while (ini.read_value())
+					{
+						if (ini.is_value("nickname"))
+						{
+							nickname = ini.get_value_string();
+						}
+						else if (ini.is_value("ids_name"))
+						{
+							ids_name = ini.get_value_int(0);
+						}
+
+					}
+					factions[nickname] = ids_name;
+				}
+			}
+			ini.close();
+			ConPrint(L"Resetrep: Loaded %u factions\n", factions.size());
+		}
+	}
+	
+	map<wstring, uint> MiscCmds::Resetrep_load_Time_limits_for_player_account(string filename)
+	{
+		INI_Reader ini;
+		string factionpropfile = filename;
+		map<wstring, uint> tempmap;
+		if (ini.open(factionpropfile.c_str(), false))
+		{
+			while (ini.read_header())
+			{
+				if (ini.is_header("Playership"))
+				{
+					uint lastresettime = 0;
+					wstring nickname = L"0";
+					while (ini.read_value())
+					{
+						if (ini.is_value("shipname"))
+						{
+							ini_get_wstring(ini, nickname);
+						}
+						else if (ini.is_value("lastresettime"))
+						{
+							lastresettime = ini.get_value_int(0);
+						}
+					}
+
+					tempmap[nickname] = lastresettime;
+				}
+			}
+			ini.close();
+		}
+		return tempmap;
+	}
+
+	void MiscCmds::Resetrep_save_Time_limits_to_player_account(string filename, map<wstring, uint> tempmap)
+	{
+		string factionpropfile = filename;
+
+		FILE *file = fopen(factionpropfile.c_str(), "w");
+		if (file)
+		{
+			for (map<wstring, uint>::iterator i = tempmap.begin();
+				i != tempmap.end(); ++i)
+			{
+				if (((int)time(0) - i->second) < set_iResetrepTimeLimit)
+				{
+					wstring temp = i->first;
+					fprintf_s(file, "[Playership]\n");
+					ini_write_wstring(file, "shipname", temp);
+					fprintf_s(file, "lastresettime = %d\n", i->second);
+				}
+			}
+			fclose(file);
+		}
+	}
+
+	/** A command to reset all reputations to zero that you might have */
+	bool MiscCmds::UserCmd_ResetRep(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		HK_ERROR err;
+
+		wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+
+		uint iShip;
+		pub::Player::GetShip(iClientID, iShip);
+		if (iShip)
+		{
+			PrintUserCmdText(iClientID, L"ERR Not in base");
+			return true;
+		}
+
+		// Read the current number of credits for the player
+		// and check that the character has enough cash.
+		int iCash = 0;
+		if ((err = HkGetCash(wscCharname, iCash)) != HKE_OK)
+		{
+			PrintUserCmdText(iClientID, L"ERR (1) %s", HkErrGetText(err).c_str());
+			return true;
+		}
+
+		if (set_iResetrepCost > 0 && iCash < set_iResetrepCost)
+		{
+			PrintUserCmdText(iClientID, L"ERR Insufficient credits");
+			return true;
+		}
+
+
+		wstring wscCharFileName;
+		if ((err = HkGetCharFileName(wscCharname, wscCharFileName)) != HKE_OK)
+		{
+			PrintUserCmdText(iClientID, L"ERR (2)" + HkErrGetText(err));
+			return true;
+		}
+
+		// Read the last time a rename was done on this character
+		wstring wscDir;
+		if ((err = HkGetAccountDirName(wscCharname, wscDir)) != HKE_OK)
+		{
+			PrintUserCmdText(iClientID, L"ERR (3)" + HkErrGetText(err));
+			return true;
+		}
+		string scRenameFile = scAcctPath + wstos(wscDir) + "\\" + "resetrep.ini";
+		map<wstring, uint> CharfilesLastResetRepUsage = Resetrep_load_Time_limits_for_player_account(scRenameFile);
+		if (CharfilesLastResetRepUsage.find(wscCharFileName) != CharfilesLastResetRepUsage.end())
+		{
+			uint LastTime = CharfilesLastResetRepUsage[wscCharFileName];
+
+			if (((int)time(0) - LastTime) < set_iResetrepTimeLimit)
+			{
+				int SecondsLeft = (set_iResetrepTimeLimit - ((int)time(0) - int(LastTime)));
+				int DaysLeft = SecondsLeft / (3600 * 24);
+				PrintUserCmdText(iClientID, L"ERR Attempt to resetrep too frequently. Please wait %d days (%d in seconds).", DaysLeft, SecondsLeft);
+				return true;
+			}
+		}
+
+		int count = 0;
+		for (map<string, uint>::iterator iter = factions.begin(); iter != factions.end(); iter++)
+		{
+			float fRep = 0.0f;
+			string factionName = iter->first;
+			HK_ERROR error;
+			if ((error = HkGetRep(wscCharname, stows(factionName), fRep)) != HKE_OK)
+			{
+				PrintUserCmdText(iClientID, L"ERR (5) %s", HkErrGetText(error).c_str());
+				continue;
+			}
+			count++;
+			HkSetRep(wscCharname, stows(factionName), 0.0f);
+		}
+
+		PrintUserCmdText(iClientID, L"OK Rep reset has beens performed. %d factions were cleared.", count);
+
+		// Remove cash if we're charging for it.
+		if (set_iResetrepCost > 0)
+		{
+			HkAddCash(wscCharname, 0 - set_iResetrepCost);
+		}
+
+		CharfilesLastResetRepUsage[wscCharFileName] = (int)time(0);
+		Resetrep_save_Time_limits_to_player_account(scRenameFile, CharfilesLastResetRepUsage);
+		HkSaveChar(wscCharname); //Save char just in case
+		HkKickReason(wscCharname, L"Updating character, please wait 10 seconds before reconnecting");
 
 		return true;
 	}

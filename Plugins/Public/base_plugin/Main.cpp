@@ -1267,6 +1267,22 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &cId, unsigned in
 	}
 }
 
+bool IsPlayerAuthorizedOnBase(uint client)
+{
+	//This function is meant to check if player is in hostile list
+	//And it is used for hostile players being redirected to proxy base
+	//in cases when they were having for some reason access to PoB and after that they were added as enemies.
+	PlayerBase *base = GetPlayerBaseForClient(client);
+	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+	for (std::list<wstring>::const_iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
+	{
+		if (charname.find(*i) == 0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
 void __stdcall BaseEnter(uint base, uint client)
 {
 	if (set_plugin_debug > 1)
@@ -1323,7 +1339,7 @@ void __stdcall BaseExit(uint base, uint client)
 	// Reset client state and save it retaining the last player base ID to deal with respawn.
 	clients[client].admin = false;
 	clients[client].viewshop = false;
-	if (clients[client].player_base)
+	if (clients[client].player_base && IsPlayerAuthorizedOnBase(client))
 	{
 		if (set_plugin_debug)
 			ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
@@ -1405,7 +1421,8 @@ void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
-	player_launch_base = GetPlayerBase(clients[client].last_player_base);
+	if (IsPlayerAuthorizedOnBase(client))
+		player_launch_base = GetPlayerBase(clients[client].last_player_base);
 }
 
 

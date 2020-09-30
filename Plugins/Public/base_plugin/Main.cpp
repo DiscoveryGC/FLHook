@@ -1273,12 +1273,15 @@ bool IsPlayerAuthorizedOnBase(uint client)
 	//And it is used for hostile players being redirected to proxy base
 	//in cases when they were having for some reason access to PoB and after that they were added as enemies.
 	PlayerBase *base = GetPlayerBaseForClient(client);
-	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-	for (std::list<wstring>::const_iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
+	if (!base)
 	{
-		if (charname.find(*i) == 0)
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		for (std::list<wstring>::const_iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
 		{
-			return false;
+			if (charname.find(*i) == 0)
+			{
+				return false;
+			}
 		}
 	}
 	return true;

@@ -612,12 +612,9 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 
 					map<int, float>::iterator itDiffMultiplier = mapClassDiffMultipliers.lower_bound(classDiff);
 					if (itDiffMultiplier != mapClassDiffMultipliers.end())
-						if (itDiffMultiplier->second != 1.0f) //We only need to modify the payout if the multiplier is not 1.
-						{
-							iBountyPayout *= itDiffMultiplier->second;
-							if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-								PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Modifying payout to $%d (%0.2f of normal) due to class difference. %u vs %u \n", iBountyPayout, itDiffMultiplier->second, itKillerType->second, itVictimType->second);
-						}
+						iBountyPayout *= itDiffMultiplier->second;
+						if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+							PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Modifying payout to $%d (%0.2f of normal) due to class difference. %u vs %u \n", iBountyPayout, itDiffMultiplier->second, itKillerType->second, itVictimType->second);
 				}
 
 				// If we've turned bounties off, don't pay it.

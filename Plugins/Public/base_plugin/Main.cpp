@@ -2527,6 +2527,17 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			info->iLastDockedBaseID = base->base;
 		}
 	}
+	if (msg == CUSTOM_GET_ME_POB_ID)
+	{
+		CUSTOM_GET_ME_POB_ID_STRUCT* info = reinterpret_cast<CUSTOM_GET_ME_POB_ID_STRUCT*>(data);
+		PlayerBase *base = GetPlayerBase(info->iBase);
+		returncode = SKIPPLUGINS;
+		if (base)
+		{
+			returncode = SKIPPLUGINS;
+			info->iPoBID = base->base;
+		}
+	}
 	else if (msg == CUSTOM_JUMP)
 	{
 		CUSTOM_JUMP_STRUCT* info = reinterpret_cast<CUSTOM_JUMP_STRUCT*>(data);

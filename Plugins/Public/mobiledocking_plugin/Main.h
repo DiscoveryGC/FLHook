@@ -35,13 +35,26 @@ struct CLIENT_DATA
 	uint carrierSystem;
 
 	// A base pointer used to teleport the ship into a base on undock
-	Universe::IBase *undockBase;
+	Universe::IBase *undockNPCBase = 0;
+	uint undockPoBID = 0;
 
 	// A flag denoting that the above base should be used as an undock point
 	bool baseUndock = false;
 
 	// This shows you if the character is on died carrier right now.
 	bool carrierDied = false;
+
+	//Carrier related variable
+	bool IsCarrierInBase = false;
+
+	//Snub related variable
+	bool DockedSomeBasesWhileInCarrier = false;
+	bool IsInsideOfflineCarrierInBase = false;
+	bool isCargoEmpty = true;
+	bool Disconnected = false;
+
+	wstring charfilename = L"";
+	uint clientID = 0;
 };
 
 struct ActionJettison
@@ -53,13 +66,25 @@ struct ActionJettison
 
 extern vector<ActionJettison> jettisonList;
 
+void SendCommand(uint client, const wstring &message);
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);
+void ForceLaunch(uint client);
 
 // The distance to undock from the carrier
 static int set_iMobileDockOffset = 100;
 
-extern map<uint, CLIENT_DATA> mobiledockClients;
+extern map<wstring, CLIENT_DATA> mobiledockClients;
 
 // A map of all docking requests pending approval by the carrier
 extern map<uint, uint> mapPendingDockingRequests;
+struct InviteLink
+{
+	uint iBase;
+	wstring Carrier;
+	uint Password;
+	uint Time;
+	const wchar_t* carrierwchar;
+	wstring CarrierWCharName;
+};
+extern map<uint, list<InviteLink>> mapInviteLinks;

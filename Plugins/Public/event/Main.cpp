@@ -1328,9 +1328,9 @@ void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uin
 	string sIDVictimEvent;
 	if (victim)
 	{
-		sIDVictimEvent = wstos(HookExt::IniGetWS(iClientIDVictim, "event.eventid"));
 		if (HookExt::IniGetB(iClientIDVictim, "event.enabled"))
 		{
+			sIDVictimEvent = wstos(HookExt::IniGetWS(iClientIDVictim, "event.eventid"));
 			//else disable event mode
 			HookExt::IniSetB(iClientIDVictim, "event.enabled", false);
 			HookExt::IniSetWS(iClientIDVictim, "event.eventid", L"");

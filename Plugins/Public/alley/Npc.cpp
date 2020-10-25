@@ -398,7 +398,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /** List ships restricted from jumping */
 	void ANPC::AdminCmd_ListNPCFleets(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -419,7 +419,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* Spawn a Fleet */
 	void ANPC::AdminCmd_AIFleet(CCmds* cmds, wstring FleetName)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -457,7 +457,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* Spawn an AI */
 	void ANPC::AdminCmd_AIMake(CCmds* cmds, int Amount, wstring NpcType)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -512,7 +512,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* Kill all AI */
 	void ANPC::AdminCmd_AIKill(CCmds* cmds, int loot)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -533,7 +533,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* Make AI enter evasive mode */
 	void ANPC::AdminCmd_AIEvade(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -560,7 +560,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* Make AI come to your position */
 	void ANPC::AdminCmd_AICome(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -593,7 +593,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* Make AI come to your position */
 	void ANPC::AdminCmd_AIFormation(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -621,7 +621,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* Make AI follow you until death */
 	void ANPC::AdminCmd_AIFollow(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -646,7 +646,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 	/* Make AI follow you until death */
 	void ANPC::AdminCmd_AICancel(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -669,7 +669,7 @@ bool ANPC::CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIF
 /* I have no idea wtf this is */
 	void ANPC::AdminCmd_AIRep(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -731,7 +731,7 @@ bool ANPC::IsFLHook(CShip* ship)
 /* Spawn an AI */
 	void ANPC::AdminCmd_AILoot(CCmds* cmds, int Toggle)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;

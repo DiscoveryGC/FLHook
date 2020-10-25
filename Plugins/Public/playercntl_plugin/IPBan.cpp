@@ -236,7 +236,7 @@ namespace IPBans
 	/** Start automatic zone checking */
 	void IPBans::AdminCmd_AuthenticateChar(CCmds* cmds, const wstring &wscCharname)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;

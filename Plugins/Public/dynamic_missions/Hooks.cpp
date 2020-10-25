@@ -250,7 +250,7 @@ void CmdTest(CCmds* classptr, uint iTest)
 {
 
 	// right check
-	if(!(classptr->rights & RIGHT_SUPERADMIN)) { classptr->Print(L"ERR No permission\n"); return;}
+	if(classptr->rights != RIGHT_SUPERADMIN) { classptr->Print(L"ERR No permission\n"); return;}
 
 	if(((classptr->hkLastErr = HkTest(iTest)) == HKE_OK)) // hksuccess 
 		classptr->Print(L"OK\n");
@@ -262,7 +262,7 @@ void CmdTest2(CCmds* classptr, uint iTest)
 {
 
 	// right check
-	if(!(classptr->rights & RIGHT_SUPERADMIN)) { classptr->Print(L"ERR No permission\n"); return;}
+	if(classptr->rights != RIGHT_SUPERADMIN) { classptr->Print(L"ERR No permission\n"); return;}
 
 	if(((classptr->hkLastErr = HkTest2(iTest)) == HKE_OK)) // hksuccess 
 		classptr->Print(L"OK\n");

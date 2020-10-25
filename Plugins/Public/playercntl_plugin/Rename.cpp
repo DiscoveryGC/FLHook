@@ -891,7 +891,7 @@ namespace Rename
 		if (!set_bEnableMoveChar)
 			return;
 
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -949,7 +949,7 @@ namespace Rename
 	/// Set the move char code for all characters in the account
 	void AdminCmd_ShowTags(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -968,7 +968,7 @@ namespace Rename
 
 	void AdminCmd_AddTag(CCmds* cmds, const wstring &tag, const wstring &password, const wstring &description)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -1013,7 +1013,7 @@ namespace Rename
 
 	void AdminCmd_DropTag(CCmds* cmds, const wstring &tag)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;

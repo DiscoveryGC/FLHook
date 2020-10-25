@@ -369,7 +369,7 @@ namespace MiscCmds
 	/** Smite all players in radar range */
 	void MiscCmds::AdminCmd_SmiteAll(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -447,7 +447,7 @@ namespace MiscCmds
 	/** Bob Command */
 	void MiscCmds::AdminCmd_Bob(CCmds* cmds, const wstring &wscCharname)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -557,7 +557,7 @@ namespace MiscCmds
 
 	void AdminCmd_PlayMusic(CCmds* cmds, const wstring &wscMusicname)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -624,7 +624,7 @@ namespace MiscCmds
 
 	void AdminCmd_PlaySound(CCmds* cmds, const wstring &wscSoundname)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -680,7 +680,7 @@ namespace MiscCmds
 
 	void AdminCmd_PlayNNM(CCmds* cmds, const wstring &wscSoundname)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;

@@ -522,7 +522,7 @@ namespace HyperJump
 	/** List ships restricted from jumping */
 	void HyperJump::AdminCmd_ListRestrictedShips(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -541,7 +541,7 @@ namespace HyperJump
 
 	void HyperJump::AdminCmd_MakeCoord(CCmds* cmds)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -1058,7 +1058,7 @@ namespace HyperJump
 	/** Chase a player. Works across systems but needs improvement of the path selection algorithm */
 	void HyperJump::AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -1091,7 +1091,7 @@ namespace HyperJump
 	/** Beam admin to a base. Works across systems but needs improvement of the path selection algorithm */
 	bool HyperJump::AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return true;;
@@ -1165,7 +1165,7 @@ namespace HyperJump
 	/** Pull a player to you. Works across systems but needs improvement of the path selection algorithm */
 	void HyperJump::AdminCmd_Pull(CCmds* cmds, const wstring &wscCharname)
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -1204,7 +1204,7 @@ namespace HyperJump
 			return;
 		}
 
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;

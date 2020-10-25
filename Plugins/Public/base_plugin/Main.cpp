@@ -2046,7 +2046,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		wstring basename = cmd->ArgStrToEnd(2);
 
 		// Fall back to default behaviour.
-		if (!(cmd->rights & RIGHT_SUPERADMIN))
+		if (cmd->rights != RIGHT_SUPERADMIN)
 		{
 			return false;
 		}

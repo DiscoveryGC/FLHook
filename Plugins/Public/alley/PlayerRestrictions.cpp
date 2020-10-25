@@ -430,7 +430,7 @@ bool GiftCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, con
 
 void AdminCmd_GenerateID(CCmds* cmds, wstring argument)
 {
-	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	if (cmds->rights != RIGHT_SUPERADMIN)
 	{
 		cmds->Print(L"ERR No permission\n");
 		return;
@@ -457,7 +457,7 @@ void AdminCmd_GenerateID(CCmds* cmds, wstring argument)
 
 void AdminCmd_missiontest1(CCmds* cmds, wstring argument)
 {
-	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	if (cmds->rights != RIGHT_SUPERADMIN)
 	{
 		cmds->Print(L"ERR No permission\n");
 		return;
@@ -498,7 +498,7 @@ void AdminCmd_missiontest1(CCmds* cmds, wstring argument)
 
 void AdminCmd_missiontest2(CCmds* cmds, wstring argument)
 {
-	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	if (cmds->rights != RIGHT_SUPERADMIN)
 	{
 		cmds->Print(L"ERR No permission\n");
 		return;
@@ -526,7 +526,7 @@ void AdminCmd_missiontest2(CCmds* cmds, wstring argument)
 
 void AdminCmd_missiontest2b(CCmds* cmds, wstring argument)
 {
-	if (!(cmds->rights & RIGHT_SUPERADMIN))
+	if (cmds->rights != RIGHT_SUPERADMIN)
 	{
 		cmds->Print(L"ERR No permission\n");
 		return;
@@ -940,7 +940,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testfuseobj"))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return true;
@@ -962,7 +962,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testunfuseobj"))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return true;
@@ -992,7 +992,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testselffuseobj"))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return true;
@@ -1012,7 +1012,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testselfunfuseobj"))
 	{
-		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		if (cmds->rights != RIGHT_SUPERADMIN)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return true;

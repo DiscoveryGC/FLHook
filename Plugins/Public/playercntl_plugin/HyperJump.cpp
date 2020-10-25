@@ -1091,7 +1091,7 @@ namespace HyperJump
 	/** Beam admin to a base. Works across systems but needs improvement of the path selection algorithm */
 	bool HyperJump::AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName)
 	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
+		if (!(cmds->rights & RIGHT_BEAMKILL))
 		{
 			cmds->Print(L"ERR No permission\n");
 			return true;;

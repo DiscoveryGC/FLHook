@@ -251,7 +251,8 @@ enum PLUGIN_MESSAGE
 	CLIENT_CLOAK_INFO = 44,
 	COMBAT_DAMAGE_OVERRIDE = 45,
 	CUSTOM_JUMP = 47,
-	CUSTOM_REVERSE_TRANSACTION = 48
+	CUSTOM_REVERSE_TRANSACTION = 48,
+	CUSTOM_BASE_QUERY_MODULE = 49
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -332,6 +333,13 @@ struct CUSTOM_BASE_LAST_DOCKED_STRUCT
 {
 	uint iClientID;
 	uint iLastDockedBaseID;
+};
+
+struct CUSTOM_BASE_QUERY_MODULE_STRUCT
+{
+	uint iClientID;
+	uint iModuleType;
+	bool bExists;
 };
 
 struct CLIENT_CLOAK_STRUCT

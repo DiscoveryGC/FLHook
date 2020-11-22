@@ -349,6 +349,12 @@ void PlayerBase::Load()
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
+			else if (ini.is_header("FabricatorModule"))
+			{
+				FabricatorModule *mod = new FabricatorModule(this);
+				mod->LoadState(ini);
+				modules.push_back(mod);
+			}
 		}
 		ini.close();
 	}

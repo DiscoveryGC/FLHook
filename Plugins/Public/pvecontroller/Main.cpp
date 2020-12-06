@@ -614,7 +614,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 					if (itDiffMultiplier != mapClassDiffMultipliers.end())
 						iBountyPayout *= itDiffMultiplier->second;
 						if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-							PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Modifying payout to $%d (%0.2f of normal) due to class difference. %u vs %u \n", iBountyPayout, itDiffMultiplier->second, itKillerType->second, itVictimType->second);
+							PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Modifying payout to $%d (%0.2f x normal) due to class difference. %u vs %u \n", iBountyPayout, itDiffMultiplier->second, itKillerType->second, itVictimType->second);
 				}
 
 				// If we've turned bounties off, don't pay it.

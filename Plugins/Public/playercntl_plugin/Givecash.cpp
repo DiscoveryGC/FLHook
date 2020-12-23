@@ -31,7 +31,7 @@ namespace GiveCash
 	static int set_iMinTransfer = 0;
 
 	// Transfers are not allowed to/from chars in this system.
-	static uint set_iBlockedSystem = 0;
+	static list<uint> set_lBlockedSystems;
 
 	// Enable in dock cash cheat detection
 	static bool set_bCheatDetection = false;
@@ -133,7 +133,7 @@ namespace GiveCash
 	static bool InBlockedSystem(const wstring &wscCharname)
 	{
 		// An optimisation if we have no blocked systems.
-		if (set_iBlockedSystem == 0)
+		if (set_lBlockedSystems.size() == 0)
 			return false;
 
 		// If the char is logged in we can check in memory.
@@ -142,7 +142,7 @@ namespace GiveCash
 		{
 			uint iSystem = 0;
 			pub::Player::GetSystem(iClientID, iSystem);
-			if (iSystem == set_iBlockedSystem)
+			if (find(set_lBlockedSystems.begin(), set_lBlockedSystems.end(), iSystem) != set_lBlockedSystems.end())
 				return true;
 			return false;
 		}
@@ -154,7 +154,7 @@ namespace GiveCash
 
 		uint iSystem = 0;
 		pub::GetSystemID(iSystem, wstos(wscSystemNick).c_str());
-		if (iSystem == set_iBlockedSystem)
+		if (find(set_lBlockedSystems.begin(), set_lBlockedSystems.end(), iSystem) != set_lBlockedSystems.end())
 			return true;
 		return false;
 	}
@@ -165,7 +165,29 @@ namespace GiveCash
 		set_iMinTransfer = IniGetI(scPluginCfgFile, "GiveCash", "MinTransfer", 1);
 		set_iMinTime = IniGetI(scPluginCfgFile, "GiveCash", "MinTime", 0);
 		set_bCheatDetection = IniGetB(scPluginCfgFile, "GiveCash", "CheatDetection", true);
-		set_iBlockedSystem = CreateID(IniGetS(scPluginCfgFile, "GiveCash", "BlockedSystem", "").c_str());
+
+		INI_Reader ini;
+		set_lBlockedSystems.clear();
+		if (ini.open(scPluginCfgFile.c_str(), false))
+		{
+			while (ini.read_header())
+			{
+				if (ini.is_header("GiveCash"))
+				{
+					while (ini.read_value())
+					{
+						if (ini.is_value("BlockedSystem"))
+						{
+							string blockedSystem = ini.get_value_string();
+							set_lBlockedSystems.push_back(CreateID(blockedSystem.c_str()));
+							if (set_iPluginDebug)
+								ConPrint(L"NOTICE: Adding givecash blocked system %s\n", stows(blockedSystem).c_str());
+						}
+					}
+				}
+			}
+			ini.close();
+		}
 	}
 
 	/// Check for cash transfer while this char was offline whenever they

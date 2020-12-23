@@ -30,8 +30,8 @@ int set_iPluginDebug = 0;
 // Base to beam to.
 uint set_iTargetBaseID = 0;
 
-// Restricted system, cannot jump out of here.
-uint set_iRestrictedSystemID = 0;
+// Restricted systems, cannot jump out of here.
+list<uint> set_lRestrictedSystemIDs;
 
 // Target system, cannot jump out of here.
 uint set_iTargetSystemID = 0;
@@ -64,8 +64,30 @@ void LoadSettings()
 	set_iPluginDebug = IniGetI(scPluginCfgFile, "General", "Debug", 0);
 	set_iTargetBaseID = CreateID(IniGetS(scPluginCfgFile, "General", "TargetBase", "li06_05_base").c_str());
 	set_iTargetSystemID = CreateID(IniGetS(scPluginCfgFile, "General", "TargetSystem", "li06").c_str());
-	set_iRestrictedSystemID = CreateID(IniGetS(scPluginCfgFile, "General", "RestrictedSystem", "iw09").c_str());
 	set_iDefaultBaseID = CreateID(IniGetS(scPluginCfgFile, "General", "DefaultBase", "li01_proxy_base").c_str());
+
+	INI_Reader ini;
+	set_lRestrictedSystemIDs.clear();
+	if (ini.open(scPluginCfgFile.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("General"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("RestrictedSystem"))
+					{
+						string blockedSystem = ini.get_value_string();
+						set_lRestrictedSystemIDs.push_back(CreateID(blockedSystem.c_str()));
+						if (set_iPluginDebug)
+							ConPrint(L"NOTICE: Adding conn restricted system %s\n", stows(blockedSystem).c_str());
+					}
+				}
+			}
+		}
+		ini.close();
+	}
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -196,7 +218,7 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 		// Prohibit jump if in a restricted system or in the target system
 		uint system = 0;
 		pub::Player::GetSystem(client, system);
-		if (system == set_iRestrictedSystemID
+		if (find(set_lRestrictedSystemIDs.begin(), set_lRestrictedSystemIDs.end(), system) != set_lRestrictedSystemIDs.end()
 			|| system == set_iTargetSystemID
 			|| GetCustomBaseForClient(client))
 		{

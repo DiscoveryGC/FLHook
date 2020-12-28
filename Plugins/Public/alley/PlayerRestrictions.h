@@ -20,26 +20,6 @@ void SetFuse(uint iClientID, uint fuse, float lifetime);
 void UnSetFuse(uint iClientID, uint fuse);
 
 using namespace std;
-/*
-namespace ANPC
-{
-	void LoadSettings();
-	bool CreateNPC(int AAmount, uint AShiparch, uint ALoadout, const char *AIFF, uint iShip1, uint iSystem);
-	void AdminCmd_ListNPCFleets(CCmds* cmds);
-	void AdminCmd_AIFleet(CCmds* cmds, wstring FleetName);
-	void AdminCmd_AIMake(CCmds* cmds, int Amount, wstring NpcType);
-	void AdminCmd_AILoot(CCmds* cmds, int Toggle);
-	void AIDestroy();
-	void AdminCmd_AIKill(CCmds* cmds, int loot);
-	void AdminCmd_AIEvade(CCmds* cmds);
-	void AdminCmd_AICancel(CCmds* cmds);
-	void AdminCmd_AICome(CCmds* cmds);
-	void AdminCmd_AIFormation(CCmds* cmds);
-	void AdminCmd_AIFollow(CCmds* cmds);
-	void AdminCmd_AIRep(CCmds* cmds);
-	bool IsFLHook(CShip* ship);
-}
-*/
 
 namespace SCI
 {

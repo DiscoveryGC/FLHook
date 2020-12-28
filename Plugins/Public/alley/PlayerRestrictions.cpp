@@ -295,7 +295,6 @@ void LoadSettings()
 		ini.close();
 	}
 
-	//ANPC::LoadSettings();
 	AP::LoadSettings();
 	ADOCK::LoadSettings();
 	SCI::LoadSettings();
@@ -864,74 +863,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		AdminCmd_missiontest2b(cmds, cmds->ArgStrToEnd(1));
 		return true;
 	}
-	/*
-	else if (IS_CMD("aifleet"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIFleet(cmds, cmds->ArgStr(1));
-		return true;
-	}
-	else if (IS_CMD("fleetlist"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_ListNPCFleets(cmds);
-		return true;
-	}
-	else if (IS_CMD("aicreate"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIMake(cmds, cmds->ArgInt(1), cmds->ArgStr(2));
-		return true;
-	}
-	else if (IS_CMD("ailoot"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AILoot(cmds, cmds->ArgInt(1));
-		return true;
-	}
-	else if (IS_CMD("aidestroy"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIKill(cmds, cmds->ArgInt(1));
-		return true;
-	}
-	else if (IS_CMD("aifollow"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIFollow(cmds);
-		return true;
-	}
-	else if (IS_CMD("aicome"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AICome(cmds);
-		return true;
-	}
-	else if (IS_CMD("aiformation"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIFormation(cmds);
-		return true;
-	}
-	else if (IS_CMD("aievade"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIEvade(cmds);
-		return true;
-	}
-	else if (IS_CMD("airep"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AIRep(cmds);
-		return true;
-	}
-	else if (IS_CMD("aicancel"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		ANPC::AdminCmd_AICancel(cmds);
-		return true;
-	}
-	*/
 	else if (IS_CMD("nodock"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1201,26 +1132,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int client)
 	SCI::CheckOwned(client);
 	SCI::UpdatePlayerID(client);
 }
-
-/*
-void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
-{
-	//HkMsgU(L"kekekek");
-	CShip *cship = (CShip*)ecx[4];
-
-	if (iKill)
-	{
-		//HkMsgU(L"popopo");
-		bool ishook = ANPC::IsFLHook(cship);
-
-		if (ishook == true)
-		{
-			HkMsgU(L"Death: I reached ShipDestroyed ishook true");
-			cship->clear_equip_and_cargo();
-		}
-	}
-}
-*/
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
 {

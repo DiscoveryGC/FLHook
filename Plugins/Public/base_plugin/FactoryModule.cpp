@@ -259,3 +259,8 @@ bool FactoryModule::ClearQueue()
 	return true;
 }
 
+void FactoryModule::ClearRecipe()
+{
+	active_recipe.nickname = 0;
+}
+

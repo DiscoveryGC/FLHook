@@ -56,9 +56,10 @@ namespace PurchaseRestrictions
 	// List of connected clients.
 	struct INFO
 	{
-		INFO() : bSuppressBuy(false) {}
+		INFO() : bSuppressBuy(false), bReqChangeCashHappened(false) {}
 
 		bool bSuppressBuy;
+		bool bReqChangeCashHappened;
 	};
 	static map<uint, INFO> mapInfo;
 
@@ -273,6 +274,8 @@ namespace PurchaseRestrictions
 			{
 				if (Rename::IsLockedShip(iClientID, 2))
 				{
+					PurchaseRestrictions::ReqChangeCashHappenedStatus(iClientID, false);
+
 					PrintUserCmdText(iClientID, L"This ship is locked. You can't sell ship.");
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
 
@@ -332,6 +335,14 @@ namespace PurchaseRestrictions
 			return true;
 		}
 		return false;
+	}
+
+	/// Helps track state around equipment mounting while allowing repairs
+	bool PurchaseRestrictions::ReqChangeCashHappenedStatus(unsigned int iClientID, bool NewStatus)
+	{
+		bool OldStatus = mapInfo[iClientID].bReqChangeCashHappened;
+		mapInfo[iClientID].bReqChangeCashHappened = NewStatus;
+		return OldStatus;
 	}
 
 	/// Suppress ship purchases

@@ -620,6 +620,8 @@ namespace HkIServerImpl
 
 		if (Rename::IsLockedShip(iClientID, 2))
 		{
+			PurchaseRestrictions::ReqChangeCashHappenedStatus(iClientID, false);
+
 			for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 			{
 				if (item->sID == slot)
@@ -667,6 +669,9 @@ namespace HkIServerImpl
 
 	void __stdcall ReqChangeCash(int iMoneyDiff, unsigned int iClientID)
 	{
+		if (Rename::IsLockedShip(iClientID, 2))
+			PurchaseRestrictions::ReqChangeCashHappenedStatus(iClientID, true);
+
 		returncode = DEFAULT_RETURNCODE;
 		if (PurchaseRestrictions::ReqChangeCash(iMoneyDiff, iClientID))
 		{
@@ -689,6 +694,9 @@ namespace HkIServerImpl
 
 		if (Rename::IsLockedShip(iClientID, 2))
 		{
+			if (PurchaseRestrictions::ReqChangeCashHappenedStatus(iClientID, false))
+				return;
+
 			PrintUserCmdText(iClientID, L"This ship is locked. You can't unmount equipment. You will be kicked to prevent corruption.");
 			wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 			wstring spurdoip;
@@ -746,6 +754,8 @@ namespace HkIServerImpl
 
 		if (Rename::IsLockedShip(iClientID, 2))
 		{
+			PurchaseRestrictions::ReqChangeCashHappenedStatus(iClientID, false);
+
 			if (bMounted == true)
 			{
 				PrintUserCmdText(iClientID, L"This ship is locked. You can't mount an ID or Armor. You will be kicked to prevent corruption.");

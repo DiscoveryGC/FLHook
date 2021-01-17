@@ -122,6 +122,7 @@ namespace PurchaseRestrictions
 	bool ReqAddItem(unsigned int goodID, char const *hardpoint, int count, float status, bool mounted, uint iClientID);
 	bool ReqChangeCash(int iMoneyDiff, unsigned int iClientID);
 	bool ReqEquipment(class EquipDescList const &eqDesc, unsigned int iClientID);
+	bool ReqChangeCashHappenedStatus(unsigned int iClientID, bool NewStatus);
 	bool ReqHullStatus(float fStatus, unsigned int iClientID);
 	bool ReqSetCash(int iMoney, unsigned int iClientID);
 	bool ReqShipArch(unsigned int iArchID, unsigned int iClientID);

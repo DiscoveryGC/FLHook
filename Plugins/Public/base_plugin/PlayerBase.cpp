@@ -490,6 +490,7 @@ uint PlayerBase::GetMaxCargoSpace()
 			max_capacity += STORAGE_MODULE_CAPACITY;
 		}
 	}
+	max_capacity += STORAGE_MODULE_CAPACITY * (base_level - 1);
 	return max_capacity;
 }
 

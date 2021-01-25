@@ -23,6 +23,10 @@ enum CCMDS_RIGHTS
 	RIGHT_SPECIAL2 = (1 << 12),
 	RIGHT_SPECIAL3 = (1 << 13),
 	RIGHT_KICK = (1 << 14),
+	RIGHT_CHASEPULL = (1 << 15),
+	RIGHT_AICONTROL = (1 << 16),
+	RIGHT_CLOAK = (1 << 17),
+	RIGHT_BASES = (1 << 18),
 };
 
 // class

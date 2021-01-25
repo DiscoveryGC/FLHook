@@ -22,6 +22,8 @@
 #include "Main.h"
 #include <hookext_exports.h>
 
+#define RIGHT_CHECK(a) if(!(cmds->rights & a)) { cmds->Print(L"ERR No permission\n"); return; }
+
 namespace HyperJump
 {
 	// Check that the item is a ship, cargo or equipment item is valid
@@ -1058,11 +1060,7 @@ namespace HyperJump
 	/** Chase a player. Works across systems but needs improvement of the path selection algorithm */
 	void HyperJump::AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname)
 	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
+		RIGHT_CHECK(RIGHT_CHASEPULL)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
@@ -1165,11 +1163,7 @@ namespace HyperJump
 	/** Pull a player to you. Works across systems but needs improvement of the path selection algorithm */
 	void HyperJump::AdminCmd_Pull(CCmds* cmds, const wstring &wscCharname)
 	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
+		RIGHT_CHECK(RIGHT_CHASEPULL)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)

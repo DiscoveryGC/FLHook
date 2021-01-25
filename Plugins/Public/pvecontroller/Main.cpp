@@ -455,6 +455,8 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	if (wscCmd.compare(L"pvecontroller"))
 		return false;
 
+	if (!(cmds->rights & RIGHT_PLUGINS)) { cmds->Print(L"ERR No permission\n"); return false; }
+
 	if (!cmds->ArgStrToEnd(1).compare(L"status"))
 	{
 		cmds->Print(L"PVECONTROLLER: PvE Controller (Phase 1) is active.\n");

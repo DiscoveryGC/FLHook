@@ -768,7 +768,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 }
 
 #define IS_CMD(a) !wscCmd.compare(L##a)
-
+#define RIGHT_CHECK(a) if(!(cmds->rights & a)) { cmds->Print(L"ERR No permission\n"); return true; }
 bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -776,11 +776,17 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	if (IS_CMD("showrestrictions"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
+
 		return true;
 	}
 	else if (IS_CMD("generateid"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
+
 		AdminCmd_GenerateID(cmds, cmds->ArgStrToEnd(1));
 		return true;
 	}
@@ -788,11 +794,8 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
-		{
-			cmds->Print(L"ERR\n");
-			return true;
-		}
+		
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
 
 		Archetype::Ship* TheShipArch = Archetype::GetShip(Players[adminPlyr.iClientID].iShipArchetype);
 		PrintUserCmdText(adminPlyr.iClientID, L"The secret code is %d", TheShipArch->iArchID);
@@ -803,11 +806,8 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
-		{
-			cmds->Print(L"ERR\n");
-			return true;
-		}
+		
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
 
 		uint iShip;
 		pub::Player::GetShip(adminPlyr.iClientID, iShip);
@@ -823,11 +823,8 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
-		{
-			cmds->Print(L"ERR\n");
-			return true;
-		}
+		
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
 
 		uint iShip;
 		pub::Player::GetShip(adminPlyr.iClientID, iShip);
@@ -871,11 +868,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testfuseobj"))
 	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return true;
-		}
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
@@ -893,11 +886,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testunfuseobj"))
 	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return true;
-		}
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
@@ -923,11 +912,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testselffuseobj"))
 	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return true;
-		}
+	RIGHT_CHECK(RIGHT_SUPERADMIN)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
@@ -943,11 +928,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	}
 	else if (IS_CMD("testselfunfuseobj"))
 	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return true;
-		}
+		RIGHT_CHECK(RIGHT_SUPERADMIN)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)

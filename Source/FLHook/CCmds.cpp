@@ -1321,6 +1321,14 @@ void CCmds::SetRightsByString(const string &scRights)
 		rights |= RIGHT_SPECIAL2;
 	if (scRightStr.find("special3") != -1)
 		rights |= RIGHT_SPECIAL3;
+	if (scRightStr.find("chasepull") != -1)
+		rights |= RIGHT_CHASEPULL;
+	if (scRightStr.find("aicontrol") != -1)
+		rights |= RIGHT_AICONTROL;
+	if (scRightStr.find("cloak") != -1)
+		rights |= RIGHT_CLOAK;
+	if (scRightStr.find("bases") != -1)
+		rights |= RIGHT_BASES;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

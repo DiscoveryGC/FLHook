@@ -687,6 +687,23 @@ namespace HkIServerImpl
 	{
 		returncode = DEFAULT_RETURNCODE;
 
+		if (Rename::IsLockedShip(iClientID, 2))
+		{
+			PrintUserCmdText(iClientID, L"This ship is locked. You can't unmount equipment. You will be kicked to prevent corruption.");
+			wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+			wstring spurdoip;
+			HkGetPlayerIP(iClientID, spurdoip);
+			AddLog("SHIPLOCK: Attempt to unmount equipment on locked ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
+			ConPrint(L"SHIPLOCK: Attempt to unmount equipment on locked ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
+
+			CUSTOM_REVERSE_TRANSACTION_STRUCT info;
+			info.iClientID = iClientID;
+			Plugin_Communication(CUSTOM_REVERSE_TRANSACTION, &info);
+
+			HkDelayedKick(iClientID, 1);
+
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		}
 		/*
 		if (Rename::IsLockedShip(iClientID, 2))
 		{

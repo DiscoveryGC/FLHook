@@ -43,12 +43,19 @@ struct stDropInfo {
 	float fChance;
 };
 
+struct stWarzone {
+	uint uFaction1;
+	uint uFaction2;
+	float fMultiplier;
+};
+
 CLIENT_DATA aClientData[250];
 map<uint, stBountyBasePayout> mapBountyPayouts;
 map<uint, stBountyBasePayout> mapBountyShipPayouts;
 map<uint, float> mapBountyGroupScale;
 map<uint, float> mapBountyArmorScales;
 map<uint, float> mapBountySystemScales;
+multimap<uint, stWarzone> mmapBountyWarzoneScales;
 list<uint> lstRecordedBountyObjs;
 
 multimap<uint, stDropInfo> mmapDropInfo;
@@ -68,6 +75,7 @@ int iLoadedNPCBountyArmorScales = 0;
 int iLoadedNPCBountySystemScales = 0;
 int iLoadedClassTypes = 0;
 int iLoadedClassDiffMultipliers = 0;
+int iLoadedNPCBountyWarzoneScales = 0;
 void LoadSettingsNPCBounties(void);
 
 
@@ -123,6 +131,8 @@ void LoadSettingsNPCBounties()
 	iLoadedClassTypes = 0;
 	mapClassDiffMultipliers.clear();
 	iLoadedClassDiffMultipliers = 0;
+	mmapBountyWarzoneScales.clear();
+	iLoadedNPCBountyWarzoneScales = 0;
 
 	// Load ratting bounty settings
 	set_iPoolPayoutTimer = IniGetI(scPluginCfgFile, "NPCBounties", "pool_payout_timer", 0);
@@ -204,6 +214,23 @@ void LoadSettingsNPCBounties()
 						if (set_iPluginDebug)
 							ConPrint(L"PVECONTROLLER: Loaded class difference multiplier for %i == %f.\n", ini.get_value_int(0), ini.get_value_float(1));
 					}
+
+					if (!strcmp(ini.get_name_ptr(), "warzone_multiplier"))
+					{
+						stWarzone wz;
+						uint uSystemHash = CreateID(ini.get_value_string(0));
+						uint uFactionHash1 = 0;
+						uint uFactionHash2 = 0;
+						pub::Reputation::GetReputationGroup(uFactionHash1, ini.get_value_string(1));
+						pub::Reputation::GetReputationGroup(uFactionHash2, ini.get_value_string(2));
+						wz.uFaction1 = uFactionHash1;
+						wz.uFaction2 = uFactionHash2;
+						wz.fMultiplier = ini.get_value_float(3);
+						mmapBountyWarzoneScales.insert(make_pair(uSystemHash, wz));
+						++iLoadedNPCBountyWarzoneScales;
+						if (set_iPluginDebug)
+							ConPrint(L"PVECONTROLLER: Loaded warzone scale multiplier for \"%s\" == %u, %f.\n", stows(ini.get_value_string(0)).c_str(), uSystemHash, ini.get_value_float(1));
+					}
 				}
 			}
 
@@ -219,6 +246,7 @@ void LoadSettingsNPCBounties()
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty system scale multipliers.\n", iLoadedNPCBountySystemScales);
 	ConPrint(L"PVECONTROLLER: Loaded %u ship class types.\n", iLoadedClassTypes);
 	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty class difference multipliers.\n", iLoadedClassDiffMultipliers);
+	ConPrint(L"PVECONTROLLER: Loaded %u NPC bounty warzone scale multipliers.\n", iLoadedNPCBountyWarzoneScales);
 }
 
 void LoadSettingsNPCDrops()
@@ -541,6 +569,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 
 			// Grab some info we'll need later.
 			uint uKillerSystem = 0;
+			unsigned int uKillerAffiliation = 0;
 			pub::Player::GetSystem(iDmgFrom, uKillerSystem);
 
 			// Deny bounties and drops for kills on targets above the maximum reward reputation threshold.
@@ -548,15 +577,17 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 			uint uTargetAffiliation;
 			float fAttitude = 0.0f;
 			pub::SpaceObj::GetRep(iDmgToSpaceID, iTargetRep);
-			pub::Reputation::GetAffiliation(iTargetRep, uTargetAffiliation);
+			Reputation::Vibe::GetAffiliation(iTargetRep, uTargetAffiliation,false);
 			pub::SpaceObj::GetRep(dmg->get_inflictor_id(), iPlayerRep);
+			Reputation::Vibe::Verify(iPlayerRep);
+			Reputation::Vibe::GetAffiliation(iPlayerRep, uKillerAffiliation,false);
 			pub::Reputation::GetGroupFeelingsTowards(iPlayerRep, uTargetAffiliation, fAttitude);
 			if (fAttitude > set_fMaximumRewardRep) {
 				if (set_bBountiesEnabled)
 					PrintUserCmdText(iDmgFrom, L"Can not pay bounty against ineligible combatant (reputation towards target must be %0.2f or lower).", set_fMaximumRewardRep);
 				return;
 			}
-
+			
 			// Process bounties if enabled.
 			if (set_bBountiesEnabled) {
 				int iBountyPayout = 0;
@@ -588,6 +619,18 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage
 											iBountyPayout = (int)((float)iBountyPayout * iter->second);
 									}
 								}
+							}
+						}
+					}
+				}
+
+				if (iLoadedNPCBountyWarzoneScales) {
+					for (auto it = mmapBountyWarzoneScales.begin(); it != mmapBountyWarzoneScales.end(); it++) {
+						if (it->first == uKillerSystem) {
+							if ((it->second.uFaction1 == uKillerAffiliation && it->second.uFaction2 == uTargetAffiliation) || (it->second.uFaction2 == uKillerAffiliation && it->second.uFaction1 == uTargetAffiliation)) {
+								if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+									PrintUserCmdText(iDmgFrom, L"PVECONTROLLER: Killer (%u) and Target (%u) have valid warzone multipliyer of %0.2f", uKillerAffiliation, uTargetAffiliation, it->second.fMultiplier);
+								iBountyPayout *= it->second.fMultiplier;
 							}
 						}
 					}

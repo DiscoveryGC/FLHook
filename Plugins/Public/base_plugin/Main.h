@@ -244,6 +244,7 @@ public:
 
 	bool AddToQueue(uint the_equipment_type);
 	bool ClearQueue();
+	void ClearRecipe();
 };
 
 class BasePassword

@@ -685,7 +685,6 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				if ((hostile_tags_damage[charname] + incoming_damage) < damage_threshold)
 					hostile_tags_damage[charname] += incoming_damage;
 				else hostile_tags[charname] = charname;
-					
 
 				SyncReputationForBase();
 			}

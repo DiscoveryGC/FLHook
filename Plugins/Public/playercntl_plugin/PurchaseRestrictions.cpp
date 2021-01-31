@@ -263,6 +263,32 @@ namespace PurchaseRestrictions
 				}
 			}
 		}
+
+		// Check for ship lock
+		const GoodInfo* packageInfo = GoodList::find_by_id(gbi.iGoodID);
+		if (packageInfo->iType == 3)
+		{
+			const GoodInfo* hullInfo = GoodList::find_by_id(packageInfo->iHullGoodID);
+			if (hullInfo->iType == 2)
+			{
+				if (Rename::IsLockedShip(iClientID, 2))
+				{
+					PrintUserCmdText(iClientID, L"This ship is locked. You can't sell ship.");
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
+
+					wstring wsccharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+					wstring spurdoip;
+					HkGetPlayerIP(iClientID, spurdoip);
+					AddLog("SHIPLOCK: Attempt to sell ship %s from IP %s", wstos(wsccharname).c_str(), wstos(spurdoip).c_str());
+					ConPrint(L"SHIPLOCK: Attempt to sell ship %s from IP %s\n", wsccharname.c_str(), spurdoip.c_str());
+
+					mapInfo[iClientID].bSuppressBuy = true;
+					return true;
+				}
+			}
+		}
+
+
 		return false;
 	}
 

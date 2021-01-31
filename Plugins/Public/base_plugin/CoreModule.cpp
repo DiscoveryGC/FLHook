@@ -570,9 +570,9 @@ bool CoreModule::Timer(uint time)
 	return false;
 }
 
-float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float damage)
+float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
-	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, damage);
+	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
 	if (set_holiday_mode || (base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock") || (base->basetype == "planet"))
 	{
@@ -588,7 +588,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		// Reduce the damage to 10% if the shield is or will be online.
 		if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE)
 		{
-			return curr_hitpoints - ((curr_hitpoints - damage) * set_shield_damage_multiplier);
+			return curr_hitpoints - ((curr_hitpoints - new_hitpoints) * set_shield_damage_multiplier);
 		}
 	}
 	else

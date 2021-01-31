@@ -473,10 +473,10 @@ bool DefenseModule::Timer(uint time)
 	return false;
 }
 
-float DefenseModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float damage)
+float DefenseModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
-	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, damage);
-	return damage;
+	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
+	return new_hitpoints;
 }
 
 bool DefenseModule::SpaceObjDestroyed(uint space_obj)

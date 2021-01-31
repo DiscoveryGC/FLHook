@@ -678,11 +678,12 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				if (set_plugin_debug > 1)
 					ConPrint(L"PlayerBase::damaged space_obj=%u\n", space_obj);
 				
+				float incoming_damage = abs(curr_hitpoints - damage);
 				if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
 					hostile_tags_damage[charname] = 0;
 
-				if ((hostile_tags_damage[charname] + damage) < damage_threshold)
-					hostile_tags_damage[charname] += damage;
+				if ((hostile_tags_damage[charname] + incoming_damage) < damage_threshold)
+					hostile_tags_damage[charname] += incoming_damage;
 				else hostile_tags[charname] = charname;
 					
 

@@ -650,7 +650,7 @@ void ReportAttack(wstring basename, wstring charname, uint system)
 }
 
 // Return true if 
-float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float damage)
+float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
 	// Make sure that the attacking player is hostile.
 	uint client = HkGetClientIDByShip(attacking_space_obj);
@@ -678,7 +678,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				if (set_plugin_debug > 1)
 					ConPrint(L"PlayerBase::damaged space_obj=%u\n", space_obj);
 				
-				float incoming_damage = abs(curr_hitpoints - damage);
+				float incoming_damage = abs(curr_hitpoints - new_hitpoints);
 				if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
 					hostile_tags_damage[charname] = 0;
 

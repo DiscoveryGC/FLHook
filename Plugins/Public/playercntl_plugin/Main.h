@@ -78,6 +78,10 @@ namespace Rename
 namespace MiscCmds
 {
 	void LoadSettings(const string &scPluginCfgFile);
+	void LoadListOfReps();
+	map<wstring, uint> Resetrep_load_Time_limits_for_player_account(string filename);
+	void Resetrep_save_Time_limits_to_player_account(string filename, map<wstring,uint> tempmap);
+
 	void ClearClientInfo(uint iClientID);
 	void BaseEnter(unsigned int iBaseID, unsigned int iClientID);
 	void CharacterInfoReq(unsigned int iClientID, bool p2);
@@ -87,6 +91,7 @@ namespace MiscCmds
 	bool UserCmd_Stuck(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_Dice(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_DropRep(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_ResetRep(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_Coin(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 
 	bool UserCmd_Lights(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);

@@ -215,7 +215,7 @@ void LoadSettings()
 					}
 				}
 			}
-			else if (ini.is_header("extra"))
+			else if (ini.is_header("cloak"))
 			{
 				while (ini.read_value())
 				{

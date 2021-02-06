@@ -75,12 +75,16 @@ struct AUTOBUY_PLAYERINFO
 	bool bAutoBuyCM;
 	bool bAutobuyBB;
 	bool bAutobuyCloak;
+	bool bAutobuyJump;
+	bool bAutobuyMatrix;
 	bool bAutobuyMunition;
 	bool bAutoRepair;
 };
 
 static map <uint, AUTOBUY_PLAYERINFO> mapAutobuyPlayerInfo;
-static map <uint, uint> mapAutobuyFLHookExtras;
+static map <uint, uint> mapAutobuyFLHookCloak;
+static map <uint, uint> mapAutobuyFLHookJump;
+static map <uint, uint> mapAutobuyFLHookMatrix;
 
 static map <uint, int> mapStackableItems;
 
@@ -211,13 +215,35 @@ void LoadSettings()
 					}
 				}
 			}
-			else if (ini.is_header("extra"))
+			else if (ini.is_header("cloak"))
 			{
 				while (ini.read_value())
 				{
 					if (ini.is_value("item"))
 					{
-						mapAutobuyFLHookExtras[CreateID(ini.get_value_string(0))] = CreateID(ini.get_value_string(1));
+						mapAutobuyFLHookCloak[CreateID(ini.get_value_string(0))] = CreateID(ini.get_value_string(1));
+						++iLoaded2;
+					}
+				}
+			}
+			else if (ini.is_header("jump"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("item"))
+					{
+						mapAutobuyFLHookJump[CreateID(ini.get_value_string(0))] = CreateID(ini.get_value_string(1));
+						++iLoaded2;
+					}
+				}
+			}
+			else if (ini.is_header("matrix"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("item"))
+					{
+						mapAutobuyFLHookMatrix[CreateID(ini.get_value_string(0))] = CreateID(ini.get_value_string(1));
 						++iLoaded2;
 					}
 				}
@@ -278,7 +304,7 @@ int HkPlayerAutoBuyGetCount(list<CARGO_INFO> &lstCargo, uint iItemArchID)
 								aci.wscDescription = desc; \
 								lstCart.push_back(aci); }
 
-#define ADD_EQUIP_TO_CART_FLHOOK(desc)	{ aci.iArchID = mapAutobuyFLHookExtras[eq->iArchID]; \
+#define ADD_EQUIP_TO_CART_FLHOOK(IDin, desc)	{ aci.iArchID = IDin; \
 								aci.iCount = mapAmmolimits[aci.iArchID] - HkPlayerAutoBuyGetCount(lstCargo, aci.iArchID); \
 								aci.wscDescription = desc; \
 								lstCart.push_back(aci); }
@@ -288,19 +314,38 @@ void AutobuyInfo(uint iClientID)
 	PrintUserCmdText(iClientID, L"Error: Invalid parameters");
 	PrintUserCmdText(iClientID, L"Usage: /autobuy <param> [<on/off>]");
 	PrintUserCmdText(iClientID, L"<Param>:");
-	PrintUserCmdText(iClientID, L"   info - display current autobuy-settings");
-	PrintUserCmdText(iClientID, L"   missiles - enable/disable autobuy for missiles");
-	PrintUserCmdText(iClientID, L"   torps - enable/disable autobuy for torpedos");
-	PrintUserCmdText(iClientID, L"   mines - enable/disable autobuy for mines");
-	PrintUserCmdText(iClientID, L"   cd - enable/disable autobuy for cruise disruptors");
-	PrintUserCmdText(iClientID, L"   cm - enable/disable autobuy for countermeasures");
-	PrintUserCmdText(iClientID, L"   reload - enable/disable autobuy for nanobots/shield batteries");
-	PrintUserCmdText(iClientID, L"   repair - enable/disable auto-repair");
-	PrintUserCmdText(iClientID, L"   all: enable/disable autobuy for all of the above");
+	PrintUserCmdText(iClientID, L"|   info - display current autobuy-settings");
+	PrintUserCmdText(iClientID, L"|   missiles - enable/disable autobuy for missiles");
+	PrintUserCmdText(iClientID, L"|   torps - enable/disable autobuy for torpedos");
+	PrintUserCmdText(iClientID, L"|   mines - enable/disable autobuy for mines");
+	PrintUserCmdText(iClientID, L"|   cd - enable/disable autobuy for cruise disruptors");
+	PrintUserCmdText(iClientID, L"|   cm - enable/disable autobuy for countermeasures");
+	PrintUserCmdText(iClientID, L"|   bb - enable/disable autobuy for nanobots/shield batteries");
+	PrintUserCmdText(iClientID, L"|   munition - enable/disable autobuy for ammo");
+	PrintUserCmdText(iClientID, L"|   cloak - enable/disable autobuy for cloak batteries");
+	PrintUserCmdText(iClientID, L"|   jump - enable/disable autobuy for jump drive batteries");
+	PrintUserCmdText(iClientID, L"|   matrix - enable/disable autobuy for hyperspace matrix batteries");
+	PrintUserCmdText(iClientID, L"|   repair - enable/disable auto-repair");
+	PrintUserCmdText(iClientID, L"|   all: enable/disable autobuy for all of the above");
 	PrintUserCmdText(iClientID, L"Examples:");
-	PrintUserCmdText(iClientID, L"\"/autobuy missiles on\" enable autobuy for missiles");
-	PrintUserCmdText(iClientID, L"\"/autobuy all off\" completely disable autobuy");
-	PrintUserCmdText(iClientID, L"\"/autobuy info\" show autobuy info");
+	PrintUserCmdText(iClientID, L"|   \"/autobuy missiles on\" enable autobuy for missiles");
+	PrintUserCmdText(iClientID, L"|   \"/autobuy all off\" completely disable autobuy");
+	PrintUserCmdText(iClientID, L"|   \"/autobuy info\" show autobuy info");
+}
+
+void UpdatedStatusList(uint iClientID)
+{
+	PrintUserCmdText(iClientID, L"|   %s : Missiles (missiles)", mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Mines (mines)", mapAutobuyPlayerInfo[iClientID].bAutoBuyMines ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Torpedos (torps)", mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Cruise Disruptors (cd)", mapAutobuyPlayerInfo[iClientID].bAutoBuyCD ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Countermeasures (cm)", mapAutobuyPlayerInfo[iClientID].bAutoBuyCM ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Munitions (munition)", mapAutobuyPlayerInfo[iClientID].bAutobuyMunition ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Cloak Batteries (cloak)", mapAutobuyPlayerInfo[iClientID].bAutobuyCloak ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Jump Drive Batteries (jump)", mapAutobuyPlayerInfo[iClientID].bAutobuyJump ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Hyperspace Matrix Batteries (matrix)", mapAutobuyPlayerInfo[iClientID].bAutobuyMatrix ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Nanobots/Shield Batteries (bb)", mapAutobuyPlayerInfo[iClientID].bAutobuyBB ? L"ON" : L"OFF");
+	PrintUserCmdText(iClientID, L"|   %s : Repair (repair)", mapAutobuyPlayerInfo[iClientID].bAutoRepair ? L"ON" : L"OFF");
 }
 
 bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
@@ -316,15 +361,7 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 
 	if (!wscType.compare(L"info"))
 	{
-		PrintUserCmdText(iClientID, L"Missiles: %s", mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Mine: %s", mapAutobuyPlayerInfo[iClientID].bAutoBuyMines ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Torpedos: %s", mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Cruise Disruptors: %s", mapAutobuyPlayerInfo[iClientID].bAutoBuyCD ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Countermeasures: %s", mapAutobuyPlayerInfo[iClientID].bAutoBuyCM ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Munitions: %s", mapAutobuyPlayerInfo[iClientID].bAutobuyMunition ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Cloak Batteries: %s", mapAutobuyPlayerInfo[iClientID].bAutobuyCloak ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Nanobots/Shield Batteries: %s", mapAutobuyPlayerInfo[iClientID].bAutobuyBB ? L"On" : L"Off");
-		PrintUserCmdText(iClientID, L"Repair: %s", mapAutobuyPlayerInfo[iClientID].bAutoRepair ? L"On" : L"Off");
+		UpdatedStatusList(iClientID);
 		return true;
 	}
 
@@ -334,13 +371,15 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 		return true;
 	}
 
-
+	bool Updated = false;
 	bool bEnable = !wscSwitch.compare(L"on") ? true : false;
 	if (!wscType.compare(L"all")) {
 
 		mapAutobuyPlayerInfo[iClientID].bAutobuyBB = bEnable;
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyCD = bEnable;
 		mapAutobuyPlayerInfo[iClientID].bAutobuyCloak = bEnable;
+		mapAutobuyPlayerInfo[iClientID].bAutobuyJump = bEnable;
+		mapAutobuyPlayerInfo[iClientID].bAutobuyMatrix = bEnable;
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyCM = bEnable;
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyMines = bEnable;
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles = bEnable;
@@ -351,51 +390,75 @@ bool  UserCmd_AutoBuy(uint iClientID, const wstring &wscCmd, const wstring &wscP
 		HookExt::IniSetB(iClientID, "autobuy.bb", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.cd", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.cloak", bEnable ? true : false);
+		HookExt::IniSetB(iClientID, "autobuy.jump", bEnable ? true : false);
+		HookExt::IniSetB(iClientID, "autobuy.matrix", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.cm", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.mines", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.missiles", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.munition", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.torps", bEnable ? true : false);
 		HookExt::IniSetB(iClientID, "autobuy.repair", bEnable ? true : false);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"missiles")) {
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.missiles", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"mines")) {
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyMines = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.mines", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"torps")) {
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.torps", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"cd")) {
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyCD = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.cd", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"cm")) {
 		mapAutobuyPlayerInfo[iClientID].bAutoBuyCM = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.cm", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"bb")) {
 		mapAutobuyPlayerInfo[iClientID].bAutobuyBB = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.bb", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"munition")) {
 		mapAutobuyPlayerInfo[iClientID].bAutobuyMunition = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.munition", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"cloak")) {
 		mapAutobuyPlayerInfo[iClientID].bAutobuyCloak = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.cloak", bEnable);
+		Updated = true;
+	}
+	else if (!wscType.compare(L"jump")) {
+		mapAutobuyPlayerInfo[iClientID].bAutobuyJump = bEnable;
+		HookExt::IniSetB(iClientID, "autobuy.jump", bEnable);
+		Updated = true;
+	}
+	else if (!wscType.compare(L"matrix")) {
+		mapAutobuyPlayerInfo[iClientID].bAutobuyMatrix = bEnable;
+		HookExt::IniSetB(iClientID, "autobuy.matrix", bEnable);
+		Updated = true;
 	}
 	else if (!wscType.compare(L"repair")) {
 		mapAutobuyPlayerInfo[iClientID].bAutoRepair = bEnable;
 		HookExt::IniSetB(iClientID, "autobuy.repair", bEnable);
+		Updated = true;
 	}
 	else
 		AutobuyInfo(iClientID);
+
+	if (Updated) UpdatedStatusList(iClientID);
 
 	PrintUserCmdText(iClientID, L"OK");
 	return true;
@@ -600,7 +663,8 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 	}
 
 	if (mapAutobuyPlayerInfo[iClientID].bAutoBuyCD || mapAutobuyPlayerInfo[iClientID].bAutoBuyCM || mapAutobuyPlayerInfo[iClientID].bAutoBuyMines ||
-		mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles || mapAutobuyPlayerInfo[iClientID].bAutobuyMunition || mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps)
+		mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles || mapAutobuyPlayerInfo[iClientID].bAutobuyMunition || mapAutobuyPlayerInfo[iClientID].bAutoBuyTorps || 
+		mapAutobuyPlayerInfo[iClientID].bAutobuyJump || mapAutobuyPlayerInfo[iClientID].bAutobuyMatrix || mapAutobuyPlayerInfo[iClientID].bAutobuyCloak)
 	{
 		// add mounted equip to a new list and eliminate double equipment(such as 2x lancer etc)
 		list<CARGO_INFO> lstMounted;
@@ -633,6 +697,7 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 		uint iVFTableCM = (uint)hModCommon + ADDR_COMMON_VFTABLE_CM;
 		uint iVFTableGun = (uint)hModCommon + ADDR_COMMON_VFTABLE_GUN;
 
+		map <uint, wstring> mapAutobuyFLHookExtras;
 		// check mounted equip
 		foreach(lstMounted, CARGO_INFO, it2)
 		{
@@ -699,12 +764,22 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 			}
 
 			//FLHook handling
-			if (mapAutobuyFLHookExtras.find(eq->iArchID) != mapAutobuyFLHookExtras.end())
-			{
-				//Cloak Fuel
-				if (mapAutobuyPlayerInfo[iClientID].bAutobuyCloak)
-					ADD_EQUIP_TO_CART_FLHOOK(L"Cloak Batteries")
-			}
+			if (mapAutobuyFLHookCloak.find(eq->iArchID) != mapAutobuyFLHookCloak.end() && mapAutobuyPlayerInfo[iClientID].bAutobuyCloak)
+					mapAutobuyFLHookExtras[mapAutobuyFLHookCloak[eq->iArchID]] = L"Cloak Batteries";
+
+			if (mapAutobuyFLHookJump.find(eq->iArchID) != mapAutobuyFLHookJump.end() && mapAutobuyPlayerInfo[iClientID].bAutobuyJump)
+					mapAutobuyFLHookExtras[mapAutobuyFLHookJump[eq->iArchID]] = L"Jump Batteries";
+
+			if (mapAutobuyFLHookMatrix.find(eq->iArchID) != mapAutobuyFLHookMatrix.end() && mapAutobuyPlayerInfo[iClientID].bAutobuyMatrix)
+					mapAutobuyFLHookExtras[mapAutobuyFLHookMatrix[eq->iArchID]] = L"Matrix Batteries";
+			
+		}
+		//Buy flhook stuff here
+		for (map<uint, wstring>::iterator i = mapAutobuyFLHookExtras.begin();
+			i != mapAutobuyFLHookExtras.end(); ++i)
+		{
+			AUTOBUY_CARTITEM aci;
+			ADD_EQUIP_TO_CART_FLHOOK(i->first, i->second)
 		}
 	}
 
@@ -823,6 +898,8 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned
 	mapAutobuyPlayerInfo[iClientID].bAutobuyBB = HookExt::IniGetB(iClientID, "autobuy.bb");
 	mapAutobuyPlayerInfo[iClientID].bAutoBuyCD = HookExt::IniGetB(iClientID, "autobuy.cd");
 	mapAutobuyPlayerInfo[iClientID].bAutobuyCloak = HookExt::IniGetB(iClientID, "autobuy.cloak");
+	mapAutobuyPlayerInfo[iClientID].bAutobuyJump = HookExt::IniGetB(iClientID, "autobuy.jump");
+	mapAutobuyPlayerInfo[iClientID].bAutobuyMatrix = HookExt::IniGetB(iClientID, "autobuy.matrix");
 	mapAutobuyPlayerInfo[iClientID].bAutoBuyCM = HookExt::IniGetB(iClientID, "autobuy.cm");
 	mapAutobuyPlayerInfo[iClientID].bAutoBuyMines = HookExt::IniGetB(iClientID, "autobuy.mines");
 	mapAutobuyPlayerInfo[iClientID].bAutoBuyMissiles = HookExt::IniGetB(iClientID, "autobuy.missiles");

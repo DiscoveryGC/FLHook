@@ -66,8 +66,10 @@ namespace MiscCmds
 
 	/// Cost to drop all reputation changes.
 	int set_iResetrepCost = 0;
-	// Resetrep is not allowed until server restart
+	
+	//List of factions to be cleared by resetrep
 	map<string, uint> factions;
+
 	// Resetrep is not allowed if attempted within the resetrep time limit (in seconds)
 	int set_iResetrepTimeLimit = 0;
 
@@ -275,12 +277,12 @@ namespace MiscCmds
 				if (ini.is_header("Group"))
 				{
 					uint ids_name;
-					string nickname;
+					string faction_name;
 					while (ini.read_value())
 					{
 						if (ini.is_value("nickname"))
 						{
-							nickname = ini.get_value_string();
+							faction_name = ini.get_value_string();
 						}
 						else if (ini.is_value("ids_name"))
 						{
@@ -288,7 +290,7 @@ namespace MiscCmds
 						}
 
 					}
-					factions[nickname] = ids_name;
+					factions[faction_name] = ids_name;
 				}
 			}
 			ini.close();
@@ -299,21 +301,20 @@ namespace MiscCmds
 	map<wstring, uint> MiscCmds::Resetrep_load_Time_limits_for_player_account(string filename)
 	{
 		INI_Reader ini;
-		string factionpropfile = filename;
 		map<wstring, uint> tempmap;
-		if (ini.open(factionpropfile.c_str(), false))
+		if (ini.open(filename.c_str(), false))
 		{
 			while (ini.read_header())
 			{
 				if (ini.is_header("Playership"))
 				{
 					uint lastresettime = 0;
-					wstring nickname = L"0";
+					wstring ship_filename = L"";
 					while (ini.read_value())
 					{
 						if (ini.is_value("shipname"))
 						{
-							ini_get_wstring(ini, nickname);
+							ini_get_wstring(ini, ship_filename);
 						}
 						else if (ini.is_value("lastresettime"))
 						{
@@ -321,7 +322,7 @@ namespace MiscCmds
 						}
 					}
 
-					tempmap[nickname] = lastresettime;
+					tempmap[ship_filename] = lastresettime;
 				}
 			}
 			ini.close();
@@ -331,14 +332,14 @@ namespace MiscCmds
 
 	void MiscCmds::Resetrep_save_Time_limits_to_player_account(string filename, map<wstring, uint> tempmap)
 	{
-		string factionpropfile = filename;
 
-		FILE *file = fopen(factionpropfile.c_str(), "w");
+		FILE *file = fopen(filename.c_str(), "w");
 		if (file)
 		{
 			for (map<wstring, uint>::iterator i = tempmap.begin();
 				i != tempmap.end(); ++i)
 			{
+				////This is intended  to write to disk only time limits which have not expired yet
 				if (((int)time(0) - i->second) < set_iResetrepTimeLimit)
 				{
 					wstring temp = i->first;
@@ -371,7 +372,7 @@ namespace MiscCmds
 		int iCash = 0;
 		if ((err = HkGetCash(wscCharname, iCash)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR (1) %s", HkErrGetText(err).c_str());
+			PrintUserCmdText(iClientID, L"ERR Resetrep failed to read player cash");
 			return true;
 		}
 
@@ -385,7 +386,7 @@ namespace MiscCmds
 		wstring wscCharFileName;
 		if ((err = HkGetCharFileName(wscCharname, wscCharFileName)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR (2)" + HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR Resetrep failed to get charfilename");
 			return true;
 		}
 
@@ -393,7 +394,7 @@ namespace MiscCmds
 		wstring wscDir;
 		if ((err = HkGetAccountDirName(wscCharname, wscDir)) != HKE_OK)
 		{
-			PrintUserCmdText(iClientID, L"ERR (3)" + HkErrGetText(err));
+			PrintUserCmdText(iClientID, L"ERR Resetrep failed to get account dir");
 			return true;
 		}
 		string scRenameFile = scAcctPath + wstos(wscDir) + "\\" + "resetrep.ini";
@@ -419,14 +420,17 @@ namespace MiscCmds
 			HK_ERROR error;
 			if ((error = HkGetRep(wscCharname, stows(factionName), fRep)) != HKE_OK)
 			{
-				PrintUserCmdText(iClientID, L"ERR (5) %s", HkErrGetText(error).c_str());
+				PrintUserCmdText(iClientID, L"ERR Resetrep, check for faction failed");
 				continue;
 			}
 			count++;
+
+			//We reset reps to zero, but it is safe because the ship is docked and kicked
+			//So rephacks take effect right after logging back
 			HkSetRep(wscCharname, stows(factionName), 0.0f);
 		}
 
-		PrintUserCmdText(iClientID, L"OK Rep reset has beens performed. %d factions were cleared.", count);
+		PrintUserCmdText(iClientID, L"OK Rep reset has been performed. %d factions were cleared.", count);
 
 		// Remove cash if we're charging for it.
 		if (set_iResetrepCost > 0)

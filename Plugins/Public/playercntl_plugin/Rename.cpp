@@ -471,7 +471,7 @@ namespace Rename
 				HK_ERROR err;
 				if ((err = HkGetAccountDirName(o.wscNewCharname, wscDir)) != HKE_OK)
 				{
-					ConPrint(L"ERR 461 " + HkErrGetText(err));
+					ConPrint(L"ERR Resetrep failure in rename to get directory\n");
 				}
 				else
 				{

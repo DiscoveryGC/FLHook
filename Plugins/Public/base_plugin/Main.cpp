@@ -2016,7 +2016,7 @@ static void ForcePlayerBaseDock(uint client, PlayerBase *base)
 }
 
 #define IS_CMD(a) !args.compare(L##a)
-
+#define RIGHT_CHECK(a) if(!(cmd->rights & a)) { cmd->Print(L"ERR No permission\n"); return true; }
 bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -2061,9 +2061,12 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		}
 		return true;
 	}*/
+
 	if (args.find(L"testrecipe") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -2089,6 +2092,9 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	else if (args.find(L"testdeploy") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		if (!client)
 		{
@@ -2160,6 +2166,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
+		RIGHT_CHECK(RIGHT_BASES)
+
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		//return SpaceObjDestroyed(space_obj);
@@ -2194,6 +2202,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	else if (args.find(L"basetogglegod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		bool optype = cmd->ArgInt(1);
@@ -2237,6 +2247,9 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	else if (args.find(L"testbase") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		uint ship;
@@ -2304,6 +2317,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	else if (args.find(L"jumpcreate") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -2429,6 +2444,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
+		RIGHT_CHECK(RIGHT_BASES)
+
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		PlayerBase *base = GetPlayerBaseForClient(client);
 
@@ -2533,6 +2550,9 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	else if (args.find(L"basedebugon") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
 		set_plugin_debug = 1;
 		cmd->Print(L"OK base debug is on, sure hope you know what you're doing here.\n");
 		return true;
@@ -2540,6 +2560,9 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	else if (args.find(L"basedebugoff") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
 		set_plugin_debug = 0;
 		cmd->Print(L"OK base debug is off.\n");
 		return true;

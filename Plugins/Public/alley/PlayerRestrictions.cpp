@@ -429,12 +429,6 @@ bool GiftCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, con
 
 void AdminCmd_GenerateID(CCmds* cmds, wstring argument)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
-
 	uint thegeneratedid = CreateID(wstos(argument).c_str());
 
 	string s;
@@ -768,19 +762,20 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 }
 
 #define IS_CMD(a) !wscCmd.compare(L##a)
-
 bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (IS_CMD("showrestrictions"))
+	if (IS_CMD("generateid"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		return true;
-	}
-	else if (IS_CMD("generateid"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		if (cmds->rights != RIGHT_SUPERADMIN)
+		{
+			cmds->Print(L"ERR No permission\n");
+			return true;
+		}
+
 		AdminCmd_GenerateID(cmds, cmds->ArgStrToEnd(1));
 		return true;
 	}
@@ -791,6 +786,12 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR\n");
+			return true;
+		}
+
+		if (cmds->rights != RIGHT_SUPERADMIN)
+		{
+			cmds->Print(L"ERR No permission\n");
 			return true;
 		}
 
@@ -806,6 +807,12 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR\n");
+			return true;
+		}
+
+		if (cmds->rights != RIGHT_SUPERADMIN)
+		{
+			cmds->Print(L"ERR No permission\n");
 			return true;
 		}
 
@@ -826,6 +833,12 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK)
 		{
 			cmds->Print(L"ERR\n");
+			return true;
+		}
+
+		if (cmds->rights != RIGHT_SUPERADMIN)
+		{
+			cmds->Print(L"ERR No permission\n");
 			return true;
 		}
 

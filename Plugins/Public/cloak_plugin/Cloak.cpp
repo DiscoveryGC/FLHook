@@ -805,6 +805,9 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 		uint iClientID = HkGetClientIdFromCharname(cmds->GetAdminName());
+		
+		if (!(cmds->rights & RIGHT_CLOAK)) { cmds->Print(L"ERR No permission\n"); return true; }
+		
 		if (iClientID == -1)
 		{
 			cmds->Print(L"ERR On console");

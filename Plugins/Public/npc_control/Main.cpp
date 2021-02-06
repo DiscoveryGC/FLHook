@@ -26,6 +26,7 @@
 #include <sstream>
 #include <iostream>
 
+#define RIGHT_CHECK(a) if(!(cmds->rights & a)) { cmds->Print(L"ERR No permission\n"); return; }
 static int set_iPluginDebug = 0;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
@@ -542,11 +543,7 @@ void CreateNPC(wstring name, Vector pos, Matrix rot, uint iSystem)
 
 void AdminCmd_AIMake(CCmds* cmds, int Amount, wstring NpcType)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
+	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	if (Amount == 0) { Amount = 1; }
 
@@ -589,11 +586,8 @@ void AdminCmd_AIMake(CCmds* cmds, int Amount, wstring NpcType)
 
 void AdminCmd_AIKill(CCmds* cmds, int loot)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
+	RIGHT_CHECK(RIGHT_AICONTROL)
+
 	int num = loot;
 	if (num >= 2)
 		num = 0;
@@ -611,11 +605,7 @@ void AdminCmd_AIKill(CCmds* cmds, int loot)
 /* Make AI come to your position */
 void AdminCmd_AICome(CCmds* cmds)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
+	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	uint iShip1;
 	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
@@ -647,11 +637,7 @@ void AdminCmd_AICome(CCmds* cmds)
 /* Make AI follow you until death */
 void AdminCmd_AIFollow(CCmds* cmds, wstring &wscCharname)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
+	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	// If no player specified follow the admin
 	uint iClientId;
@@ -692,11 +678,7 @@ void AdminCmd_AIFollow(CCmds* cmds, wstring &wscCharname)
 /* Cancel the current operation */
 void AdminCmd_AICancel(CCmds* cmds)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
+	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	uint iShip1;
 	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
@@ -715,11 +697,7 @@ void AdminCmd_AICancel(CCmds* cmds)
 /** List npc fleets */
 void AdminCmd_ListNPCFleets(CCmds* cmds)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
+	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	cmds->Print(L"Available fleets: %d\n", mapNPCFleets.size());
 	for (map<wstring, NPC_FLEETSTRUCT>::iterator i = mapNPCFleets.begin();
@@ -736,11 +714,7 @@ void AdminCmd_ListNPCFleets(CCmds* cmds)
 /* Spawn a Fleet */
 void AdminCmd_AIFleet(CCmds* cmds, wstring FleetName)
 {
-	if (cmds->rights != RIGHT_SUPERADMIN)
-	{
-		cmds->Print(L"ERR No permission\n");
-		return;
-	}
+	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	int wrongnpcname = 0;
 

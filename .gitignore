@@ -27,3 +27,6 @@ _ReSharper*/
 
 *.dll
 *.pdb
+
+Plugins/Public/*/headers/
+Plugins/Public/*/libs/

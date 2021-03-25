@@ -290,7 +290,7 @@ public:
 
 	static string CreateBaseNickname(const string &basename);
 
-	float GetAttitudeTowardsClient(uint client);
+	float GetAttitudeTowardsClient(uint client, bool emulated_siege_mode = false);
 	void SyncReputationForBase();
 	void SyncReputationForBaseObject(uint space_obj);
 
@@ -361,6 +361,12 @@ public:
 	// If 1 then base is hostile to all ships unless they are on the ally tag list.
 	// If 2 then base is neutral to all ships and any ship may dock.
 	int defense_mode;
+
+	//changes how defense mod act depending on the amount of damage made to base in the last hours
+	bool siege_mode;
+
+	//going over the limit: siege_mod_damage_trigger_level will trigger siege mode ON.
+	float received_by_base_damage;
 
 	// List of allied ship tags.
 	list<wstring> ally_tags;
@@ -611,4 +617,6 @@ extern string set_status_path_json;
 extern const char* MODULE_TYPE_NICKNAMES[13];
 
 extern float damage_threshold;
+
+extern float siege_mod_damage_trigger_level;
 #endif

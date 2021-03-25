@@ -107,6 +107,9 @@ map<uint, wstring> listCommodities;
 //the hostility and weapon platform activation from damage caused by one player
 float damage_threshold = 400000;
 
+//the amount of damage necessary to deal to one base in order to trigger siege status
+float siege_mod_damage_trigger_level = 4000000;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;
@@ -413,6 +416,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("damage_threshold"))
 					{
 						damage_threshold = ini.get_value_float(0);
+					}
+					else if (ini.is_value("siege_mod_damage_trigger_level"))
+					{
+						siege_mod_damage_trigger_level = ini.get_value_float(0);
 					}
 					else if (ini.is_value("status_export_type"))
 					{

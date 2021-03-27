@@ -616,43 +616,6 @@ void PlayerBase::SyncReputationForBase()
 	}
 }
 
-// For all players in the base's system, resync their reps towards all objects
-// of this base.
-void PlayerBase::SiegeModChainReaction()
-{
-	map<uint, PlayerBase*>::iterator it;
-	for (it = player_bases.begin(); it != player_bases.end(); it++)
-	{
-		if (it->second->system == this->system)
-		{
-			if (HkDistance3D(it->second->position, this->position) < siege_mod_chain_reaction_trigger_distance)
-			{
-				it->second->siege_mode = true;
-				it->second->SyncReputationForBase();
-			}
-		}
-	}
-}
-
-// For all players in the base's system, resync their reps towards this object.
-void PlayerBase::SyncReputationForBaseObject(uint space_obj)
-{
-	struct PlayerData *pd = 0;
-	while (pd = Players.traverse_active(pd))
-	{
-		if (pd->iShipID && pd->iSystemID == system)
-		{
-			int player_rep;
-			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
-			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
-
-			int obj_rep;
-			pub::SpaceObj::GetRep(space_obj, obj_rep);
-			pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
-		}
-	}
-}
-
 void ReportAttack(wstring basename, wstring charname, uint system, wstring alert_phrase = L"is under attack by")
 {
 	wstring wscMsg = L"Base %b %s %p!";
@@ -660,7 +623,7 @@ void ReportAttack(wstring basename, wstring charname, uint system, wstring alert
 	wscMsg = ReplaceStr(wscMsg, L"%p", charname);
 	wscMsg = ReplaceStr(wscMsg, L"%s", alert_phrase);
 
-	const Universe::ISystem *iSys = Universe::get_system(system);
+	const Universe::ISystem* iSys = Universe::get_system(system);
 	wstring sysname = stows(iSys->nickname);
 
 	HkMsgS(sysname.c_str(), wscMsg.c_str());
@@ -686,6 +649,50 @@ void ReportAttack(wstring basename, wstring charname, uint system, wstring alert
 	}
 	*/
 	return;
+}
+
+// For all players in the base's system, resync their reps towards all objects
+// of this base.
+void PlayerBase::SiegeModChainReaction(uint client)
+{
+	map<uint, PlayerBase*>::iterator it;
+	for (it = player_bases.begin(); it != player_bases.end(); it++)
+	{
+		if (it->second->system == this->system)
+		{
+			if (HkDistance3D(it->second->position, this->position) < siege_mod_chain_reaction_trigger_distance)
+			{
+				if (!(it->second->siege_mode))
+				{
+					it->second->siege_mode = true;
+
+					const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+					ReportAttack(it->second->basename, charname, it->second->system, L"siege mode triggered by");
+
+					it->second->SyncReputationForBase();
+				}
+			}
+		}
+	}
+}
+
+// For all players in the base's system, resync their reps towards this object.
+void PlayerBase::SyncReputationForBaseObject(uint space_obj)
+{
+	struct PlayerData *pd = 0;
+	while (pd = Players.traverse_active(pd))
+	{
+		if (pd->iShipID && pd->iSystemID == system)
+		{
+			int player_rep;
+			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
+			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
+
+			int obj_rep;
+			pub::SpaceObj::GetRep(space_obj, obj_rep);
+			pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
+		}
+	}
 }
 
 // Return true if 
@@ -729,12 +736,12 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 					hostile_tags[charname] = charname;
 
 					const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-					ReportAttack(this->basename, charname, this->system, L"activated self-defense against");
+					ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
 
 					SyncReputationForBase();
 
 					if (siege_mode)
-						SiegeModChainReaction();
+						SiegeModChainReaction(client);
 				}
 			}
 		}
@@ -746,10 +753,10 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			if (received_by_base_damage > siege_mod_damage_trigger_level)
 			{
 				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-				ReportAttack(this->basename, charname, this->system, L"is triggered to siege mod by");
+				ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
 
 				siege_mode = true;
-				SiegeModChainReaction();
+				SiegeModChainReaction(client);
 			}
 		}
 	}

@@ -292,7 +292,7 @@ public:
 
 	float GetAttitudeTowardsClient(uint client, bool emulated_siege_mode = false);
 	void SyncReputationForBase();
-	void SiegeModChainReaction();
+	void SiegeModChainReaction(uint client);
 	void SyncReputationForBaseObject(uint space_obj);
 
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);

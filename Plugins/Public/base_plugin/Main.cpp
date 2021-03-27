@@ -108,10 +108,10 @@ map<uint, wstring> listCommodities;
 float damage_threshold = 400000;
 
 //the amount of damage necessary to deal to one base in order to trigger siege status
-float siege_mod_damage_trigger_level = 4000000;
+float siege_mod_damage_trigger_level = 8000000;
 
 //the distance between bases to share siege mod activation
-float siege_mod_chain_reaction_trigger_distance = 5000;
+float siege_mod_chain_reaction_trigger_distance = 8000;
 
 uint GetAffliationFromClient(uint client)
 {

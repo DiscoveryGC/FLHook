@@ -550,7 +550,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 	}
 
 	// Make base hostile if player is on the hostile list.
-	if (hostile_tags.find(charname) != hostile_tags.end())
+	if (!emulated_siege_mode && hostile_tags.find(charname) != hostile_tags.end())
 	{
 		return -1.0;
 	}
@@ -664,12 +664,16 @@ void PlayerBase::SiegeModChainReaction(uint client)
 			{
 				if (!(it->second->siege_mode))
 				{
-					it->second->siege_mode = true;
+					float attitude = it->second->GetAttitudeTowardsClient(client, true);
+					if (attitude < -0.55f)
+					{
+						it->second->siege_mode = true;
 
-					const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-					ReportAttack(it->second->basename, charname, it->second->system, L"siege mode triggered by");
+						const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+						ReportAttack(it->second->basename, charname, it->second->system, L"has detected hostile activity at the nearby base by");
 
-					it->second->SyncReputationForBase();
+						it->second->SyncReputationForBase();
+					}
 				}
 			}
 		}

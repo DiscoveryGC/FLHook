@@ -375,6 +375,9 @@ public:
 	//List of allied factions
 	set<uint> ally_factions;
 
+	//List of hostile factions
+	set<uint> hostile_factions;
+
 	// List of ships that are hostile to this base
 	map<wstring, wstring> hostile_tags;
 	map<wstring, float> hostile_tags_damage;
@@ -510,10 +513,10 @@ namespace PlayerCommands
 	void BaseAddAllyTag(uint client, const wstring &args);
 	void BaseRmAllyTag(uint client, const wstring &args);
 	void BaseLstAllyTag(uint client, const wstring &args);
-	void BaseAddAllyFac(uint client, const wstring &args);
-	void BaseRmAllyFac(uint client, const wstring &args);
-	void BaseClearAllyFac(uint client, const wstring &args);
-	void BaseLstAllyFac(uint client, const wstring &args);
+	void BaseAddAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
+	void BaseRmAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
+	void BaseClearAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
+	void BaseLstAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
 	void BaseViewMyFac(uint client, const wstring &args);
 	void BaseAddHostileTag(uint client, const wstring &args);
 	void BaseRmHostileTag(uint client, const wstring &args);

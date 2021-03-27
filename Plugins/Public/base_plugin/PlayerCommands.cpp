@@ -44,10 +44,6 @@ namespace PlayerCommands
 			L"<TRA bold=\"true\"/><TEXT>/base addtag [tag], /base rmtag [tag], /base lsttag</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Add, remove and list ally tags for the base.</TEXT><PARA/><PARA/>"
 
-
-			L"<TRA bold=\"true\"/><TEXT>/base addfac [aff tag], /base rmfac [aff tag], /base lstfac, /base myfac</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list ally factions for the base. Show your affiliation ID and all available.</TEXT><PARA/><PARA/>"
-
 			L"<TRA bold=\"true\"/><TEXT>/base addhostile [tag], /base rmhostile [tag], /base lsthostile</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Add, remove and list blacklisted tags for the base. They will be shot on sight so use complete tags like =LSF= or IMG| or a shipname like Crunchy_Salad.</TEXT><PARA/><PARA/>"
 
@@ -97,6 +93,12 @@ namespace PlayerCommands
 
 			L"<TRA bold=\"true\"/><TEXT>/base shieldmod</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control shield modules.</TEXT><PARA/><PARA/>"
+
+			L"<TRA bold=\"true\"/><TEXT>/base addfac [aff tag], /base rmfac [aff tag], /base lstfac, /base myfac</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Add, remove and list ally factions for the base. Show your affiliation ID and all available.</TEXT><PARA/><PARA/>"
+
+			L"<TRA bold=\"true\"/><TEXT>/base addhfac [aff tag], /base rmhfac [aff tag], /base lsthfac</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Add, remove and list hostile factions for the base.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base buildmod</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control the construction and destruction of base modules and upgrades.</TEXT>";
@@ -517,10 +519,15 @@ namespace PlayerCommands
 		return false;
 	}
 
-	void BaseAddAllyFac(uint client, const wstring &args)
+	void BaseAddAllyFac(uint client, const wstring &args, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
+
+		set<uint>* list;
+		if (!HostileFactionMod)
+			list = &(base->ally_factions);
+		else list = &(base->hostile_factions);
 
 		int tag = 0;
 		try
@@ -533,7 +540,7 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (base->ally_factions.find(tag) != base->ally_factions.end())
+		if ((*list).find(tag) != (*list).end())
 		{
 			PrintUserCmdText(client, L"ERR Tag already exists");
 			return;
@@ -545,25 +552,36 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Undefined faction");
 			return;
 		}
-		base->ally_factions.insert(tag);
+		(*list).insert(tag);
 
 		base->Save();
 		PrintUserCmdText(client, L"OK");
 	}
 
-	void BaseClearAllyFac(uint client, const wstring &args)
+	void BaseClearAllyFac(uint client, const wstring &args, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
-		base->ally_factions.clear();
+
+		set<uint>* list;
+		if (!HostileFactionMod)
+			list = &(base->ally_factions);
+		else list = &(base->hostile_factions);
+
+		(*list).clear();
 		base->Save();
 		PrintUserCmdText(client, L"OK");
 	}
 
-	void BaseRmAllyFac(uint client, const wstring &args)
+	void BaseRmAllyFac(uint client, const wstring &args, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
+
+		set<uint>* list;
+		if (!HostileFactionMod)
+			list = &(base->ally_factions);
+		else list = &(base->hostile_factions);
 
 		uint tag = 0;
 		try
@@ -576,13 +594,13 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (base->ally_factions.find(tag) == base->ally_factions.end())
+		if ((*list).find(tag) == (*list).end())
 		{
 			PrintUserCmdText(client, L"ERR Tag does not exist");
 			return;
 		}
 
-		base->ally_factions.erase(tag);
+		(*list).erase(tag);
 		base->Save();
 		PrintUserCmdText(client, L"OK");
 	}
@@ -709,12 +727,17 @@ namespace PlayerCommands
 	Affiliations A;
 	void Aff_initer() { A.Init(); };
 
-	void BaseLstAllyFac(uint client, const wstring &cmd)
+	void BaseLstAllyFac(uint client, const wstring &cmd, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
 
-		for (set<uint>::iterator it = base->ally_factions.begin(); it != base->ally_factions.end(); ++it)
+		set<uint>* list;
+		if (!HostileFactionMod)
+			list = &(base->ally_factions);
+		else list = &(base->hostile_factions);
+
+		for (set<uint>::iterator it = (*list).begin(); it != (*list).end(); ++it)
 		{
 			A.FindAndPrintOneAffiliation(client, *it);
 		}

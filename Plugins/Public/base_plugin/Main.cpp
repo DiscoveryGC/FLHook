@@ -1033,6 +1033,30 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseLstAllyFac(client, args);
 		return true;
 	}
+	else if (args.find(L"/base addhfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseAddAllyFac(client, args, true);
+		return true;
+	}
+	else if (args.find(L"/base rmhfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseRmAllyFac(client, args, true);
+		return true;
+	}
+	else if (args.find(L"/base clearhfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseClearAllyFac(client, args, true);
+		return true;
+	}
+	else if (args.find(L"/base lsthfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseLstAllyFac(client, args, true);
+		return true;
+	}
 	else if (args.find(L"/base myfac") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1152,11 +1176,17 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 		}
 	}
 
-	//Allow dock if player is on the friendly faction list.
 	uint playeraff = GetAffliationFromClient(client);
+	//Do not allow dock if player is on the hostile faction list.
+	if (base->hostile_factions.find(playeraff) != base->hostile_factions.end())
+	{
+		return false;
+	}
+
+	//Allow dock if player is on the friendly faction list.
 	if (base->ally_factions.find(playeraff) != base->ally_factions.end())
 	{
-		return 1.0;
+		return true;
 	}
 
 	// Base allows neutral ships to dock

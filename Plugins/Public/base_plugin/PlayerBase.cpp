@@ -287,6 +287,10 @@ void PlayerBase::Load()
 					{
 						ally_factions.insert(ini.get_value_int(0));
 					}
+					else if (ini.is_value("faction_hostile_tag"))
+					{
+						hostile_factions.insert(ini.get_value_int(0));
+					}
 					else if (ini.is_value("passwd"))
 					{
 						wstring passwd;
@@ -403,6 +407,10 @@ void PlayerBase::Save()
 		for(auto i : ally_factions)
 		{
 			fprintf(file, "faction_ally_tag = %d\n", i);
+		}
+		for (auto i : hostile_factions)
+		{
+			fprintf(file, "faction_hostile_tag = %d\n", i);
 		}
 		for (map<wstring, wstring>::iterator i = hostile_tags.begin();
 			i != hostile_tags.end(); ++i)
@@ -548,12 +556,11 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 	}
 
 	uint playeraff = GetAffliationFromClient(client);
-	// Make base friendly if player is on the friendly faction list.
-	//TODO in second commit
-	/*if ((siege_mode || emulated_siege_mode) && hostile_factions.find(playeraff) != hostile_factions.end())
+	// Make base hostile if player is on the hostile faction list.
+	if ((siege_mode || emulated_siege_mode) && hostile_factions.find(playeraff) != hostile_factions.end())
 	{
 		return -1.0;
-	}*/
+	}
 
 	// Make base friendly if player is on the friendly faction list.
 	if (ally_factions.find(playeraff) != ally_factions.end())

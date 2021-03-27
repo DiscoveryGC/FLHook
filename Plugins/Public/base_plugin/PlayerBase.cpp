@@ -609,6 +609,24 @@ void PlayerBase::SyncReputationForBase()
 	}
 }
 
+// For all players in the base's system, resync their reps towards all objects
+// of this base.
+void PlayerBase::SiegeModChainReaction()
+{
+	map<uint, PlayerBase*>::iterator it;
+	for (it = player_bases.begin(); it != player_bases.end(); it++)
+	{
+		if (it->second->system == this->system)
+		{
+			if (HkDistance3D(it->second->position, this->position) < siege_mod_chain_reaction_trigger_distance)
+			{
+				it->second->siege_mode = true;
+				it->second->SyncReputationForBase();
+			}
+		}
+	}
+}
+
 // For all players in the base's system, resync their reps towards this object.
 void PlayerBase::SyncReputationForBaseObject(uint space_obj)
 {
@@ -707,6 +725,9 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 					ReportAttack(this->basename, charname, this->system, L"activated self-defense against");
 
 					SyncReputationForBase();
+
+					if (siege_mode)
+						SiegeModChainReaction();
 				}
 			}
 		}
@@ -721,7 +742,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				ReportAttack(this->basename, charname, this->system, L"is triggered to siege mod by");
 
 				siege_mode = true;
-				SyncReputationForBase();
+				SiegeModChainReaction();
 			}
 		}
 	}

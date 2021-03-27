@@ -292,6 +292,7 @@ public:
 
 	float GetAttitudeTowardsClient(uint client, bool emulated_siege_mode = false);
 	void SyncReputationForBase();
+	void SiegeModChainReaction();
 	void SyncReputationForBaseObject(uint space_obj);
 
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
@@ -619,4 +620,6 @@ extern const char* MODULE_TYPE_NICKNAMES[13];
 extern float damage_threshold;
 
 extern float siege_mod_damage_trigger_level;
+
+extern float siege_mod_chain_reaction_trigger_distance;
 #endif

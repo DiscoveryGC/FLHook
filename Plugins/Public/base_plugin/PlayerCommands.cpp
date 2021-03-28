@@ -525,8 +525,7 @@ namespace PlayerCommands
 		if (CheckForBase(base, client)) return;
 
 		set<uint>* list;
-		if (!HostileFactionMod)
-			list = &(base->ally_factions);
+		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
 		int tag = 0;
@@ -564,8 +563,7 @@ namespace PlayerCommands
 		if (CheckForBase(base, client)) return;
 
 		set<uint>* list;
-		if (!HostileFactionMod)
-			list = &(base->ally_factions);
+		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
 		(*list).clear();
@@ -579,8 +577,7 @@ namespace PlayerCommands
 		if (CheckForBase(base, client)) return;
 
 		set<uint>* list;
-		if (!HostileFactionMod)
-			list = &(base->ally_factions);
+		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
 		uint tag = 0;
@@ -733,8 +730,7 @@ namespace PlayerCommands
 		if (CheckForBase(base, client)) return;
 
 		set<uint>* list;
-		if (!HostileFactionMod)
-			list = &(base->ally_factions);
+		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
 		for (set<uint>::iterator it = (*list).begin(); it != (*list).end(); ++it)

@@ -366,9 +366,6 @@ public:
 	//changes how defense mod act depending on the amount of damage made to base in the last hours
 	bool siege_mode;
 
-	//going over the limit: siege_mod_damage_trigger_level will trigger siege mode ON.
-	float received_by_base_damage;
-
 	// List of allied ship tags.
 	list<wstring> ally_tags;
 

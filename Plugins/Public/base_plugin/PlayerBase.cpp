@@ -3,7 +3,7 @@
 PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_basename)
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
-	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false), received_by_base_damage(0),
+	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
 	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -710,6 +710,12 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		last_attacker = charname;
+
+		hostile_tags_damage[charname] += incoming_damage;
+
+		if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
+			hostile_tags_damage[charname] = 0;
+
 		// Allies are allowed to shoot at the base without the base becoming hostile. We do the ally search
 		// after checking to see if this player is on the hostile list because allies don't normally
 		// shoot at bases and so this is more efficient than searching the ally list first.
@@ -725,43 +731,27 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				}
 			}
 
-			if (!is_ally)
+			if (!is_ally && ((hostile_tags_damage[charname] + incoming_damage) > damage_threshold))
 			{
-				if (set_plugin_debug > 1)
-					ConPrint(L"PlayerBase::damaged space_obj=%u\n", space_obj);
-				
-				if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
-					hostile_tags_damage[charname] = 0;
+				hostile_tags[charname] = charname;
 
-				if ((hostile_tags_damage[charname] + incoming_damage) < damage_threshold)
-					hostile_tags_damage[charname] += incoming_damage;
-				else
-				{
-					hostile_tags[charname] = charname;
+				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+				ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
 
-					const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-					ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
+				SyncReputationForBase();
 
-					SyncReputationForBase();
-
-					if (siege_mode)
-						SiegeModChainReaction(client);
-				}
+				if (siege_mode)
+					SiegeModChainReaction(client);
 			}
 		}
 
-		if (!siege_mode)
+		if (!siege_mode && ((hostile_tags_damage[charname] + incoming_damage) > siege_mod_damage_trigger_level))
 		{
-			received_by_base_damage += incoming_damage;
+			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
 
-			if (received_by_base_damage > siege_mod_damage_trigger_level)
-			{
-				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-				ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
-
-				siege_mode = true;
-				SiegeModChainReaction(client);
-			}
+			siege_mode = true;
+			SiegeModChainReaction(client);
 		}
 	}
 

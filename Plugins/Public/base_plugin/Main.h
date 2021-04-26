@@ -619,7 +619,7 @@ extern const char* MODULE_TYPE_NICKNAMES[13];
 
 extern float damage_threshold;
 
-extern float siege_mod_damage_trigger_level;
+extern float siege_mode_damage_trigger_level;
 
-extern float siege_mod_chain_reaction_trigger_distance;
+extern float siege_mode_chain_reaction_trigger_distance;
 #endif

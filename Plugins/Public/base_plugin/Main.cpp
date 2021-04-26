@@ -108,10 +108,10 @@ map<uint, wstring> listCommodities;
 float damage_threshold = 400000;
 
 //the amount of damage necessary to deal to one base in order to trigger siege status
-float siege_mod_damage_trigger_level = 8000000;
+float siege_mode_damage_trigger_level = 8000000;
 
 //the distance between bases to share siege mod activation
-float siege_mod_chain_reaction_trigger_distance = 8000;
+float siege_mode_chain_reaction_trigger_distance = 8000;
 
 uint GetAffliationFromClient(uint client)
 {
@@ -420,13 +420,13 @@ void LoadSettingsActual()
 					{
 						damage_threshold = ini.get_value_float(0);
 					}
-					else if (ini.is_value("siege_mod_damage_trigger_level"))
+					else if (ini.is_value("siege_mode_damage_trigger_level"))
 					{
-						siege_mod_damage_trigger_level = ini.get_value_float(0);
+						siege_mode_damage_trigger_level = ini.get_value_float(0);
 					}
-					else if (ini.is_value("siege_mod_chain_reaction_trigger_distance"))
+					else if (ini.is_value("siege_mode_chain_reaction_trigger_distance"))
 					{
-						siege_mod_damage_trigger_level = ini.get_value_float(0);
+						siege_mode_damage_trigger_level = ini.get_value_float(0);
 					}
 					else if (ini.is_value("status_export_type"))
 					{

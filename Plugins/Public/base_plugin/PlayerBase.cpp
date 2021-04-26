@@ -575,7 +575,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 	}
 
 	// at this point, we've ran all the checks, so we can do the IFF stuff.
-	if ((defense_mode == 1 || defense_mode == 2))
+	if (defense_mode == 1 || defense_mode == 2)
 	{
 		// If an affiliation is defined then use the player's attitude.
 		if (affiliation)
@@ -584,7 +584,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 			pub::Player::GetRep(client, rep);
 			pub::Reputation::GetGroupFeelingsTowards(rep, affiliation, attitude);
 
-			if ((attitude > 0) || (siege_mode || emulated_siege_mode))
+			if (attitude > 0 || siege_mode || emulated_siege_mode)
 				return attitude;
 		}
 	}
@@ -612,6 +612,25 @@ void PlayerBase::SyncReputationForBase()
 					(*i)->SetReputation(player_rep, attitude);
 				}
 			}
+		}
+	}
+}
+
+// For all players in the base's system, resync their reps towards this object.
+void PlayerBase::SyncReputationForBaseObject(uint space_obj)
+{
+	struct PlayerData* pd = 0;
+	while (pd = Players.traverse_active(pd))
+	{
+		if (pd->iShipID && pd->iSystemID == system)
+		{
+			int player_rep;
+			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
+			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
+
+			int obj_rep;
+			pub::SpaceObj::GetRep(space_obj, obj_rep);
+			pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
 		}
 	}
 }
@@ -660,7 +679,7 @@ void PlayerBase::SiegeModChainReaction(uint client)
 	{
 		if (it->second->system == this->system)
 		{
-			if (HkDistance3D(it->second->position, this->position) < siege_mod_chain_reaction_trigger_distance)
+			if (HkDistance3D(it->second->position, this->position) < siege_mode_chain_reaction_trigger_distance)
 			{
 				if (!(it->second->siege_mode))
 				{
@@ -670,31 +689,12 @@ void PlayerBase::SiegeModChainReaction(uint client)
 						it->second->siege_mode = true;
 
 						const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-						ReportAttack(it->second->basename, charname, it->second->system, L"has detected hostile activity at the nearby base by");
+						ReportAttack(it->second->basename, charname, it->second->system, L"has detected hostile activity at a nearby base by");
 
 						it->second->SyncReputationForBase();
 					}
 				}
 			}
-		}
-	}
-}
-
-// For all players in the base's system, resync their reps towards this object.
-void PlayerBase::SyncReputationForBaseObject(uint space_obj)
-{
-	struct PlayerData *pd = 0;
-	while (pd = Players.traverse_active(pd))
-	{
-		if (pd->iShipID && pd->iSystemID == system)
-		{
-			int player_rep;
-			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
-			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
-
-			int obj_rep;
-			pub::SpaceObj::GetRep(space_obj, obj_rep);
-			pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
 		}
 	}
 }
@@ -711,10 +711,10 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		last_attacker = charname;
 
-		hostile_tags_damage[charname] += incoming_damage;
-
 		if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
 			hostile_tags_damage[charname] = 0;
+
+		hostile_tags_damage[charname] += incoming_damage;
 
 		// Allies are allowed to shoot at the base without the base becoming hostile. We do the ally search
 		// after checking to see if this player is on the hostile list because allies don't normally
@@ -731,7 +731,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				}
 			}
 
-			if (!is_ally && ((hostile_tags_damage[charname] + incoming_damage) > damage_threshold))
+			if (!is_ally && (hostile_tags_damage[charname] + incoming_damage) > damage_threshold)
 			{
 				hostile_tags[charname] = charname;
 
@@ -745,7 +745,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			}
 		}
 
-		if (!siege_mode && ((hostile_tags_damage[charname] + incoming_damage) > siege_mod_damage_trigger_level))
+		if (!siege_mode && (hostile_tags_damage[charname] + incoming_damage) > siege_mode_damage_trigger_level)
 		{
 			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");

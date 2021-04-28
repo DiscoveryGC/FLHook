@@ -3,7 +3,7 @@
 PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_basename)
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
-	base_level(1), defense_mode(0), proxy_base(0), affiliation(0),
+	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
 	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -287,6 +287,10 @@ void PlayerBase::Load()
 					{
 						ally_factions.insert(ini.get_value_int(0));
 					}
+					else if (ini.is_value("faction_hostile_tag"))
+					{
+						hostile_factions.insert(ini.get_value_int(0));
+					}
 					else if (ini.is_value("passwd"))
 					{
 						wstring passwd;
@@ -404,6 +408,10 @@ void PlayerBase::Save()
 		{
 			fprintf(file, "faction_ally_tag = %d\n", i);
 		}
+		for (auto i : hostile_factions)
+		{
+			fprintf(file, "faction_hostile_tag = %d\n", i);
+		}
 		for (map<wstring, wstring>::iterator i = hostile_tags.begin();
 			i != hostile_tags.end(); ++i)
 		{
@@ -515,27 +523,22 @@ uint PlayerBase::HasMarketItem(uint good)
 }
 
 
-float PlayerBase::GetAttitudeTowardsClient(uint client)
+float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode)
 {
 	// By default all bases are hostile to everybody.
 	float attitude = -1.0;
 	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 
+	
 	// Make base hostile if player is on the perma hostile list. First check so it overrides everything.
-	for (std::list<wstring>::const_iterator i = perma_hostile_tags.begin(); i != perma_hostile_tags.end(); ++i)
-	{
-		if (charname.find(*i) == 0)
+	if (siege_mode || emulated_siege_mode)
+		for (std::list<wstring>::const_iterator i = perma_hostile_tags.begin(); i != perma_hostile_tags.end(); ++i)
 		{
-			return -1.0;
+			if (charname.find(*i) == 0)
+			{
+				return -1.0;
+			}
 		}
-	}
-
-	// If defense mode is neutral with restricted or unrestricted set the
-	// attitude to neutral.
-	if (defense_mode == 0 || defense_mode == 2)
-	{
-		attitude = 0.0;
-	}
 
 	// Make base friendly if player is on the friendly list.
 	for (std::list<wstring>::const_iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
@@ -547,12 +550,18 @@ float PlayerBase::GetAttitudeTowardsClient(uint client)
 	}
 
 	// Make base hostile if player is on the hostile list.
-	if (hostile_tags.find(charname) != hostile_tags.end())
+	if (!emulated_siege_mode && hostile_tags.find(charname) != hostile_tags.end())
 	{
 		return -1.0;
 	}
 
 	uint playeraff = GetAffliationFromClient(client);
+	// Make base hostile if player is on the hostile faction list.
+	if ((siege_mode || emulated_siege_mode) && hostile_factions.find(playeraff) != hostile_factions.end())
+	{
+		return -1.0;
+	}
+
 	// Make base friendly if player is on the friendly faction list.
 	if (ally_factions.find(playeraff) != ally_factions.end())
 	{
@@ -560,15 +569,9 @@ float PlayerBase::GetAttitudeTowardsClient(uint client)
 	}
 
 	// if defense mode 3, at this point if player doesn't match any criteria, give him fireworks
-	if (defense_mode == 3)
+	if ((siege_mode || emulated_siege_mode) && defense_mode == 3)
 	{
 		return -1.0;
-	}
-
-	// for defense modes 4 and 5, apply zoner neutrality tears
-	if (defense_mode == 4 || defense_mode == 5)
-	{
-		return 0.0;
 	}
 
 	// at this point, we've ran all the checks, so we can do the IFF stuff.
@@ -580,7 +583,9 @@ float PlayerBase::GetAttitudeTowardsClient(uint client)
 			int rep;
 			pub::Player::GetRep(client, rep);
 			pub::Reputation::GetGroupFeelingsTowards(rep, affiliation, attitude);
-			return attitude;
+
+			if (attitude > 0 || siege_mode || emulated_siege_mode)
+				return attitude;
 		}
 	}
 
@@ -614,7 +619,7 @@ void PlayerBase::SyncReputationForBase()
 // For all players in the base's system, resync their reps towards this object.
 void PlayerBase::SyncReputationForBaseObject(uint space_obj)
 {
-	struct PlayerData *pd = 0;
+	struct PlayerData* pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		if (pd->iShipID && pd->iSystemID == system)
@@ -630,13 +635,14 @@ void PlayerBase::SyncReputationForBaseObject(uint space_obj)
 	}
 }
 
-void ReportAttack(wstring basename, wstring charname, uint system)
+void ReportAttack(wstring basename, wstring charname, uint system, wstring alert_phrase = L"is under attack by")
 {
-	wstring wscMsg = L"Base %b is under attack by %p!";
+	wstring wscMsg = L"Base %b %s %p!";
 	wscMsg = ReplaceStr(wscMsg, L"%b", basename);
 	wscMsg = ReplaceStr(wscMsg, L"%p", charname);
+	wscMsg = ReplaceStr(wscMsg, L"%s", alert_phrase);
 
-	const Universe::ISystem *iSys = Universe::get_system(system);
+	const Universe::ISystem* iSys = Universe::get_system(system);
 	wstring sysname = stows(iSys->nickname);
 
 	HkMsgS(sysname.c_str(), wscMsg.c_str());
@@ -664,15 +670,52 @@ void ReportAttack(wstring basename, wstring charname, uint system)
 	return;
 }
 
+// For all players in the base's system, resync their reps towards all objects
+// of this base.
+void PlayerBase::SiegeModChainReaction(uint client)
+{
+	map<uint, PlayerBase*>::iterator it;
+	for (it = player_bases.begin(); it != player_bases.end(); it++)
+	{
+		if (it->second->system == this->system)
+		{
+			if (HkDistance3D(it->second->position, this->position) < siege_mode_chain_reaction_trigger_distance)
+			{
+				if (!(it->second->siege_mode))
+				{
+					float attitude = it->second->GetAttitudeTowardsClient(client, true);
+					if (attitude < -0.55f)
+					{
+						it->second->siege_mode = true;
+
+						const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+						ReportAttack(it->second->basename, charname, it->second->system, L"has detected hostile activity at a nearby base by");
+
+						it->second->SyncReputationForBase();
+					}
+				}
+			}
+		}
+	}
+}
+
 // Return true if 
 float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
+	float incoming_damage = abs(curr_hitpoints - new_hitpoints);
+
 	// Make sure that the attacking player is hostile.
 	uint client = HkGetClientIDByShip(attacking_space_obj);
 	if (client)
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		last_attacker = charname;
+
+		if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
+			hostile_tags_damage[charname] = 0;
+
+		hostile_tags_damage[charname] += incoming_damage;
+
 		// Allies are allowed to shoot at the base without the base becoming hostile. We do the ally search
 		// after checking to see if this player is on the hostile list because allies don't normally
 		// shoot at bases and so this is more efficient than searching the ally list first.
@@ -688,22 +731,27 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				}
 			}
 
-			if (!is_ally)
+			if (!is_ally && (hostile_tags_damage[charname] + incoming_damage) > damage_threshold)
 			{
-				if (set_plugin_debug > 1)
-					ConPrint(L"PlayerBase::damaged space_obj=%u\n", space_obj);
-				
-				float incoming_damage = abs(curr_hitpoints - new_hitpoints);
-				if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
-					hostile_tags_damage[charname] = 0;
+				hostile_tags[charname] = charname;
 
-				if ((hostile_tags_damage[charname] + incoming_damage) < damage_threshold)
-					hostile_tags_damage[charname] += incoming_damage;
-				else hostile_tags[charname] = charname;
-					
+				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+				ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
 
 				SyncReputationForBase();
+
+				if (siege_mode)
+					SiegeModChainReaction(client);
 			}
+		}
+
+		if (!siege_mode && (hostile_tags_damage[charname] + incoming_damage) > siege_mode_damage_trigger_level)
+		{
+			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
+
+			siege_mode = true;
+			SiegeModChainReaction(client);
 		}
 	}
 

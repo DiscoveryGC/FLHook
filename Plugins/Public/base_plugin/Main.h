@@ -290,8 +290,9 @@ public:
 
 	static string CreateBaseNickname(const string &basename);
 
-	float GetAttitudeTowardsClient(uint client);
+	float GetAttitudeTowardsClient(uint client, bool emulated_siege_mode = false);
 	void SyncReputationForBase();
+	void SiegeModChainReaction(uint client);
 	void SyncReputationForBaseObject(uint space_obj);
 
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
@@ -362,11 +363,17 @@ public:
 	// If 2 then base is neutral to all ships and any ship may dock.
 	int defense_mode;
 
+	//changes how defense mod act depending on the amount of damage made to base in the last hours
+	bool siege_mode;
+
 	// List of allied ship tags.
 	list<wstring> ally_tags;
 
 	//List of allied factions
 	set<uint> ally_factions;
+
+	//List of hostile factions
+	set<uint> hostile_factions;
 
 	// List of ships that are hostile to this base
 	map<wstring, wstring> hostile_tags;
@@ -503,10 +510,10 @@ namespace PlayerCommands
 	void BaseAddAllyTag(uint client, const wstring &args);
 	void BaseRmAllyTag(uint client, const wstring &args);
 	void BaseLstAllyTag(uint client, const wstring &args);
-	void BaseAddAllyFac(uint client, const wstring &args);
-	void BaseRmAllyFac(uint client, const wstring &args);
-	void BaseClearAllyFac(uint client, const wstring &args);
-	void BaseLstAllyFac(uint client, const wstring &args);
+	void BaseAddAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
+	void BaseRmAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
+	void BaseClearAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
+	void BaseLstAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
 	void BaseViewMyFac(uint client, const wstring &args);
 	void BaseAddHostileTag(uint client, const wstring &args);
 	void BaseRmHostileTag(uint client, const wstring &args);
@@ -611,4 +618,8 @@ extern string set_status_path_json;
 extern const char* MODULE_TYPE_NICKNAMES[13];
 
 extern float damage_threshold;
+
+extern float siege_mode_damage_trigger_level;
+
+extern float siege_mode_chain_reaction_trigger_distance;
 #endif

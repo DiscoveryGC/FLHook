@@ -107,6 +107,12 @@ map<uint, wstring> listCommodities;
 //the hostility and weapon platform activation from damage caused by one player
 float damage_threshold = 400000;
 
+//the amount of damage necessary to deal to one base in order to trigger siege status
+float siege_mode_damage_trigger_level = 8000000;
+
+//the distance between bases to share siege mod activation
+float siege_mode_chain_reaction_trigger_distance = 8000;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;
@@ -413,6 +419,14 @@ void LoadSettingsActual()
 					else if (ini.is_value("damage_threshold"))
 					{
 						damage_threshold = ini.get_value_float(0);
+					}
+					else if (ini.is_value("siege_mode_damage_trigger_level"))
+					{
+						siege_mode_damage_trigger_level = ini.get_value_float(0);
+					}
+					else if (ini.is_value("siege_mode_chain_reaction_trigger_distance"))
+					{
+						siege_mode_damage_trigger_level = ini.get_value_float(0);
 					}
 					else if (ini.is_value("status_export_type"))
 					{
@@ -1019,6 +1033,30 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseLstAllyFac(client, args);
 		return true;
 	}
+	else if (args.find(L"/base addhfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseAddAllyFac(client, args, true);
+		return true;
+	}
+	else if (args.find(L"/base rmhfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseRmAllyFac(client, args, true);
+		return true;
+	}
+	else if (args.find(L"/base clearhfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseClearAllyFac(client, args, true);
+		return true;
+	}
+	else if (args.find(L"/base lsthfac") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseLstAllyFac(client, args, true);
+		return true;
+	}
 	else if (args.find(L"/base myfac") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1138,11 +1176,17 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 		}
 	}
 
-	//Allow dock if player is on the friendly faction list.
 	uint playeraff = GetAffliationFromClient(client);
+	//Do not allow dock if player is on the hostile faction list.
+	if (base->hostile_factions.find(playeraff) != base->hostile_factions.end())
+	{
+		return false;
+	}
+
+	//Allow dock if player is on the friendly faction list.
 	if (base->ally_factions.find(playeraff) != base->ally_factions.end())
 	{
-		return 1.0;
+		return true;
 	}
 
 	// Base allows neutral ships to dock

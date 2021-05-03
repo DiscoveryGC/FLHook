@@ -1722,9 +1722,9 @@ namespace PlayerCommands
 					continue;
 				}
 				wchar_t buf[1000];
-				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max</TEXT><PARA/>",
+				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max (%s)</TEXT><PARA/>",
 					globalItem, i->second.quantity, HtmlEncode(name).c_str(),
-					i->second.price, i->second.min_stock, i->second.max_stock);
+					i->second.price, i->second.min_stock, i->second.max_stock, i->second.is_exporting ? L"Public" : L"Private");
 				status += buf;
 				item++;
 			}
@@ -1809,6 +1809,29 @@ namespace PlayerCommands
 					i->second.max_stock = 0;
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->market_items.erase(i->first);
+					base->Save();
+
+					int page = ((curr_item + 39) / 40);
+					ShowShopStatus(client, base, L"", page);
+					PrintUserCmdText(client, L"OK");
+					return;
+				}
+			}
+			PrintUserCmdText(client, L"ERR Commodity does not exist");
+		}
+		else if (cmd == L"public" || cmd == L"private")
+		{
+			int item = ToInt(GetParam(args, ' ', 2));
+
+			int curr_item = 1;
+			for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
+			{
+				if (curr_item == item)
+				{
+					if (cmd == L"public")
+						i->second.is_exporting = true;
+					else 
+						i->second.is_exporting = false;
 					base->Save();
 
 					int page = ((curr_item + 39) / 40);

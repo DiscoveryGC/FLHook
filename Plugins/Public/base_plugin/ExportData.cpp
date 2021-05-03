@@ -156,12 +156,40 @@ void ExportData::ToJSON()
 		}
 		pwds.close();
 
+		minijson::object_writer shop = pw.nested_object("shop");
+		int curr_item = 1;
+		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
+		{
+			if (i->second.is_exporting)
+			{
+				shop.write("quantity", i->second.quantity);
+				shop.write("price", i->second.price);
+				shop.write("min_stock", i->second.min_stock);
+				shop.write("max_stock", i->second.max_stock);
+
+				const GoodInfo* gi = GoodList::find_by_id(i->first);
+				wstring name = HkGetWStringFromIDS(gi->iIDSName);
+				shop.write("item", wstos(HtmlEncode(name)).c_str());
+			}
+		}
+		shop.close();
+		for (list<BasePassword>::iterator it = base->passwords.begin(); it != base->passwords.end(); ++it)
+		{
+			BasePassword bp = *it;
+			wstring l = bp.pass;
+			if (!bp.admin && bp.viewshop)
+				l += L" viewshop";
+			pwds.write(wstos(HtmlEncode(l)).c_str());
+		}
+		pwds.close();
+
 		//add basic elements
 		pw.write("affiliation", wstos(HtmlEncode(theaffiliation)).c_str());
 		pw.write("type", base->basetype.c_str());
 		pw.write("solar", base->basesolar.c_str());
 		pw.write("loadout", base->baseloadout.c_str());
 		pw.write("level", base->base_level);
+		pw.write("money", base->money);
 		pw.write("health", 100 * (base->base_health / base->max_base_health));
 		pw.write("defensemode", base->defense_mode);
 		pw.write("shieldstate", base->shield_state);

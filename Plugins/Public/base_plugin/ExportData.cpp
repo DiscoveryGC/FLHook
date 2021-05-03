@@ -164,6 +164,7 @@ void ExportData::ToJSON()
 		pw.write("level", base->base_level);
 		pw.write("health", 100 * (base->base_health / base->max_base_health));
 		pw.write("defensemode", base->defense_mode);
+		pw.write("shieldstate", base->shield_state);
 		pw.close();
 
 		++iter;

@@ -1756,7 +1756,7 @@ namespace PlayerCommands
 		}
 
 		const wstring &cmd = GetParam(args, ' ', 1);
-		if (!clients[client].admin && (!clients[client].viewshop || (cmd == L"price" || cmd == L"remove")))
+		if (!clients[client].admin && (!clients[client].viewshop || (cmd == L"price" || cmd == L"remove" || cmd == L"public" || cmd == L"private")))
 		{
 			PrintUserCmdText(client, L"ERROR: Access denied");
 			return;
@@ -1823,24 +1823,24 @@ namespace PlayerCommands
 		{
 			int item = ToInt(GetParam(args, ' ', 2));
 
-			int curr_item = 1;
-			for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
+			if (item < 1 || item > base->market_items.size())
 			{
-				if (curr_item == item)
-				{
-					if (cmd == L"public")
-						i->second.is_exporting = true;
-					else 
-						i->second.is_exporting = false;
-					base->Save();
-
-					int page = ((curr_item + 39) / 40);
-					ShowShopStatus(client, base, L"", page);
-					PrintUserCmdText(client, L"OK");
-					return;
-				}
+				PrintUserCmdText(client, L"ERR Commodity does not exist");
+				return;
 			}
-			PrintUserCmdText(client, L"ERR Commodity does not exist");
+
+			map<UINT, MARKET_ITEM>::iterator i = std::next(base->market_items.begin(), item - 1);
+
+			if (cmd == L"public")
+				i->second.is_exporting = true;
+			else 
+				i->second.is_exporting = false;
+			base->Save();
+
+			int page = ((item + 39) / 40);
+			ShowShopStatus(client, base, L"", page);
+			PrintUserCmdText(client, L"OK");
+			
 		}
 		else if (cmd == L"filter")
 		{

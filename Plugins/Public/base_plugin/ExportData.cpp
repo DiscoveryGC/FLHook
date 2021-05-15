@@ -173,15 +173,6 @@ void ExportData::ToJSON()
 			}
 		}
 		shop.close();
-		for (list<BasePassword>::iterator it = base->passwords.begin(); it != base->passwords.end(); ++it)
-		{
-			BasePassword bp = *it;
-			wstring l = bp.pass;
-			if (!bp.admin && bp.viewshop)
-				l += L" viewshop";
-			pwds.write(wstos(HtmlEncode(l)).c_str());
-		}
-		pwds.close();
 
 		//add basic elements
 		pw.write("affiliation", wstos(HtmlEncode(theaffiliation)).c_str());

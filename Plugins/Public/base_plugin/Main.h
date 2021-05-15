@@ -49,7 +49,7 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000) {}
+	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000), is_exporting(false) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
@@ -62,6 +62,9 @@ struct MARKET_ITEM
 
 	// Stop buying if the base holds more than this number of items
 	uint max_stock;
+
+	// Exporting to JSON for API access
+	bool is_exporting;
 };
 
 struct NEWS_ITEM

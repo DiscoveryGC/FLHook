@@ -3,15 +3,15 @@
 const char* MODULE_TYPE_NICKNAMES[] =
 { "module_build", "module_coreupgrade", "module_shieldgen",
 	"module_storage", "module_defense_1", "module_m_docking", "module_m_jumpdrives",
-	"module_m_hyperspace_scanner", "module_m_cloak", "module_defense_2", "module_defense_3", "module_m_cloakdisruptor", 0 };
+	"module_m_hyperspace_scanner", "module_m_cloak", "module_defense_2", "module_defense_3", "module_m_cloakdisruptor", "module_m_recycler", "module_o_refinery", 0};
 
-BuildModule::BuildModule(PlayerBase *the_base)
+BuildModule::BuildModule(PlayerBase* the_base)
 	: Module(TYPE_BUILD), base(the_base), build_type(0)
 {
 }
 
 // Find the recipe for this building_type and start construction.
-BuildModule::BuildModule(PlayerBase *the_base, uint the_build_type)
+BuildModule::BuildModule(PlayerBase* the_base, uint the_build_type)
 	: Module(TYPE_BUILD), base(the_base), build_type(the_build_type)
 {
 	uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[build_type]);
@@ -36,7 +36,7 @@ wstring BuildModule::GetInfo(bool xml)
 			uint good = i->first;
 			uint quantity = i->second;
 
-			const GoodInfo *gi = GoodList::find_by_id(good);
+			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
 			{
 				info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
@@ -56,7 +56,7 @@ wstring BuildModule::GetInfo(bool xml)
 			uint good = i->first;
 			uint quantity = i->second;
 
-			const GoodInfo *gi = GoodList::find_by_id(good);
+			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
 			{
 				info += stows(itos(quantity)) + L"x" + HkGetWStringFromIDS(gi->iIDSName) + L" ";
@@ -73,7 +73,7 @@ wstring BuildModule::GetInfo(bool xml)
 bool BuildModule::Timer(uint time)
 {
 
-	if ((time%set_tick_time) != 0)
+	if ((time % set_tick_time) != 0)
 		return false;
 
 	bool cooked = true;
@@ -157,6 +157,12 @@ bool BuildModule::Timer(uint time)
 				case Module::TYPE_M_CLOAKDISRUPTOR:
 					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
 					break;
+				case Module::TYPE_M_RECYCLER:
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_RECYCLER);
+					break;
+				case Module::TYPE_O_REFINERY:
+					base->modules[i] = new RefineryModule(base, Module::TYPE_O_REFINERY);
+					break;
 				default:
 					base->modules[i] = 0;
 					break;
@@ -171,7 +177,7 @@ bool BuildModule::Timer(uint time)
 	return false;
 }
 
-void BuildModule::LoadState(INI_Reader &ini)
+void BuildModule::LoadState(INI_Reader& ini)
 {
 	while (ini.read_value())
 	{
@@ -202,7 +208,7 @@ void BuildModule::LoadState(INI_Reader &ini)
 	}
 }
 
-void BuildModule::SaveState(FILE *file)
+void BuildModule::SaveState(FILE* file)
 {
 	fprintf(file, "[BuildModule]\n");
 	fprintf(file, "build_type = %u\n", build_type);

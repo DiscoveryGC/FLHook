@@ -377,6 +377,7 @@ void LoadSettingsActual()
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string cfg_file = string(szCurDir) + "\\flhook_plugins\\base.cfg";
 	string cfg_fileitems = string(szCurDir) + "\\flhook_plugins\\base_recipe_items.cfg";
+	/*string cfg_refitems = string(szCurDir) + "\\flhook_plugins\\base_refinery_items.cfg";*/
 	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
 	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
 
@@ -554,6 +555,46 @@ void LoadSettingsActual()
 		}
 		ini.close();
 	}
+
+	//if (ini.open(cfg_fileitems.c_str(), false))
+	//{
+	//	while (ini.read_header())
+	//	{
+	//		if (ini.is_header("recipe"))
+	//		{
+	//			RECIPE recipe;
+	//			while (ini.read_value())
+	//			{
+	//				if (ini.is_value("nickname"))
+	//				{
+	//					recipe.nickname = CreateID(ini.get_value_string(0));
+	//				}
+	//				else if (ini.is_value("produced_item"))
+	//				{
+	//					recipe.produced_item = CreateID(ini.get_value_string(0));
+	//				}
+	//				else if (ini.is_value("infotext"))
+	//				{
+	//					recipe.infotext = stows(ini.get_value_string());
+	//				}
+	//				else if (ini.is_value("cooking_rate"))
+	//				{
+	//					recipe.cooking_rate = ini.get_value_int(0);
+	//				}
+	//				else if (ini.is_value("consumed"))
+	//				{
+	//					recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
+	//				}
+	//				else if (ini.is_value("reqlevel"))
+	//				{
+	//					recipe.reqlevel = ini.get_value_int(0);
+	//				}
+	//			}
+	//			recipes[recipe.nickname] = recipe;
+	//		}
+	//	}
+	//	ini.close();
+	//}
 
 	if (ini.open(cfg_filemodules.c_str(), false))
 	{
@@ -1108,10 +1149,22 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::Shop(client, args);
 		return true;
 	}
+	else if (args.find(L"/price") == 0)
+	{
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	PlayerCommands::PriceView(client, args);
+	return true;
+	}
 	else if (args.find(L"/bank") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::Bank(client, args);
+		return true;
+	}
+	else if (args.find(L"/tax") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::TaxRate(client, args);
 		return true;
 	}
 	else if (args.find(L"/base info") == 0)
@@ -1125,6 +1178,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);
 		return true;
+	}
+	else if (args.find(L"/base refmod") == 0)
+	{
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	PlayerCommands::BaseRefMod(client, args);
+	return true;
 	}
 	else if (args.find(L"/base defmod") == 0)
 	{
@@ -1567,6 +1626,8 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 
 		uint count = gsi.iCount;
 		int price = (int)item.price * count;
+		int sellprice = (int)item.sellprice * count;
+		
 
 		// base money check //
 		if (count > ULONG_MAX / item.price)
@@ -1758,6 +1819,10 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 			count = base->market_items[gbi.iGoodID].quantity;
 
 		int price = (int)base->market_items[gbi.iGoodID].price * count;
+		int sellprice = (int)base->market_items[gbi.iGoodID].sellprice * count;
+		if (base->tax != 0) {
+			int taxcharge = price * (base->tax * 0.01);
+		}
 		int curr_money;
 		pub::Player::InspectCash(client, curr_money);
 
@@ -1784,10 +1849,13 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 
 		clients[client].stop_buy = false;
 		base->RemoveMarketGood(gbi.iGoodID, count);
-		pub::Player::AdjustCash(client, 0 - price);
-		base->ChangeMoney(price);
+		pub::Player::AdjustCash(client, 0 - sellprice);
+		//pub::Player::AdjustCash(client, 0 - sellprice - taxcharge);
+		base->ChangeMoney(sellprice);
+		//base->ChangeMoney(sellprice + taxcharge);
 		base->Save();
-
+		SendMarketGoodSync(base, client);
+		
 		//build string and log the purchase
 		const GoodInfo *gi = GoodList_get()->find_by_id(gbi.iGoodID);
 		string gname = wstos(HtmlEncode(HkGetWStringFromIDS(gi->iIDSName)));

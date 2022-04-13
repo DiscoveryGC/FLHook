@@ -4,21 +4,24 @@ const char* RECIPE_NAMES[] =
 { "Unknown", "recipe_make_dockmodule",
 	"recipe_make_jumpdrive_ii", "recipe_make_jumpdrive_iii", "recipe_make_jumpdrive_iv",
 	"recipe_make_hypscanner1", "recipe_make_hypscanner2", "recipe_make_hypscanner3",
-	"recipe_cloak_small", "recipe_cloak_medium", "recipe_cloak_large", "recipe_cloak_transport", "recipe_cloak_disruptor_1", "recipe_cloak_disruptor_2", "recipe_cloak_disruptor_3", "recipe_jdmatrix_1", 0 };
+	"recipe_cloak_small", "recipe_cloak_medium", "recipe_cloak_large", "recipe_cloak_transport",
+	"recipe_cloak_disruptor_1", "recipe_cloak_disruptor_2", "recipe_cloak_disruptor_3", "recipe_jdmatrix_1",
+	"recipe_recycled_oxygen","Unknown", "Unknown", "Unknown", "Unknown",
+	"Unknown", "Unknown", "Unknown", "Unknown", "Unknown", "recipe_recycled_water", 0};
 
 const wchar_t* FACTORY_NAMES[] =
 { L"Unknown", L"Unknown", L"Unknown", L"Unknown", L"Unknown",
 	L"Docking Module Factory", L"Jumpdrive Factory",
-	L"Hyperspace Scanner Factory", L"Cloaking Device Factory", L"Unknown", L"Unknown", L"Cloak Disruptor Factory", 0 };
+	L"Hyperspace Scanner Factory", L"Cloaking Device Factory", L"Unknown", L"Unknown", L"Cloak Disruptor Factory", L"Recycler", 0 };
 
-FactoryModule::FactoryModule(PlayerBase *the_base)
+FactoryModule::FactoryModule(PlayerBase* the_base)
 	: Module(0), base(the_base)
 {
 	active_recipe.nickname = 0;
 }
 
 // Find the recipe for this building_type and start construction.
-FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type)
+FactoryModule::FactoryModule(PlayerBase* the_base, uint the_type)
 	: Module(the_type), base(the_base)
 {
 	active_recipe.nickname = 0;
@@ -46,7 +49,7 @@ wstring FactoryModule::GetInfo(bool xml)
 				uint good = i->first;
 				uint quantity = i->second;
 
-				const GoodInfo *gi = GoodList::find_by_id(good);
+				const GoodInfo* gi = GoodList::find_by_id(good);
 				if (gi)
 				{
 					info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
@@ -72,7 +75,7 @@ wstring FactoryModule::GetInfo(bool xml)
 				uint good = i->first;
 				uint quantity = i->second;
 
-				const GoodInfo *gi = GoodList::find_by_id(good);
+				const GoodInfo* gi = GoodList::find_by_id(good);
 				if (gi)
 				{
 					info += L" " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
@@ -90,7 +93,7 @@ wstring FactoryModule::GetInfo(bool xml)
 bool FactoryModule::Timer(uint time)
 {
 
-	if ((time%set_tick_time) != 0)
+	if ((time % set_tick_time) != 0)
 		return false;
 
 	// Get the next item to make from the build queue.
@@ -138,9 +141,17 @@ bool FactoryModule::Timer(uint time)
 	if (!cooked)
 		return false;
 
+	// Logic statement for deciding how many items are produced per cycle
+	int producedNum;
+	if (type == Module::TYPE_M_RECYCLER) {
+		(producedNum = 5000);
+	}
+	else (producedNum = 1);
 	// Add the newly produced item to the market. If there is insufficient space
 	// to add the item, wait until there is space.
-	if (!base->AddMarketGood(active_recipe.produced_item, 1))
+	
+
+	if (!base->AddMarketGood(active_recipe.produced_item, producedNum))
 		return false;
 
 	// Reset the nickname to load a new item from the build queue
@@ -149,7 +160,7 @@ bool FactoryModule::Timer(uint time)
 	return false;
 }
 
-void FactoryModule::LoadState(INI_Reader &ini)
+void FactoryModule::LoadState(INI_Reader& ini)
 {
 	active_recipe.nickname = 0;
 	while (ini.read_value())
@@ -189,7 +200,7 @@ void FactoryModule::LoadState(INI_Reader &ini)
 	}
 }
 
-void FactoryModule::SaveState(FILE *file)
+void FactoryModule::SaveState(FILE* file)
 {
 	fprintf(file, "[FactoryModule]\n");
 	fprintf(file, "type = %u\n", type);
@@ -264,6 +275,15 @@ bool FactoryModule::AddToQueue(uint equipment_type)
 		}
 	}
 
+	else if (type == Module::TYPE_M_RECYCLER)
+	{
+		if (equipment_type == 16 ||
+			equipment_type == 26)
+		{
+			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
+			return true;
+		}
+	}
 	return false;
 }
 

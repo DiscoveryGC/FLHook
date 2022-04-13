@@ -17,8 +17,9 @@
 using namespace std;
 
 static uint STORAGE_MODULE_CAPACITY = 40000;
-void LogCheater(uint client, const wstring &reason);
+void LogCheater(uint client, const wstring& reason);
 uint GetAffliationFromClient(uint client);
+
 
 struct RECIPE
 {
@@ -30,6 +31,17 @@ struct RECIPE
 	map<uint, uint> consumed_items;
 	uint reqlevel;
 };
+//
+//struct REFRECIPE
+//{
+//	REFRECIPE() : produced_item(0), cooking_rate(0) {}
+//	uint nickname;
+//	uint produced_item;
+//	wstring infotext;
+//	uint cooking_rate;
+//	map<uint, uint> consumed_items;
+//	uint reqlevel;
+//};
 
 struct ARCHTYPE_STRUCT
 {
@@ -49,14 +61,15 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000) {}
+	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000), sellprice(5.0f) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
 
 	// Buy/Sell price for commodity.
 	float price;
-
+	float sellprice;
+	
 	// Stop selling if the base holds less than this number of items
 	uint min_stock;
 
@@ -89,14 +102,16 @@ public:
 	static const int TYPE_DEFENSE_2 = 9;
 	static const int TYPE_DEFENSE_3 = 10;
 	static const int TYPE_M_CLOAKDISRUPTOR = 11;
-	static const int TYPE_LAST = TYPE_M_CLOAKDISRUPTOR;
+	static const int TYPE_M_RECYCLER = 12;
+	static const int TYPE_O_REFINERY = 13;
+	static const int TYPE_LAST = TYPE_O_REFINERY;
 
 	Module(uint the_type) : type(the_type) {}
 	virtual ~Module() {}
 	virtual void Spawn() {}
 	virtual wstring GetInfo(bool xml) = 0;
-	virtual void LoadState(INI_Reader &ini) = 0;
-	virtual void SaveState(FILE *file) = 0;
+	virtual void LoadState(INI_Reader& ini) = 0;
+	virtual void SaveState(FILE* file) = 0;
 
 	virtual bool Timer(uint time) { return false; }
 
@@ -109,7 +124,7 @@ public:
 class CoreModule : public Module
 {
 public:
-	PlayerBase *base;
+	PlayerBase* base;
 
 	// The space ID of this base
 	uint space_obj;
@@ -126,13 +141,13 @@ public:
 	// The list of goods and usage of goods per minute for the autosys effect
 	map<uint, uint> mapHumansysGood;
 
-	CoreModule(PlayerBase *the_base);
+	CoreModule(PlayerBase* the_base);
 	~CoreModule();
 	void Spawn();
 	wstring GetInfo(bool xml);
 
-	void LoadState(INI_Reader &ini);
-	void SaveState(FILE *file);
+	void LoadState(INI_Reader& ini);
+	void SaveState(FILE* file);
 
 	bool Timer(uint time);
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
@@ -145,18 +160,18 @@ public:
 class ShieldModule : public Module
 {
 public:
-	PlayerBase *base;
+	PlayerBase* base;
 
 	// If true then a player has entered the system and so we reset the fuse
 	// so that they see the shield
 	bool reset_needed;
 
-	ShieldModule(PlayerBase *the_base);
+	ShieldModule(PlayerBase* the_base);
 	~ShieldModule();
 	wstring GetInfo(bool xml);
 
-	void LoadState(INI_Reader &ini);
-	void SaveState(FILE *file);
+	void LoadState(INI_Reader& ini);
+	void SaveState(FILE* file);
 
 	bool Timer(uint time);
 	void SetReputation(int player_rep, float attitude);
@@ -167,20 +182,20 @@ public:
 class StorageModule : public Module
 {
 public:
-	PlayerBase *base;
+	PlayerBase* base;
 
-	StorageModule(PlayerBase *the_base);
+	StorageModule(PlayerBase* the_base);
 	~StorageModule();
 	wstring GetInfo(bool xml);
 
-	void LoadState(INI_Reader &ini);
-	void SaveState(FILE *file);
+	void LoadState(INI_Reader& ini);
+	void SaveState(FILE* file);
 };
 
 class DefenseModule : public Module
 {
 public:
-	PlayerBase *base;
+	PlayerBase* base;
 
 	// The space object of the platform
 	uint space_obj;
@@ -191,13 +206,13 @@ public:
 	// The orientation of the platform
 	Vector rot;
 
-	DefenseModule(PlayerBase *the_base);
-	DefenseModule(PlayerBase *the_base, uint the_type);
+	DefenseModule(PlayerBase* the_base);
+	DefenseModule(PlayerBase* the_base, uint the_type);
 	~DefenseModule();
 	wstring GetInfo(bool xml);
 
-	void LoadState(INI_Reader &ini);
-	void SaveState(FILE *file);
+	void LoadState(INI_Reader& ini);
+	void SaveState(FILE* file);
 
 	bool Timer(uint time);
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
@@ -209,20 +224,20 @@ public:
 class BuildModule : public Module
 {
 public:
-	PlayerBase *base;
+	PlayerBase* base;
 
 	int build_type;
 
 	RECIPE active_recipe;
 
-	BuildModule(PlayerBase *the_base);
-	BuildModule(PlayerBase *the_base, uint the_building_type);
+	BuildModule(PlayerBase* the_base);
+	BuildModule(PlayerBase* the_base, uint the_building_type);
 
 	wstring GetInfo(bool xml);
 
 	bool Paused = false;
-	void LoadState(INI_Reader &ini);
-	void SaveState(FILE *file);
+	void LoadState(INI_Reader& ini);
+	void SaveState(FILE* file);
 
 	bool Timer(uint time);
 };
@@ -230,7 +245,7 @@ public:
 class FactoryModule : public Module
 {
 public:
-	PlayerBase *base;
+	PlayerBase* base;
 
 	// The currently active recipe
 	RECIPE active_recipe;
@@ -238,11 +253,36 @@ public:
 	// List of queued recipes;
 	list<uint> build_queue;
 
-	FactoryModule(PlayerBase *the_base);
-	FactoryModule(PlayerBase *the_base, uint type);
+	FactoryModule(PlayerBase* the_base);
+	FactoryModule(PlayerBase* the_base, uint type);
 	wstring GetInfo(bool xml);
-	void LoadState(INI_Reader &ini);
-	void SaveState(FILE *file);
+	void LoadState(INI_Reader& ini);
+	void SaveState(FILE* file);
+	bool Timer(uint time);
+
+	bool Paused = false;
+	bool ToggleQueuePaused(bool NewState);
+	bool AddToQueue(uint the_equipment_type);
+	bool ClearQueue();
+	void ClearRecipe();
+};
+
+class RefineryModule : public Module
+{
+public:
+	PlayerBase* base;
+
+	// The currently active recipe
+	RECIPE active_recipe;
+
+	// List of queued recipes;
+	list<uint> build_queue;
+
+	RefineryModule(PlayerBase* the_base);
+	RefineryModule(PlayerBase* the_base, uint type);
+	wstring GetInfo(bool xml);
+	void LoadState(INI_Reader& ini);
+	void SaveState(FILE* file);
 	bool Timer(uint time);
 
 	bool Paused = false;
@@ -269,8 +309,8 @@ inline bool operator ==(const BasePassword& lhs, const BasePassword& rhs)
 class PlayerBase
 {
 public:
-	PlayerBase(uint client, const wstring &password, const wstring &basename);
-	PlayerBase(const string &path);
+	PlayerBase(uint client, const wstring& password, const wstring& basename);
+	PlayerBase(const string& path);
 	~PlayerBase();
 
 	void Spawn();
@@ -288,7 +328,7 @@ public:
 	uint GetMaxCargoSpace();
 	uint HasMarketItem(uint good);
 
-	static string CreateBaseNickname(const string &basename);
+	static string CreateBaseNickname(const string& basename);
 
 	float GetAttitudeTowardsClient(uint client, bool emulated_siege_mode = false);
 	void SyncReputationForBase();
@@ -339,6 +379,9 @@ public:
 
 	// The money this base has
 	INT64 money;
+	
+	// The current tax rate
+	int tax;
 
 	// The current hit points of the base
 	float base_health;
@@ -425,26 +468,26 @@ public:
 	/////////////////////////////////////////
 };
 
-PlayerBase *GetPlayerBase(uint base);
-PlayerBase *GetPlayerBaseForClient(uint client);
+PlayerBase* GetPlayerBase(uint base);
+PlayerBase* GetPlayerBaseForClient(uint client);
 
-void BaseLogging(const char *szString, ...);
+void BaseLogging(const char* szString, ...);
 
 void SaveBases();
-void DeleteBase(PlayerBase *base);
+void DeleteBase(PlayerBase* base);
 void LoadDockState(uint client);
 void SaveDockState(uint client);
 void DeleteDockState(uint client);
 
 /// Send a command to the client at destination ID 0x9999
-void SendCommand(uint client, const wstring &message);
-void SendSetBaseInfoText(uint client, const wstring &message);
-void SendSetBaseInfoText2(uint client, const wstring &message);
+void SendCommand(uint client, const wstring& message);
+void SendSetBaseInfoText(uint client, const wstring& message);
+void SendSetBaseInfoText2(uint client, const wstring& message);
 void SendResetMarketOverride(uint client);
-void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item);
-void SendMarketGoodSync(PlayerBase *base, uint client);
-void SendBaseStatus(uint client, PlayerBase *base);
-void SendBaseStatus(PlayerBase *base);
+void SendMarketGoodUpdated(PlayerBase* base, uint good, MARKET_ITEM& item);
+void SendMarketGoodSync(PlayerBase* base, uint client);
+void SendBaseStatus(uint client, PlayerBase* base);
+void SendBaseStatus(PlayerBase* base);
 void ForceLaunch(uint client);
 
 struct CLIENT_DATA
@@ -483,7 +526,7 @@ namespace ExportData
 
 namespace Siege
 {
-	void SiegeGunDeploy(uint client, const wstring &args);
+	void SiegeGunDeploy(uint client, const wstring& args);
 	int CalculateHealthPercentage(uint basehash, int health, int maxhealth);
 	void SiegeAudioNotification(uint iClientID, int level);
 	void SiegeAudioCalc(uint basehash, uint iSystemID, Vector pos, int level);
@@ -499,43 +542,46 @@ namespace AP
 
 namespace PlayerCommands
 {
-	void BaseHelp(uint client, const wstring &args);
+	void BaseHelp(uint client, const wstring& args);
 
-	void BaseLogin(uint client, const wstring &args);
-	void BaseAddPwd(uint client, const wstring &args);
-	void BaseRmPwd(uint client, const wstring &args);
-	void BaseLstPwd(uint client, const wstring &args);
-	void BaseSetMasterPwd(uint client, const wstring &args);
+	void BaseLogin(uint client, const wstring& args);
+	void BaseAddPwd(uint client, const wstring& args);
+	void BaseRmPwd(uint client, const wstring& args);
+	void BaseLstPwd(uint client, const wstring& args);
+	void BaseSetMasterPwd(uint client, const wstring& args);
 
-	void BaseAddAllyTag(uint client, const wstring &args);
-	void BaseRmAllyTag(uint client, const wstring &args);
-	void BaseLstAllyTag(uint client, const wstring &args);
-	void BaseAddAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
-	void BaseRmAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
-	void BaseClearAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
-	void BaseLstAllyFac(uint client, const wstring &args, bool HostileFactionMod = false);
-	void BaseViewMyFac(uint client, const wstring &args);
-	void BaseAddHostileTag(uint client, const wstring &args);
-	void BaseRmHostileTag(uint client, const wstring &args);
-	void BaseLstHostileTag(uint client, const wstring &args);
-	void BaseRep(uint client, const wstring &args);
+	void BaseAddAllyTag(uint client, const wstring& args);
+	void BaseRmAllyTag(uint client, const wstring& args);
+	void BaseLstAllyTag(uint client, const wstring& args);
+	void BaseAddAllyFac(uint client, const wstring& args, bool HostileFactionMod = false);
+	void BaseRmAllyFac(uint client, const wstring& args, bool HostileFactionMod = false);
+	void BaseClearAllyFac(uint client, const wstring& args, bool HostileFactionMod = false);
+	void BaseLstAllyFac(uint client, const wstring& args, bool HostileFactionMod = false);
+	void BaseViewMyFac(uint client, const wstring& args);
+	void BaseAddHostileTag(uint client, const wstring& args);
+	void BaseRmHostileTag(uint client, const wstring& args);
+	void BaseLstHostileTag(uint client, const wstring& args);
+	void BaseRep(uint client, const wstring& args);
 
-	void BaseInfo(uint client, const wstring &args);
-	void BaseDefenseMode(uint client, const wstring &args);
-	void BaseDefMod(uint client, const wstring &args);
-	void BaseBuildMod(uint client, const wstring &args);
-	void BaseFacMod(uint client, const wstring &args);
-	void BaseShieldMod(uint client, const wstring &args);
-	void Bank(uint client, const wstring &args);
-	void Shop(uint client, const wstring &args);
-
-	void BaseDeploy(uint client, const wstring &args);
+	void BaseInfo(uint client, const wstring& args);
+	void BaseDefenseMode(uint client, const wstring& args);
+	void BaseDefMod(uint client, const wstring& args);
+	void BaseBuildMod(uint client, const wstring& args);
+	void BaseFacMod(uint client, const wstring& args);
+	void BaseRefMod(uint client, const wstring& args);
+	void BaseShieldMod(uint client, const wstring& args);
+	void Bank(uint client, const wstring& args);
+	void TaxRate(uint client, const wstring& args);
+	void Shop(uint client, const wstring& args);
+	void PriceView(uint client, const wstring& args);
+	
+	void BaseDeploy(uint client, const wstring& args);
 
 	void Aff_initer();
 }
 
 namespace Log {
-	void LogBaseAction(string basename, const char *message);
+	void LogBaseAction(string basename, const char* message);
 	void LogGenericAction(string message);
 }
 
@@ -615,7 +661,7 @@ wstring HtmlEncode(wstring text);
 extern string set_status_path_html;
 extern string set_status_path_json;
 
-extern const char* MODULE_TYPE_NICKNAMES[13];
+extern const char* MODULE_TYPE_NICKNAMES[15];
 
 extern float damage_threshold;
 

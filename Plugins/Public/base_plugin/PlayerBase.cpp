@@ -251,7 +251,7 @@ void PlayerBase::Load()
 						mi.max_stock = ini.get_value_int(4);
 						mi.sellprice = ini.get_value_float(5);
 						//this prevents client crashes for null values in the sell field when we
-						//first lost the server after adding sell functionality.
+						//first load the server after adding sell functionality.
 						if (mi.sellprice == 0) {
 							mi.sellprice = mi.price; 
 						}

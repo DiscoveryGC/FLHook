@@ -1244,7 +1244,7 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|     <type> = 10 - defense platform array type 3");
 			PrintUserCmdText(client, L"|     <type> = 11 - Cloak Disruptor Factory");
 			PrintUserCmdText(client, L"|     <type> = 12 - Recycler");
-			PrintUserCmdText(client, L"|     <type> = 13 - Refineries");
+			PrintUserCmdText(client, L"|     <type> = 13 - Ore Refinery");
 		}
 	}
 

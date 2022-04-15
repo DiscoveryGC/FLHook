@@ -140,7 +140,8 @@ bool RefineryModule::Timer(uint time)
 	if (!cooked)
 		return false;
 
-	int producedNum = 4000;
+	//Ore Refineries to convert 12,000 ore into 10,000 refined material for now
+	int producedNum = 10000;
 	// Add the newly produced item to the market. If there is insufficient space
 	// to add the item, wait until there is space.
 

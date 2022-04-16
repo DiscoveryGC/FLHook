@@ -56,10 +56,10 @@ namespace PlayerCommands
 		pages[1] = L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
 
-			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the [price] of [item]. If the current stock is less than [min stock]"
-			L" then the item cannot be bought by docked ships. If the current stock is more or equal"
-			L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
+			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock] [sellprice]</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Set the prices of [item]. [price] is what the base buys from players for. [sellprice] is what the base sells to players for."
+			L" If the current stock is less than [min stock] then the item cannot be bought by docked ships. If the current stock"
+			L"is more or equal to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
 			L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
 			L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
 
@@ -67,7 +67,12 @@ namespace PlayerCommands
 			L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/shop [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT>";
+			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT><PARA/>"
+
+			L"<TRA bold=\"true\"/><TEXT>/price [buy]/[sell] </TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Change the dealer view to see what the base is currently buying an item for (/price buy)"
+			L" or what the base is selling an item for (/price sell).</TEXT>"
+			L"<TEXT>By default, if there is none on base, the view displays what the base buys it for, otherwise, it displays what it sells it for.</TEXT><PARA/>";
 
 		pages[2] = L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
@@ -84,6 +89,7 @@ namespace PlayerCommands
 
 			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Set the base's infocard description.</TEXT>";
+
 
 		pages[3] = L"<TRA bold=\"true\"/><TEXT>/base facmod</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control factory modules.</TEXT><PARA/><PARA/>"
@@ -1669,7 +1675,7 @@ namespace PlayerCommands
 			}
 		}
 
-		int pages = (matchingItems / 40) + 1;
+		int pages = (matchingItems / 30) + 1;
 		if (page > pages)
 			page = pages;
 		else if (page < 1)
@@ -1679,8 +1685,8 @@ namespace PlayerCommands
 		_snwprintf(buf, sizeof(buf), L"Shop Management : Page %d/%d", page, pages);
 		wstring title = buf;
 
-		int start_item = ((page - 1) * 40) + 1;
-		int end_item = page * 40;
+		int start_item = ((page - 1) * 30) + 1;
+		int end_item = page * 30;
 
 		wstring status = L"<RDL><PUSH/>";
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
@@ -1713,9 +1719,9 @@ namespace PlayerCommands
 					continue;
 				}
 				wchar_t buf[1000];
-				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max</TEXT><PARA/>",
+				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max %0.0f credits (sell)</TEXT><PARA/>",
 					globalItem, i->second.quantity, HtmlEncode(name).c_str(),
-					i->second.price, i->second.min_stock, i->second.max_stock);
+					i->second.price, i->second.min_stock, i->second.max_stock, i->second.sellprice);
 				status += buf;
 				item++;
 			}
@@ -1734,6 +1740,65 @@ namespace PlayerCommands
 		message.end_mad_lib();
 
 		pub::Player::PopUpDialog(client, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
+	}
+
+	//FL only supports one "price" in the dealer menu, this function gives players a command to 
+	//switch the view between the bases "buy" and "sell" price
+	void PriceView(uint client, const wstring& args)
+	{
+		// Check that this player is in a player controlled base
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+		SendResetMarketOverride(client);
+		const wstring& cmd = GetParam(args, ' ', 1);
+		// Send the market
+		if (cmd == L"buy")
+		{
+			for (map<uint, MARKET_ITEM>::iterator i = base->market_items.begin();
+				i != base->market_items.end(); i++)
+			{
+				uint good = i->first;
+				MARKET_ITEM& item = i->second;
+				wchar_t buf[200];
+
+				//this if statement prevents items intended to be hidden from being displayed
+				//when the /pice commands run
+				if (item.min_stock > 2000 || (item.min_stock == item.max_stock)) {
+					continue;
+				}
+				_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
+					base->proxy_base, good, item.price, 0, item.quantity);
+				SendCommand(client, buf);
+
+			}
+		}
+		else if (cmd == L"sell")
+		{
+			for (map<uint, MARKET_ITEM>::iterator i = base->market_items.begin();
+				i != base->market_items.end(); i++)
+			{
+				uint good = i->first;
+				MARKET_ITEM& item = i->second;
+				wchar_t buf[200];
+				if (item.min_stock > 2000 || (item.min_stock == item.max_stock)) {
+					continue;
+				}
+				_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
+					base->proxy_base, good, item.sellprice, 0, item.quantity);
+				SendCommand(client, buf);
+
+
+			}
+		}
+		else
+		{
+			PrintUserCmdText(client, L"ERR Invalid command. Format is /price buy or /price sell");
+		}
+
 	}
 
 	void Shop(uint client, const wstring &args)
@@ -1759,6 +1824,8 @@ namespace PlayerCommands
 			int money = ToInt(GetParam(args, ' ', 3));
 			int min_stock = ToInt(GetParam(args, ' ', 4));
 			int max_stock = ToInt(GetParam(args, ' ', 5));
+			int sellmoney = ToInt(GetParam(args, ' ', 6));
+
 
 			if (money < 1 || money > 1000000000)
 			{
@@ -1774,10 +1841,11 @@ namespace PlayerCommands
 					i->second.price = (float)money;
 					i->second.min_stock = min_stock;
 					i->second.max_stock = max_stock;
+					i->second.sellprice = (float)sellmoney;
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->Save();
-
-					int page = ((curr_item + 39) / 40);
+					//lowering how much appears on a page to keep the card from bugging out with new sell content
+					int page = ((curr_item + 29) / 30);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					return;
@@ -1798,6 +1866,7 @@ namespace PlayerCommands
 					i->second.quantity = 0;
 					i->second.min_stock = 0;
 					i->second.max_stock = 0;
+					i->second.sellprice = 0;
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->market_items.erase(i->first);
 					base->Save();

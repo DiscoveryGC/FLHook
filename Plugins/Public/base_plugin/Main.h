@@ -49,13 +49,14 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000) {}
+	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000), sellprice (5.0f) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
 
 	// Buy/Sell price for commodity.
 	float price;
+	float sellprice;
 
 	// Stop selling if the base holds less than this number of items
 	uint min_stock;
@@ -528,6 +529,7 @@ namespace PlayerCommands
 	void BaseShieldMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
+	void PriceView(uint client, const wstring& args);
 
 	void BaseDeploy(uint client, const wstring &args);
 

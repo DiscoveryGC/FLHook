@@ -51,7 +51,7 @@ void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item)
 				else
 				{
 					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-						base->proxy_base, good, item.price, 0, item.quantity);
+						base->proxy_base, good, item.sellprice, 0, item.quantity);
 				}
 				SendCommand(client, buf);
 			}
@@ -93,7 +93,7 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 		else
 		{
 			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-				base->proxy_base, good, item.price, 0, item.quantity);
+				base->proxy_base, good, item.sellprice, 0, item.quantity);
 		}
 		SendCommand(client, buf);
 	}

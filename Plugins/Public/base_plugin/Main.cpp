@@ -1108,6 +1108,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::Shop(client, args);
 		return true;
 	}
+	else if (args.find(L"/price") == 0)
+	{
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	PlayerCommands::PriceView(client, args);
+	return true;
+	}
 	else if (args.find(L"/bank") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1567,6 +1573,7 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 
 		uint count = gsi.iCount;
 		int price = (int)item.price * count;
+		int sellprice = (int)item.sellprice * count;
 
 		// base money check //
 		if (count > ULONG_MAX / item.price)
@@ -1758,6 +1765,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 			count = base->market_items[gbi.iGoodID].quantity;
 
 		int price = (int)base->market_items[gbi.iGoodID].price * count;
+		int sellprice = (int)base->market_items[gbi.iGoodID].sellprice * count;
 		int curr_money;
 		pub::Player::InspectCash(client, curr_money);
 
@@ -1784,8 +1792,8 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 
 		clients[client].stop_buy = false;
 		base->RemoveMarketGood(gbi.iGoodID, count);
-		pub::Player::AdjustCash(client, 0 - price);
-		base->ChangeMoney(price);
+		pub::Player::AdjustCash(client, 0 - sellprice);
+		base->ChangeMoney(sellprice);
 		base->Save();
 
 		//build string and log the purchase

@@ -1572,21 +1572,21 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		MARKET_ITEM &item = base->market_items[gsi.iArchID];
 
 		uint count = gsi.iCount;
-		int price = (int)item.price * count;
+		int buyprice = (int)item.buyprice * count;
 		int sellprice = (int)item.sellprice * count;
 
 		// base money check //
-		if (count > ULONG_MAX / item.price)
+		if (count > ULONG_MAX / item.buyprice)
 		{
 			clients[client].reverse_sell = true;
 			PrintUserCmdText(client, L"KITTY ALERT. Illegal sale detected.");
 
 			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
 			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-			wstring wscMsgU = L"KITTY ALERT: Possible type 3 POB cheating by %name (Count = %count, Price = %price)\n";
+			wstring wscMsgU = L"KITTY ALERT: Possible type 3 POB cheating by %name (Count = %count, Price = %buyprice)\n";
 			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
 			wscMsgU = ReplaceStr(wscMsgU, L"%count", stows(itos(count)).c_str());
-			wscMsgU = ReplaceStr(wscMsgU, L"%price", stows(itos((int)item.price)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%buyprice", stows(itos((int)item.buyprice)).c_str());
 
 			ConPrint(wscMsgU);
 			LogCheater(client, wscMsgU);
@@ -1594,17 +1594,17 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 			return;
 		}
 
-		if (price < 0)
+		if (buyprice < 0)
 		{
 			clients[client].reverse_sell = true;
 			PrintUserCmdText(client, L"KITTY ALERT. Illegal sale detected.");
 
 			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
 			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-			wstring wscMsgU = L"KITTY ALERT: Possible type 4 POB cheating by %name (Count = %count, Price = %price)\n";
+			wstring wscMsgU = L"KITTY ALERT: Possible type 4 POB cheating by %name (Count = %count, Price = %buyprice)\n";
 			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
 			wscMsgU = ReplaceStr(wscMsgU, L"%count", stows(itos(count)).c_str());
-			wscMsgU = ReplaceStr(wscMsgU, L"%price", stows(itos((int)item.price)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%buyprice", stows(itos((int)item.buyprice)).c_str());
 
 			ConPrint(wscMsgU);
 			LogCheater(client, wscMsgU);
@@ -1614,7 +1614,7 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 
 		// If the base doesn't have sufficient cash to support this purchase
 		// reduce the amount purchased and shift the cargo back to the ship.
-		if (base->money < price)
+		if (base->money < buyprice)
 		{
 			PrintUserCmdText(client, L"ERR: Base cannot accept goods, insufficient cash");
 			clients[client].reverse_sell = true;
@@ -1636,9 +1636,9 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		pub::Player::InspectCash(client, iCurrMoney);
 
 		long long lNewMoney = iCurrMoney;
-		lNewMoney += price;
+		lNewMoney += buyprice;
 
-		if (fValue + price > 2100000000 || lNewMoney > 2100000000)
+		if (fValue + buyprice > 2100000000 || lNewMoney > 2100000000)
 		{
 			PrintUserCmdText(client, L"ERR: Character too valuable.");
 			clients[client].reverse_sell = true;
@@ -1659,8 +1659,8 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 			return;
 		}
 
-		pub::Player::AdjustCash(client, price);
-		base->ChangeMoney(0 - price);
+		pub::Player::AdjustCash(client, buyprice);
+		base->ChangeMoney(0 - buyprice);
 		base->Save();
 
 		if (listCommodities.find(gsi.iArchID) != listCommodities.end())
@@ -1764,7 +1764,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 		if (count > base->market_items[gbi.iGoodID].quantity)
 			count = base->market_items[gbi.iGoodID].quantity;
 
-		int price = (int)base->market_items[gbi.iGoodID].price * count;
+		int buyprice = (int)base->market_items[gbi.iGoodID].buyprice * count;
 		int sellprice = (int)base->market_items[gbi.iGoodID].sellprice * count;
 		int curr_money;
 		pub::Player::InspectCash(client, curr_money);
@@ -1779,7 +1779,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 			clients[client].stop_buy = true;
 			return;
 		}
-		else if (curr_money < price)
+		else if (curr_money < buyprice)
 		{
 			PrintUserCmdText(client, L"ERR Not enough credits");
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -2687,12 +2687,12 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			PlayerBase *base = GetPlayerBaseForClient(info->iClientID);
 
 			MARKET_ITEM &item = base->market_items[lastTransactionArchID];
-			int price = (int)item.price * lastTransactionCount;
+			int buyprice = (int)item.buyprice * lastTransactionCount;
 
 			base->RemoveMarketGood(lastTransactionArchID, lastTransactionCount);
 
-			pub::Player::AdjustCash(info->iClientID, -price);
-			base->ChangeMoney(price);
+			pub::Player::AdjustCash(info->iClientID, - buyprice);
+			base->ChangeMoney(buyprice);
 			base->Save();
 		}
 	}

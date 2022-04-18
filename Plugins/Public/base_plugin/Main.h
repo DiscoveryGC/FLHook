@@ -49,13 +49,13 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000), sellprice (5.0f) {}
+	MARKET_ITEM() : quantity(0), buyprice(1.0f), min_stock(100000), max_stock(100000), sellprice (5.0f) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
 
 	// Buy/Sell price for commodity.
-	float price;
+	float buyprice;
 	float sellprice;
 
 	// Stop selling if the base holds less than this number of items

@@ -1412,6 +1412,7 @@ void __stdcall BaseEnter(uint base, uint client)
 			// Reset the commodity list	and send a dummy entry if there are no
 			// commodities in the market
 			SaveDockState(client);
+			PlayerCommands::BaseMarketDisclaimer(client);
 			SendMarketGoodSync(base, client);
 			SendBaseStatus(client, base);
 			return;
@@ -1564,7 +1565,7 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		if (base->market_items.find(gsi.iArchID) == base->market_items.end()
 			&& !clients[client].admin)
 		{
-			PrintUserCmdText(client, L"ERR: Base will not accept goods");
+			PrintUserCmdText(client, L"ERR: Base does not deal in these goods right now");
 			clients[client].reverse_sell = true;
 			return;
 		}

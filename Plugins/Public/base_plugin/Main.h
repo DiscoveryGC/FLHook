@@ -530,6 +530,7 @@ namespace PlayerCommands
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
 	void PriceView(uint client, const wstring& args);
+	void BaseMarketDisclaimer(uint client);
 
 	void BaseDeploy(uint client, const wstring &args);
 

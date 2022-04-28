@@ -1898,6 +1898,52 @@ namespace PlayerCommands
 		}
 	}
 
+	void BaseMarketDisclaimer(uint client)
+	{
+
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		const uint numPages = 1;
+		wstring pages[numPages];
+		pages[0] = L"<TRA bold=\"true\"/><TEXT>Market Functionality Disclaimer:</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>We have added the functionality for player bases to have both \"buy\" and \"sell\" prices.</TEXT><PARA/>"
+			L"<TEXT>However, due to the coding limits within Freelancer, a method of showing 2 different prices in the </TEXT>"
+			L"<TEXT>dealer/trader window has not been found to work in a way that rules out all potential problems.</TEXT><PARA/><PARA/>"
+
+			L"<TEXT>Therefore, the player inventory in the market will show no value until you select whether you wish to see </TEXT>"
+			L"<TEXT>either the bases \"buy\" price (what the base buys from you for), or the bases \"sell\" price (what the base sells to you for)</TEXT><PARA/><PARA/>"
+
+			L"<TRA bold=\"true\"/><TEXT>/price [buy]/[sell] </TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Change the dealer view to see what the base is currently buying an item for (/price buy)"
+			L" or what the base is selling an item for (/price sell).</TEXT>";
+
+		wstring pagetext = pages[0];
+
+		wchar_t titleBuf[4000];
+		_snwprintf(titleBuf, sizeof(titleBuf), L"Market Disclaimer");
+
+		wchar_t buf[4000];
+		_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%s<POP/></RDL>", pagetext);
+
+		HkChangeIDSString(client, 500000, titleBuf);
+		HkChangeIDSString(client, 500001, buf);
+
+		FmtStr caption(0, 0);
+		caption.begin_mad_lib(500000);
+		caption.end_mad_lib();
+
+		FmtStr message(0, 0);
+		message.begin_mad_lib(500001);
+		message.end_mad_lib();
+
+		pub::Player::PopUpDialog(client, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
+	}
+
 	void BaseDeploy(uint client, const wstring &args)
 	{
 		if (set_holiday_mode)

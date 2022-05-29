@@ -246,9 +246,13 @@ void PlayerBase::Load()
 						MARKET_ITEM mi;
 						UINT good = ini.get_value_int(0);
 						mi.quantity = ini.get_value_int(1);
-						mi.price = ini.get_value_float(2);
+						mi.buyprice = ini.get_value_float(2);
 						mi.min_stock = ini.get_value_int(3);
 						mi.max_stock = ini.get_value_int(4);
+						mi.sellprice = ini.get_value_float(5);
+						// Set all sell prices equivalent to buy prices upon adding this feature
+						if (mi.sellprice == 0)
+							mi.sellprice = mi.buyprice;
 						market_items[good] = mi;
 					}
 					else if (ini.is_value("health"))
@@ -395,8 +399,8 @@ void PlayerBase::Save()
 		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
 			i != market_items.end(); ++i)
 		{
-			fprintf(file, "commodity = %u, %u, %f, %u, %u\n",
-				i->first, i->second.quantity, i->second.price, i->second.min_stock, i->second.max_stock);
+			fprintf(file, "commodity = %u, %u, %f, %u, %u, %f\n",
+				i->first, i->second.quantity, i->second.buyprice, i->second.min_stock, i->second.max_stock, i->second.sellprice);
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);

@@ -56,10 +56,10 @@ namespace PlayerCommands
 		pages[1] = L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
 
-			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the [price] of [item]. If the current stock is less than [min stock]"
-			L" then the item cannot be bought by docked ships. If the current stock is more or equal"
-			L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
+			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock] [sellprice]</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Set the prices of [item]. [price] is what the base buys from players for. [sellprice] is what the base sells to players for."
+			L" If the current stock is less than [min stock] then the item cannot be bought by docked ships. If the current stock"
+			L"is more or equal to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
 			L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
 			L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
 
@@ -67,7 +67,12 @@ namespace PlayerCommands
 			L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/shop [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT>";
+			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT><PARA/><PARA/>"
+
+			L"<TRA bold=\"true\"/><TEXT>/price [buy]/[sell] </TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Change the dealer view to see what the base is currently buying an item for (/price buy)"
+			L" or what the base is selling an item for (/price sell).</TEXT>"
+			L"<TEXT>By default, if there is none on base, the view displays what the base buys it for, otherwise, it displays what it sells it for.</TEXT><PARA/>";
 
 		pages[2] = L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
@@ -162,9 +167,9 @@ namespace PlayerCommands
 		{
 			PrintUserCmdText(client, L"ERR You are attempting to log in too often. %d unsuccesful attempts. Wait %d seconds before repeating attempt.", base->unsuccessful_logins_in_a_row[charname], waittime);
 			return true;
-		} 
-		
-		if (base->unsuccessful_logins_in_a_row[charname] >= amount_of_attempts_to_reach_penalty) 
+		}
+
+		if (base->unsuccessful_logins_in_a_row[charname] >= amount_of_attempts_to_reach_penalty)
 			base->unsuccessful_logins_in_a_row[charname] = 0;
 
 		return false;
@@ -267,9 +272,9 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"OK");
 	}
 
-	void BaseRmPwd(uint client, const wstring &args)
+	void BaseRmPwd(uint client, const wstring& args)
 	{
-		PlayerBase *base = GetPlayerBaseForClient(client);
+		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (!base)
 		{
 			PrintUserCmdText(client, L"ERR Not in player base");
@@ -621,7 +626,7 @@ namespace PlayerCommands
 
 		list<AffCell> AffList;
 
-		static bool IDComparision(AffCell & obj, int y)
+		static bool IDComparision(AffCell &obj, int y)
 		{
 			if (obj.GetID() == y)
 				return true;
@@ -686,19 +691,19 @@ namespace PlayerCommands
 			{
 				if (factions.size() == 0)
 					LoadListOfReps();
-				
+
 				for (map<string, uint>::iterator iter = factions.begin(); iter != factions.end(); iter++)
 				{
 					string factionnickname = iter->first;
 					//MakeID function (in built in Flhook) is the same as mentioned here in C# to CreateFactionID https://github.com/DiscoveryGC/FLHook/blob/master/Plugins/Public/playercntl_plugin/setup_src/FLUtility.cs
-					uint ID = MakeId(factionnickname.c_str()); 
+					uint ID = MakeId(factionnickname.c_str());
 					wstring factionname = GetFactionName(ID);
 					AffList.push_front({ stows(factionnickname), factionname, ID });
 				}
 			}
 			ConPrint(L"base: AffList was loaded succesfully.\n");
 		}
-		public:
+	public:
 		void Init()
 		{
 			LoadAffList();
@@ -751,7 +756,7 @@ namespace PlayerCommands
 			theaffiliation = L"Unknown Reputation";
 		PrintUserCmdText(client, L"Ship IFF ID: %d, %s", aff, theaffiliation.c_str());
 	}
-	
+
 	void BaseRep(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -815,9 +820,9 @@ namespace PlayerCommands
 		}
 	}
 
-	void BaseAddHostileTag(uint client, const wstring &args)
+	void BaseAddHostileTag(uint client, const wstring& args)
 	{
-		PlayerBase *base = GetPlayerBaseForClient(client);
+		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (!base)
 		{
 			PrintUserCmdText(client, L"ERR Not in player base");
@@ -905,9 +910,9 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"OK");
 	}
 
-	void BaseLstHostileTag(uint client, const wstring &cmd)
+	void BaseLstHostileTag(uint client, const wstring& cmd)
 	{
-		PlayerBase *base = GetPlayerBaseForClient(client);
+		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (!base)
 		{
 			PrintUserCmdText(client, L"ERR Not in player base");
@@ -992,9 +997,9 @@ namespace PlayerCommands
 		}
 	}
 
-	void BaseDefenseMode(uint client, const wstring &args)
+	void BaseDefenseMode(uint client, const wstring& args)
 	{
-		PlayerBase *base = GetPlayerBaseForClient(client);
+		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (!base)
 		{
 			PrintUserCmdText(client, L"ERR Not in player base");
@@ -1139,7 +1144,7 @@ namespace PlayerCommands
 			}
 
 			base->Save();
-			
+
 		}
 		else if (cmd == L"resume")
 		{
@@ -1408,7 +1413,7 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
 
 			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
-			
+
 			PrintUserCmdText(client, L"|  add <index> <type> - add item <type> to build queue for factory module at <index>");
 			PrintUserCmdText(client, L"|     For Docking Module Factory:");
 			PrintUserCmdText(client, L"|     <type> = 1 - docking module type 1");
@@ -1654,7 +1659,12 @@ namespace PlayerCommands
 		}
 	}
 
-	static void ShowShopStatus(uint client, PlayerBase *base, wstring substring, int page)
+	int itemsPerPage = 30;
+	//how many rows to display in the Shop menu. This is used in both 
+	//ShowShopStatus and Shop functions. This value was reduced with teh addition
+	// of the sellprice field
+
+	static void ShowShopStatus(uint client, PlayerBase* base, wstring substring, int page)
 	{
 		int matchingItems = 0;
 		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i)
@@ -1669,7 +1679,7 @@ namespace PlayerCommands
 			}
 		}
 
-		int pages = (matchingItems / 40) + 1;
+		int pages = (matchingItems / itemsPerPage) + 1;
 		if (page > pages)
 			page = pages;
 		else if (page < 1)
@@ -1679,14 +1689,14 @@ namespace PlayerCommands
 		_snwprintf(buf, sizeof(buf), L"Shop Management : Page %d/%d", page, pages);
 		wstring title = buf;
 
-		int start_item = ((page - 1) * 40) + 1;
-		int end_item = page * 40;
+		int start_item = ((page - 1) * itemsPerPage) + 1;
+		int end_item = page * itemsPerPage;
 
 		wstring status = L"<RDL><PUSH/>";
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
 		if (clients[client].admin)
 		{
-			status += L"<TEXT>  /shop price [item] [price] [min stock] [max stock]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop price [item] [buy] [min stock] [max stock] [sell]</TEXT><PARA/>";
 			status += L"<TEXT>  /shop remove [item]</TEXT><PARA/>";
 		}
 		status += L"<TEXT>  /shop [page]</TEXT><PARA/><TEXT>  /shop filter [substring] [page]</TEXT><PARA/><PARA/>";
@@ -1713,9 +1723,9 @@ namespace PlayerCommands
 					continue;
 				}
 				wchar_t buf[1000];
-				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max</TEXT><PARA/>",
+				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max %0.0f credits (sell)</TEXT><PARA/>",
 					globalItem, i->second.quantity, HtmlEncode(name).c_str(),
-					i->second.price, i->second.min_stock, i->second.max_stock);
+					i->second.buyprice, i->second.min_stock, i->second.max_stock, i->second.sellprice);
 				status += buf;
 				item++;
 			}
@@ -1736,7 +1746,9 @@ namespace PlayerCommands
 		pub::Player::PopUpDialog(client, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
 	}
 
-	void Shop(uint client, const wstring &args)
+	//FL only supports one "price" in the dealer menu, this function gives players a command to 
+	//switch the view between the bases "buy" and "sell" price
+	void PriceView(uint client, const wstring& args)
 	{
 		// Check that this player is in a player controlled base
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -1745,8 +1757,63 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Not in player base");
 			return;
 		}
+		SendResetMarketOverride(client);
+		const wstring& cmd = GetParam(args, ' ', 1);
+		// Send the market
+		if (cmd == L"buy")
+		{
+			for (map<uint, MARKET_ITEM>::iterator i = base->market_items.begin();
+				i != base->market_items.end(); i++)
+			{
+				uint good = i->first;
+				MARKET_ITEM& item = i->second;
+				wchar_t buf[200];
+				//this if statement prevents items intended to be hidden from being displayed
+				//when the /pice commands run
+				if (item.min_stock == item.max_stock) {
+					continue;
+				}
+				base->g_MarketViewState = PlayerBase::BASE_SHOWING_BUYFROMPLAYER;
+				_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
+					base->proxy_base, good, item.buyprice, 0, item.quantity);
+				SendCommand(client, buf);
 
-		const wstring &cmd = GetParam(args, ' ', 1);
+			}
+		}
+		else if (cmd == L"sell")
+		{
+			for (map<uint, MARKET_ITEM>::iterator i = base->market_items.begin();
+				i != base->market_items.end(); i++)
+			{
+				uint good = i->first;
+				MARKET_ITEM& item = i->second;
+				wchar_t buf[200];
+				if (item.min_stock == item.max_stock) {
+					continue;
+				}
+				base->g_MarketViewState = PlayerBase::BASE_SHOWING_SELLTOPLAYER;
+				_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
+					base->proxy_base, good, item.sellprice, 0, item.quantity);
+				SendCommand(client, buf);
+			}
+		}
+		else
+		{
+			PrintUserCmdText(client, L"ERR Invalid command. Format is /price buy or /price sell");
+		}
+	}
+
+	void Shop(uint client, const wstring& args)
+	{
+		// Check that this player is in a player controlled base
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		const wstring& cmd = GetParam(args, ' ', 1);
 		if (!clients[client].admin && (!clients[client].viewshop || (cmd == L"price" || cmd == L"remove")))
 		{
 			PrintUserCmdText(client, L"ERROR: Access denied");
@@ -1756,13 +1823,20 @@ namespace PlayerCommands
 		if (cmd == L"price")
 		{
 			int item = ToInt(GetParam(args, ' ', 2));
-			int money = ToInt(GetParam(args, ' ', 3));
+			int buy = ToInt(GetParam(args, ' ', 3));
 			int min_stock = ToInt(GetParam(args, ' ', 4));
 			int max_stock = ToInt(GetParam(args, ' ', 5));
+			int sell = ToInt(GetParam(args, ' ', 6));
 
-			if (money < 1 || money > 1000000000)
+			if (buy < 1 || buy > 1000000000)
 			{
 				PrintUserCmdText(client, L"ERR Price not valid");
+				return;
+			}
+
+			if (buy > sell)
+			{
+				PrintUserCmdText(client, L"ERR Buy price (from players) must be less then Sell price");
 				return;
 			}
 
@@ -1771,13 +1845,14 @@ namespace PlayerCommands
 			{
 				if (curr_item == item)
 				{
-					i->second.price = (float)money;
+					i->second.buyprice = (float)buy;
 					i->second.min_stock = min_stock;
 					i->second.max_stock = max_stock;
+					i->second.sellprice = (float)sell;
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->Save();
-
-					int page = ((curr_item + 39) / 40);
+					//lowering how much appears on a page to keep the card from bugging out with new sell content
+					int page = ((curr_item + (itemsPerPage - 1)) / itemsPerPage);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					return;
@@ -1794,15 +1869,16 @@ namespace PlayerCommands
 			{
 				if (curr_item == item)
 				{
-					i->second.price = 0;
+					i->second.buyprice = 0;
 					i->second.quantity = 0;
 					i->second.min_stock = 0;
 					i->second.max_stock = 0;
+					i->second.sellprice = 0;
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->market_items.erase(i->first);
 					base->Save();
 
-					int page = ((curr_item + 39) / 40);
+					int page = ((curr_item + (itemsPerPage - 1)) / itemsPerPage);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					return;

@@ -37,21 +37,24 @@ void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item)
 				// If the base has none of the item then it is buy-only at the client.
 				if (item.quantity == 0)
 				{
+					base->g_MarketViewState = PlayerBase::BASE_SHOWING_BUYFROMPLAYER;
 					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-						base->proxy_base, good, item.price, 1, 0);
+						base->proxy_base, good, item.buyprice, 1, 0);
 				}
 				// If the item is buy only and this is not an admin then it is
 				// buy only at the client
 				else if (item.min_stock >= item.quantity && !clients[client].admin)
 				{
+					base->g_MarketViewState = PlayerBase::BASE_SHOWING_BUYFROMPLAYER;
 					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-						base->proxy_base, good, item.price, 1, 0);
+						base->proxy_base, good, item.buyprice, 1, 0);
 				}
 				// Otherwise this item is for sale by the client.
 				else
 				{
+					base->g_MarketViewState = PlayerBase::BASE_SHOWING_SELLTOPLAYER;
 					_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-						base->proxy_base, good, item.price, 0, item.quantity);
+						base->proxy_base, good, item.sellprice, 0, item.quantity);
 				}
 				SendCommand(client, buf);
 			}
@@ -70,6 +73,7 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 		SendCommand(client, L" SetMarketOverride 0 0 0 0");
 
 	// Send the market
+	base->g_MarketViewState = PlayerBase::BASE_SHOWING_SELLTOPLAYER;
 	for (map<uint, MARKET_ITEM>::iterator i = base->market_items.begin();
 		i != base->market_items.end(); i++)
 	{
@@ -80,22 +84,24 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 		if (item.quantity == 0)
 		{
 			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-				base->proxy_base, good, item.price, 1, 0);
+				base->proxy_base, good, item.buyprice, 1, 0);
 		}
 		// If the item is buy only and this is not an admin then it is
 		// buy only at the client
 		else if (item.min_stock >= item.quantity && !clients[client].admin)
 		{
 			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-				base->proxy_base, good, item.price, 1, 0);
+				base->proxy_base, good, item.buyprice, 1, 0);
 		}
 		// Otherwise this item is for sale by the client.
 		else
 		{
 			_snwprintf(buf, sizeof(buf), L" SetMarketOverride %u %u %f %u %u",
-				base->proxy_base, good, item.price, 0, item.quantity);
+				base->proxy_base, good, item.sellprice, 0, item.quantity);
 		}
+
 		SendCommand(client, buf);
+
 	}
 }
 

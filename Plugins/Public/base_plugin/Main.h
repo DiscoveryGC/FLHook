@@ -49,13 +49,14 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000) {}
+	MARKET_ITEM() : quantity(0), buyprice(1.0f), min_stock(100000), max_stock(100000), sellprice(5.0f) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
 
 	// Buy/Sell price for commodity.
-	float price;
+	float buyprice;
+	float sellprice;
 
 	// Stop selling if the base holds less than this number of items
 	uint min_stock;
@@ -191,8 +192,8 @@ public:
 	// The orientation of the platform
 	Vector rot;
 
-	DefenseModule(PlayerBase *the_base);
-	DefenseModule(PlayerBase *the_base, uint the_type);
+	DefenseModule(PlayerBase* the_base);
+	DefenseModule(PlayerBase* the_base, uint the_type);
 	~DefenseModule();
 	wstring GetInfo(bool xml);
 
@@ -269,7 +270,7 @@ inline bool operator ==(const BasePassword& lhs, const BasePassword& rhs)
 class PlayerBase
 {
 public:
-	PlayerBase(uint client, const wstring &password, const wstring &basename);
+	PlayerBase(uint client, const wstring& password, const wstring &basename);
 	PlayerBase(const string &path);
 	~PlayerBase();
 
@@ -422,13 +423,18 @@ public:
 	//the destination vector
 	Vector destposition;
 
+	//State of whether showing "buy" prices or "sell" prices
+	static const int BASE_SHOWING_SELLTOPLAYER = 2;
+	static const int BASE_SHOWING_BUYFROMPLAYER = 1;
+	int g_MarketViewState = 0;
+
 	/////////////////////////////////////////
 };
 
 PlayerBase *GetPlayerBase(uint base);
 PlayerBase *GetPlayerBaseForClient(uint client);
 
-void BaseLogging(const char *szString, ...);
+void BaseLogging(const char* szString, ...);
 
 void SaveBases();
 void DeleteBase(PlayerBase *base);
@@ -441,7 +447,7 @@ void SendCommand(uint client, const wstring &message);
 void SendSetBaseInfoText(uint client, const wstring &message);
 void SendSetBaseInfoText2(uint client, const wstring &message);
 void SendResetMarketOverride(uint client);
-void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item);
+void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM& item);
 void SendMarketGoodSync(PlayerBase *base, uint client);
 void SendBaseStatus(uint client, PlayerBase *base);
 void SendBaseStatus(PlayerBase *base);
@@ -528,6 +534,7 @@ namespace PlayerCommands
 	void BaseShieldMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
+	void PriceView(uint client, const wstring &args);
 
 	void BaseDeploy(uint client, const wstring &args);
 

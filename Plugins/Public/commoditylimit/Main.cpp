@@ -62,8 +62,7 @@ struct CommodityLimitStruct
 {
 	list<wstring> TagRestrictions;
 	list<uint> IDRestrictions;
-	//TODO
-	//list<uint> ShipClassRestrictions;
+	list<uint> ShipClassRestrictions;
 };
 
 map<uint, CommodityLimitStruct> mapCommodityRestrictions;
@@ -99,6 +98,7 @@ void LoadSettings()
 			else if (ini.is_header("commodity"))
 			{
 				uint commodity;
+				uint shipClassID;
 				CommodityLimitStruct cls;
 				while (ini.read_value())
 				{
@@ -113,6 +113,11 @@ void LoadSettings()
 					else if (ini.is_value("id"))
 					{
 						cls.IDRestrictions.push_back(CreateID(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("shipclass"))
+					{
+						shipClassID = ini.get_value_int(0);
+						cls.ShipClassRestrictions.push_back(shipClassID);
 					}
 				}
 				mapCommodityRestrictions[commodity] = cls;
@@ -156,9 +161,19 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientI
 		uint pID = HookExt::IniGetI(iClientID, "event.shipid");
 		if (pID != 0)
 		{
+
+			Archetype::Ship* TheShipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
+			uint shipClass = TheShipArch->iShipClass;
+			PrintUserCmdText(iClientID, L"Ship Class Detected: %u", shipClass);
+
 			bool valid = false;
 			//Check the ID to begin with, it's the most likely type of restriction
 			if ((find(mapCommodityRestrictions[gbi.iGoodID].IDRestrictions.begin(), mapCommodityRestrictions[gbi.iGoodID].IDRestrictions.end(), pID) != mapCommodityRestrictions[gbi.iGoodID].IDRestrictions.end()))
+			{
+				//Allow the purchase
+				valid = true;
+			}
+			else if ((find(mapCommodityRestrictions[gbi.iGoodID].ShipClassRestrictions.begin(), mapCommodityRestrictions[gbi.iGoodID].ShipClassRestrictions.end(), shipClass) != mapCommodityRestrictions[gbi.iGoodID].ShipClassRestrictions.end()))
 			{
 				//Allow the purchase
 				valid = true;

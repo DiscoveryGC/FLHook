@@ -164,7 +164,6 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientI
 
 			Archetype::Ship* TheShipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
 			uint shipClass = TheShipArch->iShipClass;
-			PrintUserCmdText(iClientID, L"Ship Class Detected: %u", shipClass);
 
 			bool valid = false;
 			//Check the ID to begin with, it's the most likely type of restriction
@@ -173,6 +172,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientI
 				//Allow the purchase
 				valid = true;
 			}
+			// Next check if the commodity is ship class restricted
 			else if ((find(mapCommodityRestrictions[gbi.iGoodID].ShipClassRestrictions.begin(), mapCommodityRestrictions[gbi.iGoodID].ShipClassRestrictions.end(), shipClass) != mapCommodityRestrictions[gbi.iGoodID].ShipClassRestrictions.end()))
 			{
 				//Allow the purchase

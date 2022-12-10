@@ -1199,7 +1199,7 @@ namespace PlayerCommands
 			//make the nickname for inspection
 			uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[type]);
 
-			if (recipes[module_nickname].reqlevel > base->base_level)
+			if (recipeMap[module_nickname].reqlevel > base->base_level)
 			{
 				PrintUserCmdText(client, L"ERR Insufficient Core Level");
 				return;
@@ -1229,21 +1229,15 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|     <type> = 9 - defense platform array type 2");
 			PrintUserCmdText(client, L"|     <type> = 10 - defense platform array type 3");
 			PrintUserCmdText(client, L"|     <type> = 11 - Cloak Disruptor Factory");
+			PrintUserCmdText(client, L"|     <type> = 12 - Ore Refinery");
 		}
 	}
 
 	void BaseFacMod(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!checkBaseAdminAccess(base, client, args)) {
 			return;
 		}
 
@@ -1253,12 +1247,7 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"Factory Modules:");
 			for (uint index = 1; index < base->modules.size(); index++)
 			{
-				if (base->modules[index] &&
-					(base->modules[index]->type == Module::TYPE_M_CLOAK
-						|| base->modules[index]->type == Module::TYPE_M_HYPERSPACE_SCANNER
-						|| base->modules[index]->type == Module::TYPE_M_JUMPDRIVES
-						|| base->modules[index]->type == Module::TYPE_M_DOCKING
-						|| base->modules[index]->type == Module::TYPE_M_CLOAKDISRUPTOR))
+				if (FactoryModule::IsFactoryModule(base->modules[index]))
 				{
 					FactoryModule *mod = (FactoryModule*)base->modules[index];
 					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
@@ -1275,12 +1264,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1302,12 +1286,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1327,12 +1306,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1354,12 +1328,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1375,26 +1344,24 @@ namespace PlayerCommands
 		else if (cmd == L"add")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
 			if (index < 1 || index >= base->modules.size() || !base->modules[index])
 			{
 				PrintUserCmdText(client, L"ERR Module index not valid");
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
 			}
 
 			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->AddToQueue(type))
+			uint productKey = FactoryModule::GetFactoryProduct(GetParamToEnd(args, ' ', 4));
+			
+			// The 3 parameters are as follows: Product hash, Product factory type hash
+			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
+			if (mod->AddToQueue(productKey, recipeMap[productKey].factory_type, mod->type))
 				PrintUserCmdText(client, L"OK Item added to build queue");
 			else
 				PrintUserCmdText(client, L"ERR Item add to build queue failed");
@@ -1433,6 +1400,90 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|  pause <index> - pause factory module at <index>");
 			PrintUserCmdText(client, L"|  resume <index> - resume factory module at <index>");
 		}
+	}
+
+	void BaseRefineryMod(uint client, const wstring &args) {
+
+		PlayerBase *base = GetPlayerBaseForClient(client);
+
+		if (!checkBaseAdminAccess(base, client, args)){
+			return;
+		}
+		const wstring &cmd = GetParam(args, ' ', 1);
+		
+		if (cmd == L"list") {
+			PrintUserCmdText(client, L"Refinery Modules:");
+			for (uint index = 1; index < base->modules.size(); index++)
+			{
+				if (base->modules[index]->type == Module::TYPE_M_OREREFINERY)
+				{
+					FactoryModule *mod = (FactoryModule*)base->modules[index];
+					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
+				}
+			}
+			PrintUserCmdText(client, L"OK");
+		}
+		else if (cmd == L"stop")
+		{
+			const wstring &arg = GetParam(args, ' ', 2);
+			if (arg == L"all") {
+				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_OREREFINERY);
+				PrintUserCmdText(client, L"OK Refineries stopped");
+			}
+			else {
+				uint productToStop = recipeNameMap[arg].nickname;
+				FactoryModule *refinery = FactoryModule::FindModuleByProductInProduction(base, productToStop);
+				if (refinery) {
+					refinery->ClearQueue();
+					refinery->ClearRecipe();
+					PrintUserCmdText(client, L"OK Refinery stopped");
+				}
+				else {
+					PrintUserCmdText(client, L"ERR not found, use '/refinery stop all' to stop all processes in refineries.");
+				}
+			}
+			base->Save();
+		}
+		else if (cmd == L"start")
+		{
+			//TODO: Number works, word no longer works, mappings?
+			FactoryModule* refinery = FactoryModule::FindFirstFreeModuleByType(base, Module::TYPE_M_OREREFINERY);
+			if (!refinery) {
+				PrintUserCmdText(client, L"ERR Refinery module not found!");
+			}
+			uint productKey = FactoryModule::GetRefineryProduct(GetParamToEnd(args, ' ', 2));
+
+			// The 3 parameters are as follows: Product hash, Product factory type hash
+			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
+			if (refinery->AddToQueue(productKey, recipeMap[productKey].factory_type, refinery->type))
+				PrintUserCmdText(client, L"OK Item added to build queue");
+			else
+				PrintUserCmdText(client, L"ERR Item add to build queue failed");
+			base->Save();
+		}
+		else {
+			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"/refinery [list|stop|start]");
+			PrintUserCmdText(client, L"|  list - show modules and build status");
+			PrintUserCmdText(client, L"|  stop <name> - stop production of <name>");
+			PrintUserCmdText(client, L"|  start <name> - start production of <name>");
+			PrintUserCmdText(client, L"|     <type> = 1 - Gold");
+		}
+	}
+
+	bool checkBaseAdminAccess(PlayerBase *base, uint client, const wstring &args) {
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return false;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return false;
+		}
+		return true;
 	}
 
 	void BaseDefMod(uint client, const wstring &args)

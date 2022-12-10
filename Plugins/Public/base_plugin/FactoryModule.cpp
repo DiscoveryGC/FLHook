@@ -1,15 +1,7 @@
 #include "Main.h"
 
-const char* RECIPE_NAMES[] =
-{ "Unknown", "recipe_make_dockmodule",
-	"recipe_make_jumpdrive_ii", "recipe_make_jumpdrive_iii", "recipe_make_jumpdrive_iv",
-	"recipe_make_hypscanner1", "recipe_make_hypscanner2", "recipe_make_hypscanner3",
-	"recipe_cloak_small", "recipe_cloak_medium", "recipe_cloak_large", "recipe_cloak_transport", "recipe_cloak_disruptor_1", "recipe_cloak_disruptor_2", "recipe_cloak_disruptor_3", "recipe_jdmatrix_1", 0 };
-
-const wchar_t* FACTORY_NAMES[] =
-{ L"Unknown", L"Unknown", L"Unknown", L"Unknown", L"Unknown",
-	L"Docking Module Factory", L"Jumpdrive Factory",
-	L"Hyperspace Scanner Factory", L"Cloaking Device Factory", L"Unknown", L"Unknown", L"Cloak Disruptor Factory", 0 };
+const char* REFINERY_RECIPE = "refinery_recipe";
+const char* FACTORY_RECIPE = "factory_recipe";
 
 FactoryModule::FactoryModule(PlayerBase *the_base)
 	: Module(0), base(the_base)
@@ -18,10 +10,11 @@ FactoryModule::FactoryModule(PlayerBase *the_base)
 }
 
 // Find the recipe for this building_type and start construction.
-FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type)
+FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type, uint nickname)
 	: Module(the_type), base(the_base)
 {
 	active_recipe.nickname = 0;
+	this->nickname = nickname;
 }
 
 wstring FactoryModule::GetInfo(bool xml)
@@ -32,9 +25,11 @@ wstring FactoryModule::GetInfo(bool xml)
 	if (Paused)	Status = L"(Paused) ";
 	else Status = L"(Active) ";
 
+	// infotext field contains the 'human formatted' name such as 'Cloak Factory'
+	info += recipeMap[nickname].infotext;
+
 	if (xml)
 	{
-		info += FACTORY_NAMES[type];
 		info += L"</TEXT><PARA/><TEXT>      Pending " + stows(itos(build_queue.size())) + L" items</TEXT>";
 		if (active_recipe.nickname)
 		{
@@ -60,11 +55,9 @@ wstring FactoryModule::GetInfo(bool xml)
 	}
 	else
 	{
-		info += FACTORY_NAMES[type];
-		info += L" - Pending " + stows(itos(build_queue.size())) + L" items ";
 		if (active_recipe.nickname)
 		{
-			info = L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
+			info += L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
 
 			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
@@ -78,6 +71,9 @@ wstring FactoryModule::GetInfo(bool xml)
 					info += L" " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
 				}
 			}
+		}
+		else {
+			info += L" - Pending " + stows(itos(build_queue.size())) + L" items ";
 		}
 	}
 
@@ -94,13 +90,9 @@ bool FactoryModule::Timer(uint time)
 		return false;
 
 	// Get the next item to make from the build queue.
-	if (!active_recipe.nickname && build_queue.size())
+	if (!active_recipe.nickname && !build_queue.empty())
 	{
-		map<uint, RECIPE>::iterator i = recipes.find(build_queue.front());
-		if (i != recipes.end())
-		{
-			active_recipe = i->second;
-		}
+		active_recipe = recipeMap[build_queue.front()];
 		build_queue.pop_front();
 	}
 
@@ -140,8 +132,15 @@ bool FactoryModule::Timer(uint time)
 
 	// Add the newly produced item to the market. If there is insufficient space
 	// to add the item, wait until there is space.
-	if (!base->AddMarketGood(active_recipe.produced_item, 1))
+	if (!base->AddMarketGood(active_recipe.produced_item, active_recipe.produced_amount))
 		return false;
+
+
+	// If recipe is set to automatically loop, add it back into the queue upon success
+	// and prevent wiping the acive_recipe
+	if (active_recipe.loop_production && build_queue.empty()) {
+		build_queue.push_back(active_recipe.nickname);
+	}
 
 	// Reset the nickname to load a new item from the build queue
 	// next time around.
@@ -152,6 +151,7 @@ bool FactoryModule::Timer(uint time)
 void FactoryModule::LoadState(INI_Reader &ini)
 {
 	active_recipe.nickname = 0;
+	RECIPE foundRecipe;
 	while (ini.read_value())
 	{
 		if (ini.is_value("type"))
@@ -161,22 +161,20 @@ void FactoryModule::LoadState(INI_Reader &ini)
 		else if (ini.is_value("nickname"))
 		{
 			active_recipe.nickname = ini.get_value_int(0);
+			foundRecipe = recipeMap[active_recipe.nickname];
+			active_recipe.produced_item = foundRecipe.produced_item;
+			active_recipe.produced_amount = foundRecipe.produced_amount;
+			active_recipe.loop_production = foundRecipe.loop_production;
+			active_recipe.cooking_rate = foundRecipe.cooking_rate;
+			active_recipe.infotext = foundRecipe.infotext;
+		}
+		else if (ini.is_value("module_nickname"))
+		{
+			nickname = ini.get_value_int(0);
 		}
 		else if (ini.is_value("paused"))
 		{
 			Paused = ini.get_value_bool(0);
-		}
-		else if (ini.is_value("produced_item"))
-		{
-			active_recipe.produced_item = ini.get_value_int(0);
-		}
-		else if (ini.is_value("cooking_rate"))
-		{
-			active_recipe.cooking_rate = ini.get_value_int(0);
-		}
-		else if (ini.is_value("infotext"))
-		{
-			active_recipe.infotext = stows(ini.get_value_string());
 		}
 		else if (ini.is_value("consumed"))
 		{
@@ -193,11 +191,9 @@ void FactoryModule::SaveState(FILE *file)
 {
 	fprintf(file, "[FactoryModule]\n");
 	fprintf(file, "type = %u\n", type);
+	fprintf(file, "module_nickname = %u\n", nickname);
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
-	fprintf(file, "produced_item = %u\n", active_recipe.produced_item);
-	fprintf(file, "cooking_rate = %u\n", active_recipe.cooking_rate);
-	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
 	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
@@ -210,60 +206,36 @@ void FactoryModule::SaveState(FILE *file)
 	}
 }
 
-bool FactoryModule::AddToQueue(uint equipment_type)
+bool FactoryModule::AddToQueue(uint product, uint product_type, uint factory_type)
 {
-	if (type == Module::TYPE_M_DOCKING)
-	{
-		if (equipment_type == 1)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
+	//TODO: remove the GOIDDAMN HARDCODES
+	uint hashed_factory_type;
+	switch (factory_type) {
+	case Module::TYPE_M_DOCKING:
+		hashed_factory_type = CreateID("module_m_docking");
+		break;
+	case Module::TYPE_M_JUMPDRIVES:
+		hashed_factory_type = CreateID("module_m_jumpdrives");
+		break;
+	case Module::TYPE_M_HYPERSPACE_SCANNER:
+		hashed_factory_type = CreateID("module_m_hyperspace_scanner");
+		break;
+	case Module::TYPE_M_CLOAK:
+		hashed_factory_type = CreateID("module_m_cloak");
+		break;
+	case Module::TYPE_M_CLOAKDISRUPTOR:
+		hashed_factory_type = CreateID("module_m_cloakdisruptor");
+		break;
+	case Module::TYPE_M_OREREFINERY:
+		hashed_factory_type = CreateID("module_m_refinery");
+		break;
 	}
-	else if (type == Module::TYPE_M_JUMPDRIVES)
+	//check if product can be produced at the target factory
+	if (product_type == hashed_factory_type)
 	{
-		if (equipment_type == 2
-			|| equipment_type == 3
-			|| equipment_type == 4)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
+		build_queue.push_back(product);
+		return true;
 	}
-	else if (type == Module::TYPE_M_HYPERSPACE_SCANNER)
-	{
-		if (equipment_type == 5
-			|| equipment_type == 6
-			|| equipment_type == 7
-			|| equipment_type == 15)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-	else if (type == Module::TYPE_M_CLOAK)
-	{
-		if (equipment_type == 8
-			|| equipment_type == 9
-			|| equipment_type == 10
-			|| equipment_type == 11)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-
-	else if (type == Module::TYPE_M_CLOAKDISRUPTOR)
-	{
-		if (equipment_type == 12
-			|| equipment_type == 13
-			|| equipment_type == 14)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-
 	return false;
 }
 
@@ -283,4 +255,69 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 	bool RememberState = Paused;
 	Paused = NewState;
 	return RememberState;
+}
+
+FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct) {
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if(facModPtr && facModPtr->active_recipe.nickname == searchedProduct){
+			return facModPtr;
+		}
+	}
+	return 0;
+}
+
+FactoryModule* FactoryModule::FindFirstFreeModuleByType(PlayerBase* pb, uint searchedType){
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if (facModPtr && facModPtr->type == searchedType && facModPtr->build_queue.empty()) {
+			return facModPtr;
+		}
+	}
+	return 0;
+}
+
+void FactoryModule::StopAllModulesOfType(PlayerBase* pb, uint searchedType) {
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if (facModPtr && facModPtr->type == searchedType){
+			facModPtr->ClearQueue();
+			facModPtr->ClearRecipe();
+		}
+	}
+}
+
+bool FactoryModule::IsFactoryModule(Module* module) {
+	return (module &&
+		(module->type == Module::TYPE_M_CLOAK
+			|| module->type == Module::TYPE_M_HYPERSPACE_SCANNER
+			|| module->type == Module::TYPE_M_JUMPDRIVES
+			|| module->type == Module::TYPE_M_DOCKING
+			|| module->type == Module::TYPE_M_CLOAKDISRUPTOR
+			|| module->type == Module::TYPE_M_OREREFINERY));
+}
+
+uint FactoryModule::GetRefineryProduct(wstring product) {
+	transform(product.begin(), product.end(), product.begin(), ::tolower);
+	int shortcut_number = ToInt(product);
+	if (recipeNumberRefineryMap.count(shortcut_number)) {
+		return recipeNumberRefineryMap[shortcut_number].nickname;
+	}
+	else {
+		return recipeNameMap[product].nickname;
+	}
+}
+
+uint FactoryModule::GetFactoryProduct(wstring product) {
+	transform(product.begin(), product.end(), product.begin(), ::tolower);
+	int shortcut_number = ToInt(product);
+	if (recipeNumberFactoryMap.count(shortcut_number)) {
+		return recipeNumberFactoryMap[shortcut_number].nickname;
+	}
+	else {
+		return recipeNameMap[product].nickname;
+	}
 }

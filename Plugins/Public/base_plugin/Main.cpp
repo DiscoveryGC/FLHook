@@ -56,8 +56,14 @@ uint set_base_crew_type;
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
 
-/// Map of item nickname hash to recipes to construct item.
-map<uint, RECIPE> recipes;
+/// Map of hashed item nickname to recipes to construct item.
+map<uint, RECIPE> recipeMap;
+/// Map of items actual names to their recipes.
+map<wstring, RECIPE> recipeNameMap;
+
+/// Maps of shortcut numbers to recipes to construct item.
+map<uint, RECIPE> recipeNumberFactoryMap;
+map<uint, RECIPE> recipeNumberRefineryMap;
 
 /// Map of item nickname hash to recipes to operate shield.
 map<uint, uint> shield_power_items;
@@ -386,7 +392,10 @@ void LoadSettingsActual()
 		delete base->second;
 	}
 
-	recipes.clear();
+	recipeMap.clear();
+	recipeNameMap.clear();
+	recipeNumberFactoryMap.clear();
+	recipeNumberRefineryMap.clear();
 	construction_items.clear();
 	set_base_repair_items.clear();
 	set_base_crew_consumption_items.clear();
@@ -532,6 +541,26 @@ void LoadSettingsActual()
 					{
 						recipe.produced_item = CreateID(ini.get_value_string(0));
 					}
+					else if (ini.is_value("produced_amount"))
+					{
+						recipe.produced_amount = ini.get_value_int(0);
+					}
+					else if (ini.is_value("loop_production"))
+					{
+						recipe.loop_production = ini.get_value_int(0);
+					}
+					else if (ini.is_value("shortcut_number"))
+					{
+						recipe.shortcut_number = ini.get_value_int(0);
+					}
+					else if (ini.is_value("factory_type"))
+					{
+						recipe.factory_type = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("recipe_type"))
+					{
+						recipe.recipe_type = ini.get_value_string(0);
+					}
 					else if (ini.is_value("infotext"))
 					{
 						recipe.infotext = stows(ini.get_value_string());
@@ -549,7 +578,7 @@ void LoadSettingsActual()
 						recipe.reqlevel = ini.get_value_int(0);
 					}
 				}
-				recipes[recipe.nickname] = recipe;
+				AddRecipeToMaps(recipe);
 			}
 		}
 		ini.close();
@@ -574,7 +603,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("infotext"))
 					{
-						recipe.infotext = stows(ini.get_value_string());
+						recipe.infotext = stows(ini.get_value_string(0));
 					}
 					else if (ini.is_value("cooking_rate"))
 					{
@@ -589,7 +618,7 @@ void LoadSettingsActual()
 						recipe.reqlevel = ini.get_value_int(0);
 					}
 				}
-				recipes[recipe.nickname] = recipe;
+				recipeMap[recipe.nickname] = recipe;
 			}
 		}
 		ini.close();
@@ -1124,6 +1153,11 @@ bool UserCmd_Process(uint client, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);
+		return true;
+	}
+	else if (args.find(L"/refinery") == 0) {
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseRefineryMod(client, args);
 		return true;
 	}
 	else if (args.find(L"/base defmod") == 0)
@@ -2122,7 +2156,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		uint recipe_name = CreateID(wstos(cmd->ArgStr(1)).c_str());
 
-		RECIPE recipe = recipes[recipe_name];
+		RECIPE recipe = recipeMap[recipe_name];
 		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
 		{
 			base->market_items[i->first].quantity += i->second;
@@ -2689,6 +2723,21 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		}
 	}
 	return;
+}
+
+void AddRecipeToMaps (RECIPE recipe){
+
+	recipeMap[recipe.nickname] = recipe;
+	wstring recipeNameKey = recipe.infotext;
+	//convert to lowercase
+	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
+	recipeNameMap[recipeNameKey] = recipe;
+	if (recipe.recipe_type == FACTORY_RECIPE) { 
+		recipeNumberFactoryMap[recipe.shortcut_number] = recipe; 
+	}
+	else if (recipe.recipe_type == REFINERY_RECIPE) {
+		recipeNumberRefineryMap[recipe.shortcut_number] = recipe; 
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

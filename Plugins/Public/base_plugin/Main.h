@@ -31,6 +31,10 @@ struct RECIPE
 	uint reqlevel;
 };
 
+struct BASE_VULNERABILITY_WINDOW {
+	uint start;
+	uint end;
+};
 struct ARCHTYPE_STRUCT
 {
 	int logic;
@@ -120,6 +124,9 @@ public:
 	// If true, do not take damage
 	bool dont_rust;
 
+	float shield_strength_multiplier;
+	float damage_taken_since_last_threshold;
+
 	// The list of goods and usage of goods per minute for the autosys effect
 	map<uint, uint> mapAutosysGood;
 
@@ -138,6 +145,7 @@ public:
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
+	void AddDmgTakenToThresholdCounterAndReinforceShield(float dmgTaken);
 
 	void RepairDamage(float max_base_health);
 };
@@ -296,6 +304,7 @@ public:
 	void SyncReputationForBaseObject(uint space_obj);
 
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
+	void ResetShieldStrength();
 
 	// The base nickname
 	string nickname;
@@ -604,8 +613,16 @@ extern uint set_damage_tick_time;
 /// The seconds per tick
 extern uint set_tick_time;
 
-/// If the shield is up then damage to the base is changed by this multiplier.
-extern float set_shield_damage_multiplier;
+// set of configurable variables defining the diminishing returns on damage during POB siege
+// POB starts at base_shield_strength, then every 'threshold' of damage taken, 
+// shield goes up in absorption by the 'increment'
+extern float shield_reinforcement_threshold;
+extern float shield_reinforcement_increment;
+extern float base_shield_strength;
+
+extern bool globalBaseVulnerabilityStatus;
+
+bool checkBaseVulnerabilityStatus();
 
 /// Holiday mode
 extern bool set_holiday_mode;

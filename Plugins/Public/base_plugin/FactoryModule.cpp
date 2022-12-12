@@ -7,8 +7,8 @@ FactoryModule::FactoryModule(PlayerBase *the_base)
 }
 
 // Find the recipe for this building_type and start construction.
-FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type, wstring factoryType)
-	: Module(the_type), base(the_base), factory_type(factoryType)
+FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type)
+	: Module(the_type), base(the_base)
 {
 	active_recipe.nickname = 0;
 }
@@ -287,7 +287,7 @@ uint FactoryModule::GetFactoryProduct(wstring product) {
 	if (recipeNumberFactoryMap.count(shortcut_number)) {
 		return recipeNumberFactoryMap[shortcut_number].nickname;
 	}
-	else if (recipeNumberFactoryMap.count(shortcut_number)){
+	else if (recipeNameMap.count(product)){
 		return recipeNameMap[product].nickname;
 	}
 	return 0;

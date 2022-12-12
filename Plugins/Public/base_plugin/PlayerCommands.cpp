@@ -1387,7 +1387,7 @@ namespace PlayerCommands
 			}
 			// The 3 parameters are as follows: Product hash, Product factory type hash
 			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
-			if (mod->AddToQueue(productKey, recipeMap[productKey].factory_type, mod->factory_type)) {
+			if (mod->AddToQueue(productKey, recipeMap[productKey].factory_type, recipeNumberModuleMap[mod->type].factory_type)) {
 				PrintUserCmdText(client, L"OK Item added to build queue");
 				base->Save();
 			}
@@ -1469,7 +1469,7 @@ namespace PlayerCommands
 
 			// The 3 parameters are as follows: Product hash, Product factory type hash
 			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
-			if (refinery->AddToQueue(productKey, recipeMap[productKey].factory_type, refinery->factory_type))
+			if (refinery->AddToQueue(productKey, recipeMap[productKey].factory_type, recipeNumberModuleMap[refinery->type].factory_type))
 				PrintUserCmdText(client, L"OK Item added to build queue");
 			else
 				PrintUserCmdText(client, L"ERR Item add to build queue failed");

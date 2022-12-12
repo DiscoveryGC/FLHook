@@ -242,13 +242,12 @@ public:
 
 	// The currently active recipe
 	RECIPE active_recipe;
-	wstring factory_type;
 
 	// List of queued recipes;
 	list<uint> build_queue;
 
 	FactoryModule(PlayerBase *the_base);
-	FactoryModule(PlayerBase *the_base, uint type, wstring factoryType);
+	FactoryModule(PlayerBase *the_base, uint type);
 	wstring GetInfo(bool xml);
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);

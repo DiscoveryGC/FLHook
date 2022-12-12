@@ -131,16 +131,16 @@ bool BuildModule::Timer(uint time)
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_1);
 					break;
 				case Module::TYPE_M_DOCKING:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_DOCKING, active_recipe.factory_type);
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_DOCKING);
 					break;
 				case Module::TYPE_M_JUMPDRIVES:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_JUMPDRIVES, active_recipe.factory_type);
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_JUMPDRIVES);
 					break;
 				case Module::TYPE_M_HYPERSPACE_SCANNER:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_HYPERSPACE_SCANNER, active_recipe.factory_type);
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_HYPERSPACE_SCANNER);
 					break;
 				case Module::TYPE_M_CLOAK:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAK, active_recipe.factory_type);
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAK);
 					break;
 				case Module::TYPE_DEFENSE_2:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_2);
@@ -149,13 +149,10 @@ bool BuildModule::Timer(uint time)
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_3);
 					break;
 				case Module::TYPE_M_CLOAKDISRUPTOR:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR, active_recipe.factory_type);
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
 					break;
 				case Module::TYPE_M_OREREFINERY:
-				{
-					FactoryModule* newModule = new FactoryModule(base, Module::TYPE_M_OREREFINERY, active_recipe.factory_type);
-					base->modules[i] = newModule;
-				}
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_OREREFINERY);
 					break;
 				default:
 					base->modules[i] = 0;

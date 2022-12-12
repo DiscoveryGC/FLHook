@@ -1,8 +1,5 @@
 #include "Main.h"
 
-const char* REFINERY_RECIPE = "refinery_recipe";
-const char* FACTORY_RECIPE = "factory_recipe";
-
 FactoryModule::FactoryModule(PlayerBase *the_base)
 	: Module(0), base(the_base)
 {
@@ -10,11 +7,10 @@ FactoryModule::FactoryModule(PlayerBase *the_base)
 }
 
 // Find the recipe for this building_type and start construction.
-FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type, uint nickname)
-	: Module(the_type), base(the_base)
+FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type, wstring factoryType)
+	: Module(the_type), base(the_base), factory_type(factoryType)
 {
 	active_recipe.nickname = 0;
-	this->nickname = nickname;
 }
 
 wstring FactoryModule::GetInfo(bool xml)
@@ -25,8 +21,7 @@ wstring FactoryModule::GetInfo(bool xml)
 	if (Paused)	Status = L"(Paused) ";
 	else Status = L"(Active) ";
 
-	// infotext field contains the 'human formatted' name such as 'Cloak Factory'
-	info += recipeMap[nickname].infotext;
+	info += recipeNumberModuleMap[type].infotext;
 
 	if (xml)
 	{
@@ -168,10 +163,6 @@ void FactoryModule::LoadState(INI_Reader &ini)
 			active_recipe.cooking_rate = foundRecipe.cooking_rate;
 			active_recipe.infotext = foundRecipe.infotext;
 		}
-		else if (ini.is_value("module_nickname"))
-		{
-			nickname = ini.get_value_int(0);
-		}
 		else if (ini.is_value("paused"))
 		{
 			Paused = ini.get_value_bool(0);
@@ -191,7 +182,6 @@ void FactoryModule::SaveState(FILE *file)
 {
 	fprintf(file, "[FactoryModule]\n");
 	fprintf(file, "type = %u\n", type);
-	fprintf(file, "module_nickname = %u\n", nickname);
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
 	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
@@ -206,32 +196,10 @@ void FactoryModule::SaveState(FILE *file)
 	}
 }
 
-bool FactoryModule::AddToQueue(uint product, uint product_type, uint factory_type)
+bool FactoryModule::AddToQueue(uint product, wstring product_type, wstring factory_type)
 {
-	//TODO: remove the GOIDDAMN HARDCODES
-	uint hashed_factory_type;
-	switch (factory_type) {
-	case Module::TYPE_M_DOCKING:
-		hashed_factory_type = CreateID("module_m_docking");
-		break;
-	case Module::TYPE_M_JUMPDRIVES:
-		hashed_factory_type = CreateID("module_m_jumpdrives");
-		break;
-	case Module::TYPE_M_HYPERSPACE_SCANNER:
-		hashed_factory_type = CreateID("module_m_hyperspace_scanner");
-		break;
-	case Module::TYPE_M_CLOAK:
-		hashed_factory_type = CreateID("module_m_cloak");
-		break;
-	case Module::TYPE_M_CLOAKDISRUPTOR:
-		hashed_factory_type = CreateID("module_m_cloakdisruptor");
-		break;
-	case Module::TYPE_M_OREREFINERY:
-		hashed_factory_type = CreateID("module_m_refinery");
-		break;
-	}
 	//check if product can be produced at the target factory
-	if (product_type == hashed_factory_type)
+	if (product_type == factory_type)
 	{
 		build_queue.push_back(product);
 		return true;
@@ -296,8 +264,7 @@ bool FactoryModule::IsFactoryModule(Module* module) {
 			|| module->type == Module::TYPE_M_HYPERSPACE_SCANNER
 			|| module->type == Module::TYPE_M_JUMPDRIVES
 			|| module->type == Module::TYPE_M_DOCKING
-			|| module->type == Module::TYPE_M_CLOAKDISRUPTOR
-			|| module->type == Module::TYPE_M_OREREFINERY));
+			|| module->type == Module::TYPE_M_CLOAKDISRUPTOR));
 }
 
 uint FactoryModule::GetRefineryProduct(wstring product) {
@@ -306,8 +273,11 @@ uint FactoryModule::GetRefineryProduct(wstring product) {
 	if (recipeNumberRefineryMap.count(shortcut_number)) {
 		return recipeNumberRefineryMap[shortcut_number].nickname;
 	}
-	else {
+	else if (recipeNameMap.count(product)) {
 		return recipeNameMap[product].nickname;
+	}
+	else {
+		return 0;
 	}
 }
 
@@ -317,7 +287,8 @@ uint FactoryModule::GetFactoryProduct(wstring product) {
 	if (recipeNumberFactoryMap.count(shortcut_number)) {
 		return recipeNumberFactoryMap[shortcut_number].nickname;
 	}
-	else {
+	else if (recipeNumberFactoryMap.count(shortcut_number)){
 		return recipeNameMap[product].nickname;
 	}
+	return 0;
 }

@@ -20,6 +20,37 @@
 
 namespace PlayerCommands
 {
+	static vector<wstring> buildmod_recipe_list;
+	static vector<wstring> facmod_recipe_list;
+	static vector<wstring> refinery_recipe_list;
+
+	vector<wstring> GenerateHelpMenu(map<uint, RECIPE> recipeNumberMap, bool recipesPerBuilding) {
+		wstring currentFactoryType = L"";
+		vector<wstring> generatedHelpStringList;
+		wstring currentString = L"";
+		for (map<uint, RECIPE>::iterator i = recipeNumberMap.begin(); i != recipeNumberMap.end(); ++i) {
+			if (recipesPerBuilding && i->second.factory_type != currentFactoryType) {
+				currentFactoryType = i->second.factory_type;
+				currentString = L"|     For ";
+				currentString += (recipeMap[CreateID(wstos(currentFactoryType).c_str())].infotext.c_str());
+				currentString += L":";
+				generatedHelpStringList.push_back(currentString.c_str());
+			}
+			currentString = L"|     <type> = ";
+			currentString += stows(itos(i->second.shortcut_number));
+			currentString += L" - ";
+			currentString += i->second.infotext.c_str();
+			generatedHelpStringList.push_back(currentString.c_str());
+		}
+		return generatedHelpStringList;
+	}
+
+	void PopulateHelpMenus() {
+		buildmod_recipe_list = GenerateHelpMenu(recipeNumberModuleMap, false);
+		facmod_recipe_list = GenerateHelpMenu(recipeNumberFactoryMap, true);
+		refinery_recipe_list = GenerateHelpMenu(recipeNumberRefineryMap, false);
+	}
+
 	void BaseHelp(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -1174,20 +1205,21 @@ namespace PlayerCommands
 		else if (cmd == L"construct")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
+			RECIPE* recipePtr = BuildModule::GetModuleNickname(GetParamToEnd(args, ' ', 4));
+
 			if (index < 1 || index >= base->modules.size() || base->modules[index])
 			{
 				PrintUserCmdText(client, L"ERR Module index not valid");
 				return;
 			}
 
-			if (type < Module::TYPE_CORE || type > Module::TYPE_LAST)
+			if (recipePtr == 0)
 			{
 				PrintUserCmdText(client, L"ERR Module type not available");
 				return;
 			}
 
-			if (type == Module::TYPE_CORE)
+			if (recipePtr->shortcut_number == Module::TYPE_CORE)
 			{
 				if (base->base_level >= 4)
 				{
@@ -1197,15 +1229,14 @@ namespace PlayerCommands
 			}
 
 			//make the nickname for inspection
-			uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[type]);
 
-			if (recipeMap[module_nickname].reqlevel > base->base_level)
+			if (recipePtr->reqlevel > base->base_level)
 			{
 				PrintUserCmdText(client, L"ERR Insufficient Core Level");
 				return;
 			}
 
-			base->modules[index] = new BuildModule(base, type);
+			base->modules[index] = new BuildModule(base, recipePtr->shortcut_number);
 			base->Save();
 			PrintUserCmdText(client, L"OK Module construction started");
 		}
@@ -1218,18 +1249,9 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|  construct <index> <type> - start building module <type> at <index>");
 			PrintUserCmdText(client, L"|  pause <index> - pauses building at <index>");
 			PrintUserCmdText(client, L"|  resume <index> - resumes building at <index>");
-			PrintUserCmdText(client, L"|     <type> = 1 - core upgrade");
-			PrintUserCmdText(client, L"|     <type> = 2 - shield generator");
-			PrintUserCmdText(client, L"|     <type> = 3 - cargo storage");
-			PrintUserCmdText(client, L"|     <type> = 4 - defense platform array type 1");
-			PrintUserCmdText(client, L"|     <type> = 5 - docking module factory");
-			PrintUserCmdText(client, L"|     <type> = 6 - jumpdrive manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 7 - hyperspace survey manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - cloaking device manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 9 - defense platform array type 2");
-			PrintUserCmdText(client, L"|     <type> = 10 - defense platform array type 3");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloak Disruptor Factory");
-			PrintUserCmdText(client, L"|     <type> = 12 - Ore Refinery");
+			for (vector<wstring>::iterator i = buildmod_recipe_list.begin(); i != buildmod_recipe_list.end(); ++i) {
+				PrintUserCmdText(client, *i);
+			}
 		}
 	}
 
@@ -1358,45 +1380,33 @@ namespace PlayerCommands
 
 			FactoryModule *mod = (FactoryModule*)base->modules[index];
 			uint productKey = FactoryModule::GetFactoryProduct(GetParamToEnd(args, ' ', 4));
-			
+
+			if (productKey == 0) {
+				PrintUserCmdText(client, L"ERR item not found");
+				return;
+			}
 			// The 3 parameters are as follows: Product hash, Product factory type hash
 			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
-			if (mod->AddToQueue(productKey, recipeMap[productKey].factory_type, mod->type))
+			if (mod->AddToQueue(productKey, recipeMap[productKey].factory_type, mod->factory_type)) {
 				PrintUserCmdText(client, L"OK Item added to build queue");
-			else
-				PrintUserCmdText(client, L"ERR Item add to build queue failed");
-			base->Save();
+				base->Save();
+			}
+			else {
+				PrintUserCmdText(client, L"ERR Wrong factory type selected");
+			}
 		}
-		else
-		{
+		else {
 			PrintUserCmdText(client, L"ERR Invalid parameters");
 			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add|pause|resume]");
 			PrintUserCmdText(client, L"|  list - show factory modules and build status");
 			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
 
 			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
-			
+
 			PrintUserCmdText(client, L"|  add <index> <type> - add item <type> to build queue for factory module at <index>");
-			PrintUserCmdText(client, L"|     For Docking Module Factory:");
-			PrintUserCmdText(client, L"|     <type> = 1 - docking module type 1");
-			PrintUserCmdText(client, L"|     For Hyperspace Jumpdrive Factory");
-			PrintUserCmdText(client, L"|     <type> = 2 - Jump Drive Series II");
-			PrintUserCmdText(client, L"|     <type> = 3 - Jump Drive Series III");
-			PrintUserCmdText(client, L"|     <type> = 4 - Jump Drive Series IV");
-			PrintUserCmdText(client, L"|     For Hyperspace Survey Factory");
-			PrintUserCmdText(client, L"|     <type> = 5 - Hyperspace Survey Module Mk1");
-			PrintUserCmdText(client, L"|     <type> = 6 - Hyperspace Survey Module Mk2");
-			PrintUserCmdText(client, L"|     <type> = 7 - Hyperspace Survey Module Mk3");
-			PrintUserCmdText(client, L"|     <type> = 15 - Hyperspace Matrix Mk1");
-			PrintUserCmdText(client, L"|     For Cloaking Device Factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - Cloaking Device MK1 (small)");
-			PrintUserCmdText(client, L"|     <type> = 9 - Cloaking Device MK2 (medium)");
-			PrintUserCmdText(client, L"|     <type> = 10 - Cloaking Device MK2 Advanced (large)");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloaking Device MK3 (transport)");
-			PrintUserCmdText(client, L"|     For Cloak Disruptor Factory");
-			PrintUserCmdText(client, L"|     <type> = 12 - Cloak Disruptor Type-1");
-			PrintUserCmdText(client, L"|     <type> = 13 - Cloak Disruptor Type-2");
-			PrintUserCmdText(client, L"|     <type> = 14 - Cloak Disruptor Type-3");
+			for (vector<wstring>::iterator i = facmod_recipe_list.begin(); i != facmod_recipe_list.end(); ++i) {
+				PrintUserCmdText(client, *i);
+			}
 			PrintUserCmdText(client, L"|  pause <index> - pause factory module at <index>");
 			PrintUserCmdText(client, L"|  resume <index> - resume factory module at <index>");
 		}
@@ -1425,13 +1435,17 @@ namespace PlayerCommands
 		}
 		else if (cmd == L"stop")
 		{
-			const wstring &arg = GetParam(args, ' ', 2);
+			const wstring arg = GetParamToEnd(args, ' ', 2);
 			if (arg == L"all") {
 				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_OREREFINERY);
 				PrintUserCmdText(client, L"OK Refineries stopped");
 			}
 			else {
-				uint productToStop = recipeNameMap[arg].nickname;
+				uint productToStop = FactoryModule::GetRefineryProduct(GetParamToEnd(args, ' ', 2));
+				if (productToStop) {
+					PrintUserCmdText(client, L"ERR item not recognized");
+					return;
+				}
 				FactoryModule *refinery = FactoryModule::FindModuleByProductInProduction(base, productToStop);
 				if (refinery) {
 					refinery->ClearQueue();
@@ -1439,7 +1453,7 @@ namespace PlayerCommands
 					PrintUserCmdText(client, L"OK Refinery stopped");
 				}
 				else {
-					PrintUserCmdText(client, L"ERR not found, use '/refinery stop all' to stop all processes in refineries.");
+					PrintUserCmdText(client, L"ERR item is not being produced");
 				}
 			}
 			base->Save();
@@ -1455,7 +1469,7 @@ namespace PlayerCommands
 
 			// The 3 parameters are as follows: Product hash, Product factory type hash
 			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
-			if (refinery->AddToQueue(productKey, recipeMap[productKey].factory_type, refinery->type))
+			if (refinery->AddToQueue(productKey, recipeMap[productKey].factory_type, refinery->factory_type))
 				PrintUserCmdText(client, L"OK Item added to build queue");
 			else
 				PrintUserCmdText(client, L"ERR Item add to build queue failed");
@@ -1465,9 +1479,11 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Invalid parameters");
 			PrintUserCmdText(client, L"/refinery [list|stop|start]");
 			PrintUserCmdText(client, L"|  list - show modules and build status");
-			PrintUserCmdText(client, L"|  stop <name> - stop production of <name>");
-			PrintUserCmdText(client, L"|  start <name> - start production of <name>");
-			PrintUserCmdText(client, L"|     <type> = 1 - Gold");
+			PrintUserCmdText(client, L"|  stop <name> - stop production of <name>, accepts number or name");
+			PrintUserCmdText(client, L"|  start <name> - start production of <name>, accepts number or name");
+			for (vector<wstring>::iterator i = refinery_recipe_list.begin(); i != refinery_recipe_list.end(); ++i) {
+				PrintUserCmdText(client, *i);
+			}
 		}
 	}
 

@@ -356,6 +356,8 @@ void CoreModule::Spawn()
 			base->base_health = base->max_base_health;
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
+		base_shield_reinforcement_threshold = shield_reinforcement_threshold_flat + (shield_reinforcement_threshold_percent * base->max_base_health);
+
 		base->SyncReputationForBaseObject(space_obj);
 		if (set_plugin_debug > 1)
 			ConPrint(L"CoreModule::created space_obj=%u health=%f\n", space_obj, base->base_health);
@@ -600,8 +602,8 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 inline void CoreModule::AddDmgTakenToThresholdCounterAndReinforceShield(float dmgTaken) {
 	damage_taken_since_last_threshold += dmgTaken;
-	if (damage_taken_since_last_threshold >= shield_reinforcement_threshold) {
-		damage_taken_since_last_threshold -= shield_reinforcement_threshold;
+	if (damage_taken_since_last_threshold >= base_shield_reinforcement_threshold) {
+		damage_taken_since_last_threshold -= base_shield_reinforcement_threshold;
 		shield_strength_multiplier += shield_reinforcement_increment;
 	}
 }

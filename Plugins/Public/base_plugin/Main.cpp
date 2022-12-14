@@ -87,7 +87,8 @@ uint repair_per_repair_cycle = 60000;
 // set of configurable variables defining the diminishing returns on damage during POB siege
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
-float shield_reinforcement_threshold;
+float shield_reinforcement_threshold_flat;
+float shield_reinforcement_threshold_percent;
 float shield_reinforcement_increment;
 float base_shield_strength;
 
@@ -458,9 +459,13 @@ void LoadSettingsActual()
 					{
 						repair_per_repair_cycle = ini.get_value_int(0);
 					}
-					else if (ini.is_value("shield_reinforcement_threshold"))
+					else if (ini.is_value("shield_reinforcement_threshold_flat"))
 					{
-						shield_reinforcement_threshold = ini.get_value_float(0);
+						shield_reinforcement_threshold_flat = ini.get_value_float(0);
+					}
+					else if (ini.is_value("shield_reinforcement_threshold_percent"))
+					{
+						shield_reinforcement_threshold_percent = ini.get_value_float(0);
 					}
 					else if (ini.is_value("shield_reinforcement_increment"))
 					{

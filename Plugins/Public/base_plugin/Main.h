@@ -125,6 +125,7 @@ public:
 	bool dont_rust;
 
 	float shield_strength_multiplier;
+	float base_shield_reinforcement_threshold;
 	float damage_taken_since_last_threshold;
 
 	// The list of goods and usage of goods per minute for the autosys effect
@@ -616,7 +617,8 @@ extern uint set_tick_time;
 // set of configurable variables defining the diminishing returns on damage during POB siege
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
-extern float shield_reinforcement_threshold;
+extern float shield_reinforcement_threshold_flat;
+extern float shield_reinforcement_threshold_percent;
 extern float shield_reinforcement_increment;
 extern float base_shield_strength;
 

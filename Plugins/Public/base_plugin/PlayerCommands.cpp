@@ -1825,6 +1825,52 @@ namespace PlayerCommands
 		}
 	}
 
+	void GetNecessitiesStatus(uint client, const wstring &args) {
+		// Check that this player is in a player controlled base
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!clients[client].admin && !clients[client].viewshop)
+		{
+			PrintUserCmdText(client, L"ERROR: Access denied");
+			return;
+		}
+
+		if (base->HasMarketItem(set_base_crew_type) < base->base_level * 200) {
+			PrintUserCmdText(client, L"WARNING, CREW COUNT TOO LOW");
+		}
+		PrintUserCmdText(client, L"Crew: %u onboard", base->HasMarketItem(set_base_crew_type));
+
+		PrintUserCmdText(client, L"Crew supplies:");
+		for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin(); i != set_base_crew_consumption_items.end(); ++i) {
+			const GoodInfo *gi = GoodList::find_by_id(i->first);
+			if (gi)
+			{
+				PrintUserCmdText(client, L"    |%s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first));
+			}
+		}
+		
+		uint foodCount = 0;
+		for (map<uint, uint>::iterator i = set_base_crew_food_items.begin(); i != set_base_crew_food_items.end(); ++i) {
+			foodCount += base->HasMarketItem(i->first);
+		}
+		PrintUserCmdText(client, L"    |Food: %u", foodCount);
+
+		PrintUserCmdText(client, L"Repair materials:");
+		for (list<REPAIR_ITEM>::iterator i = set_base_repair_items.begin(); i != set_base_repair_items.end(); ++i) {
+
+			const GoodInfo *gi = GoodList::find_by_id(i->good);
+			if (gi)
+			{
+				PrintUserCmdText(client, L"    |%s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good));
+			}
+		}
+	}
+
 	void BaseDeploy(uint client, const wstring &args)
 	{
 		if (set_holiday_mode)

@@ -1120,6 +1120,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseInfo(client, args);
 		return true;
 	}
+	else if (args.find(L"/base check") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::GetNecessitiesStatus(client, args);
+		return true;
+	}
 	else if (args.find(L"/base facmod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;

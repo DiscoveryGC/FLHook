@@ -1577,6 +1577,12 @@ namespace PlayerCommands
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
 		const wstring &cmd = GetParam(args, ' ', 1);
 		int money = ToInt(GetParam(args, ' ', 2));
 

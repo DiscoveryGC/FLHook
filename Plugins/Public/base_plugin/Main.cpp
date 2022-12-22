@@ -75,6 +75,7 @@ string set_status_path_json;
 uint set_damage_per_tick = 600;
 
 /// Damage multiplier for damaged/abandoned stations
+/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
 list<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
 
 /// Additional damage penalty for stations without proper crew

@@ -52,6 +52,9 @@ namespace PlayerCommands
 
 			L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT>";
+			
+			L"<TRA bold=\"true\"/><TEXT>/base check</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>";
 
 		pages[1] = L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"

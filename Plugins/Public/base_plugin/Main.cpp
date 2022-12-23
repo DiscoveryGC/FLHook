@@ -74,6 +74,13 @@ string set_status_path_json;
 /// Damage to the base every tick
 uint set_damage_per_tick = 600;
 
+/// Damage multiplier for damaged/abandoned stations
+/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
+list<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
+
+/// Additional damage penalty for stations without proper crew
+float no_crew_damage_multiplier = 1;
+
 // The seconds per damage tick
 uint set_damage_tick_time = 16;
 
@@ -435,6 +442,18 @@ void LoadSettingsActual()
 					else if (ini.is_value("damage_per_tick"))
 					{
 						set_damage_per_tick = ini.get_value_int(0);
+					}
+					else if (ini.is_value("damage_multiplier"))
+					{
+						WEAR_N_TEAR_MODIFIER mod;
+						mod.fromHP = ini.get_value_float(0);
+						mod.toHP = ini.get_value_float(1);
+						mod.modifier = ini.get_value_float(2);
+						wear_n_tear_mod_list.push_back(mod);
+					}
+					else if (ini.is_value("no_crew_damage_multiplier"))
+					{
+						no_crew_damage_multiplier = ini.get_value_float(0);
 					}
 					else if (ini.is_value("damage_tick_time"))
 					{

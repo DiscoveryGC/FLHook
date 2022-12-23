@@ -1859,7 +1859,7 @@ namespace PlayerCommands
 			const GoodInfo *gi = GoodList::find_by_id(i->first);
 			if (gi)
 			{
-				PrintUserCmdText(client, L"    |%s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first));
+				PrintUserCmdText(client, L"|    %s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first));
 			}
 		}
 		
@@ -1867,7 +1867,7 @@ namespace PlayerCommands
 		for (map<uint, uint>::iterator i = set_base_crew_food_items.begin(); i != set_base_crew_food_items.end(); ++i) {
 			foodCount += base->HasMarketItem(i->first);
 		}
-		PrintUserCmdText(client, L"    |Food: %u", foodCount);
+		PrintUserCmdText(client, L"|    Food: %u", foodCount);
 
 		PrintUserCmdText(client, L"Repair materials:");
 		for (list<REPAIR_ITEM>::iterator i = set_base_repair_items.begin(); i != set_base_repair_items.end(); ++i) {
@@ -1875,7 +1875,7 @@ namespace PlayerCommands
 			const GoodInfo *gi = GoodList::find_by_id(i->good);
 			if (gi)
 			{
-				PrintUserCmdText(client, L"    |%s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good));
+				PrintUserCmdText(client, L"|    %s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good));
 			}
 		}
 	}

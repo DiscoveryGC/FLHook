@@ -528,6 +528,7 @@ namespace PlayerCommands
 	void BaseShieldMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
+	void GetNecessitiesStatus(uint client, const wstring &args);
 
 	void BaseDeploy(uint client, const wstring &args);
 

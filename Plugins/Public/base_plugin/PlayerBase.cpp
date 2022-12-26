@@ -452,7 +452,8 @@ bool PlayerBase::AddMarketGood(uint good, uint quantity)
 	float vol, mass;
 	pub::GetGoodProperties(good, vol, mass);
 
-	if (GetRemainingCargoSpace() < (quantity * vol))
+	if (GetRemainingCargoSpace() < (quantity * vol)
+	|| (market_items.count(good) && market_items[good].max_stock < market_items[good].quantity + quantity))
 		return false;
 
 	market_items[good].quantity += quantity;

@@ -229,6 +229,39 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 	return RememberState;
 }
 
+FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct) {
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if(facModPtr && facModPtr->active_recipe.nickname == searchedProduct){
+			return facModPtr;
+		}
+	}
+	return 0;
+}
+
+FactoryModule* FactoryModule::FindFirstFreeModuleByType(PlayerBase* pb, uint searchedType){
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if (facModPtr && facModPtr->type == searchedType && facModPtr->build_queue.empty()) {
+			return facModPtr;
+		}
+	}
+	return 0;
+}
+
+void FactoryModule::StopAllModulesOfType(PlayerBase* pb, uint searchedType) {
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if (facModPtr && facModPtr->type == searchedType){
+			facModPtr->ClearQueue();
+			facModPtr->ClearRecipe();
+		}
+	}
+}
+
 bool FactoryModule::IsFactoryModule(Module* module) {
 	return (module &&
 		(module->type == Module::TYPE_M_CLOAK

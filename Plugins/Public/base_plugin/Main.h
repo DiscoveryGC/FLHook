@@ -251,7 +251,10 @@ public:
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
 	bool Timer(uint time);
+	static FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct);
+	static FactoryModule* FactoryModule::FindFirstFreeModuleByType(PlayerBase* pb, uint searchedType);
 	static uint FactoryModule::GetFactoryProduct(wstring product);
+	static void FactoryModule::StopAllModulesOfType(PlayerBase* pb, uint searchedType);
 	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;

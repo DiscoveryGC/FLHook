@@ -14,8 +14,7 @@ BuildModule::BuildModule(PlayerBase *the_base)
 BuildModule::BuildModule(PlayerBase *the_base, uint the_build_type)
 	: Module(TYPE_BUILD), base(the_base), build_type(the_build_type)
 {
-	uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[build_type]);
-	active_recipe = recipeMap[module_nickname];
+	active_recipe = recipeNumberModuleMap[build_type];
 }
 
 wstring BuildModule::GetInfo(bool xml)

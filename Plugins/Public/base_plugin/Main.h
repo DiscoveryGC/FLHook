@@ -25,6 +25,10 @@ struct RECIPE
 	RECIPE() : produced_item(0), cooking_rate(0) {}
 	uint nickname;
 	uint produced_item;
+	wstring factory_type;
+	uint shortcut_number;
+	uint produced_amount;
+	bool loop_production;
 	wstring infotext;
 	uint cooking_rate;
 	map<uint, uint> consumed_items;

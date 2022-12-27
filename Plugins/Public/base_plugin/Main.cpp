@@ -407,7 +407,6 @@ void LoadSettingsActual()
 
 	recipeMap.clear();
 	recipeNameMap.clear();
-	recipeModuleMap.clear();
 	recipeNumberModuleMap.clear();
 	recipeNumberFactoryMap.clear();
 	recipeNumberRefineryMap.clear();

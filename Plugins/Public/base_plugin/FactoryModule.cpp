@@ -142,8 +142,15 @@ bool FactoryModule::Timer(uint time)
 
 	// Add the newly produced item to the market. If there is insufficient space
 	// to add the item, wait until there is space.
-	if (!base->AddMarketGood(active_recipe.produced_item, 1))
+	if (!base->AddMarketGood(active_recipe.produced_item, active_recipe.produced_amount))
 		return false;
+
+
+	// If recipe is set to automatically loop, add it back into the queue upon success
+	// and prevent wiping the acive_recipe
+	if (active_recipe.loop_production && build_queue.empty()) {
+		build_queue.push_back(active_recipe.nickname);
+	}
 
 	// Reset the nickname to load a new item from the build queue
 	// next time around.

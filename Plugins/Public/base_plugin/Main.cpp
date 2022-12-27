@@ -2776,6 +2776,9 @@ void AddRecipeToMaps (RECIPE recipe, string recipe_type){
 	if (recipe_type == FACTORY_RECIPE) {
 		recipeNumberFactoryMap[recipe.shortcut_number] = recipe; 
 	}
+	else if (recipe_type == REFINERY_RECIPE) {
+		recipeNumberRefineryMap[recipe.shortcut_number] = recipe;
+	}
 	else if (recipe_type == MODULE_RECIPE) {
 		recipeNumberModuleMap[recipe.shortcut_number] = recipe;
 	}

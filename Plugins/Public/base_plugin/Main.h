@@ -629,8 +629,6 @@ wstring HtmlEncode(wstring text);
 extern string set_status_path_html;
 extern string set_status_path_json;
 
-extern const char* MODULE_TYPE_NICKNAMES[13];
-
 extern float damage_threshold;
 
 extern float siege_mode_damage_trigger_level;

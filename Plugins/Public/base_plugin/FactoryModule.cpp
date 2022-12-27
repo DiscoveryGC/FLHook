@@ -1,16 +1,5 @@
 #include "Main.h"
 
-const char* RECIPE_NAMES[] =
-{ "Unknown", "recipe_make_dockmodule",
-	"recipe_make_jumpdrive_ii", "recipe_make_jumpdrive_iii", "recipe_make_jumpdrive_iv",
-	"recipe_make_hypscanner1", "recipe_make_hypscanner2", "recipe_make_hypscanner3",
-	"recipe_cloak_small", "recipe_cloak_medium", "recipe_cloak_large", "recipe_cloak_transport", "recipe_cloak_disruptor_1", "recipe_cloak_disruptor_2", "recipe_cloak_disruptor_3", "recipe_jdmatrix_1", 0 };
-
-const wchar_t* FACTORY_NAMES[] =
-{ L"Unknown", L"Unknown", L"Unknown", L"Unknown", L"Unknown",
-	L"Docking Module Factory", L"Jumpdrive Factory",
-	L"Hyperspace Scanner Factory", L"Cloaking Device Factory", L"Unknown", L"Unknown", L"Cloak Disruptor Factory", 0 };
-
 FactoryModule::FactoryModule(PlayerBase *the_base)
 	: Module(0), base(the_base)
 {

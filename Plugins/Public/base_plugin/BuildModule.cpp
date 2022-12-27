@@ -1,10 +1,5 @@
 #include "Main.h"
 
-const char* MODULE_TYPE_NICKNAMES[] =
-{ "module_build", "module_coreupgrade", "module_shieldgen",
-	"module_storage", "module_defense_1", "module_m_docking", "module_m_jumpdrives",
-	"module_m_hyperspace_scanner", "module_m_cloak", "module_defense_2", "module_defense_3", "module_m_cloakdisruptor", 0 };
-
 BuildModule::BuildModule(PlayerBase *the_base)
 	: Module(TYPE_BUILD), base(the_base), build_type(0)
 {

@@ -151,6 +151,9 @@ bool BuildModule::Timer(uint time)
 				case Module::TYPE_M_CLOAKDISRUPTOR:
 					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
 					break;
+				case Module::TYPE_M_OREREFINERY:
+					base->modules[i] = new FactoryModule(base, Module::TYPE_M_OREREFINERY);
+					break;
 				default:
 					base->modules[i] = 0;
 					break;

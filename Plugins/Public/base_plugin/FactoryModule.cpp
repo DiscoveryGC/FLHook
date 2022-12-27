@@ -271,6 +271,20 @@ bool FactoryModule::IsFactoryModule(Module* module) {
 			|| module->type == Module::TYPE_M_CLOAKDISRUPTOR));
 }
 
+uint FactoryModule::GetRefineryProduct(wstring product) {
+	transform(product.begin(), product.end(), product.begin(), ::tolower);
+	int shortcut_number = ToInt(product);
+	if (recipeNumberRefineryMap.count(shortcut_number)) {
+		return recipeNumberRefineryMap[shortcut_number].nickname;
+	}
+	else if (recipeNameMap.count(product)) {
+		return recipeNameMap[product].nickname;
+	}
+	else {
+		return 0;
+	}
+}
+
 uint FactoryModule::GetFactoryProduct(wstring product) {
 	transform(product.begin(), product.end(), product.begin(), ::tolower);
 	int shortcut_number = ToInt(product);

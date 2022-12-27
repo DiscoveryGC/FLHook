@@ -1318,7 +1318,80 @@ namespace PlayerCommands
 		}
 	}
 
+	void BaseRefineryMod(uint client, const wstring &args) {
 
+		PlayerBase *base = GetPlayerBaseForClient(client);
+
+		if (!CheckBaseAdminAccess(base, client)){
+			return;
+		}
+		const wstring &cmd = GetParam(args, ' ', 1);
+		
+		if (cmd == L"list") {
+			PrintUserCmdText(client, L"Refinery Modules:");
+			for (uint index = 1; index < base->modules.size(); index++)
+			{
+				if (base->modules[index]->type == Module::TYPE_M_OREREFINERY)
+				{
+					FactoryModule *mod = (FactoryModule*)base->modules[index];
+					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
+				}
+			}
+			PrintUserCmdText(client, L"OK");
+		}
+		else if (cmd == L"stop")
+		{
+			const wstring arg = GetParamToEnd(args, ' ', 2);
+			if (arg == L"all") {
+				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_OREREFINERY);
+				PrintUserCmdText(client, L"OK Refineries stopped");
+			}
+			else {
+				uint productToStop = FactoryModule::GetRefineryProduct(GetParamToEnd(args, ' ', 2));
+				if (productToStop) {
+					PrintUserCmdText(client, L"ERR item not recognized");
+					return;
+				}
+				FactoryModule *refinery = FactoryModule::FindModuleByProductInProduction(base, productToStop);
+				if (refinery) {
+					refinery->ClearQueue();
+					refinery->ClearRecipe();
+					PrintUserCmdText(client, L"OK Refinery stopped");
+				}
+				else {
+					PrintUserCmdText(client, L"ERR item is not being produced");
+				}
+			}
+			base->Save();
+		}
+		else if (cmd == L"start")
+		{
+			//TODO: Number works, word no longer works, mappings?
+			FactoryModule* refinery = FactoryModule::FindFirstFreeModuleByType(base, Module::TYPE_M_OREREFINERY);
+			if (!refinery) {
+				PrintUserCmdText(client, L"ERR Refinery module not found!");
+			}
+			uint productKey = FactoryModule::GetRefineryProduct(GetParamToEnd(args, ' ', 2));
+
+			// The 3 parameters are as follows: Product hash, Product factory type hash
+			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
+			if (refinery->AddToQueue(productKey, recipeMap[productKey].factory_type, recipeNumberModuleMap[refinery->type].factory_type))
+				PrintUserCmdText(client, L"OK Item added to build queue");
+			else
+				PrintUserCmdText(client, L"ERR Item add to build queue failed");
+			base->Save();
+		}
+		else {
+			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"/refinery [list|stop|start]");
+			PrintUserCmdText(client, L"|  list - show modules and build status");
+			PrintUserCmdText(client, L"|  stop <name> - stop production of <name>, accepts number or name");
+			PrintUserCmdText(client, L"|  start <name> - start production of <name>, accepts number or name");
+			for (vector<wstring>::iterator i = refinery_recipe_list.begin(); i != refinery_recipe_list.end(); ++i) {
+				PrintUserCmdText(client, *i);
+			}
+		}
+	}
 
 	void BaseDefMod(uint client, const wstring &args)
 	{

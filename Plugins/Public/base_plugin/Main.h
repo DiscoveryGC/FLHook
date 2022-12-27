@@ -95,7 +95,8 @@ public:
 	static const int TYPE_DEFENSE_2 = 9;
 	static const int TYPE_DEFENSE_3 = 10;
 	static const int TYPE_M_CLOAKDISRUPTOR = 11;
-	static const int TYPE_LAST = TYPE_M_CLOAKDISRUPTOR;
+	static const int TYPE_M_OREREFINERY = 12;
+
 
 	Module(uint the_type) : type(the_type) {}
 	virtual ~Module() {}
@@ -253,6 +254,7 @@ public:
 	bool Timer(uint time);
 	static FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct);
 	static FactoryModule* FactoryModule::FindFirstFreeModuleByType(PlayerBase* pb, uint searchedType);
+	static uint FactoryModule::GetRefineryProduct(wstring product);
 	static uint FactoryModule::GetFactoryProduct(wstring product);
 	static void FactoryModule::StopAllModulesOfType(PlayerBase* pb, uint searchedType);
 	static bool FactoryModule::IsFactoryModule(Module* module);
@@ -536,6 +538,7 @@ namespace PlayerCommands
 	void BaseDefenseMode(uint client, const wstring &args);
 	void BaseDefMod(uint client, const wstring &args);
 	void BaseBuildMod(uint client, const wstring &args);
+	void BaseRefineryMod(uint client, const wstring &args);
 	void BaseFacMod(uint client, const wstring &args);
 	void PopulateHelpMenus();
 	void BaseShieldMod(uint client, const wstring &args);
@@ -581,6 +584,7 @@ extern map<wstring, RECIPE> recipeNameMap;
 
 extern map<uint, RECIPE> recipeNumberModuleMap;
 extern map<uint, RECIPE> recipeNumberFactoryMap;
+extern map<uint, RECIPE> recipeNumberRefineryMap;
 
 struct REPAIR_ITEM
 {

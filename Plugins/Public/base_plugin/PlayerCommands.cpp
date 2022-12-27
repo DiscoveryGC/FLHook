@@ -134,6 +134,21 @@ namespace PlayerCommands
 
 		pub::Player::PopUpDialog(client, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
 	}
+	
+	bool CheckBaseAdminAccess(PlayerBase *base, uint client) {
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return false;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return false;
+		}
+		return true;
+	}
 
 	bool RateLimitLogins(uint client, PlayerBase *base, wstring charname)
 	{
@@ -221,15 +236,8 @@ namespace PlayerCommands
 	void BaseAddPwd(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -270,15 +278,8 @@ namespace PlayerCommands
 	void BaseRmPwd(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -306,15 +307,8 @@ namespace PlayerCommands
 	void BaseSetMasterPwd(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -363,15 +357,8 @@ namespace PlayerCommands
 	void BaseLstPwd(uint client, const wstring &cmd)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -400,15 +387,8 @@ namespace PlayerCommands
 	void BaseAddAllyTag(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -444,15 +424,8 @@ namespace PlayerCommands
 	void BaseRmAllyTag(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -486,15 +459,8 @@ namespace PlayerCommands
 	void BaseLstAllyTag(uint client, const wstring &cmd)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -503,26 +469,10 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"OK");
 	}
 
-	bool CheckForBase(PlayerBase *base, uint client)
-	{
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return true;
-		}
-
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
-			return true;
-		}
-		return false;
-	}
-
 	void BaseAddAllyFac(uint client, const wstring &args, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+		if (CheckBaseAdminAccess(base, client)) return;
 
 		set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -560,7 +510,7 @@ namespace PlayerCommands
 	void BaseClearAllyFac(uint client, const wstring &args, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+		if (CheckBaseAdminAccess(base, client)) return;
 
 		set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -574,7 +524,7 @@ namespace PlayerCommands
 	void BaseRmAllyFac(uint client, const wstring &args, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+		if (CheckBaseAdminAccess(base, client)) return;
 
 		set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -727,7 +677,7 @@ namespace PlayerCommands
 	void BaseLstAllyFac(uint client, const wstring &cmd, bool HostileFactionMod)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+		if (CheckBaseAdminAccess(base, client)) return;
 
 		set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -818,15 +768,8 @@ namespace PlayerCommands
 	void BaseAddHostileTag(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -864,15 +807,8 @@ namespace PlayerCommands
 	void BaseRmHostileTag(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -908,15 +844,8 @@ namespace PlayerCommands
 	void BaseLstHostileTag(uint client, const wstring &cmd)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -928,15 +857,8 @@ namespace PlayerCommands
 	void BaseInfo(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -995,15 +917,8 @@ namespace PlayerCommands
 	void BaseDefenseMode(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -1050,15 +965,8 @@ namespace PlayerCommands
 	void BaseBuildMod(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -1235,15 +1143,8 @@ namespace PlayerCommands
 	void BaseFacMod(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)) {
 			return;
 		}
 
@@ -1253,12 +1154,7 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"Factory Modules:");
 			for (uint index = 1; index < base->modules.size(); index++)
 			{
-				if (base->modules[index] &&
-					(base->modules[index]->type == Module::TYPE_M_CLOAK
-						|| base->modules[index]->type == Module::TYPE_M_HYPERSPACE_SCANNER
-						|| base->modules[index]->type == Module::TYPE_M_JUMPDRIVES
-						|| base->modules[index]->type == Module::TYPE_M_DOCKING
-						|| base->modules[index]->type == Module::TYPE_M_CLOAKDISRUPTOR))
+				if (FactoryModule::IsFactoryModule(base->modules[index]))
 				{
 					FactoryModule *mod = (FactoryModule*)base->modules[index];
 					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
@@ -1275,12 +1171,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1302,12 +1193,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1327,12 +1213,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1354,12 +1235,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1382,12 +1258,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
 			{
 				PrintUserCmdText(client, L"ERR Not factory module");
 				return;
@@ -1435,18 +1306,12 @@ namespace PlayerCommands
 		}
 	}
 
+
+
 	void BaseDefMod(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
-
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 
@@ -1529,15 +1394,8 @@ namespace PlayerCommands
 	void BaseShieldMod(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (!CheckBaseAdminAccess(base, client)){
 			return;
 		}
 

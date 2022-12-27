@@ -251,6 +251,7 @@ public:
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
 	bool Timer(uint time);
+	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;
 	bool ToggleQueuePaused(bool NewState);

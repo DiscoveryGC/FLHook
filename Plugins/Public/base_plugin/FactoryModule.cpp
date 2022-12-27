@@ -278,3 +278,12 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 	Paused = NewState;
 	return RememberState;
 }
+
+bool FactoryModule::IsFactoryModule(Module* module) {
+	return (module &&
+		(module->type == Module::TYPE_M_CLOAK
+			|| module->type == Module::TYPE_M_HYPERSPACE_SCANNER
+			|| module->type == Module::TYPE_M_JUMPDRIVES
+			|| module->type == Module::TYPE_M_DOCKING
+			|| module->type == Module::TYPE_M_CLOAKDISRUPTOR));
+}

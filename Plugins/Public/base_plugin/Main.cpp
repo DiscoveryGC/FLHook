@@ -56,8 +56,18 @@ uint set_base_crew_type;
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
 
-/// Map of item nickname hash to recipes to construct item.
-map<uint, RECIPE> recipes;
+/// Map of hashed item nickname to recipes to construct item.
+map<uint, RECIPE> recipeMap;
+/// Map of items actual names to their recipes.
+map<wstring, RECIPE> recipeNameMap;
+
+/// Maps of shortcut numbers to recipes to construct item.
+map<uint, RECIPE> recipeNumberModuleMap;
+map<uint, RECIPE> recipeNumberFactoryMap;
+
+
+const char* MODULE_RECIPE = "module_recipe";
+const char* FACTORY_RECIPE = "factory_recipe";
 
 /// Map of item nickname hash to recipes to operate shield.
 map<uint, uint> shield_power_items;
@@ -386,7 +396,11 @@ void LoadSettingsActual()
 		delete base->second;
 	}
 
-	recipes.clear();
+	recipeMap.clear();
+	recipeNameMap.clear();
+	recipeModuleMap.clear();
+	recipeNumberModuleMap.clear();
+	recipeNumberFactoryMap.clear();
 	construction_items.clear();
 	set_base_repair_items.clear();
 	set_base_crew_consumption_items.clear();
@@ -570,7 +584,7 @@ void LoadSettingsActual()
 						recipe.reqlevel = ini.get_value_int(0);
 					}
 				}
-				recipes[recipe.nickname] = recipe;
+				AddRecipeToMaps(recipe, recipe_type);
 			}
 		}
 		ini.close();
@@ -621,7 +635,7 @@ void LoadSettingsActual()
 						recipe.reqlevel = ini.get_value_int(0);
 					}
 				}
-				recipes[recipe.nickname] = recipe;
+				AddRecipeToMaps(recipe, recipe_type);
 			}
 		}
 		ini.close();
@@ -2154,7 +2168,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		uint recipe_name = CreateID(wstos(cmd->ArgStr(1)).c_str());
 
-		RECIPE recipe = recipes[recipe_name];
+		RECIPE recipe = recipeMap[recipe_name];
 		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
 		{
 			base->market_items[i->first].quantity += i->second;
@@ -2721,6 +2735,21 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		}
 	}
 	return;
+}
+
+void AddRecipeToMaps (RECIPE recipe, string recipe_type){
+
+	recipeMap[recipe.nickname] = recipe;
+	wstring recipeNameKey = recipe.infotext;
+	//convert to lowercase
+	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
+	recipeNameMap[recipeNameKey] = recipe;
+	if (recipe_type == FACTORY_RECIPE) {
+		recipeNumberFactoryMap[recipe.shortcut_number] = recipe; 
+	}
+	else if (recipe_type == MODULE_RECIPE) {
+		recipeNumberModuleMap[recipe.shortcut_number] = recipe;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1199,7 +1199,7 @@ namespace PlayerCommands
 			//make the nickname for inspection
 			uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[type]);
 
-			if (recipes[module_nickname].reqlevel > base->base_level)
+			if (recipeMap[module_nickname].reqlevel > base->base_level)
 			{
 				PrintUserCmdText(client, L"ERR Insufficient Core Level");
 				return;

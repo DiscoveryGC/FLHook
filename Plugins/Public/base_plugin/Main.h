@@ -35,6 +35,8 @@ struct RECIPE
 	uint reqlevel;
 };
 
+void AddRecipeToMaps(RECIPE recipe, string recipe_type);
+
 struct ARCHTYPE_STRUCT
 {
 	int logic;
@@ -567,7 +569,11 @@ extern POBSOUNDS pbsounds;
 
 extern int set_plugin_debug;
 
-extern map<uint, RECIPE> recipes;
+extern map<uint, RECIPE> recipeMap;
+extern map<wstring, RECIPE> recipeNameMap;
+
+extern map<uint, RECIPE> recipeNumberModuleMap;
+extern map<uint, RECIPE> recipeNumberFactoryMap;
 
 struct REPAIR_ITEM
 {

@@ -152,6 +152,7 @@ bool FactoryModule::Timer(uint time)
 void FactoryModule::LoadState(INI_Reader &ini)
 {
 	active_recipe.nickname = 0;
+	RECIPE foundRecipe;
 	while (ini.read_value())
 	{
 		if (ini.is_value("type"))
@@ -161,22 +162,16 @@ void FactoryModule::LoadState(INI_Reader &ini)
 		else if (ini.is_value("nickname"))
 		{
 			active_recipe.nickname = ini.get_value_int(0);
+			foundRecipe = recipeMap[active_recipe.nickname];
+			active_recipe.produced_item = foundRecipe.produced_item;
+			active_recipe.produced_amount = foundRecipe.produced_amount;
+			active_recipe.loop_production = foundRecipe.loop_production;
+			active_recipe.cooking_rate = foundRecipe.cooking_rate;
+			active_recipe.infotext = foundRecipe.infotext;
 		}
 		else if (ini.is_value("paused"))
 		{
 			Paused = ini.get_value_bool(0);
-		}
-		else if (ini.is_value("produced_item"))
-		{
-			active_recipe.produced_item = ini.get_value_int(0);
-		}
-		else if (ini.is_value("cooking_rate"))
-		{
-			active_recipe.cooking_rate = ini.get_value_int(0);
-		}
-		else if (ini.is_value("infotext"))
-		{
-			active_recipe.infotext = stows(ini.get_value_string());
 		}
 		else if (ini.is_value("consumed"))
 		{
@@ -195,9 +190,6 @@ void FactoryModule::SaveState(FILE *file)
 	fprintf(file, "type = %u\n", type);
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
-	fprintf(file, "produced_item = %u\n", active_recipe.produced_item);
-	fprintf(file, "cooking_rate = %u\n", active_recipe.cooking_rate);
-	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
 	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{

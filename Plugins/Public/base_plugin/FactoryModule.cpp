@@ -85,13 +85,9 @@ bool FactoryModule::Timer(uint time)
 		return false;
 
 	// Get the next item to make from the build queue.
-	if (!active_recipe.nickname && build_queue.size())
+	if (!active_recipe.nickname && !build_queue.empty())
 	{
-		map<uint, RECIPE>::iterator i = recipeMap.find(build_queue.front());
-		if (i != recipeMap.end())
-		{
-			active_recipe = i->second;
-		}
+		active_recipe = recipeMap[build_queue.front()];
 		build_queue.pop_front();
 	}
 

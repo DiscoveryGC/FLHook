@@ -32,9 +32,10 @@ wstring FactoryModule::GetInfo(bool xml)
 	if (Paused)	Status = L"(Paused) ";
 	else Status = L"(Active) ";
 
+	info += recipeNumberModuleMap[type].infotext;
+
 	if (xml)
 	{
-		info += FACTORY_NAMES[type];
 		info += L"</TEXT><PARA/><TEXT>      Pending " + stows(itos(build_queue.size())) + L" items</TEXT>";
 		if (active_recipe.nickname)
 		{
@@ -60,11 +61,9 @@ wstring FactoryModule::GetInfo(bool xml)
 	}
 	else
 	{
-		info += FACTORY_NAMES[type];
-		info += L" - Pending " + stows(itos(build_queue.size())) + L" items ";
 		if (active_recipe.nickname)
 		{
-			info = L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
+			info += L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
 
 			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
@@ -78,6 +77,9 @@ wstring FactoryModule::GetInfo(bool xml)
 					info += L" " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
 				}
 			}
+		}
+		else {
+			info += L" - Pending " + stows(itos(build_queue.size())) + L" items ";
 		}
 	}
 

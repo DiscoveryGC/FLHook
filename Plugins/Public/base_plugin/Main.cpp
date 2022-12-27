@@ -64,10 +64,12 @@ map<wstring, RECIPE> recipeNameMap;
 /// Maps of shortcut numbers to recipes to construct item.
 map<uint, RECIPE> recipeNumberModuleMap;
 map<uint, RECIPE> recipeNumberFactoryMap;
+map<uint, RECIPE> recipeNumberRefineryMap;
 
 
 const char* MODULE_RECIPE = "module_recipe";
 const char* FACTORY_RECIPE = "factory_recipe";
+const char* REFINERY_RECIPE = "refinery_recipe";
 
 /// Map of item nickname hash to recipes to operate shield.
 map<uint, uint> shield_power_items;
@@ -401,6 +403,7 @@ void LoadSettingsActual()
 	recipeModuleMap.clear();
 	recipeNumberModuleMap.clear();
 	recipeNumberFactoryMap.clear();
+	recipeNumberRefineryMap.clear();
 	construction_items.clear();
 	set_base_repair_items.clear();
 	set_base_crew_consumption_items.clear();
@@ -1172,6 +1175,11 @@ bool UserCmd_Process(uint client, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);
+		return true;
+	}
+	else if (args.find(L"/refinery") == 0) {
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseRefineryMod(client, args);
 		return true;
 	}
 	else if (args.find(L"/base defmod") == 0)
@@ -2748,6 +2756,9 @@ void AddRecipeToMaps (RECIPE recipe, string recipe_type){
 	recipeNameMap[recipeNameKey] = recipe;
 	if (recipe_type == FACTORY_RECIPE) {
 		recipeNumberFactoryMap[recipe.shortcut_number] = recipe; 
+	}
+	else if (recipe_type == REFINERY_RECIPE) {
+		recipeNumberRefineryMap[recipe.shortcut_number] = recipe; 
 	}
 	else if (recipe_type == MODULE_RECIPE) {
 		recipeNumberModuleMap[recipe.shortcut_number] = recipe;

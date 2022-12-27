@@ -711,6 +711,8 @@ void LoadSettingsActual()
 		ini.close();
 	}
 
+	PlayerCommands::PopulateHelpMenus();
+
 	//Create the POB sound hashes
 	pbsounds.destruction1 = CreateID("pob_evacuate2");
 	pbsounds.destruction2 = CreateID("pob_firecontrol");

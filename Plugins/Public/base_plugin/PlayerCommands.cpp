@@ -20,6 +20,35 @@
 
 namespace PlayerCommands
 {
+	static vector<wstring> buildmod_recipe_list;
+	static vector<wstring> facmod_recipe_list;
+
+	vector<wstring> GenerateHelpMenu(map<uint, RECIPE> recipeNumberMap, bool recipesPerBuilding) {
+		wstring currentFactoryType = L"";
+		vector<wstring> generatedHelpStringList;
+		wstring currentString = L"";
+		for (map<uint, RECIPE>::iterator i = recipeNumberMap.begin(); i != recipeNumberMap.end(); ++i) {
+			if (recipesPerBuilding && i->second.factory_type != currentFactoryType) {
+				currentFactoryType = i->second.factory_type;
+				currentString = L"|     For ";
+				currentString += (recipeMap[CreateID(wstos(currentFactoryType).c_str())].infotext.c_str());
+				currentString += L":";
+				generatedHelpStringList.push_back(currentString.c_str());
+			}
+			currentString = L"|     <type> = ";
+			currentString += stows(itos(i->second.shortcut_number));
+			currentString += L" - ";
+			currentString += i->second.infotext.c_str();
+			generatedHelpStringList.push_back(currentString.c_str());
+		}
+		return generatedHelpStringList;
+	}
+
+	void PopulateHelpMenus() {
+		buildmod_recipe_list = GenerateHelpMenu(recipeNumberModuleMap, false);
+		facmod_recipe_list = GenerateHelpMenu(recipeNumberFactoryMap, true);
+	}
+
 	void BaseHelp(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -1126,17 +1155,9 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|  construct <index> <type> - start building module <type> at <index>");
 			PrintUserCmdText(client, L"|  pause <index> - pauses building at <index>");
 			PrintUserCmdText(client, L"|  resume <index> - resumes building at <index>");
-			PrintUserCmdText(client, L"|     <type> = 1 - core upgrade");
-			PrintUserCmdText(client, L"|     <type> = 2 - shield generator");
-			PrintUserCmdText(client, L"|     <type> = 3 - cargo storage");
-			PrintUserCmdText(client, L"|     <type> = 4 - defense platform array type 1");
-			PrintUserCmdText(client, L"|     <type> = 5 - docking module factory");
-			PrintUserCmdText(client, L"|     <type> = 6 - jumpdrive manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 7 - hyperspace survey manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - cloaking device manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 9 - defense platform array type 2");
-			PrintUserCmdText(client, L"|     <type> = 10 - defense platform array type 3");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloak Disruptor Factory");
+			for (vector<wstring>::iterator i = buildmod_recipe_list.begin(); i != buildmod_recipe_list.end(); ++i) {
+				PrintUserCmdText(client, *i);
+			}
 		}
 	}
 
@@ -1287,28 +1308,11 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
 
 			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
-			
+
 			PrintUserCmdText(client, L"|  add <index> <type> - add item <type> to build queue for factory module at <index>");
-			PrintUserCmdText(client, L"|     For Docking Module Factory:");
-			PrintUserCmdText(client, L"|     <type> = 1 - docking module type 1");
-			PrintUserCmdText(client, L"|     For Hyperspace Jumpdrive Factory");
-			PrintUserCmdText(client, L"|     <type> = 2 - Jump Drive Series II");
-			PrintUserCmdText(client, L"|     <type> = 3 - Jump Drive Series III");
-			PrintUserCmdText(client, L"|     <type> = 4 - Jump Drive Series IV");
-			PrintUserCmdText(client, L"|     For Hyperspace Survey Factory");
-			PrintUserCmdText(client, L"|     <type> = 5 - Hyperspace Survey Module Mk1");
-			PrintUserCmdText(client, L"|     <type> = 6 - Hyperspace Survey Module Mk2");
-			PrintUserCmdText(client, L"|     <type> = 7 - Hyperspace Survey Module Mk3");
-			PrintUserCmdText(client, L"|     <type> = 15 - Hyperspace Matrix Mk1");
-			PrintUserCmdText(client, L"|     For Cloaking Device Factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - Cloaking Device MK1 (small)");
-			PrintUserCmdText(client, L"|     <type> = 9 - Cloaking Device MK2 (medium)");
-			PrintUserCmdText(client, L"|     <type> = 10 - Cloaking Device MK2 Advanced (large)");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloaking Device MK3 (transport)");
-			PrintUserCmdText(client, L"|     For Cloak Disruptor Factory");
-			PrintUserCmdText(client, L"|     <type> = 12 - Cloak Disruptor Type-1");
-			PrintUserCmdText(client, L"|     <type> = 13 - Cloak Disruptor Type-2");
-			PrintUserCmdText(client, L"|     <type> = 14 - Cloak Disruptor Type-3");
+			for (vector<wstring>::iterator i = facmod_recipe_list.begin(); i != facmod_recipe_list.end(); ++i) {
+				PrintUserCmdText(client, *i);
+			}
 			PrintUserCmdText(client, L"|  pause <index> - pause factory module at <index>");
 			PrintUserCmdText(client, L"|  resume <index> - resume factory module at <index>");
 		}

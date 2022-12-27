@@ -534,6 +534,7 @@ namespace PlayerCommands
 	void BaseDefMod(uint client, const wstring &args);
 	void BaseBuildMod(uint client, const wstring &args);
 	void BaseFacMod(uint client, const wstring &args);
+	void PopulateHelpMenus();
 	void BaseShieldMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);

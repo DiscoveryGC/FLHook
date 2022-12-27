@@ -216,3 +216,15 @@ void BuildModule::SaveState(FILE *file)
 		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
 	}
 }
+
+RECIPE* BuildModule::GetModuleNickname(wstring module_name) {
+	transform(module_name.begin(), module_name.end(), module_name.begin(), ::tolower);
+	int shortcut_number = ToInt(module_name);
+	if (recipeNumberModuleMap.count(shortcut_number)) {
+		return &recipeNumberModuleMap[shortcut_number];
+	}
+	else if (recipeNameMap.count(module_name)){
+		return &recipeNameMap[module_name];
+	}
+	return 0;
+}

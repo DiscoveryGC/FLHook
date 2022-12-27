@@ -1174,20 +1174,21 @@ namespace PlayerCommands
 		else if (cmd == L"construct")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
+			RECIPE* recipePtr = BuildModule::GetModuleNickname(GetParamToEnd(args, ' ', 4));
+
 			if (index < 1 || index >= base->modules.size() || base->modules[index])
 			{
 				PrintUserCmdText(client, L"ERR Module index not valid");
 				return;
 			}
 
-			if (type < Module::TYPE_CORE || type > Module::TYPE_LAST)
+			if (recipePtr == 0)
 			{
 				PrintUserCmdText(client, L"ERR Module type not available");
 				return;
 			}
 
-			if (type == Module::TYPE_CORE)
+			if (recipePtr->shortcut_number == Module::TYPE_CORE)
 			{
 				if (base->base_level >= 4)
 				{
@@ -1197,15 +1198,14 @@ namespace PlayerCommands
 			}
 
 			//make the nickname for inspection
-			uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[type]);
 
-			if (recipeMap[module_nickname].reqlevel > base->base_level)
+			if (recipePtr->reqlevel > base->base_level)
 			{
 				PrintUserCmdText(client, L"ERR Insufficient Core Level");
 				return;
 			}
 
-			base->modules[index] = new BuildModule(base, type);
+			base->modules[index] = new BuildModule(base, recipePtr->shortcut_number);
 			base->Save();
 			PrintUserCmdText(client, L"OK Module construction started");
 		}

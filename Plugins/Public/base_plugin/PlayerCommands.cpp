@@ -1350,7 +1350,7 @@ namespace PlayerCommands
 			}
 			else {
 				uint productToStop = FactoryModule::GetRefineryProduct(GetParamToEnd(args, ' ', 2));
-				if (productToStop) {
+				if (!productToStop) {
 					PrintUserCmdText(client, L"ERR item not recognized");
 					return;
 				}

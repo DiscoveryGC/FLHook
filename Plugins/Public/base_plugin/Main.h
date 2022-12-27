@@ -251,11 +251,12 @@ public:
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
 	bool Timer(uint time);
+	static uint FactoryModule::GetFactoryProduct(wstring product);
 	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;
 	bool ToggleQueuePaused(bool NewState);
-	bool AddToQueue(uint the_equipment_type);
+	bool AddToQueue(uint product, wstring product_type, wstring factory_type);
 	bool ClearQueue();
 	void ClearRecipe();
 };

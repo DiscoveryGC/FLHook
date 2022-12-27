@@ -1251,7 +1251,6 @@ namespace PlayerCommands
 		else if (cmd == L"add")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
 			if (index < 1 || index >= base->modules.size() || !base->modules[index])
 			{
 				PrintUserCmdText(client, L"ERR Module index not valid");
@@ -1265,14 +1264,23 @@ namespace PlayerCommands
 			}
 
 			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->AddToQueue(type))
+			uint productKey = FactoryModule::GetFactoryProduct(GetParamToEnd(args, ' ', 4));
+
+			if (productKey == 0) {
+				PrintUserCmdText(client, L"ERR item not found");
+				return;
+			}
+			// The 3 parameters are as follows: Product hash, Product factory type hash
+			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
+			if (mod->AddToQueue(productKey, recipeMap[productKey].factory_type, recipeNumberModuleMap[mod->type].factory_type)) {
 				PrintUserCmdText(client, L"OK Item added to build queue");
-			else
-				PrintUserCmdText(client, L"ERR Item add to build queue failed");
-			base->Save();
+				base->Save();
+			}
+			else {
+				PrintUserCmdText(client, L"ERR Wrong factory type selected");
+			}
 		}
-		else
-		{
+		else {
 			PrintUserCmdText(client, L"ERR Invalid parameters");
 			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add|pause|resume]");
 			PrintUserCmdText(client, L"|  list - show factory modules and build status");

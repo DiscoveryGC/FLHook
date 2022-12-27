@@ -204,60 +204,14 @@ void FactoryModule::SaveState(FILE *file)
 	}
 }
 
-bool FactoryModule::AddToQueue(uint equipment_type)
+bool FactoryModule::AddToQueue(uint product, wstring product_type, wstring factory_type)
 {
-	if (type == Module::TYPE_M_DOCKING)
+	//check if product can be produced at the target factory
+	if (product_type == factory_type)
 	{
-		if (equipment_type == 1)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
+		build_queue.push_back(product);
+		return true;
 	}
-	else if (type == Module::TYPE_M_JUMPDRIVES)
-	{
-		if (equipment_type == 2
-			|| equipment_type == 3
-			|| equipment_type == 4)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-	else if (type == Module::TYPE_M_HYPERSPACE_SCANNER)
-	{
-		if (equipment_type == 5
-			|| equipment_type == 6
-			|| equipment_type == 7
-			|| equipment_type == 15)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-	else if (type == Module::TYPE_M_CLOAK)
-	{
-		if (equipment_type == 8
-			|| equipment_type == 9
-			|| equipment_type == 10
-			|| equipment_type == 11)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-
-	else if (type == Module::TYPE_M_CLOAKDISRUPTOR)
-	{
-		if (equipment_type == 12
-			|| equipment_type == 13
-			|| equipment_type == 14)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-
 	return false;
 }
 
@@ -286,4 +240,16 @@ bool FactoryModule::IsFactoryModule(Module* module) {
 			|| module->type == Module::TYPE_M_JUMPDRIVES
 			|| module->type == Module::TYPE_M_DOCKING
 			|| module->type == Module::TYPE_M_CLOAKDISRUPTOR));
+}
+
+uint FactoryModule::GetFactoryProduct(wstring product) {
+	transform(product.begin(), product.end(), product.begin(), ::tolower);
+	int shortcut_number = ToInt(product);
+	if (recipeNumberFactoryMap.count(shortcut_number)) {
+		return recipeNumberFactoryMap[shortcut_number].nickname;
+	}
+	else if (recipeNameMap.count(product)){
+		return recipeNameMap[product].nickname;
+	}
+	return 0;
 }

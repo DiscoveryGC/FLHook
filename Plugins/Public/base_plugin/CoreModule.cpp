@@ -459,37 +459,33 @@ void CoreModule::RepairDamage(float max_base_health)
 
 bool CoreModule::Timer(uint time)
 {
-	if (space_obj && set_holiday_mode)
-	{
-		//force the base to keep max health
-		base->base_health = base->max_base_health;
-		float rhealth = base->base_health / base->max_base_health;
-		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-		//ConPrint(L"CoreModule::timer space_obj=%u health=%f maxhealth=%f\n", space_obj, base->base_health, base->max_base_health);
+
+	if ((time%set_tick_time) != 0 || set_holiday_mode) {
 		return false;
 	}
-
-	if ((time%set_tick_time) != 0)
-		return false;
 
 	if (space_obj)
 	{
 		if ((base->logic == 1) || (base->invulnerable == 0))
 		{
 
+			uint number_of_crew = base->HasMarketItem(set_base_crew_type);
+			bool isCrewSufficient = number_of_crew >= (base->base_level * 200);
 			pub::SpaceObj::GetHealth(space_obj, base->base_health, base->max_base_health);
 
 			if (!dont_rust && ((time%set_damage_tick_time) == 0))
 			{
+				float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
+				float wear_n_tear_modifier = FindWearNTearModifier(base->base_health / base->max_base_health);
 				// Reduce hitpoints to reflect wear and tear. This will eventually
 				// destroy the base unless it is able to repair itself.
-				base->base_health -= set_damage_per_tick + (set_damage_per_tick * base->base_level);
+				float damage_taken = (set_damage_per_tick + (set_damage_per_tick * base->base_level)) * wear_n_tear_modifier * no_crew_penalty;
+				base->base_health -= damage_taken;
 			}
 
 			// Repair damage if we have sufficient crew on the base.
 			base->repairing = false;
-			uint number_of_crew = base->HasMarketItem(set_base_crew_type);
-			if (number_of_crew >= (base->base_level * 200)) {
+			if (isCrewSufficient) {
 				RepairDamage(base->max_base_health);
 				if (dont_eat) {
 					// We won't save base health below, so do it here
@@ -678,4 +674,13 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 				player_rep, obj_rep, attitude, base->base);
 		pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
 	}
+}
+
+float CoreModule::FindWearNTearModifier(float currHpPercentage) {
+	for (list<WEAR_N_TEAR_MODIFIER>::iterator i = wear_n_tear_mod_list.begin(); i != wear_n_tear_mod_list.end(); ++i) {
+		if (i->fromHP < currHpPercentage && i->toHP >= currHpPercentage) {
+			return i->modifier;
+		}
+	}
+	return 1.0;
 }

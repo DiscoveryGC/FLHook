@@ -35,6 +35,13 @@ struct BASE_VULNERABILITY_WINDOW {
 	uint start;
 	uint end;
 };
+
+struct WEAR_N_TEAR_MODIFIER{
+	float fromHP;
+	float toHP;
+	float modifier;
+};
+
 struct ARCHTYPE_STRUCT
 {
 	int logic;
@@ -147,6 +154,7 @@ public:
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
 	void AddDmgTakenToThresholdCounterAndReinforceShield(float dmgTaken);
+	float FindWearNTearModifier(float currHpPercentage);
 
 	void RepairDamage(float max_base_health);
 };
@@ -604,6 +612,13 @@ extern uint set_damage_per_10sec;
 
 /// Damage to the base every tick
 extern uint set_damage_per_tick;
+
+/// Damage multiplier for damaged/abandoned stations
+/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
+extern list<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
+
+/// Additional damage penalty for stations without proper crew
+extern float no_crew_damage_multiplier;
 
 /// How much damage to repair per cycle
 extern uint repair_per_repair_cycle;

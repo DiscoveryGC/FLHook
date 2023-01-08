@@ -86,6 +86,9 @@ uint repair_per_repair_cycle = 60000;
 /// If the shield is up then damage to the base is changed by this multiplier.
 float set_shield_damage_multiplier = 0.03f;
 
+/// List of commodities forbidden to store on POBs
+set<uint> forbidden_player_base_commodity_set;
+
 // If true, use the new solar based defense platform spawn 	 	
 bool set_new_spawn = true;
 
@@ -379,6 +382,7 @@ void LoadSettingsActual()
 	string cfg_fileitems = string(szCurDir) + "\\flhook_plugins\\base_recipe_items.cfg";
 	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
 	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
+	string cfg_fileforbiddencommodities = string(szCurDir) + "\\flhook_plugins\\base_forbidden_cargo.cfg";
 
 	map<uint, PlayerBase*>::iterator base = player_bases.begin();
 	for (; base != player_bases.end(); base++)
@@ -660,6 +664,26 @@ void LoadSettingsActual()
 					}
 				}
 				mapArchs[nickname] = archstruct;
+			}
+		}
+		ini.close();
+	}
+
+	if (ini.open(cfg_fileforbiddencommodities.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("forbidden_commodities"))
+			{
+				uint cargoID;
+				while (ini.read_value())
+				{
+					if (ini.is_value("commodity_name"))
+					{
+						cargoID = CreateID(ini.get_value_string(0));
+					}
+				}
+				forbidden_player_base_commodity_set.insert(cargoID);
 			}
 		}
 		ini.close();
@@ -1544,6 +1568,12 @@ bool lastTransactionBase = false;
 uint lastTransactionArchID = 0;
 int lastTransactionCount = 0;
 uint lastTransactionClientID = 0;
+
+bool checkIfCommodityForbidden(uint goodId) {
+	
+	return forbidden_player_base_commodity_set.find(goodId) != forbidden_player_base_commodity_set.end();
+}
+
 void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -1559,6 +1589,13 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 			&& !clients[client].admin)
 		{
 			PrintUserCmdText(client, L"ERR: Base will not accept goods");
+			clients[client].reverse_sell = true;
+			return;
+		}
+
+		if (checkIfCommodityForbidden(gsi.iArchID)) {
+
+			PrintUserCmdText(client, L"ERR: Cargo is not allowed on Player Bases");
 			clients[client].reverse_sell = true;
 			return;
 		}

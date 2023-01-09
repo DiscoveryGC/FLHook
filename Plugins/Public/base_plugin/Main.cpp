@@ -100,7 +100,7 @@ float shield_reinforcement_increment;
 float base_shield_strength;
 
 // decides if bases are globally immune, based on server time
-bool globalBaseVulnerabilityStatus;
+bool isGlobalBaseInvulnerabilityActive;
 
 list<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
 
@@ -801,7 +801,7 @@ void HkTimerCheckKick()
 	}
 
 	uint curr_time = (uint)time(0);
-	globalBaseVulnerabilityStatus = checkBaseVulnerabilityStatus();
+	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
 	map<uint, PlayerBase*>::iterator iter = player_bases.begin();
 	while (iter != player_bases.end())
 	{
@@ -2805,11 +2805,11 @@ bool checkBaseVulnerabilityStatus() {
 		|| (i->start > i->end
 			&& (i->start <= currHour || i->end > currHour))) {
 			// if bases are going vulnerable in this tick, reset their damage resistance to default
-			if (!globalBaseVulnerabilityStatus) {
+			if (isGlobalBaseInvulnerabilityActive) {
 				ResetShieldStrength();
 			}
-			return true;
+			return false;
 		}
 	}
-	return false;
+	return true;
 }

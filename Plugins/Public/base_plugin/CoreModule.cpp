@@ -582,7 +582,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		return curr_hitpoints;
 	}
 
-	if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE && shield_strength_multiplier < 1.0 && true == globalBaseVulnerabilityStatus && base->invulnerable == 0)
+	if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE && shield_strength_multiplier < 1.0 && !isGlobalBaseInvulnerabilityActive && base->invulnerable == 0)
 	{
 		float damageTaken = ((curr_hitpoints - new_hitpoints) * (1 - shield_strength_multiplier));
 		AddDmgTakenToThresholdCounterAndReinforceShield(damageTaken);

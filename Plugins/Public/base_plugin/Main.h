@@ -637,7 +637,7 @@ extern float shield_reinforcement_threshold_percent;
 extern float shield_reinforcement_increment;
 extern float base_shield_strength;
 
-extern bool globalBaseVulnerabilityStatus;
+extern bool isGlobalBaseInvulnerabilityActive;
 
 bool checkBaseVulnerabilityStatus();
 

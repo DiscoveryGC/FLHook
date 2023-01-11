@@ -94,10 +94,10 @@ uint repair_per_repair_cycle = 60000;
 // set of configurable variables defining the diminishing returns on damage during POB siege
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
-float shield_reinforcement_threshold_flat;
-float shield_reinforcement_threshold_percent;
-float shield_reinforcement_increment;
-float base_shield_strength;
+float shield_reinforcement_threshold_flat = 1000000.0f;
+float shield_reinforcement_threshold_percent = 0.0f;
+float shield_reinforcement_increment = 0.0f;
+float base_shield_strength = 0.97f;
 
 // decides if bases are globally immune, based on server time
 bool isGlobalBaseInvulnerabilityActive;
@@ -2796,6 +2796,11 @@ void ResetShieldStrength() {
 }
 
 bool checkBaseVulnerabilityStatus() {
+
+	if (baseVulnerabilityWindows.empty()) {
+		return false;
+	}
+
 	time_t tNow = time(0);
 	struct tm *t = localtime(&tNow);
 	uint currHour = t->tm_hour;

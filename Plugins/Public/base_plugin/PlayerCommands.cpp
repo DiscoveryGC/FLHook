@@ -1113,7 +1113,7 @@ namespace PlayerCommands
 		else if (cmd == L"construct")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
-			RECIPE* recipePtr = BuildModule::GetModuleNickname(GetParamToEnd(args, ' ', 4));
+			RECIPE* recipePtr = BuildModule::GetModuleRecipe(GetParamToEnd(args, ' ', 4));
 
 			if (index < 1 || index >= base->modules.size() || base->modules[index])
 			{

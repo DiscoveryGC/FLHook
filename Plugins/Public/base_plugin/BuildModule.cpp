@@ -214,7 +214,7 @@ void BuildModule::SaveState(FILE *file)
 	}
 }
 
-RECIPE* BuildModule::GetModuleNickname(wstring module_name) {
+RECIPE* BuildModule::GetModuleRecipe(wstring module_name) {
 	transform(module_name.begin(), module_name.end(), module_name.begin(), ::tolower);
 	int shortcut_number = ToInt(module_name);
 	if (recipeNumberModuleMap.count(shortcut_number)) {

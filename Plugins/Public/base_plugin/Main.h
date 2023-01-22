@@ -237,7 +237,7 @@ public:
 	bool Paused = false;
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
-	static RECIPE* GetModuleNickname(wstring module_name);
+	static RECIPE* GetModuleRecipe(wstring module_name);
 
 	bool Timer(uint time);
 };

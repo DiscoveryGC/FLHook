@@ -675,15 +675,13 @@ void LoadSettingsActual()
 		{
 			if (ini.is_header("forbidden_commodities"))
 			{
-				uint cargoID;
 				while (ini.read_value())
 				{
 					if (ini.is_value("commodity_name"))
 					{
-						cargoID = CreateID(ini.get_value_string(0));
+						forbidden_player_base_commodity_set.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
-				forbidden_player_base_commodity_set.insert(cargoID);
 			}
 		}
 		ini.close();

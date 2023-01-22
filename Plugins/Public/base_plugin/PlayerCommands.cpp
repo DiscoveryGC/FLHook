@@ -1843,9 +1843,9 @@ namespace PlayerCommands
 			return;
 		}
 
-        uint crewItemCount = base->HasMarketItem(set_base_crew_type);
-        uint crewItemNeed = base->base_level * 200;
-        if (crewItemCount < crewItemNeed) {
+		uint crewItemCount = base->HasMarketItem(set_base_crew_type);
+		uint crewItemNeed = base->base_level * 200;
+		if (crewItemCount < crewItemNeed) {
 			PrintUserCmdText(client, L"WARNING, CREW COUNT TOO LOW");
 		}
 		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);

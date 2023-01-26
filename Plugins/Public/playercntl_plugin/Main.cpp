@@ -302,7 +302,7 @@ namespace HkIEngine
 		else
 		{
 			if (Players[iClientID].fRelativeHealth == 0.0f && (iCancel != -1)) {
-				PrintUserCmdText(iClientID, L"Hull integrity failing, you cannot dock.");
+				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("dock_disallowed"));
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				return 0;
 			}

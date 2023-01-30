@@ -675,6 +675,19 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 			pub::IsCommodity(item->iArchID, flag);
 			if (!item->bMounted && flag)
 			{
+				bool skipItem = false;
+				for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+				{
+					if (i->first == item->iArchID)
+					{
+						PrintUserCmdText(iClientID, L"ERR you can't jettison %s.", stows(i->second).c_str());
+						skipItem = true;
+						break;
+					}
+				}
+				if (skipItem) {
+					continue;
+				}
 				HkRemoveCargo(wscCharname, item->iID, item->iCount);
 				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
 				items++;
@@ -1082,6 +1095,7 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 				{
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 					PrintUserCmdText(iClientID, L"ERR you can't jettison %s.", stows(i->second).c_str());
+					return;
 				}
 			}
 		}

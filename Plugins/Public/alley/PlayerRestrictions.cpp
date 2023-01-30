@@ -1095,7 +1095,6 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 				{
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 					PrintUserCmdText(iClientID, L"ERR you can't jettison %s.", stows(i->second).c_str());
-					return;
 				}
 			}
 		}

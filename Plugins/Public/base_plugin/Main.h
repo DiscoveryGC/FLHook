@@ -632,8 +632,8 @@ extern uint set_tick_time;
 // set of configurable variables defining the diminishing returns on damage during POB siege
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
-extern float shield_reinforcement_threshold_flat;
-extern float shield_reinforcement_threshold_percent;
+// threshold size is to be configured per core level.
+extern map<int, float> shield_reinforcement_threshold_map;
 extern float shield_reinforcement_increment;
 extern float base_shield_strength;
 

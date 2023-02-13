@@ -356,7 +356,10 @@ void CoreModule::Spawn()
 			base->base_health = base->max_base_health;
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
-		base_shield_reinforcement_threshold = shield_reinforcement_threshold_flat + (shield_reinforcement_threshold_percent * base->max_base_health);
+		if (shield_reinforcement_threshold_map.count(base->base_level))
+			base_shield_reinforcement_threshold = shield_reinforcement_threshold_map[base->base_level];
+		else
+			base_shield_reinforcement_threshold = 0.0f;
 
 		base->SyncReputationForBaseObject(space_obj);
 		if (set_plugin_debug > 1)
@@ -585,7 +588,13 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE && shield_strength_multiplier < 1.0 && !isGlobalBaseInvulnerabilityActive && base->invulnerable == 0)
 	{
 		float damageTaken = ((curr_hitpoints - new_hitpoints) * (1 - shield_strength_multiplier));
-		AddDmgTakenToThresholdCounterAndReinforceShield(damageTaken);
+
+		damage_taken_since_last_threshold += damageTaken;
+		if (damage_taken_since_last_threshold >= base_shield_reinforcement_threshold) {
+			damage_taken_since_last_threshold -= base_shield_reinforcement_threshold;
+			shield_strength_multiplier += shield_reinforcement_increment;
+		}
+
 		return curr_hitpoints - damageTaken;
 	}
 	else
@@ -594,14 +603,6 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	}
 
 	return 0.0f;
-}
-
-inline void CoreModule::AddDmgTakenToThresholdCounterAndReinforceShield(float dmgTaken) {
-	damage_taken_since_last_threshold += dmgTaken;
-	if (damage_taken_since_last_threshold >= base_shield_reinforcement_threshold) {
-		damage_taken_since_last_threshold -= base_shield_reinforcement_threshold;
-		shield_strength_multiplier += shield_reinforcement_increment;
-	}
 }
 
 bool CoreModule::SpaceObjDestroyed(uint space_obj)

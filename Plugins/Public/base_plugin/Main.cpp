@@ -94,8 +94,8 @@ uint repair_per_repair_cycle = 60000;
 // set of configurable variables defining the diminishing returns on damage during POB siege
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
-float shield_reinforcement_threshold_flat = 1000000.0f;
-float shield_reinforcement_threshold_percent = 0.0f;
+// threshold size is to be configured per core level.
+map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
@@ -478,13 +478,9 @@ void LoadSettingsActual()
 					{
 						repair_per_repair_cycle = ini.get_value_int(0);
 					}
-					else if (ini.is_value("shield_reinforcement_threshold_flat"))
+					else if (ini.is_value("shield_reinforcement_threshold_per_core"))
 					{
-						shield_reinforcement_threshold_flat = ini.get_value_float(0);
-					}
-					else if (ini.is_value("shield_reinforcement_threshold_percent"))
-					{
-						shield_reinforcement_threshold_percent = ini.get_value_float(0);
+						shield_reinforcement_threshold_map.emplace(ini.get_value_int(0), ini.get_value_float(1));
 					}
 					else if (ini.is_value("shield_reinforcement_increment"))
 					{
@@ -2804,6 +2800,9 @@ bool checkBaseVulnerabilityStatus() {
 	time_t tNow = time(0);
 	struct tm *t = localtime(&tNow);
 	uint currHour = t->tm_hour;
+	// iterate over configured vulnerability periods to check if we're in one.
+	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
+	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM and before 2AM, so a period of 3 hours.
 	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i){
 		if((i->start < i->end 
 			&& i->start <= currHour && i->end > currHour)

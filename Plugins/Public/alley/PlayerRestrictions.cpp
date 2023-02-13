@@ -680,7 +680,6 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 				{
 					if (i->first == item->iArchID)
 					{
-						PrintUserCmdText(iClientID, L"ERR you can't jettison %s.", stows(i->second).c_str());
 						skipItem = true;
 						break;
 					}

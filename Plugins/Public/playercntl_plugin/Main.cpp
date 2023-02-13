@@ -301,6 +301,11 @@ namespace HkIEngine
 		}
 		else
 		{
+			if (Players[iClientID].fRelativeHealth == 0.0f && (iCancel != -1)) {
+				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("dock_disallowed"));
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				return 0;
+			}
 			uint iTypeID;
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);
 			if (iTypeID == OBJ_DOCKING_RING || iTypeID == OBJ_STATION)

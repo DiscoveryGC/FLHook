@@ -153,7 +153,6 @@ public:
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
-	void AddDmgTakenToThresholdCounterAndReinforceShield(float dmgTaken);
 	float FindWearNTearModifier(float currHpPercentage);
 
 	void RepairDamage(float max_base_health);

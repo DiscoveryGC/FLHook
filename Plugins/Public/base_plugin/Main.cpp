@@ -2785,12 +2785,14 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	return p_PI;
 }
 
-void ResetShieldStrength() {
+void ResetAllBasesShieldStrength() {
 	for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i) {
 		i->second->ResetShieldStrength();
 	}
 }
 
+//return value:
+// false = all bases vulnerable, true = invulnerable
 bool checkBaseVulnerabilityStatus() {
 
 	if (baseVulnerabilityWindows.empty()) {
@@ -2802,7 +2804,7 @@ bool checkBaseVulnerabilityStatus() {
 	uint currHour = t->tm_hour;
 	// iterate over configured vulnerability periods to check if we're in one.
 	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
-	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM and before 2AM, so a period of 3 hours.
+	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
 	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i){
 		if((i->start < i->end 
 			&& i->start <= currHour && i->end > currHour)
@@ -2810,7 +2812,7 @@ bool checkBaseVulnerabilityStatus() {
 			&& (i->start <= currHour || i->end > currHour))) {
 			// if bases are going vulnerable in this tick, reset their damage resistance to default
 			if (isGlobalBaseInvulnerabilityActive) {
-				ResetShieldStrength();
+				ResetAllBasesShieldStrength();
 			}
 			return false;
 		}

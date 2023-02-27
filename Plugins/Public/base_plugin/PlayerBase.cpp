@@ -771,9 +771,8 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 // Reset shield to default strength
 void PlayerBase::ResetShieldStrength() {
-	CoreModule *mod;
 	for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i) {
-		mod = dynamic_cast<CoreModule*>(*i);
+		CoreModule* mod = dynamic_cast<CoreModule*>(*i);
 		if (mod) {
 			mod->shield_strength_multiplier = base_shield_strength;
 			mod->damage_taken_since_last_threshold = 0;

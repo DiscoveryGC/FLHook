@@ -236,11 +236,22 @@ FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, ui
 	return 0;
 }
 
-FactoryModule* FactoryModule::FindFirstFreeModuleByType(PlayerBase* pb, uint searchedType){
+FactoryModule* FactoryModule::FindFirstFreeModuleByTypeInt(PlayerBase* pb, uint searchedType){
 	FactoryModule* facModPtr = 0;
 	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
 		facModPtr = dynamic_cast<FactoryModule*>(*i);
 		if (facModPtr && facModPtr->type == searchedType && facModPtr->build_queue.empty()) {
+			return facModPtr;
+		}
+	}
+	return 0;
+}
+
+FactoryModule* FactoryModule::FindFirstFreeModuleByTypeWStr(PlayerBase* pb, wstring searchedType){
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if (facModPtr && recipeNumberModuleMap[facModPtr->type].factory_type == searchedType && facModPtr->build_queue.empty()) {
 			return facModPtr;
 		}
 	}
@@ -267,28 +278,28 @@ bool FactoryModule::IsFactoryModule(Module* module) {
 			|| module->type == Module::TYPE_M_CLOAKDISRUPTOR));
 }
 
-uint FactoryModule::GetRefineryProduct(wstring product) {
+RECIPE* FactoryModule::GetRefineryProductRecipe(wstring product) {
 	transform(product.begin(), product.end(), product.begin(), ::tolower);
 	int shortcut_number = ToInt(product);
 	if (recipeNumberRefineryMap.count(shortcut_number)) {
-		return recipeNumberRefineryMap[shortcut_number].nickname;
+		return &recipeNumberRefineryMap[shortcut_number];
 	}
 	else if (recipeNameMap.count(product)) {
-		return recipeNameMap[product].nickname;
+		return &recipeNameMap[product];
 	}
 	else {
-		return 0;
+		return nullptr;
 	}
 }
 
-uint FactoryModule::GetFactoryProduct(wstring product) {
+RECIPE* FactoryModule::GetFactoryProductRecipe(wstring product) {
 	transform(product.begin(), product.end(), product.begin(), ::tolower);
 	int shortcut_number = ToInt(product);
 	if (recipeNumberFactoryMap.count(shortcut_number)) {
-		return recipeNumberFactoryMap[shortcut_number].nickname;
+		return &recipeNumberFactoryMap[shortcut_number];
 	}
 	else if (recipeNameMap.count(product)){
-		return recipeNameMap[product].nickname;
+		return &recipeNameMap[product];
 	}
-	return 0;
+	return nullptr;
 }

@@ -1277,129 +1277,62 @@ namespace PlayerCommands
 			}
 			PrintUserCmdText(client, L"OK");
 		}
-		else if (cmd == L"clear")
+		else if (cmd == L"stop")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (!FactoryModule::IsFactoryModule(base->modules[index]))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ClearQueue())
-				PrintUserCmdText(client, L"OK Build queue cleared");
-			else
-				PrintUserCmdText(client, L"ERR Build queue clear failed");
-			base->Save();
-		}
-		else if (cmd == L"cancel")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (!FactoryModule::IsFactoryModule(base->modules[index]))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			mod->ClearRecipe();
-			PrintUserCmdText(client, L"OK Active recipe is canceled");
-			base->Save();
-		}
-		else if (cmd == L"pause")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (!FactoryModule::IsFactoryModule(base->modules[index]))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(true))
-				PrintUserCmdText(client, L"ERR Build queue is already paused");
-			else
-				PrintUserCmdText(client, L"OK Build queue paused");
-			base->Save();
-		}
-		else if (cmd == L"resume")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (!FactoryModule::IsFactoryModule(base->modules[index]))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(false))
-				PrintUserCmdText(client, L"OK Build queue resumed");
-			else
-				PrintUserCmdText(client, L"ERR Build queue is not paused");
-			base->Save();
-		}
-		else if (cmd == L"add")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (!FactoryModule::IsFactoryModule(base->modules[index]))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			uint productKey = FactoryModule::GetFactoryProduct(GetParamToEnd(args, ' ', 4));
-
-			if (productKey == 0) {
-				PrintUserCmdText(client, L"ERR item not found");
-				return;
-			}
-			// The 3 parameters are as follows: Product hash, Product factory type hash
-			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
-			if (mod->AddToQueue(productKey, recipeMap[productKey].factory_type, recipeNumberModuleMap[mod->type].factory_type)) {
-				PrintUserCmdText(client, L"OK Item added to build queue");
-				base->Save();
+			const wstring arg = GetParamToEnd(args, ' ', 2);
+			if (arg == L"all") {
+				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_DOCKING);
+				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_JUMPDRIVES);
+				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_HYPERSPACE_SCANNER);
+				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_CLOAK);
+				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_CLOAKDISRUPTOR);
+				PrintUserCmdText(client, L"OK Factories stopped");
 			}
 			else {
-				PrintUserCmdText(client, L"ERR Wrong factory type selected");
+				uint productToStop = FactoryModule::GetFactoryProduct(GetParamToEnd(args, ' ', 2));
+				if (productToStop) {
+					PrintUserCmdText(client, L"ERR item not recognized");
+					return;
+				}
+				FactoryModule *factory = FactoryModule::FindModuleByProductInProduction(base, productToStop);
+				if (factory) {
+					factory->ClearQueue();
+					factory->ClearRecipe();
+					PrintUserCmdText(client, L"OK Factory stopped");
+				}
+				else {
+					PrintUserCmdText(client, L"ERR item is not being produced");
+				}
 			}
+			base->Save();
+		}
+		else if (cmd == L"start")
+		{
+			RECIPE* productRecipe = FactoryModule::GetFactoryProductRecipe(GetParamToEnd(args, ' ', 2));
+            if(productRecipe == nullptr){
+				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
+                return;
+            }
+            
+			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
+                return;
+			}
+
+			// The 3 parameters are as follows: Product hash, Product factory type hash
+			// I'm taking advantage of the fact both building recipes and commodity recipes are stored in the same Map
+			if (factory->AddToQueue(productRecipe->nickname, recipeMap[productRecipe->nickname].factory_type, recipeNumberModuleMap[factory->type].factory_type))
+				PrintUserCmdText(client, L"OK Item added to build queue");
+			else
+				PrintUserCmdText(client, L"ERR Item add to build queue failed");
+			base->Save();
 		}
 		else {
 			PrintUserCmdText(client, L"ERR Invalid parameters");
 			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add|pause|resume]");
 			PrintUserCmdText(client, L"|  list - show factory modules and build status");
-			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
+			PrintUserCmdText(client, L"|  stop <name/itemNr> - stop production of the item");
 
 			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
 
@@ -1423,14 +1356,19 @@ namespace PlayerCommands
 		
 		if (cmd == L"list") {
 			PrintUserCmdText(client, L"Refinery Modules:");
+            boolean foundRefinery = false;
 			for (uint index = 1; index < base->modules.size(); index++)
 			{
 				if (base->modules[index]->type == Module::TYPE_M_OREREFINERY)
 				{
 					FactoryModule *mod = (FactoryModule*)base->modules[index];
 					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
+                    foundRefinery = true;
 				}
 			}
+            if(!foundRefinery){
+				PrintUserCmdText(client, L"No refineries built");
+            }
 			PrintUserCmdText(client, L"OK");
 		}
 		else if (cmd == L"stop")
@@ -1441,12 +1379,12 @@ namespace PlayerCommands
 				PrintUserCmdText(client, L"OK Refineries stopped");
 			}
 			else {
-				uint productToStop = FactoryModule::GetRefineryProduct(GetParamToEnd(args, ' ', 2));
+				RECIPE* productToStop = FactoryModule::GetRefineryProductRecipe(GetParamToEnd(args, ' ', 2));
 				if (productToStop) {
 					PrintUserCmdText(client, L"ERR item not recognized");
 					return;
 				}
-				FactoryModule *refinery = FactoryModule::FindModuleByProductInProduction(base, productToStop);
+				FactoryModule *refinery = FactoryModule::FindModuleByProductInProduction(base, productToStop->nickname);
 				if (refinery) {
 					refinery->ClearQueue();
 					refinery->ClearRecipe();
@@ -1460,10 +1398,10 @@ namespace PlayerCommands
 		}
 		else if (cmd == L"start")
 		{
-			//TODO: Number works, word no longer works, mappings?
-			FactoryModule* refinery = FactoryModule::FindFirstFreeModuleByType(base, Module::TYPE_M_OREREFINERY);
+			FactoryModule* refinery = FactoryModule::FindFirstFreeModuleByTypeInt(base, Module::TYPE_M_OREREFINERY);
 			if (!refinery) {
 				PrintUserCmdText(client, L"ERR Refinery module not found!");
+                return;
 			}
 			uint productKey = FactoryModule::GetRefineryProduct(GetParamToEnd(args, ' ', 2));
 
@@ -1479,8 +1417,8 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Invalid parameters");
 			PrintUserCmdText(client, L"/refinery [list|stop|start]");
 			PrintUserCmdText(client, L"|  list - show modules and build status");
-			PrintUserCmdText(client, L"|  stop <name> - stop production of <name>, accepts number or name");
-			PrintUserCmdText(client, L"|  start <name> - start production of <name>, accepts number or name");
+			PrintUserCmdText(client, L"|  stop <name/itemNr> - stop production of <name>, accepts number or name");
+			PrintUserCmdText(client, L"|  start <name/itemNr> - start production of <name>, accepts number or name");
 			for (vector<wstring>::iterator i = refinery_recipe_list.begin(); i != refinery_recipe_list.end(); ++i) {
 				PrintUserCmdText(client, *i);
 			}

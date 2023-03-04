@@ -1371,6 +1371,51 @@ namespace PlayerCommands
             }
 			PrintUserCmdText(client, L"OK");
 		}
+        //TODO: Add dynamic finding of products
+		else if (cmd == L"pause")
+		{
+			uint index = ToInt(GetParam(args, ' ', 3));
+			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			{
+				PrintUserCmdText(client, L"ERR Module index not valid");
+				return;
+			}
+
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
+			{
+				PrintUserCmdText(client, L"ERR Not factory module");
+				return;
+			}
+
+			FactoryModule *mod = (FactoryModule*)base->modules[index];
+			if (mod->ToggleQueuePaused(true))
+				PrintUserCmdText(client, L"ERR Build queue is already paused");
+			else
+				PrintUserCmdText(client, L"OK Build queue paused");
+			base->Save();
+		}
+		else if (cmd == L"resume")
+		{
+			uint index = ToInt(GetParam(args, ' ', 3));
+			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			{
+				PrintUserCmdText(client, L"ERR Module index not valid");
+				return;
+			}
+
+			if (!FactoryModule::IsFactoryModule(base->modules[index]))
+			{
+				PrintUserCmdText(client, L"ERR Not factory module");
+				return;
+			}
+
+			FactoryModule *mod = (FactoryModule*)base->modules[index];
+			if (mod->ToggleQueuePaused(false))
+				PrintUserCmdText(client, L"OK Build queue resumed");
+			else
+				PrintUserCmdText(client, L"ERR Build queue is not paused");
+			base->Save();
+		}
 		else if (cmd == L"stop")
 		{
 			const wstring arg = GetParamToEnd(args, ' ', 2);

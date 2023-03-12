@@ -90,8 +90,19 @@ uint set_tick_time = 16;
 // How much damage do we heal per repair cycle?
 uint repair_per_repair_cycle = 60000;
 
-/// If the shield is up then damage to the base is changed by this multiplier.
-float set_shield_damage_multiplier = 0.03f;
+
+// set of configurable variables defining the diminishing returns on damage during POB siege
+// POB starts at base_shield_strength, then every 'threshold' of damage taken, 
+// shield goes up in absorption by the 'increment'
+// threshold size is to be configured per core level.
+map<int, float> shield_reinforcement_threshold_map;
+float shield_reinforcement_increment = 0.0f;
+float base_shield_strength = 0.97f;
+
+// decides if bases are globally immune, based on server time
+bool isGlobalBaseInvulnerabilityActive;
+
+list<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
 
 /// List of commodities forbidden to store on POBs
 set<uint> forbidden_player_base_commodity_set;
@@ -471,9 +482,24 @@ void LoadSettingsActual()
 					{
 						repair_per_repair_cycle = ini.get_value_int(0);
 					}
-					else if (ini.is_value("shield_damage_multiplier"))
+					else if (ini.is_value("shield_reinforcement_threshold_per_core"))
 					{
-						set_shield_damage_multiplier = ini.get_value_float(0);
+						shield_reinforcement_threshold_map.emplace(ini.get_value_int(0), ini.get_value_float(1));
+					}
+					else if (ini.is_value("shield_reinforcement_increment"))
+					{
+						shield_reinforcement_increment = ini.get_value_float(0);
+					}
+					else if (ini.is_value("base_shield_strength"))
+					{
+						base_shield_strength = ini.get_value_float(0);
+					}
+					else if (ini.is_value("base_vulnerability_window"))
+					{
+						BASE_VULNERABILITY_WINDOW damageWindow;
+						damageWindow.start = ini.get_value_int(0);
+						damageWindow.end = ini.get_value_int(1);
+						baseVulnerabilityWindows.push_back(damageWindow);
 					}
 					else if (ini.is_value("construction_shiparch"))
 					{
@@ -793,6 +819,7 @@ void HkTimerCheckKick()
 	}
 
 	uint curr_time = (uint)time(0);
+	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
 	map<uint, PlayerBase*>::iterator iter = player_bases.begin();
 	while (iter != player_bases.end())
 	{
@@ -2797,4 +2824,39 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 15));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 11));
 	return p_PI;
+}
+
+void ResetAllBasesShieldStrength() {
+	for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i) {
+		i->second->ResetShieldStrength();
+	}
+}
+
+//return value:
+// false = all bases vulnerable, true = invulnerable
+bool checkBaseVulnerabilityStatus() {
+
+	if (baseVulnerabilityWindows.empty()) {
+		return false;
+	}
+
+	time_t tNow = time(0);
+	struct tm *t = localtime(&tNow);
+	uint currHour = t->tm_hour;
+	// iterate over configured vulnerability periods to check if we're in one.
+	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
+	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
+	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i){
+		if((i->start < i->end 
+			&& i->start <= currHour && i->end > currHour)
+		|| (i->start > i->end
+			&& (i->start <= currHour || i->end > currHour))) {
+			// if bases are going vulnerable in this tick, reset their damage resistance to default
+			if (isGlobalBaseInvulnerabilityActive) {
+				ResetAllBasesShieldStrength();
+			}
+			return false;
+		}
+	}
+	return true;
 }

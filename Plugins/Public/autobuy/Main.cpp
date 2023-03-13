@@ -11,21 +11,8 @@
 //Includes
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <windows.h>
-#include <stdio.h>
-#include <string>
-#include <time.h>
-#include <math.h>
-#include <list>
 #include <set>
-#include <map>
-#include <algorithm>
 #include <FLHook.h>
-#include <plugin.h>
-#include <PluginUtilities.h>
-#include "Main.h"
-#include <sstream>
-#include <iostream>
 #include <hookext_exports.h>
 using st6_malloc_t = void* (*)(size_t);
 using st6_free_t = void(*)(void*);

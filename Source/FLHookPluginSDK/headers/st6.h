@@ -267,14 +267,14 @@ namespace st6
 			{
 				_Ucopy(_P, _Last, _P + _M);
 				_Ufill(_Last, _M - (_Last - _P), _X);
-				//fill(_P, _Last, _X);
+				fill(_P, _Last, _X);
 				_Last += _M;
 			}
 			else if (0 < _M)
 			{
 				_Ucopy(_Last - _M, _Last, _Last);
-				//copy_backward(_P, _Last - _M, _Last);
-				//fill(_P, _P + _M, _X);
+				copy_backward(_P, _Last - _M, _Last);
+				fill(_P, _P + _M, _X);
 				_Last += _M;
 			}
 		}

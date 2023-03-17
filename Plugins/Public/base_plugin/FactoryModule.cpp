@@ -222,7 +222,8 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 {
 	bool RememberState = Paused;
 	Paused = NewState;
-	return RememberState;
+	//return true if value changed
+	return RememberState != NewState;
 }
 
 FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct) {

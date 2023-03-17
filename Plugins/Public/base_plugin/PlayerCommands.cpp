@@ -116,8 +116,11 @@ namespace PlayerCommands
 			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Set the base's infocard description.</TEXT>";
 
-		pages[3] = L"<TRA bold=\"true\"/><TEXT>/base facmod</TEXT><TRA bold=\"false\"/><PARA/>"
+		pages[3] = L"<TRA bold=\"true\"/><TEXT>/factory</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control factory modules.</TEXT><PARA/><PARA/>"
+
+			L"<TRA bold=\"true\"/><TEXT>/refinery</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Control refinery modules.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
@@ -1263,7 +1266,7 @@ namespace PlayerCommands
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 2);
+		const wstring &cmd = GetParam(args, ' ', 1);
 		if (cmd == L"list")
 		{
 			PrintUserCmdText(client, L"Factory Modules:");
@@ -1326,15 +1329,58 @@ namespace PlayerCommands
 				PrintUserCmdText(client, L"ERR Item add to build queue failed");
 			base->Save();
 		}
+		else if (cmd == L"pause")
+		{
+			RECIPE* productRecipe = FactoryModule::GetFactoryProductRecipe(GetParamToEnd(args, ' ', 2));
+
+			if (productRecipe == nullptr) {
+				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
+				return;
+			}
+
+			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
+				return;
+			}
+
+			if (factory->ToggleQueuePaused(true))
+				PrintUserCmdText(client, L"OK Build queue resumed");
+			else {
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
+				return;
+			}
+			base->Save();
+		}
+		else if (cmd == L"resume")
+		{
+			RECIPE* productRecipe = FactoryModule::GetFactoryProductRecipe(GetParamToEnd(args, ' ', 2));
+
+			if (productRecipe == nullptr) {
+				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
+				return;
+			}
+
+			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
+				return;
+			}
+
+			if (factory->ToggleQueuePaused(false))
+				PrintUserCmdText(client, L"OK Build queue resumed");
+			else {
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
+				return;
+			}
+			base->Save();
+		}
 		else {
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add|pause|resume]");
+			PrintUserCmdText(client, L"/factory [list|clear|cancel|add|pause|resume]");
 			PrintUserCmdText(client, L"|  list - show factory modules and build status");
 			PrintUserCmdText(client, L"|  stop <name/itemNr> - stop production of the item");
-
-			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
-
-			PrintUserCmdText(client, L"|  add <index> <type> - add item <type> to build queue for factory module at <index>");
+			PrintUserCmdText(client, L"|  start <name/itemNr> - start production of the item");
 			for (vector<wstring>::iterator i = facmod_recipe_list.begin(); i != facmod_recipe_list.end(); ++i) {
 				PrintUserCmdText(client, *i);
 			}
@@ -1369,49 +1415,50 @@ namespace PlayerCommands
             }
 			PrintUserCmdText(client, L"OK");
 		}
-        //TODO: Add dynamic finding of products
 		else if (cmd == L"pause")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
+			RECIPE* productRecipe = FactoryModule::GetRefineryProductRecipe(GetParamToEnd(args, ' ', 2));
+
+			if (productRecipe == nullptr) {
+				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
 				return;
 			}
 
-			if (!FactoryModule::IsFactoryModule(base->modules[index]))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
+			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Refinery module not found!");
 				return;
 			}
 
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(true))
-				PrintUserCmdText(client, L"ERR Build queue is already paused");
-			else
-				PrintUserCmdText(client, L"OK Build queue paused");
+			if (factory->ToggleQueuePaused(true))
+				PrintUserCmdText(client, L"OK Build queue resumed");
+			else {
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
+				return;
+			}
 			base->Save();
 		}
 		else if (cmd == L"resume")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
+			RECIPE* productRecipe = FactoryModule::GetRefineryProductRecipe(GetParamToEnd(args, ' ', 2));
+
+			if (productRecipe == nullptr) {
+				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
 				return;
 			}
 
-			if (!FactoryModule::IsFactoryModule(base->modules[index]))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
+			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Refinery module not found!");
 				return;
 			}
 
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(false))
+			if (factory->ToggleQueuePaused(false))
 				PrintUserCmdText(client, L"OK Build queue resumed");
-			else
-				PrintUserCmdText(client, L"ERR Build queue is not paused");
+			else {
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
+				return;
+			}
 			base->Save();
 		}
 		else if (cmd == L"stop")
@@ -1463,6 +1510,8 @@ namespace PlayerCommands
 			for (vector<wstring>::iterator i = refinery_recipe_list.begin(); i != refinery_recipe_list.end(); ++i) {
 				PrintUserCmdText(client, *i);
 			}
+			PrintUserCmdText(client, L"|  pause <name/itemNr> - pauses production of specified refinery item");
+			PrintUserCmdText(client, L"|  resume <name/itemNr> - resumes production of specified refinery item");
 		}
 	}
 

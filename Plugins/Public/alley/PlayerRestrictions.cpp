@@ -675,6 +675,18 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 			pub::IsCommodity(item->iArchID, flag);
 			if (!item->bMounted && flag)
 			{
+				bool skipItem = false;
+				for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+				{
+					if (i->first == item->iArchID)
+					{
+						skipItem = true;
+						break;
+					}
+				}
+				if (skipItem) {
+					continue;
+				}
 				HkRemoveCargo(wscCharname, item->iID, item->iCount);
 				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
 				items++;
@@ -985,7 +997,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())

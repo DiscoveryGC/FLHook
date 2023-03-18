@@ -8,14 +8,6 @@
 
 // includes 
 
-#include <windows.h>
-#include <stdio.h>
-#include <string>
-#include <time.h>
-#include <math.h>
-#include <list>
-#include <map>
-#include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
@@ -1244,7 +1236,7 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::GetNecessitiesStatus(client, args);
 		return true;
 	}
-	else if (args.find(L"/base facmod") == 0)
+	else if (args.find(L"/factory") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);

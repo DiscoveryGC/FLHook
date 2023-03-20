@@ -160,16 +160,18 @@ void ExportData::ToJSON()
 		int curr_item = 1;
 		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
 		{
-			if (i->second.is_exporting)
-			{
+			try {
 				shop.write("quantity", i->second.quantity);
 				shop.write("price", i->second.price);
 				shop.write("min_stock", i->second.min_stock);
 				shop.write("max_stock", i->second.max_stock);
-
+				shop.write("exporting", i->second.is_exporting);
+				
 				const GoodInfo* gi = GoodList::find_by_id(i->first);
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);
 				shop.write("item", wstos(HtmlEncode(name)).c_str());
+			} catch {
+				ConPrint(L"WARN: failed to output to json object with id %u\n", i->first);
 			}
 		}
 		shop.close();

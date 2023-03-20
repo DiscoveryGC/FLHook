@@ -170,7 +170,9 @@ void ExportData::ToJSON()
 				const GoodInfo* gi = GoodList::find_by_id(i->first);
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);
 				shop.write("item", wstos(HtmlEncode(name)).c_str());
-			} catch {
+
+				
+			} catch (exception e) {
 				ConPrint(L"WARN: failed to output to json object with id %u\n", i->first);
 			}
 		}

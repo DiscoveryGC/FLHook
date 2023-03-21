@@ -1083,10 +1083,12 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 	returncode = DEFAULT_RETURNCODE;
 	//int iSlotPlayer;
 
+	boolean matchFound = false;
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (item->sID == jc.iSlot)
 		{
+			matchFound = true;
 			//PrintUserCmdText(iClientID, L"Slot match");
 			for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 			{
@@ -1097,6 +1099,11 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 				}
 			}
 		}
+	}
+	// no match found, something went VERY wrong
+	if(!matchFound){
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PrintUserCmdText(iClientID, L"ERR couldn't verify cargo, please try again.");
 	}
 }
 

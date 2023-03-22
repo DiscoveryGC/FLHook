@@ -1264,7 +1264,7 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	}
 
 	// Base allows neutral ships to dock
-	if (base->defense_mode == 2)
+	if (base->defense_mode == 2 && base->GetAttitudeTowardsClient(client) > -0.55f)
 	{
 		return true;
 	}

@@ -1580,6 +1580,12 @@ namespace PlayerCommands
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
 		const wstring &cmd = GetParam(args, ' ', 1);
 		int money = ToInt(GetParam(args, ' ', 2));
 
@@ -1839,14 +1845,16 @@ namespace PlayerCommands
 
 		if (!clients[client].admin && !clients[client].viewshop)
 		{
-			PrintUserCmdText(client, L"ERROR: Access denied");
+			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
-		if (base->HasMarketItem(set_base_crew_type) < base->base_level * 200) {
+		uint crewItemCount = base->HasMarketItem(set_base_crew_type);
+		uint crewItemNeed = base->base_level * 200;
+		if (crewItemCount < crewItemNeed) {
 			PrintUserCmdText(client, L"WARNING, CREW COUNT TOO LOW");
 		}
-		PrintUserCmdText(client, L"Crew: %u onboard", base->HasMarketItem(set_base_crew_type));
+		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);
 
 		PrintUserCmdText(client, L"Crew supplies:");
 		for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin(); i != set_base_crew_consumption_items.end(); ++i) {

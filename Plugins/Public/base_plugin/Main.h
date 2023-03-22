@@ -31,6 +31,11 @@ struct RECIPE
 	uint reqlevel;
 };
 
+struct BASE_VULNERABILITY_WINDOW {
+	uint start;
+	uint end;
+};
+
 struct WEAR_N_TEAR_MODIFIER{
 	float fromHP;
 	float toHP;
@@ -125,6 +130,10 @@ public:
 
 	// If true, do not take damage
 	bool dont_rust;
+
+	float shield_strength_multiplier;
+	float base_shield_reinforcement_threshold;
+	float damage_taken_since_last_threshold;
 
 	// The list of goods and usage of goods per minute for the autosys effect
 	map<uint, uint> mapAutosysGood;
@@ -303,6 +312,7 @@ public:
 	void SyncReputationForBaseObject(uint space_obj);
 
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
+	void ResetShieldStrength();
 
 	// The base nickname
 	string nickname;
@@ -619,8 +629,17 @@ extern uint set_damage_tick_time;
 /// The seconds per tick
 extern uint set_tick_time;
 
-/// If the shield is up then damage to the base is changed by this multiplier.
-extern float set_shield_damage_multiplier;
+// set of configurable variables defining the diminishing returns on damage during POB siege
+// POB starts at base_shield_strength, then every 'threshold' of damage taken, 
+// shield goes up in absorption by the 'increment'
+// threshold size is to be configured per core level.
+extern map<int, float> shield_reinforcement_threshold_map;
+extern float shield_reinforcement_increment;
+extern float base_shield_strength;
+
+extern bool isGlobalBaseInvulnerabilityActive;
+
+bool checkBaseVulnerabilityStatus();
 
 /// Holiday mode
 extern bool set_holiday_mode;

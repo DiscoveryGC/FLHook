@@ -538,7 +538,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 //Functions to hook
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	uint iDmgFrom = HkGetClientIDByShip(dmg->get_inflictor_id());

@@ -198,7 +198,7 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float setHealth, DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHealth, DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (iDmgToSpaceID && iDmgMunitionID)
@@ -253,14 +253,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float setHealt
 			// Fix wrong death message bug.
 			if (iDmgTo && subObjID == 1)
 				ClientInfo[iDmgTo].dmgLast = *dmg;
-
-			// Add damage entry instead of FLHook Core.
-			dmg->add_damage_entry(subObjID, setHealth, fate);
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-
-			iDmgTo = 0;
-			iDmgToSpaceID = 0;
-			iDmgMunitionID = 0;
 		}
 	}
 }

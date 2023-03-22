@@ -675,6 +675,18 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 			pub::IsCommodity(item->iArchID, flag);
 			if (!item->bMounted && flag)
 			{
+				bool skipItem = false;
+				for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+				{
+					if (i->first == item->iArchID)
+					{
+						skipItem = true;
+						break;
+					}
+				}
+				if (skipItem) {
+					continue;
+				}
 				HkRemoveCargo(wscCharname, item->iID, item->iCount);
 				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
 				items++;
@@ -985,7 +997,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())
@@ -1071,10 +1083,12 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 	returncode = DEFAULT_RETURNCODE;
 	//int iSlotPlayer;
 
+	boolean matchFound = false;
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (item->sID == jc.iSlot)
 		{
+			matchFound = true;
 			//PrintUserCmdText(iClientID, L"Slot match");
 			for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 			{
@@ -1085,6 +1099,11 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 				}
 			}
 		}
+	}
+	// no match found, something went VERY wrong
+	if(!matchFound){
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PrintUserCmdText(iClientID, L"ERR couldn't verify cargo, please try again.");
 	}
 }
 

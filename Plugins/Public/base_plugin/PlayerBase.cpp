@@ -584,8 +584,11 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 			pub::Player::GetRep(client, rep);
 			pub::Reputation::GetGroupFeelingsTowards(rep, affiliation, attitude);
 
-			if (attitude > 0 || siege_mode || emulated_siege_mode)
+			// if in siege mode, return true affiliation, otherwise clamp to minimum neutralNoDock rep
+			if (siege_mode || emulated_siege_mode)
 				return attitude;
+			else
+				return max(-0.59f, attitude);
 		}
 	}
 

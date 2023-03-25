@@ -386,8 +386,8 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
-		fprintf(file, "shieldstrength = %f", shield_strength_multiplier);
-		fprintf(file, "shielddmgtaken = %f", damage_taken_since_last_threshold);
+		fprintf(file, "shieldstrength = %f\n", shield_strength_multiplier);
+		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 
 		fprintf(file, "money = %I64d\n", money);
 		fprintf(file, "system = %u\n", system);

@@ -576,15 +576,6 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
-	if (set_holiday_mode || (base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock") || (base->basetype == "planet"))
-	{
-		//force the base to keep max health
-		base->base_health = base->max_base_health;
-		float rhealth = base->base_health / base->max_base_health;
-		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-		return curr_hitpoints;
-	}
-
 	if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE && base->shield_strength_multiplier < 1.0 && !isGlobalBaseInvulnerabilityActive && base->invulnerable == 0)
 	{
 		float damageTaken = ((curr_hitpoints - new_hitpoints) * (1 - base->shield_strength_multiplier));

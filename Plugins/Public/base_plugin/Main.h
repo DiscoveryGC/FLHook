@@ -131,10 +131,6 @@ public:
 	// If true, do not take damage
 	bool dont_rust;
 
-	float shield_strength_multiplier;
-	float base_shield_reinforcement_threshold;
-	float damage_taken_since_last_threshold;
-
 	// The list of goods and usage of goods per minute for the autosys effect
 	map<uint, uint> mapAutosysGood;
 
@@ -312,7 +308,6 @@ public:
 	void SyncReputationForBaseObject(uint space_obj);
 
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
-	void ResetShieldStrength();
 
 	// The base nickname
 	string nickname;
@@ -382,6 +377,11 @@ public:
 
 	//changes how defense mod act depending on the amount of damage made to base in the last hours
 	bool siege_mode;
+
+	//shield strength parameters
+	float shield_strength_multiplier;
+	float base_shield_reinforcement_threshold;
+	float damage_taken_since_last_threshold;
 
 	// List of allied ship tags.
 	list<wstring> ally_tags;

@@ -58,23 +58,24 @@ namespace HyperJump
 		}
 	}
 
-	static map<uint, vector<uint>> mapJumpSystems;
+	static map<uint, vector<uint>> mapAvailableJumpSystems;
+	static map<uint, vector<uint>> mapAvailableBeaconJumpSystems;
 
 	static int JumpWhiteListEnabled = 0;
 	static int JumpSystemListEnabled = 0;
-	static int SurveyPlaneLimit = 10000;
 	static uint BeaconCommodity = 0;
 	static int BeaconTime = 120;
 	static int BeaconCooldown = 300;
 	static uint BeaconFuse = 0;
 
-	struct DEFERREDJUMPS
+	struct SYSTEMJUMPCOORDS
 	{
 		uint system;
 		Vector pos;
 		Matrix ornt;
 	};
-	static map<uint, DEFERREDJUMPS> mapDeferredJumps;
+	static map<uint, SYSTEMJUMPCOORDS> mapSystemJumps;
+	static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
 
 	struct JUMPDRIVE_ARCH
 	{
@@ -90,26 +91,6 @@ namespace HyperJump
 		boolean cd_disrupts_charge;
 	};
 	static map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
-
-	struct SURVEY_ARCH
-	{
-		uint nickname;
-		float survey_complete_charge;
-		float charge_rate;
-		map<uint, uint> mapFuelToUsage;
-		float power;
-		float coord_accuracy;
-	};
-	static map<uint, SURVEY_ARCH> mapSurveyArch;
-
-	struct SURVEY
-	{
-		SURVEY_ARCH arch;
-		float curr_charge;
-		bool charging_on;
-		Vector pos_start;
-	};
-	static map<uint, SURVEY> mapSurvey;
 
 	struct JUMPDRIVE
 	{
@@ -151,46 +132,6 @@ namespace HyperJump
 	//map the existing Matrix
 	static map<uint, BEACONMATRIX> mapPlayerBeaconMatrix;
 
-#define HCOORD_SIZE 28
-	struct HYPERSPACE_COORDS
-	{
-		WORD parity;
-		WORD seed;
-		DWORD system;
-		float x;
-		float y;
-		float z;
-		DWORD time;
-		float accuracy;
-	};
-
-	static string set_scEncryptKey = "secretcode";
-
-	static wstring FormatCoords(char* ibuf)
-	{
-		wstring sbuf;
-		wchar_t buf[100];
-		for (int i = 0; i < HCOORD_SIZE; i++)
-		{
-			if (i != 0 && (i % 4) == 0) sbuf += L"-";
-			_snwprintf(buf, sizeof(buf), L"%02X", (byte)ibuf[i]);
-			sbuf += buf;
-		}
-		return sbuf;
-	}
-
-	static void EncryptDecrypt(char *ibuf, char *obuf)
-	{
-		obuf[0] = ibuf[0];
-		obuf[1] = ibuf[1];
-		for (uint i = 2, p = ibuf[0] % set_scEncryptKey.length(); i < HCOORD_SIZE; i++, p++)
-		{
-			if (p > set_scEncryptKey.length())
-				p = 0;
-			obuf[i] = ibuf[i] ^ set_scEncryptKey[p];
-		}
-	}
-
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 	{
 		mapDeferredJumps[iClientID].system = system;
@@ -213,8 +154,6 @@ namespace HyperJump
 		WriteProcMem((char*)0x62F327E, &patch1, 2);
 		WriteProcMem((char*)0x62F944E, &patch1, 2);
 		WriteProcMem((char*)0x62F123E, &patch1, 2);
-
-		set_scEncryptKey = Players.GetServerSig();
 
 		char szCurDir[MAX_PATH];
 		GetCurrentDirectory(sizeof(szCurDir), szCurDir);
@@ -241,11 +180,6 @@ namespace HyperJump
 						{
 							JumpSystemListEnabled = ini.get_value_int(0);
 							ConPrint(L"HYPERJUMP NOTICE: System Whitelist is %u (1=On, 0=Off)\n", JumpSystemListEnabled);
-						}
-						else if (ini.is_value("SurveyPlaneLimit"))
-						{
-							SurveyPlaneLimit = ini.get_value_int(0);
-							ConPrint(L"HYPERJUMP NOTICE: Survey Plane Limit is %u \n", SurveyPlaneLimit);
 						}
 						else if (ini.is_value("BeaconCommodity"))
 						{
@@ -328,40 +262,6 @@ namespace HyperJump
 					}
 					mapJumpDriveArch[jd.nickname] = jd;
 				}
-				else if (ini.is_header("survey"))
-				{
-					SURVEY_ARCH hs;
-					while (ini.read_value())
-					{
-						if (ini.is_value("nickname"))
-						{
-							hs.nickname = CreateValidID(ini.get_value_string(0));
-						}
-						else if (ini.is_value("survey_complete_charge"))
-						{
-							hs.survey_complete_charge = ini.get_value_float(0);
-						}
-						else if (ini.is_value("charge_rate"))
-						{
-							hs.charge_rate = ini.get_value_float(0);
-						}
-						else if (ini.is_value("fuel"))
-						{
-							uint fuel = CreateValidID(ini.get_value_string(0));
-							int rate = ini.get_value_int(1);
-							hs.mapFuelToUsage[fuel] = rate;
-						}
-						else if (ini.is_value("power"))
-						{
-							hs.power = ini.get_value_float(0);
-						}
-						else if (ini.is_value("coord_accuracy"))
-						{
-							hs.coord_accuracy = ini.get_value_float(0);
-						}
-					}
-					mapSurveyArch[hs.nickname] = hs;
-				}
 				else if (ini.is_header("beacon"))
 				{
 					BEACONMATRIX bm;
@@ -414,7 +314,22 @@ namespace HyperJump
 							visibleSystemsList.push_back(CreateID(ini.get_value_string(0)));
 						}
 					}
-					mapJumpSystems[nickname] = visibleSystemsList;
+					mapAvailableJumpSystems[nickname] = visibleSystemsList;
+				}
+				if (ini.is_header("jump_position")) {
+					while (ini.read_value())
+					{
+						if (ini.is_value("system"))
+						{
+							SYSTEMJUMPCOORDS coords;
+							coords.system = CreateID(ini.get_value_string(0));
+							coords.pos = { ini.get_value_float(1), ini.get_value_float(2), ini.get_value_float(3) };
+
+							Vector erot = {ini.get_value_float(4), ini.get_value_float(5), ini.get_value_float(6) };
+							coords.ornt = EulerMatrix(erot);
+							mapSystemJumps.emplace(coords.system, coords);
+						}
+					}
 				}
 			}
 			ini.close();
@@ -486,7 +401,7 @@ namespace HyperJump
 
 		if (JumpWhiteListEnabled == 1)
 		{
-			for (map<uint, vector<uint>>::iterator iter = mapJumpSystems.begin(); iter != mapJumpSystems.end(); iter++)
+			for (map<uint, vector<uint>>::iterator iter = mapAvailableJumpSystems.begin(); iter != mapAvailableJumpSystems.end(); iter++)
 			{
 				vector<uint> &systemList = iter->second;
 				if (iter->first == iSystemID)
@@ -512,9 +427,9 @@ namespace HyperJump
 
 	bool IsSystemJumpable(uint systemFrom, uint systemTo)
 	{
-		auto allowedSystemIter = mapJumpSystems.find(systemFrom);
+		auto allowedSystemIter = mapAvailableJumpSystems.find(systemFrom);
 
-		if (allowedSystemIter == mapJumpSystems.end())
+		if (allowedSystemIter == mapAvailableJumpSystems.end())
 			return false;
 
 		vector<uint> &allowedSystems = allowedSystemIter->second;
@@ -537,53 +452,6 @@ namespace HyperJump
 			cmds->Print(L"|     %s\n", i->first.c_str());
 		}
 		cmds->Print(L"OK\n");
-
-		return;
-	}
-
-	void HyperJump::AdminCmd_MakeCoord(CCmds* cmds)
-	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
-
-		HKPLAYERINFO adminPlyr;
-		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)
-		{
-			cmds->Print(L"ERR Not in space\n");
-			return;
-		}
-
-		Vector v;
-		Matrix m;
-		pub::SpaceObj::GetLocation(adminPlyr.iShip, v, m);
-
-		// Fill out the coordinate structure
-		HYPERSPACE_COORDS coords;
-		char* ibuf = (char*)&coords;
-		memset(&coords, 0, sizeof(coords));
-		coords.seed = rand();
-		coords.system = Players[adminPlyr.iClientID].iSystemID;
-		coords.x = v.x;
-		coords.y = v.y;
-		coords.z = v.z;
-		coords.time = (uint)time(0) + (35 * 24 * 3600);
-		coords.accuracy = 1;
-
-		// Calculate a simple parity check
-		WORD parity = 0;
-		for (int i = 2; i < HCOORD_SIZE; i++)
-			parity += ibuf[i];
-		coords.parity = parity;
-
-		// Encrypt it
-		char obuf[HCOORD_SIZE];
-		EncryptDecrypt(ibuf, obuf);
-		PrintUserCmdText(adminPlyr.iClientID, L"Hyperspace survey complete");
-		//PrintUserCmdText(iClientID, L"Raw: %s", FormatCoords(ibuf).c_str());		
-		PrintUserCmdText(adminPlyr.iClientID, L"Coords: %s", FormatCoords(obuf).c_str());
 
 		return;
 	}
@@ -622,109 +490,6 @@ namespace HyperJump
 			{
 				bc.cooldown -= 1;
 			}
-		}
-
-		// Handle survey charging
-		for (map<uint, SURVEY>::iterator iter = mapSurvey.begin(); iter != mapSurvey.end(); iter++)
-		{
-			uint iClientID = iter->first;
-
-			uint iShip;
-			pub::Player::GetShip(iClientID, iShip);
-			if (iShip == 0)
-			{
-				lstOldClients.push_back(iClientID);
-			}
-			else
-			{
-				SURVEY &sm = iter->second;
-				if (sm.charging_on)
-				{
-					//Remember starting location of survey
-					Matrix ornt;
-					if (sm.curr_charge <= sm.arch.charge_rate)
-						pub::SpaceObj::GetLocation(iShip, sm.pos_start, ornt);
-
-					// Use fuel to charge the jump drive's storage capacitors
-					sm.charging_on = false;
-
-					for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
-					{
-						if (sm.arch.mapFuelToUsage.find(item->iArchID) != sm.arch.mapFuelToUsage.end())
-						{
-							uint fuel_usage = sm.arch.mapFuelToUsage[item->iArchID];
-							if (item->iCount >= fuel_usage)
-							{
-								pub::Player::RemoveCargo(iClientID, item->sID, fuel_usage);
-								sm.curr_charge += sm.arch.charge_rate;
-								sm.charging_on = true;
-								break;
-							}
-						}
-					}
-
-					Vector pos_curr;
-					pub::SpaceObj::GetLocation(iShip, pos_curr, ornt);
-					
-					//Allow hyperspace survey charge to 500m from starting position
-					if (HkDistance3D(pos_curr,sm.pos_start)> 500)
-					{
-						sm.charging_on = false;
-					}
-
-					// Turn off the charging effect if the charging has failed due to lack of fuel and
-					// skip to the next player.
-					if (!sm.charging_on)
-					{
-						sm.curr_charge = 0;
-						PrintUserCmdText(iClientID, L"Survey failed");
-						continue;
-					}
-
-					if (sm.curr_charge >= sm.arch.survey_complete_charge)
-					{
-						// We're done.
-						Vector v;
-						Matrix m;
-						pub::SpaceObj::GetLocation(iShip, v, m);
-
-						// Fill out the coordinate structure
-						HYPERSPACE_COORDS coords;
-						char* ibuf = (char*)&coords;
-						memset(&coords, 0, sizeof(coords));
-						coords.seed = rand();
-						coords.system = Players[iClientID].iSystemID;
-						coords.x = v.x;
-						coords.y = v.y;
-						coords.z = v.z;
-						coords.time = (uint)time(0) + (35 * 24 * 3600);
-						coords.accuracy = sm.arch.coord_accuracy;
-
-						// Calculate a simple parity check
-						WORD parity = 0;
-						for (int i = 2; i < HCOORD_SIZE; i++)
-							parity += ibuf[i];
-						coords.parity = parity;
-
-						// Encrypt it
-						char obuf[HCOORD_SIZE];
-						EncryptDecrypt(ibuf, obuf);
-						PrintUserCmdText(iClientID, L"Hyperspace survey complete");
-						PrintUserCmdText(iClientID, L"Coords: %s", FormatCoords(obuf).c_str());
-
-						lstOldClients.push_back(iClientID);
-					}
-					else if (time(0) % 10 == 0)
-					{
-						PrintUserCmdText(iClientID, L"Survey %0.0f%% complete", (sm.curr_charge / sm.arch.survey_complete_charge)*100.0f);
-					}
-				}
-			}
-		}
-
-		foreach(lstOldClients, uint, iClientID)
-		{
-			mapSurvey.erase(*iClientID);
 		}
 
 		lstOldClients.clear();
@@ -1051,7 +816,6 @@ namespace HyperJump
 	{
 		mapDeferredJumps.erase(iClientID);
 		mapJumpDrives.erase(iClientID);
-		mapSurvey.erase(iClientID);
 		mapPlayerBeaconMatrix.erase(iClientID);
 		mapActiveBeacons.erase(iClientID);
 		setCloakingClients.erase(iClientID);
@@ -1198,7 +962,7 @@ namespace HyperJump
 			return;
 		}
 
-		if (cmds->rights != RIGHT_SUPERADMIN)
+		if (cmds->rights != RIGHT_CHASEPULL)
 		{
 			cmds->Print(L"ERR No permission\n");
 			return;
@@ -1279,190 +1043,6 @@ namespace HyperJump
 				return true;
 			}
 		}
-
-		return true;
-	}
-
-	bool InitSurveyInfo(uint iClientID)
-	{
-		// Initialise the drive parameters for this ship
-		if (mapSurvey.find(iClientID) == mapSurvey.end())
-		{
-			mapSurvey[iClientID].arch.nickname = 0;
-			mapSurvey[iClientID].arch.survey_complete_charge = 0;
-			mapSurvey[iClientID].arch.charge_rate = 0;
-			mapSurvey[iClientID].arch.coord_accuracy = 0;
-			mapSurvey[iClientID].arch.power = 0;
-			mapSurvey[iClientID].arch.mapFuelToUsage.clear();
-
-			mapSurvey[iClientID].charging_on = false;
-			mapSurvey[iClientID].curr_charge = 0;
-
-			// Check that the player has a jump drive and initialise the infomation
-			// about it - otherwise return false.
-			for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
-			{
-				if (mapSurveyArch.find(item->iArchID) != mapSurveyArch.end())
-				{
-					mapSurvey[iClientID].arch = mapSurveyArch[item->iArchID];
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		return true;
-	}
-
-	bool HyperJump::UserCmd_Survey(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		// If no ship, report a warning
-		IObjInspectImpl *obj = HkGetInspect(iClientID);
-		if (!obj)
-		{
-			PrintUserCmdText(iClientID, L"Survey module not available");
-			return true;
-		}
-
-		if (!InitSurveyInfo(iClientID))
-		{
-			PrintUserCmdText(iClientID, L"Survey module not available");
-			return true;
-		}
-
-		SURVEY &sm = mapSurvey[iClientID];
-
-		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
-		if (cship->get_max_power() < sm.arch.power)
-		{
-			PrintUserCmdText(iClientID, L"Insufficient power to start survey module");
-			return true;
-		}
-
-		HKPLAYERINFO p;
-		if (HkGetPlayerInfo((const wchar_t*)Players.GetActiveCharacterName(iClientID), p, false) != HKE_OK || p.iShip == 0)
-		{
-			PrintUserCmdText(iClientID, L"ERR Not in space");
-			return true;
-		}
-
-		Vector pos;
-		Matrix rot;
-		pub::SpaceObj::GetLocation(p.iShip, pos, rot);
-
-		////////////////////////// Plane survey restriction ///////////////////////////////////////
-		////////////////////////// x up / x down from plane ///////////////////////////////////////
-		if (pos.y >= SurveyPlaneLimit || pos.y <= -SurveyPlaneLimit)
-		{
-			PrintUserCmdText(iClientID, L"ERR Distance from stellar plane too far, unable to compensate for galactic drift. Move within %u of stellar plane.", SurveyPlaneLimit);
-			return true;
-		}
-		// Toogle the charge state
-		sm.charging_on = !sm.charging_on;
-		if (sm.charging_on)
-		{
-			PrintUserCmdText(iClientID, L"Survey started");
-			sm.curr_charge = 0;
-			return true;
-		}
-		else
-		{
-			PrintUserCmdText(iClientID, L"Survey aborted");
-			sm.curr_charge = 0;
-			return true;
-		}
-	}
-
-	bool HyperJump::UserCmd_SetCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		if (!InitJumpDriveInfo(iClientID))
-		{
-			PrintUserCmdText(iClientID, L"Jump drive not available");
-			return true;
-		}
-
-
-		JUMPDRIVE &jd = mapJumpDrives[iClientID];
-
-		if (jd.jump_timer)
-		{
-			PrintUserCmdText(iClientID, L"Unable to change coordinates during jump.");
-			return true;
-		}
-
-		jd.iTargetSystem = 0;
-
-		string sbuf = wstos(ReplaceStr(GetParam(wscParam, L' ', 0), L"-", L""));
-		if (sbuf.size() != 56)
-		{
-			PrintUserCmdText(iClientID, L"ERR Invalid coordinates, format error");
-			return true;
-		}
-
-		char ibuf[HCOORD_SIZE];
-		for (uint i = 0, p = 0; i < HCOORD_SIZE && (p + 1) < sbuf.size(); i++, p += 2)
-		{
-			char buf[3];
-			buf[0] = sbuf[p];
-			buf[1] = sbuf[p + 1];
-			buf[2] = 0;
-			ibuf[i] = (char)strtoul(buf, 0, 16);
-		}
-
-		HYPERSPACE_COORDS coords;
-		char* obuf = (char*)&coords;
-		memset(&coords, 0, sizeof(coords));
-
-		EncryptDecrypt(ibuf, obuf);
-
-		// Calculate a simple parity check
-		WORD parity = 0;
-		for (int i = 2; i < HCOORD_SIZE; i++)
-			parity += obuf[i];
-
-		if (coords.parity != parity)
-		{
-			PrintUserCmdText(iClientID, L"ERR Invalid coordinates, parity error");
-			return true;
-		}
-
-		////////////////////////// System limit restriction ///////////////////////////////////////
-		if (JumpSystemListEnabled)
-		{
-			bool AllowedToWhiteListJump = IsSystemJumpable(Players[iClientID].iSystemID, coords.system);
-			if (!AllowedToWhiteListJump)
-			{
-				const Universe::ISystem *iSysList = Universe::get_system(coords.system);
-				wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
-				PrintUserCmdText(iClientID, L"ERROR: Gravitational rift detected. Cannot jump to %s from this system.", wscSysNameList.c_str());
-				return true;
-			}
-		}
-		////////////////////////// End of System limit restriction ///////////////////////////////////////
-
-		if (coords.time < time(0))
-		{
-			PrintUserCmdText(iClientID, L"Warning old coordinates detected. Jump not recommended");
-			coords.accuracy *= rand() % 6 + 1;
-		}
-
-		jd.iTargetSystem = coords.system;
-		jd.vTargetPosition.x = coords.x;
-		jd.vTargetPosition.y = coords.y;
-		jd.vTargetPosition.z = coords.z;
-
-		const struct Universe::ISystem *sysinfo = Universe::get_system(jd.iTargetSystem);
-		PrintUserCmdText(iClientID, L"OK Coordinates verified: %s %0.0f.%0.0f.%0.0f",
-			HkGetWStringFromIDS(sysinfo->strid_name).c_str(),
-			*(float*)&jd.vTargetPosition.x,
-			*(float*)&jd.vTargetPosition.y,
-			*(float*)&jd.vTargetPosition.z);
-
-		int wiggle_factor = (int)coords.accuracy;
-		jd.vTargetPosition.x += ((rand() * 10) % wiggle_factor) - (wiggle_factor / 2);
-		jd.vTargetPosition.y += ((rand() * 10) % wiggle_factor) - (wiggle_factor / 2);
-		jd.vTargetPosition.z += ((rand() * 10) % wiggle_factor) - (wiggle_factor / 2);
 
 		return true;
 	}
@@ -1595,8 +1175,8 @@ namespace HyperJump
 			}
 			else
 			{
-				auto systemListIter = mapJumpSystems.find(Players[iClientID].iSystemID);
-				if (systemListIter != mapJumpSystems.end())
+				auto systemListIter = mapAvailableJumpSystems.find(Players[iClientID].iSystemID);
+				if (systemListIter != mapAvailableJumpSystems.end())
 				{
 					auto &systemList = systemListIter->second;
 					if (!systemList.empty())
@@ -1672,15 +1252,6 @@ namespace HyperJump
 
 	void HyperJump::MissileTorpHit(uint iClientID, DamageList *dmg)
 	{
-		if (mapSurvey.find(iClientID) != mapSurvey.find(iClientID))
-		{
-			if (dmg->get_cause() == 6 || dmg->get_cause() == 0x15)
-			{
-				mapSurvey[iClientID].curr_charge = 0;
-				mapSurvey[iClientID].charging_on = false;
-				PrintUserCmdText(iClientID, L"Hyperspace survey disrupted, restart required");
-			}
-		}
 
 		//TEMPORARY: Allow JDs to be disrupted with CDs
 		if (mapJumpDrives.find(iClientID) != mapJumpDrives.end())
@@ -1690,6 +1261,7 @@ namespace HyperJump
 				if (dmg->get_cause() == 6)
 				{
 					mapJumpDrives[iClientID].charging_on = false;
+					mapJumpDrives[iClientID].curr_charge = 0;
 					PrintUserCmdText(iClientID, L"Jump drive disrupted. Charging failed.");
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 					SetFuse(iClientID, 0);
@@ -1895,21 +1467,4 @@ namespace HyperJump
 
 		return true;
 	}
-
-	void HyperJump::Disrupt(uint iTargetID, uint iClientID)
-	{
-		if (mapJumpDrives.find(iTargetID) != mapJumpDrives.end())
-		{
-			if (mapJumpDrives[iTargetID].charging_on == true)
-			{
-				mapJumpDrives[iTargetID].charging_on = false;
-				PrintUserCmdText(iTargetID, L"Jump drive disrupted. Charging failed.");
-				PrintUserCmdText(iClientID, L"Jump drive disruption successful");
-				pub::Player::SendNNMessage(iTargetID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
-				SetFuse(iTargetID, 0);
-				StopChargeFuses(iTargetID);
-			}
-		}
-	}
-
 }

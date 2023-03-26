@@ -150,19 +150,13 @@ namespace HyperJump
 	void AdminCmd_Pull(CCmds* cmds, const wstring &wscCharname);
 	void AdminCmd_Move(CCmds* cmds, float x, float y, float z);
 	//void AdminCmd_TestBot(CCmds* cmds, const wstring &wscSystemNick, int iCheckZoneTime);
-	void AdminCmd_JumpTest(CCmds* cmds, const wstring &fuse);
 	void AdminCmd_ListRestrictedShips(CCmds* cmds);
-	void AdminCmd_MakeCoord(CCmds* cmds);
 
-	bool UserCmd_Survey(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool UserCmd_SetCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ChargeJumpDrive(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ActivateJumpDrive(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_DeployBeacon(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_JumpBeacon(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ListJumpableSystems(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-
-	void Disrupt(uint iTargetID, uint iClientID);
 }
 
 namespace PimpShip
@@ -228,9 +222,6 @@ namespace Message
 	bool SubmitChat(CHAT_ID cId, unsigned long p1, const void *rdl, CHAT_ID cIdTo, int p2);
 	bool HkCb_SendChat(uint iClientID, uint iTo, uint iSize, void *pRDL);
 
-	bool UserCmd_SaveCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool UserCmd_ShowCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool UserCmd_LoadCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_SetMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ShowMsgs(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_SystemMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);

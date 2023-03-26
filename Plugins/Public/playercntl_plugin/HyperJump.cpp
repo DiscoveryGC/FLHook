@@ -552,7 +552,7 @@ namespace HyperJump
 				uint iPlayerSystem;
 				pub::Player::GetSystem(iClientID, iPlayerSystem);
 				if (!IsSystemJumpable(iPlayerSystem, iTargetSystemID)) {
-					PrintUserCmdText(iClientID, L"System out of range, use /sysjump for a list of valid destinations");
+					PrintUserCmdText(iClientID, L"System out of range, use /jumplist for a list of valid destinations");
 					return true;
 				}
 				if (mapSystemJumps.count(iTargetSystemID) == 0) {

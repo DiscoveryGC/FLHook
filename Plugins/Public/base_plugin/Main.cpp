@@ -2021,92 +2021,75 @@ void BaseDestroyed(uint space_obj, uint client)
 	}
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id())
+	if (!iDmgToSpaceID || !dmg->is_inflictor_a_player())
 	{
-		float curr, max;
-		pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
+        return;
+    }
+    
+    Module* damagedModule = spaceobj_modules[iDmgToSpaceID];
+    if(damagedModule == nullptr || damagedModule->mining){
+        return;
+    }
+    
+    if (set_holiday_mode)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		iDmgToSpaceID = 0;
+		return;
+	}
+	float curr, max;
+	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
 
-		map<uint, Module*>::iterator i = spaceobj_modules.find(iDmgToSpaceID);
-		if ((i != spaceobj_modules.end()) && (i->second->mining == false))
-		{
-			if (set_plugin_debug)
-				ConPrint(L"HkCb_AddDmgEntry iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f damage=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
-					iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);
+	if (set_plugin_debug)
+		ConPrint(L"HkCb_AddDmgEntry iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f newHealth=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
+			iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, newHealth, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);
 
-			if (set_holiday_mode)
-			{
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				iDmgToSpaceID = 0;
-				return;
-			}
+	// A work around for an apparent bug where mines/missiles at the base
+	// causes the base damage to jump down to 0 even if the base is
+	// otherwise healthy.
+	if (newHealth == 0.0f /*&& dmg->get_cause()==7*/ && curr > 200000)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		if (set_plugin_debug)
+			ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
+		return;
+	}
 
-			// A work around for an apparent bug where mines/missiles at the base
-			// causes the base damage to jump down to 0 even if the base is
-			// otherwise healthy.
-			if (damage == 0.0f /*&& dmg->get_cause()==7*/ && curr > 200000)
-			{
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
-				return;
-			}
+	// Ask the combat magic plugin if we need to do anything differently
+	COMBAT_DAMAGE_OVERRIDE_STRUCT info;
+	info.iMunitionID = iDmgMunitionID;
+	info.fDamageMultiplier = 0.0f;
+	Plugin_Communication(COMBAT_DAMAGE_OVERRIDE, &info);
 
-			// If this is an NPC hit then suppress the call completely
-			if (!dmg->is_inflictor_a_player())
-			{
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[2] suppressed - npc\n");
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				iDmgToSpaceID = 0;
-				return;
-			}
+	if (info.fDamageMultiplier != 0.0f)
+	{
+		//ConPrint(L"base: Got a response back, info.fDamage = %0.0f\n", info.fDamage);
+		//ConPrint(L"base: Got a response back, changing damage = %0.0f -> ", damage);
+		newHealth = (curr - (curr - newHealth) * info.fDamageMultiplier);
+		if (newHealth < 0.0f)
+			newHealth = 0.0f;
+		//ConPrint(L"%0.0f\n", damage);
+	}
 
-			// Ask the combat magic plugin if we need to do anything differently
-			COMBAT_DAMAGE_OVERRIDE_STRUCT info;
-			info.iMunitionID = iDmgMunitionID;
-			info.fDamageMultiplier = 0.0f;
-			Plugin_Communication(COMBAT_DAMAGE_OVERRIDE, &info);
-
-			if (info.fDamageMultiplier != 0.0f)
-			{
-				//ConPrint(L"base: Got a response back, info.fDamage = %0.0f\n", info.fDamage);
-				//ConPrint(L"base: Got a response back, changing damage = %0.0f -> ", damage);
-				damage = (curr - (curr - damage) * info.fDamageMultiplier);
-				if (damage < 0.0f)
-					damage = 0.0f;
-				//ConPrint(L"%0.0f\n", damage);
-			}
-
-			// This call is for us, skip all plugins.		
-			float new_damage = i->second->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, damage);
-			returncode = SKIPPLUGINS;
-
-			if (new_damage == 0.0f)
-			{
-				new_damage = damage;
-			}
-
-			if (new_damage <= 0 && p1 == 1)
-			{
-				uint iType;
-				pub::SpaceObj::GetType(iDmgToSpaceID, iType);
-				uint iClientIDKiller = HkGetClientIDByShip(dmg->get_inflictor_id());
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[3]: iType is %u, iClientIDKiller is %u\n", iType, iClientIDKiller);
-				if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
-					BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
-			}
-
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-			if (set_plugin_debug)
-				ConPrint(L"HkCb_AddDmgEntry[4] suppressed - shield up - new_damage=%0.0f\n", new_damage);
-			dmg->add_damage_entry(p1, new_damage, fate);
-			iDmgToSpaceID = 0;
-			return;
-		}
+	// This call is for us, skip all plugins.		
+	newHealth = i->second->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
+    if(newHealth == curr){
+        returncode == SKIPPLUGINS_NOFUNCTIONCALL;
+    } else{
+        returncode = SKIPPLUGINS;
+    }
+	if (newHealth <= 0 && sID == 1)
+	{
+		uint iType;
+		pub::SpaceObj::GetType(iDmgToSpaceID, iType);
+		uint iClientIDKiller = HkGetClientIDByShip(dmg->get_inflictor_id());
+		if (set_plugin_debug)
+			ConPrint(L"HkCb_AddDmgEntry[2]: iType is %u, iClientIDKiller is %u\n", iType, iClientIDKiller);
+		if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
+			BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
 	}
 }
 

@@ -401,6 +401,7 @@ void LoadSettingsActual()
 	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
 	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
 	string cfg_fileforbiddencommodities = string(szCurDir) + "\\flhook_plugins\\base_forbidden_cargo.cfg";
+	int loadHyperspaceHubConfig = -1;
 
 	map<uint, PlayerBase*>::iterator base = player_bases.begin();
 	for (; base != player_bases.end(); base++)
@@ -557,6 +558,9 @@ void LoadSettingsActual()
 						uint c = CreateID(ini.get_value_string());
 						listCommodities[c] = stows(ini.get_value_string());
 
+					}
+					else if (ini.is_value("enable_hyperspace_hub")) {
+						loadHyperspaceHubConfig = ini.get_value_int(0);
 					}
 				}
 			}
@@ -765,6 +769,18 @@ void LoadSettingsActual()
 			base->Spawn();
 		} while (FindNextFile(h, &findfile));
 		FindClose(h);
+	}
+
+	// loadHyperspaceHubConfig is weekday where 0 = sunday, 6 = saturday
+	// if it's today, randomize appropriate 'jump hole' POBs
+	// TOOD: Figure out to only do it only during the first boot for a given day
+	if (loadHyperspaceHubConfig >= 0) {
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		uint currWeekday = t->tm_wday;
+		if (currWeekday == loadHyperspaceHubConfig) {
+			AP::LoadHyperspaceHubConfig(string(szCurDir));
+		}
 	}
 
 	// Load and sync player state

@@ -438,6 +438,7 @@ public:
 
 	//the destination vector
 	Vector destposition;
+	Matrix destorientation;
 
 	/////////////////////////////////////////
 };
@@ -509,9 +510,10 @@ namespace Siege
 
 namespace AP
 {
+	void LoadHyperspaceHubConfig(const string& configPath);
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt);
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
-	void ClearClientInfo(unsigned int iClientID);
+	void ClearClientInfo(uint iClientID);
 }
 
 namespace PlayerCommands

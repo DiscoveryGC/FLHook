@@ -225,9 +225,11 @@ void PlayerBase::Load()
 					}
 					else if (ini.is_value("destposition"))
 					{
-						destposition.x = ini.get_value_float(0);
-						destposition.y = ini.get_value_float(1);
-						destposition.z = ini.get_value_float(2);
+						destposition = { ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) };
+					}
+					else if (ini.is_value("destorientation"))
+					{
+						destorientation = EulerMatrix({ ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) });
 					}
 					else if (ini.is_value("infoname"))
 					{
@@ -383,6 +385,8 @@ void PlayerBase::Save()
 
 		fprintf(file, "destsystem = %u\n", destsystem);
 		fprintf(file, "destposition = %0.0f, %0.0f, %0.0f\n", destposition.x, destposition.y, destposition.z);
+		const Vector& orient = MatrixToEuler(destorientation);
+		fprintf(file, "destorientation = %0.0f, %0.0f, %0.0f\n", orient.x, orient.y, orient.z);
 
 		Vector vRot = MatrixToEuler(rotation);
 		fprintf(file, "rot = %0.0f, %0.0f, %0.0f\n", vRot.x, vRot.y, vRot.z);

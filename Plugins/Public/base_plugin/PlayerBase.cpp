@@ -702,7 +702,7 @@ void PlayerBase::SiegeModChainReaction(uint client)
 // Return true if 
 float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
-	float incoming_damage = abs(curr_hitpoints - new_hitpoints);
+	float incoming_damage = curr_hitpoints - new_hitpoints;
 
 	// Make sure that the attacking player is hostile.
 	uint client = HkGetClientIDByShip(attacking_space_obj);
@@ -731,7 +731,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				}
 			}
 
-			if (!is_ally && (hostile_tags_damage[charname] + incoming_damage) > damage_threshold)
+			if (!is_ally && (hostile_tags_damage[charname]) > damage_threshold)
 			{
 				hostile_tags[charname] = charname;
 
@@ -745,7 +745,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			}
 		}
 
-		if (!siege_mode && (hostile_tags_damage[charname] + incoming_damage) > siege_mode_damage_trigger_level)
+		if (!siege_mode && (hostile_tags_damage[charname]) > siege_mode_damage_trigger_level)
 		{
 			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
@@ -757,7 +757,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 	// If the shield is not active but could be set a time 
 	// to request that it is activated.
-	if (!this->shield_active_time && shield_state == SHIELD_STATE_ONLINE)
+	if (!this->shield_active_time && this->shield_state == SHIELD_STATE_ONLINE)
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		ReportAttack(this->basename, charname, this->system);

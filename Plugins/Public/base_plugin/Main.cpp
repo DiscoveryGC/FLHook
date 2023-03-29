@@ -2075,9 +2075,9 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	}
 
 	// This call is for us, skip all plugins.		
-	newHealth = i->second->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
+	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
     if(newHealth == curr){
-        returncode == SKIPPLUGINS_NOFUNCTIONCALL;
+        returncode = SKIPPLUGINS_NOFUNCTIONCALL;
     } else{
         returncode = SKIPPLUGINS;
     }

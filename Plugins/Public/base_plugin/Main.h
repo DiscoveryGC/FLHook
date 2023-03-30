@@ -508,7 +508,7 @@ namespace Siege
 	int GetRandomSound(int min, int max);
 }
 
-namespace AP
+namespace HyperJump
 {
 	void LoadHyperspaceHubConfig(const string& configPath);
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt);

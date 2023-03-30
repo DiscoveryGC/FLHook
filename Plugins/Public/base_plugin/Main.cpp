@@ -134,6 +134,9 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
+map<uint, uint> mapJumpLockout;
+
+uint jump_lockout_duration = 30;
 uint jump_innacurracy_min = 300;
 uint jump_innacurracy_max = 500;
 
@@ -572,8 +575,21 @@ void LoadSettingsActual()
 						listCommodities[c] = stows(ini.get_value_string());
 
 					}
-					else if (ini.is_value("enable_hyperspace_hub_bitmap")) {
+					else if (ini.is_value("enable_hyperspace_hub_bitmap"))
+					{
 						bmapLoadHyperspaceHubConfig = ini.get_value_int(0);
+					}
+					else if (ini.is_value("jump_innacurracy_min"))
+					{
+						jump_innacurracy_min = ini.get_value_int(0);
+					}
+					else if (ini.is_value("jump_innacurracy_max"))
+					{
+						jump_innacurracy_max = ini.get_value_int(0);
+					}
+					else if (ini.is_value("jump_lockout_duration"))
+					{
+						jump_lockout_duration = ini.get_value_int(0);
 					}
 				}
 			}
@@ -792,7 +808,7 @@ void LoadSettingsActual()
 		struct tm *t = localtime(&tNow);
 		uint currWeekday = (t->tm_wday + 6)%7; // conversion from sunday-week-start to monday-start
 		if (bmapLoadHyperspaceHubConfig & (uint)pow(2u, currWeekday)) {
-			AP::LoadHyperspaceHubConfig(string(szCurDir));
+			HyperJump::LoadHyperspaceHubConfig(string(szCurDir));
 		}
 	}
 
@@ -874,6 +890,12 @@ void HkTimerCheckKick()
 		if ((curr_time % 60) == 0 && set_status_path_json.size() > 0)
 		{
 			ExportData::ToJSON();
+		}
+	}
+
+	for (auto& jumpBan : mapJumpLockout) {
+		if (--jumpBan.second == 0) {
+			mapJumpLockout.erase(jumpBan.first);
 		}
 	}
 }
@@ -1317,7 +1339,7 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 	// Make player invincible to fix JHs/JGs near mine fields sometimes
 	// exploding player while jumping (in jump tunnel)
 	pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-	if (AP::SystemSwitchOutComplete(iShip, iClientID))
+	if (HyperJump::SystemSwitchOutComplete(iShip, iClientID))
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 }
 
@@ -1400,6 +1422,15 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					}
 				}
 
+				if (mapJumpLockout.count(client)) {
+					PrintUserCmdText(client, L"Jump systems recharging. Charging complete in %u seconds.", mapJumpLockout[client]);
+					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+					return 1;
+				}
+				else {
+					mapJumpLockout[client] = jump_lockout_duration;
+				}
+
 				Vector pos;
 				Matrix ornt;
 
@@ -1413,7 +1444,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
 
 				//PrintUserCmdText(client, L"Jump to system=%s x=%0.0f y=%0.0f z=%0.0f\n", wscSysName.c_str(), pos.x, pos.y, pos.z);
-				AP::SwitchSystem(client, pbase->destsystem, pos, ornt);
+				HyperJump::SwitchSystem(client, pbase->destsystem, pos, ornt);
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				return 1;
 			}

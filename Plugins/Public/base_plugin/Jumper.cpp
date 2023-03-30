@@ -45,7 +45,7 @@ void SetReturnHole(PlayerBase* originBase);
 //Settings Loading
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void AP::LoadHyperspaceHubConfig(const string& configPath) {
+void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 
 	string cfg_filejumpMap = configPath + "\\flhook_plugins\\jump_allowedsystems.cfg";
 	string cfg_filehyperspaceHub = configPath + "\\flhook_plugins\\base_hyperspacehub.cfg";
@@ -216,7 +216,7 @@ void SetReturnHole(PlayerBase* originBase) {
 	RespawnBase(targetJumpHoleBase);
 }
 
-void AP::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
+void HyperJump::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 {
 	mapDeferredJumps[iClientID].system = system;
 	mapDeferredJumps[iClientID].pos = pos;
@@ -231,7 +231,7 @@ void AP::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 	PrintUserCmdText(iClientID, L" ChangeSys %u", system);
 }
 
-bool AP::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
+bool HyperJump::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 {
 	static PBYTE SwitchOut = 0;
 	if (!SwitchOut)
@@ -302,7 +302,7 @@ bool AP::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 //Logic
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void AP::ClearClientInfo(uint iClientID)
+void HyperJump::ClearClientInfo(uint iClientID)
 {
 	mapDeferredJumps.erase(iClientID);
 }

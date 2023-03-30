@@ -134,6 +134,9 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
+uint jump_innacurracy_min = 300;
+uint jump_innacurracy_max = 500;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;
@@ -401,7 +404,7 @@ void LoadSettingsActual()
 	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
 	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
 	string cfg_fileforbiddencommodities = string(szCurDir) + "\\flhook_plugins\\base_forbidden_cargo.cfg";
-	int loadHyperspaceHubConfig = -1;
+	int bmapLoadHyperspaceHubConfig = 0;
 
 	map<uint, PlayerBase*>::iterator base = player_bases.begin();
 	for (; base != player_bases.end(); base++)
@@ -559,8 +562,8 @@ void LoadSettingsActual()
 						listCommodities[c] = stows(ini.get_value_string());
 
 					}
-					else if (ini.is_value("enable_hyperspace_hub")) {
-						loadHyperspaceHubConfig = ini.get_value_int(0);
+					else if (ini.is_value("enable_hyperspace_hub_bitmap")) {
+						bmapLoadHyperspaceHubConfig = ini.get_value_int(0);
 					}
 				}
 			}
@@ -774,11 +777,12 @@ void LoadSettingsActual()
 	// loadHyperspaceHubConfig is weekday where 0 = sunday, 6 = saturday
 	// if it's today, randomize appropriate 'jump hole' POBs
 	// TOOD: Figure out to only do it only during the first boot for a given day
-	if (loadHyperspaceHubConfig >= 0) {
+	if (bmapLoadHyperspaceHubConfig) {
 		time_t tNow = time(0);
 		struct tm *t = localtime(&tNow);
-		uint currWeekday = t->tm_wday;
-		if (currWeekday == loadHyperspaceHubConfig) {
+		uint currWeekday = (t->tm_wday + 6)%7; // conversion from sunday-week-start to monday-start
+		if (bmapLoadHyperspaceHubConfig & (uint)pow(2u, currWeekday)) {
+			ConPrint(L"Passed bitmapcheck\n");
 			AP::LoadHyperspaceHubConfig(string(szCurDir));
 		}
 	}
@@ -1306,6 +1310,12 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 	pub::SpaceObj::SetInvincible(iShip, true, true, 0);
 	if (AP::SystemSwitchOutComplete(iShip, iClientID))
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+}
+
+void RandomizeCoords(Vector& vec) {
+	vec.x += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
+	vec.y += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
+	vec.z += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
 }
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int iCancel, enum DOCK_HOST_RESPONSE response)

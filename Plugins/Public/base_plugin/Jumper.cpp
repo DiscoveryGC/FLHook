@@ -39,6 +39,8 @@ static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 
 static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
 
+void SetReturnHole(PlayerBase* originBase);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Settings Loading
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -155,6 +157,7 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
 		legalReturnSystems.erase(legalReturnSystems.begin() + index);
 
+		SetReturnHole(pb);
 		pb->Save();
 	}
 
@@ -174,6 +177,7 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
 		unchartedSystems.erase(unchartedSystems.begin() + index);
 
+		SetReturnHole(pb);
 		pb->Save();
 	}
 }
@@ -181,6 +185,23 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Dependencies
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void SetReturnHole(PlayerBase* originBase) {
+	const auto& targetSystem = Universe::get_system(originBase->destsystem);
+	string targetJumpBaseNickname = "pb_hyperspacehub_return_";
+	targetJumpBaseNickname += reinterpret_cast<const char*>(targetSystem->nickname);
+	uint targetJumpHoleBaseHash = CreateID(targetJumpBaseNickname.c_str());
+	if (!player_bases.count(targetJumpHoleBaseHash)) {
+		ConPrint(L"HYPERSPACEHUB: Error! Target base %s not found!\n", targetJumpBaseNickname);
+	}
+	auto targetJumpHoleBase = player_bases[targetJumpHoleBaseHash];
+
+	const auto& systemInfo = Universe::get_system(originBase->system);
+	targetJumpHoleBase->destsystem = originBase->system;
+	targetJumpHoleBase->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
+	targetJumpHoleBase->destposition = originBase->position;
+	targetJumpHoleBase->destorientation = originBase->rotation;
+}
 
 void AP::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 {

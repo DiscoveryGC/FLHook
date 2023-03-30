@@ -448,7 +448,7 @@ PlayerBase *GetPlayerBaseForClient(uint client);
 
 void BaseLogging(const char *szString, ...);
 
-void SaveBases();
+void RespawnBase(PlayerBase* base);
 void DeleteBase(PlayerBase *base);
 void LoadDockState(uint client);
 void SaveDockState(uint client);

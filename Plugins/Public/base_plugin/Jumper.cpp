@@ -141,9 +141,9 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 			ConPrint(L"Warning: Return wormhole-base hash %u not found, check config!\n", returnJH);
 			continue;
 		}
-		auto& pb = player_bases[returnJH];
+		PlayerBase* pb = player_bases[returnJH];
 		uint index = rand() % legalReturnSystems.size();
-		if (mapSystemJumps.count(legalReturnSystems.at(index) == 0)) {
+		if (mapSystemJumps.count(legalReturnSystems.at(index)) == 0) {
 			ConPrint(L"Jump Point data for return system not found, aborting randomization!\n");
 			continue;
 		}
@@ -157,8 +157,8 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
 		legalReturnSystems.erase(legalReturnSystems.begin() + index);
 
-		SetReturnHole(pb);
 		pb->Save();
+		RespawnBase(pb);
 	}
 
 	for (uint unchartedJH : unchartedJumpHoles) {
@@ -166,8 +166,12 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 			ConPrint(L"Warning: Uncharted wormhole-base hash %u not found, check config!\n", unchartedJH);
 			continue;
 		}
-		auto& pb = player_bases[unchartedJH];
+		PlayerBase* pb = player_bases[unchartedJH];
 		const uint index = rand() % unchartedSystems.size();
+		if (mapSystemJumps.count(unchartedSystems.at(index)) == 0) {
+			ConPrint(L"Jump Point data for uncharted system not found, aborting randomization!\n");
+			continue;
+		}
 		const auto& coordsList = mapSystemJumps[unchartedSystems.at(index)];
 		const auto& coords = coordsList.at(rand() % coordsList.size());
 		pb->destsystem = coords.system;
@@ -179,6 +183,7 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 
 		SetReturnHole(pb);
 		pb->Save();
+		RespawnBase(pb);
 	}
 }
 
@@ -188,19 +193,27 @@ void AP::LoadHyperspaceHubConfig(const string& configPath) {
 
 void SetReturnHole(PlayerBase* originBase) {
 	const auto& targetSystem = Universe::get_system(originBase->destsystem);
-	string targetJumpBaseNickname = "pb_hyperspacehub_return_";
+	string targetJumpBaseNickname = "pb_hyperspace_hub_";
 	targetJumpBaseNickname += reinterpret_cast<const char*>(targetSystem->nickname);
-	uint targetJumpHoleBaseHash = CreateID(targetJumpBaseNickname.c_str());
+	targetJumpBaseNickname = ToLower(targetJumpBaseNickname);
+	uint targetJumpHoleBaseHash = CreateID(ToLower(targetJumpBaseNickname).c_str());
 	if (!player_bases.count(targetJumpHoleBaseHash)) {
-		ConPrint(L"HYPERSPACEHUB: Error! Target base %s not found!\n", targetJumpBaseNickname);
+		ConPrint(L"HYPERSPACEHUB: Error! Target base %ls not found!\n", stows(targetJumpBaseNickname).c_str());
+		return;
 	}
 	auto targetJumpHoleBase = player_bases[targetJumpHoleBaseHash];
 
 	const auto& systemInfo = Universe::get_system(originBase->system);
+	targetJumpHoleBase->position = originBase->destposition;
+	targetJumpHoleBase->destorientation = originBase->destorientation;
+	targetJumpHoleBase->system = originBase->destsystem;
 	targetJumpHoleBase->destsystem = originBase->system;
 	targetJumpHoleBase->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
 	targetJumpHoleBase->destposition = originBase->position;
 	targetJumpHoleBase->destorientation = originBase->rotation;
+
+	targetJumpHoleBase->Save();
+	RespawnBase(targetJumpHoleBase);
 }
 
 void AP::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)

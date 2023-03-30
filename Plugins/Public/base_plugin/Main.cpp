@@ -232,6 +232,16 @@ void BaseLogging(const char *szString, ...)
 	}
 }
 
+void RespawnBase(PlayerBase * base)
+{
+	string filepath = base->path;
+	player_bases.erase(base->base);
+	delete base;
+	PlayerBase *newBase = new PlayerBase(filepath);
+	player_bases[newBase->base] = newBase;
+	newBase->Spawn();
+}
+
 FILE *LogfileEventCommodities = fopen("./flhook_logs/event_pobsales.log", "at");
 
 void LoggingEventCommodity(const char *szString, ...)
@@ -782,7 +792,6 @@ void LoadSettingsActual()
 		struct tm *t = localtime(&tNow);
 		uint currWeekday = (t->tm_wday + 6)%7; // conversion from sunday-week-start to monday-start
 		if (bmapLoadHyperspaceHubConfig & (uint)pow(2u, currWeekday)) {
-			ConPrint(L"Passed bitmapcheck\n");
 			AP::LoadHyperspaceHubConfig(string(szCurDir));
 		}
 	}

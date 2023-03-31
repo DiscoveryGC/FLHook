@@ -1427,9 +1427,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 					return 1;
 				}
-				else if(jump_lockout_duration)
+				else if (jump_lockout_duration)
 					mapJumpLockout[client] = jump_lockout_duration;
-				}
 
 				Vector pos;
 				Matrix ornt;

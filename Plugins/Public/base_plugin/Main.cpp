@@ -1427,7 +1427,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 					return 1;
 				}
-				else {
+				else if(jump_lockout_duration)
 					mapJumpLockout[client] = jump_lockout_duration;
 				}
 

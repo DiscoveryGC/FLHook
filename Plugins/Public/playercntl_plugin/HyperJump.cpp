@@ -42,7 +42,7 @@ namespace HyperJump
 	}
 
 	// Ships restricted from jumping
-	static map<wstring, uint> mapRestrictedShips;
+	static set<uint> jumpRestrictedShipsList;
 
 	static set<uint> setCloakingClients;
 
@@ -68,6 +68,7 @@ namespace HyperJump
 	static int BeaconCooldown = 300;
 	static uint BeaconFuse = 0;
 	static int JumpInnacuracy = 2000;
+	static float JumpCargoSizeRestriction = 0;
 
 	struct SYSTEMJUMPCOORDS
 	{
@@ -211,10 +212,12 @@ namespace HyperJump
 					{
 						if (ini.is_value("restrict"))
 						{
-							string nickname = ini.get_value_string(0);
-							uint iArchID = CreateID(nickname.c_str());
-							wstring wstnickname = stows(nickname);
-							mapRestrictedShips[wstnickname] = iArchID;
+							uint nicknameHash = CreateID(ini.get_value_string(0));
+							jumpRestrictedShipsList.emplace(nicknameHash);
+						}
+						else if (ini.is_value("JumpCargoSizeRestriction"))
+						{
+							JumpCargoSizeRestriction = ini.get_value_float(0);
 						}
 					}
 				}
@@ -515,26 +518,6 @@ namespace HyperJump
 		return true;
 	}
 
-	/** List ships restricted from jumping */
-	void HyperJump::AdminCmd_ListRestrictedShips(CCmds* cmds)
-	{
-		if (cmds->rights != RIGHT_SUPERADMIN)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
-
-		cmds->Print(L"Ships restricted from jumping: %d", mapRestrictedShips.size());
-		for (map<wstring, uint>::iterator i = mapRestrictedShips.begin();
-			i != mapRestrictedShips.end(); ++i)
-		{
-			cmds->Print(L"|     %s\n", i->first.c_str());
-		}
-		cmds->Print(L"OK\n");
-
-		return;
-	}
-
 	bool UserCmd_SetSystem(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
 	{
 		if (!InitJumpDriveInfo(iClientID)) {
@@ -698,9 +681,8 @@ namespace HyperJump
 
 						pub::SpaceObj::DrainShields(iShip);
 						// Restrict some ships from jumping, this is for the jumpship
-						Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
-						wstring playershiparch = stows(ship->szName);
-						if (mapRestrictedShips.find(playershiparch) != mapRestrictedShips.end() && JumpWhiteListEnabled == 1)
+						auto shipInfo1 = Archetype::GetShip(Players[iClientID].iShipArchetype);
+						if (JumpCargoSizeRestriction <= shipInfo1->fHoldSize || (jumpRestrictedShipsList.find(Players[iClientID].iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
 						{
 							PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump.");
 						}
@@ -711,54 +693,51 @@ namespace HyperJump
 						}
 
 						// Find all ships within the jump field including the one with the jump engine.
-						if (jd.arch.field_range > 0)
+						if (jd.arch.field_range <= 0)
+							continue;
+
+						struct PlayerData *pPD = nullptr;
+						while (pPD = Players.traverse_active(pPD))
 						{
-							struct PlayerData *pPD = 0;
-							while (pPD = Players.traverse_active(pPD))
+							uint iSystemID2;
+							pub::SpaceObj::GetSystem(pPD->iShipID, iSystemID2);
+
+							if (iSystemID2 != iSystemID || pPD->iOnlineID != iClientID)
+								continue;
+
+							Vector vPosition2;
+							Matrix mShipDir2;
+							pub::SpaceObj::GetLocation(pPD->iShipID, vPosition2, mShipDir2);
+
+							if (!(HkDistance3D(vPosition, vPosition2) <= jd.arch.field_range))
+								continue;
+							// Restrict some ships from jumping, this is for the jumpers
+							auto shipInfo2 = Archetype::GetShip(Players[iClientID].iShipArchetype);
+							if (JumpCargoSizeRestriction <= shipInfo2->fHoldSize || (jumpRestrictedShipsList.find(pPD->iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
 							{
-								uint iSystemID2;
-								pub::SpaceObj::GetSystem(pPD->iShipID, iSystemID2);
-
-								Vector vPosition2;
-								Matrix mShipDir2;
-								pub::SpaceObj::GetLocation(pPD->iShipID, vPosition2, mShipDir2);
-
-								if (pPD->iOnlineID != iClientID
-									&& iSystemID2 == iSystemID
-									&& HkDistance3D(vPosition, vPosition2) <= jd.arch.field_range)
-								{
-									// Restrict some ships from jumping, this is for the jumpers
-									Archetype::Ship *ship = Archetype::GetShip(pPD->iShipArchetype);
-									wstring playershiparch = stows(ship->szName);
-									if (mapRestrictedShips.find(playershiparch) != mapRestrictedShips.end() && JumpWhiteListEnabled == 1)
-									{
-										PrintUserCmdText(pPD->iOnlineID, L"ERR Ship is not allowed to jump.");
-									}
-									else
-									{
-										PrintUserCmdText(pPD->iOnlineID, L"Jumping...");
-
-										if (HookExt::IniGetB(iClientID, "event.enabled"))
-										{
-											string eventid = wstos(HookExt::IniGetWS(iClientID, "event.eventid"));
-
-											//else disable event mode
-											HookExt::IniSetB(iClientID, "event.enabled", false);
-											HookExt::IniSetWS(iClientID, "event.eventid", L"");
-											HookExt::IniSetI(iClientID, "event.quantity", 0);
-											PrintUserCmdText(iClientID, L"You have been unregistered from the event.");
-										}
-
-										Vector vNewTargetPosition;
-										vNewTargetPosition.x = jd.vTargetPosition.x + (vPosition.x - vPosition2.x);
-										vNewTargetPosition.y = jd.vTargetPosition.y + (vPosition.y - vPosition2.y);
-										vNewTargetPosition.z = jd.vTargetPosition.z + (vPosition.z - vPosition2.z);
-										pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
-										pub::SpaceObj::DrainShields(pPD->iShipID);
-										SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2);
-									}
-								}
+								PrintUserCmdText(pPD->iOnlineID, L"ERR Ship is not allowed to jump.");
+								continue;
 							}
+							PrintUserCmdText(pPD->iOnlineID, L"Jumping...");
+
+							if (HookExt::IniGetB(iClientID, "event.enabled"))
+							{
+								string eventid = wstos(HookExt::IniGetWS(iClientID, "event.eventid"));
+
+								//else disable event mode
+								HookExt::IniSetB(iClientID, "event.enabled", false);
+								HookExt::IniSetWS(iClientID, "event.eventid", L"");
+								HookExt::IniSetI(iClientID, "event.quantity", 0);
+								PrintUserCmdText(iClientID, L"You have been unregistered from the event.");
+							}
+
+							Vector vNewTargetPosition;
+							vNewTargetPosition.x = jd.vTargetPosition.x + (vPosition.x - vPosition2.x);
+							vNewTargetPosition.y = jd.vTargetPosition.y + (vPosition.y - vPosition2.y);
+							vNewTargetPosition.z = jd.vTargetPosition.z + (vPosition.z - vPosition2.z);
+							pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
+							pub::SpaceObj::DrainShields(pPD->iShipID);
+							SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2);
 						}
 					}
 					// Wait until the ship is in the target system before turning off the fuse by

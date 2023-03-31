@@ -150,7 +150,6 @@ namespace HyperJump
 	void AdminCmd_Pull(CCmds* cmds, const wstring &wscCharname);
 	void AdminCmd_Move(CCmds* cmds, float x, float y, float z);
 	//void AdminCmd_TestBot(CCmds* cmds, const wstring &wscSystemNick, int iCheckZoneTime);
-	void AdminCmd_ListRestrictedShips(CCmds* cmds);
 
 	bool UserCmd_SetSystem(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_SetSector(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);

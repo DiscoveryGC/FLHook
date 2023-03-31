@@ -1452,12 +1452,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		HyperJump::AdminCmd_Chase(cmds, cmds->ArgCharname(1));
 		return true;
 	}
-	else if (IS_CMD("lrs"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_ListRestrictedShips(cmds);
-		return true;
-	}
 	else if (IS_CMD("authchar"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;

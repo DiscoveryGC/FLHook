@@ -2828,7 +2828,8 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 
 void ResetAllBasesShieldStrength() {
 	for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i) {
-		i->second->ResetShieldStrength();
+		i->second->shield_strength_multiplier = base_shield_strength;
+		i->second->damage_taken_since_last_threshold = 0;
 	}
 }
 

@@ -889,6 +889,8 @@ namespace HyperJump
 			VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
 		}
 
+		mapJumpDrives[iClientID].iTargetSystem = 0;
+
 		// Patch the system switch out routine to put the ship in a
 		// system of our choosing.
 		if (mapDeferredJumps.find(iClientID) != mapDeferredJumps.end())

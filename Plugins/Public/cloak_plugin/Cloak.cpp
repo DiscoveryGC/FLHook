@@ -296,7 +296,7 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
-		if (item->sID == info.iCloakSlot)
+		if (info.arch.mapFuelToUsage.find(item->iArchID) != info.arch.mapFuelToUsage.end())
 		{
 			const auto& fuelUsage = info.arch.mapFuelToUsage[item->iArchID];
 			uint currFuelUsage = fuelUsage.usageStatic;
@@ -313,7 +313,8 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 				pub::Player::RemoveCargo(iClientID, item->sID, currFuelUsage);
 				return true;
 			}
-			break;
+			if(info.arch.mapFuelToUsage.size() == 1)
+				break;
 		}
 	}
 	return false;

@@ -178,7 +178,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 		pb->destposition = coords.pos;
 		pb->destorientation = coords.ornt;
 		const auto& systemInfo = Universe::get_system(coords.system);
-		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
+		pb->basename = L"Unstable " + HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
 		unchartedSystems.erase(unchartedSystems.begin() + index);
 
 		SetReturnHole(pb);
@@ -208,7 +208,7 @@ void SetReturnHole(PlayerBase* originBase) {
 	targetJumpHoleBase->destorientation = originBase->destorientation;
 	targetJumpHoleBase->system = originBase->destsystem;
 	targetJumpHoleBase->destsystem = originBase->system;
-	targetJumpHoleBase->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
+	targetJumpHoleBase->basename = L"Unstable " + HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
 	targetJumpHoleBase->destposition = originBase->position;
 	targetJumpHoleBase->destorientation = originBase->rotation;
 

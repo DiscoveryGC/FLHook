@@ -35,14 +35,19 @@ enum INFO_STATE
 	STATE_CLOAK_ON = 3,
 };
 
+struct CLOAK_FUEL_USAGE
+{
+	uint usageStatic = 0;
+	float usageMove = 0;
+};
+
 struct CLOAK_ARCH
 {
 	string scNickName;
 	int iWarmupTime;
 	int iCooldownTime;
 	int iHoldSizeLimit;
-	map<uint, uint> mapFuelToUsage;
-	bool singleUseCloak = false;
+	map<uint, CLOAK_FUEL_USAGE> mapFuelToUsage;
 	bool bDropShieldsOnUncloak;
 };
 
@@ -129,7 +134,6 @@ void LoadSettings()
 
 	int cloakamt = 0;
 	int cdamt = 0;
-	int limitedamt = 0;
 	INI_Reader ini;
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
@@ -159,14 +163,11 @@ void LoadSettings()
 					}
 					else if (ini.is_value("fuel"))
 					{
+						CLOAK_FUEL_USAGE fuelUsage;
 						string scNickName = ini.get_value_string(0);
-						uint usage = ini.get_value_int(1);
-						bool limitedCloak = ini.get_value_bool(2);
-						if (limitedCloak) {
-							limitedamt++;
-						}
-						device.singleUseCloak = limitedCloak;
-						device.mapFuelToUsage[CreateID(scNickName.c_str())] = usage;
+						fuelUsage.usageStatic = ini.get_value_int(1);
+						fuelUsage.usageMove = ini.get_value_float(2);
+						device.mapFuelToUsage[CreateID(scNickName.c_str())] = fuelUsage;
 					}
 					else if (ini.is_value("drop_shields_on_uncloak"))
 					{
@@ -215,7 +216,6 @@ void LoadSettings()
 
 	ConPrint(L"CLOAK: Loaded %u cloaking devices \n", cloakamt);
 	ConPrint(L"CLOAK: Loaded %u cloak disruptors \n", cdamt);
-	ConPrint(L"CLOAK: Loaded %u limited cloak setups \n", limitedamt);
 
 	struct PlayerData *pd = 0;
 	while (pd = Players.traverse_active(pd))
@@ -289,46 +289,29 @@ void SetState(uint iClientID, uint iShipID, int iNewState)
 	}
 }
 
-bool removeSingleFuel(uint iClientID, CLOAK_INFO &info)
-{
-	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
-	{
-		uint fuel_usage = info.arch.mapFuelToUsage[item->iArchID];
-		if (item->iCount >= fuel_usage)
-		{
-			pub::Player::RemoveCargo(iClientID, item->sID, fuel_usage);
-			info.singleCloakConsumed = true;
-			return true;
-		}
-	}
-
-	return false;
-
-}
-
 // Returns false if the ship has no fuel to operate its cloaking device.
-static bool ProcessFuel(uint iClientID, CLOAK_INFO &info)
+static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 {
 	if (info.bAdmin)
 		return true;
-
-	if (!info.singleCloakConsumed && info.arch.singleUseCloak) {
-		return removeSingleFuel(iClientID, info);
-	}
-
-	else if (info.singleCloakConsumed)
-	{
-		return true;
-	}
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (info.arch.mapFuelToUsage.find(item->iArchID) != info.arch.mapFuelToUsage.end())
 		{
-			uint fuel_usage = info.arch.mapFuelToUsage[item->iArchID];
-			if (item->iCount >= fuel_usage)
+			const auto& fuelUsage = info.arch.mapFuelToUsage[item->iArchID];
+			uint currFuelUsage = fuelUsage.usageStatic;
+			if (fuelUsage.usageMove != 0.0f) {
+				Vector dir1;
+				Vector dir2;
+				pub::SpaceObj::GetMotion(iShipID, dir1, dir2);
+				uint vecLength = sqrtf(dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z);
+				
+				currFuelUsage += fuelUsage.usageMove * vecLength;
+			}
+			if (item->iCount >= currFuelUsage)
 			{
-				pub::Player::RemoveCargo(iClientID, item->sID, fuel_usage);
+				pub::Player::RemoveCargo(iClientID, item->sID, currFuelUsage);
 				return true;
 			}
 		}
@@ -459,7 +442,7 @@ void HkTimerCheckKick()
 				break;
 
 			case STATE_CLOAK_CHARGING:
-				if (!ProcessFuel(iClientID, info))
+				if (!ProcessFuel(iClientID, info, iShipID))
 				{
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");
 					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
@@ -483,7 +466,7 @@ void HkTimerCheckKick()
 				break;
 
 			case STATE_CLOAK_ON:
-				if (!ProcessFuel(iClientID, info))
+				if (!ProcessFuel(iClientID, info, iShipID))
 				{
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");
 					SetState(iClientID, iShipID, STATE_CLOAK_OFF);

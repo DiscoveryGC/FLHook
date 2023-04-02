@@ -56,11 +56,11 @@ struct CLOAK_INFO
 	CLOAK_INFO()
 	{
 
-		uint iCloakSlot = 0;
+		iCloakSlot = 0;
 		bCanCloak = false;
-		mstime tmCloakTime = 0;
-		uint iState = STATE_CLOAK_INVALID;
-		uint bAdmin = false;
+		tmCloakTime = 0;
+		iState = STATE_CLOAK_INVALID;
+		bAdmin = false;
 
 		arch.iWarmupTime = 0;
 		arch.iCooldownTime = 0;
@@ -69,13 +69,12 @@ struct CLOAK_INFO
 		arch.bDropShieldsOnUncloak = false;
 	}
 
-	uint iCloakSlot;
+	ushort iCloakSlot;
 	bool bCanCloak;
 	mstime tmCloakTime;
 	uint iState;
 	bool bAdmin;
 	int DisruptTime;
-	bool singleCloakConsumed = false;
 
 	CLOAK_ARCH arch;
 };
@@ -297,7 +296,7 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
-		if (info.arch.mapFuelToUsage.find(item->iArchID) != info.arch.mapFuelToUsage.end())
+		if (item->sID == info.iCloakSlot)
 		{
 			const auto& fuelUsage = info.arch.mapFuelToUsage[item->iArchID];
 			uint currFuelUsage = fuelUsage.usageStatic;
@@ -305,18 +304,18 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 				Vector dir1;
 				Vector dir2;
 				pub::SpaceObj::GetMotion(iShipID, dir1, dir2);
-				uint vecLength = sqrtf(dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z);
+				float vecLength = sqrtf(dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z);
 				
-				currFuelUsage += fuelUsage.usageMove * vecLength;
+				currFuelUsage += static_cast<uint>(fuelUsage.usageMove * vecLength);
 			}
 			if (item->iCount >= currFuelUsage)
 			{
 				pub::Player::RemoveCargo(iClientID, item->sID, currFuelUsage);
 				return true;
 			}
+			break;
 		}
 	}
-
 	return false;
 }
 

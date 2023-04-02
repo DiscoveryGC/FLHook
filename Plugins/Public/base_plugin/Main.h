@@ -438,6 +438,7 @@ public:
 
 	//the destination vector
 	Vector destposition;
+	Matrix destorientation;
 
 	/////////////////////////////////////////
 };
@@ -447,7 +448,7 @@ PlayerBase *GetPlayerBaseForClient(uint client);
 
 void BaseLogging(const char *szString, ...);
 
-void SaveBases();
+void RespawnBase(PlayerBase* base);
 void DeleteBase(PlayerBase *base);
 void LoadDockState(uint client);
 void SaveDockState(uint client);
@@ -507,11 +508,12 @@ namespace Siege
 	int GetRandomSound(int min, int max);
 }
 
-namespace AP
+namespace HyperJump
 {
+	void LoadHyperspaceHubConfig(const string& configPath);
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt);
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
-	void ClearClientInfo(unsigned int iClientID);
+	void ClearClientInfo(uint iClientID);
 }
 
 namespace PlayerCommands

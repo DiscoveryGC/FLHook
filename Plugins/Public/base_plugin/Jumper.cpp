@@ -29,25 +29,194 @@
 //Structures and shit yo
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct DEFERREDJUMPS
+struct SYSTEMJUMPCOORDS
 {
 	uint system;
 	Vector pos;
 	Matrix ornt;
 };
-static map<uint, DEFERREDJUMPS> mapDeferredJumps;
+static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
+
+static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
+
+void SetReturnHole(PlayerBase* originBase);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Settings Loading
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
+
+	string cfg_filejumpMap = configPath + "\\flhook_plugins\\jump_allowedsystems.cfg";
+	string cfg_filehyperspaceHub = configPath + "\\flhook_plugins\\base_hyperspacehub.cfg";
+	vector<uint> legalReturnSystems;
+	vector<uint> unchartedSystems;
+	vector<uint> returnJumpHoles;
+	vector<uint> unchartedJumpHoles;
+	map<uint, wstring> systemNameMap;
+	INI_Reader ini;
+
+	if (ini.open(cfg_filejumpMap.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("system_jump_positions")) {
+				while (ini.read_value())
+				{
+					if (ini.is_value("jump_position"))
+					{
+						SYSTEMJUMPCOORDS coords;
+						coords.system = CreateID(ini.get_value_string(0));
+						coords.pos = { ini.get_value_float(1), ini.get_value_float(2), ini.get_value_float(3) };
+
+						Vector erot = { ini.get_value_float(4), ini.get_value_float(5), ini.get_value_float(6) };
+						coords.ornt = EulerMatrix(erot);
+
+						mapSystemJumps[coords.system].push_back(coords);
+					}
+				}
+			}
+		}
+
+		ini.close();
+	}
+
+	if (ini.open(cfg_filehyperspaceHub.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("uncharted_system_data"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("uncharted_system"))
+					{
+						unchartedSystems.push_back(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+			else if (ini.is_header("return_system_data"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("return_system"))
+					{
+						legalReturnSystems.push_back(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+			else if (ini.is_header("return_jump_bases"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("base"))
+					{
+						returnJumpHoles.push_back(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+			else if (ini.is_header("uncharted_jump_bases"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("base"))
+					{
+						unchartedJumpHoles.push_back(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+		}
+
+		ini.close();
+	}
+
+	if (returnJumpHoles.size() > legalReturnSystems.size()
+	 || unchartedJumpHoles.size() > unchartedSystems.size()) {
+		ConPrint(L"ERROR: more random jump bases than distinct available destinations, aborting randomization!\n");
+		return;
+	}
+
+	for (uint returnJH : returnJumpHoles) {
+		if (!player_bases.count(returnJH)) {
+			ConPrint(L"Warning: Return wormhole-base hash %u not found, check config!\n", returnJH);
+			continue;
+		}
+		PlayerBase* pb = player_bases[returnJH];
+		uint index = rand() % legalReturnSystems.size();
+		if (mapSystemJumps.count(legalReturnSystems.at(index)) == 0) {
+			ConPrint(L"Jump Point data for return system not found, aborting randomization!\n");
+			continue;
+		}
+		const auto& coordsList = mapSystemJumps[legalReturnSystems.at(index)];
+		const auto& coords = coordsList.at(rand() % coordsList.size());
+		pb->destsystem = coords.system;
+		pb->destposition = coords.pos;
+		pb->destorientation = coords.ornt;
+
+		const auto& systemInfo = Universe::get_system(coords.system);
+		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
+		legalReturnSystems.erase(legalReturnSystems.begin() + index);
+
+		pb->Save();
+		RespawnBase(pb);
+	}
+
+	for (uint unchartedJH : unchartedJumpHoles) {
+		if (!player_bases.count(unchartedJH)) {
+			ConPrint(L"Warning: Uncharted wormhole-base hash %u not found, check config!\n", unchartedJH);
+			continue;
+		}
+		PlayerBase* pb = player_bases[unchartedJH];
+		const uint index = rand() % unchartedSystems.size();
+		if (mapSystemJumps.count(unchartedSystems.at(index)) == 0) {
+			ConPrint(L"Jump Point data for uncharted system not found, aborting randomization!\n");
+			continue;
+		}
+		const auto& coordsList = mapSystemJumps[unchartedSystems.at(index)];
+		const auto& coords = coordsList.at(rand() % coordsList.size());
+		pb->destsystem = coords.system;
+		pb->destposition = coords.pos;
+		pb->destorientation = coords.ornt;
+		const auto& systemInfo = Universe::get_system(coords.system);
+		pb->basename = L"Unstable " + HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
+		unchartedSystems.erase(unchartedSystems.begin() + index);
+
+		SetReturnHole(pb);
+		pb->Save();
+		RespawnBase(pb);
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Dependencies
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void SetReturnHole(PlayerBase* originBase) {
+	const auto& targetSystem = Universe::get_system(originBase->destsystem);
+	string targetJumpBaseNickname = "pb_hyperspace_hub_";
+	targetJumpBaseNickname += reinterpret_cast<const char*>(targetSystem->nickname);
+	targetJumpBaseNickname = ToLower(targetJumpBaseNickname);
+	uint targetJumpHoleBaseHash = CreateID(ToLower(targetJumpBaseNickname).c_str());
+	if (!player_bases.count(targetJumpHoleBaseHash)) {
+		ConPrint(L"HYPERSPACEHUB: Error! Target base %ls not found!\n", stows(targetJumpBaseNickname).c_str());
+		return;
+	}
+	auto targetJumpHoleBase = player_bases[targetJumpHoleBaseHash];
 
+	const auto& systemInfo = Universe::get_system(originBase->system);
+	targetJumpHoleBase->position = originBase->destposition;
+	targetJumpHoleBase->destorientation = originBase->destorientation;
+	targetJumpHoleBase->system = originBase->destsystem;
+	targetJumpHoleBase->destsystem = originBase->system;
+	targetJumpHoleBase->basename = L"Unstable " + HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
+	targetJumpHoleBase->destposition = originBase->position;
+	targetJumpHoleBase->destorientation = originBase->rotation;
 
-void AP::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
+	targetJumpHoleBase->Save();
+	RespawnBase(targetJumpHoleBase);
+}
+
+void HyperJump::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 {
 	mapDeferredJumps[iClientID].system = system;
 	mapDeferredJumps[iClientID].pos = pos;
@@ -62,7 +231,7 @@ void AP::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 	PrintUserCmdText(iClientID, L" ChangeSys %u", system);
 }
 
-bool AP::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
+bool HyperJump::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 {
 	static PBYTE SwitchOut = 0;
 	if (!SwitchOut)
@@ -133,7 +302,7 @@ bool AP::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 //Logic
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void AP::ClearClientInfo(uint iClientID)
+void HyperJump::ClearClientInfo(uint iClientID)
 {
 	mapDeferredJumps.erase(iClientID);
 }

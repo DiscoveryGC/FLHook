@@ -189,9 +189,6 @@ namespace Message
 		static const int NUMBER_OF_SLOTS = 10;
 		wstring slot[NUMBER_OF_SLOTS];
 
-		static const int NUMBER_OF_COORDSLOTS = 10;
-		wstring coordslot[NUMBER_OF_COORDSLOTS];
-
 		// Client ID of last PM.
 		uint ulastPmClientID;
 
@@ -276,11 +273,6 @@ namespace Message
 			mapInfo[iClientID].slot[iMsgSlot] = HookExt::IniGetWS(iClientID, "msg." + itos(iMsgSlot));
 		}
 
-		// Load from disk the messages.
-		for (int iCoordMsgSlot = 0; iCoordMsgSlot < INFO::NUMBER_OF_COORDSLOTS; iCoordMsgSlot++)
-		{
-			mapCoordsInfo[iClientID].coordslot[iCoordMsgSlot] = HookExt::IniGetWS(iClientID, "coordmsg." + itos(iCoordMsgSlot));
-		}
 	}
 
 	/** Show the greeting banner to the specified player */
@@ -705,82 +697,6 @@ namespace Message
 			PrintUserCmdText(iClientID, L"%d: %s", i, iter->second.slot[i].c_str());
 		}
 		PrintUserCmdText(iClientID, L"OK");
-		return true;
-	}
-
-	/** Set a preset coordinate */
-	bool Message::UserCmd_SaveCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		if (!set_bSetMsg)
-			return false;
-
-		int iCoordMsgSlot = ToInt(GetParam(wscParam, ' ', 0));
-		wstring wscMsg = GetParamToEnd(wscParam, ' ', 1);
-
-		if (iCoordMsgSlot < 0 || iCoordMsgSlot>9 || wscParam.size() == 0)
-		{
-			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
-			PrintUserCmdText(iClientID, usage);
-			return true;
-		}
-
-		HookExt::IniSetWS(iClientID, "coordmsg." + itos(iCoordMsgSlot), wscMsg);
-
-		// Reload the character cache
-		LoadMsgs(iClientID);
-		PrintUserCmdText(iClientID, L"OK");
-		return true;
-	}
-
-	/** Show preset coordinates */
-	bool Message::UserCmd_ShowCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		if (!set_bSetMsg)
-			return false;
-
-		map<uint, INFO>::iterator iter = mapCoordsInfo.find(iClientID);
-		if (iter == mapCoordsInfo.end())
-		{
-			PrintUserCmdText(iClientID, L"ERR No coordinates");
-			return true;
-		}
-
-		for (int i = 0; i < INFO::NUMBER_OF_COORDSLOTS; i++)
-		{
-			PrintUserCmdText(iClientID, L"%d: %s", i, iter->second.coordslot[i].c_str());
-		}
-		PrintUserCmdText(iClientID, L"OK");
-		return true;
-	}
-
-	/** load a preset coordinate */
-	bool Message::UserCmd_LoadCoords(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-	{
-		if (!set_bSetMsg)
-			return false;
-
-		int iCoordMsgSlot = ToInt(wscCmd.substr(2, 1));
-		if (iCoordMsgSlot < 0 || iCoordMsgSlot>9)
-		{
-			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
-			PrintUserCmdText(iClientID, usage);
-			return true;
-		}
-
-		map<uint, INFO>::iterator iter = mapCoordsInfo.find(iClientID);
-		if (iter == mapCoordsInfo.end())
-		{
-			PrintUserCmdText(iClientID, L"ERR No coordinates");
-			return true;
-		}
-
-		// Replace the tag #t with name of the targeted player.
-		wstring wscMsg = iter->second.coordslot[iCoordMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
-			return true;
-
-		HyperJump::UserCmd_SetCoords(iClientID, wscMsg, wscMsg, wscMsg.c_str());
-
 		return true;
 	}
 

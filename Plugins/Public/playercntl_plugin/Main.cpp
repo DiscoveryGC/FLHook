@@ -446,7 +446,8 @@ namespace HkIServerImpl
 
 	void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 	{
-		HyperJump::CheckForMatrix(iClientID);
+		HyperJump::CheckForMatrix(iClientID, true);
+		HyperJump::InitJumpDriveInfo(iClientID, true);
 		returncode = DEFAULT_RETURNCODE;
 	}
 
@@ -1080,29 +1081,19 @@ USERCMD UserCmds[] =
 	{ L"/shields",		MiscCmds::UserCmd_Shields, L"Usage: /shields"},
 	{ L"/shields*",		MiscCmds::UserCmd_Shields, L"Usage: /shields"},
 	//{ L"/ss",		    MiscCmds::UserCmd_Screenshot, L"Usage: /ss"},
-	{ L"/survey",		HyperJump::UserCmd_Survey, L"Usage: /survey"},
-	{ L"/showcoords",		Message::UserCmd_ShowCoords, L"Usage: /savecoords <n>"},
-	{ L"/savecoords",		Message::UserCmd_SaveCoords, L"Usage: /savecoords <n> <text>"},
-	{ L"/c0",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c1",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c2",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c3",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c4",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c5",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c6",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c7",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c8",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/c9",		Message::UserCmd_LoadCoords, L"Usage: /cn (n=0-9)"},
-	{ L"/setcoords",	HyperJump::UserCmd_SetCoords, L"Usage: /setcoords"},
+	{ L"/setsystem",	HyperJump::UserCmd_SetSystem, L"Usage: /jump <system name>"},
+	{ L"/setsector",	HyperJump::UserCmd_SetSector, L"Usage: /setsector <number>"},
 	{ L"/jump",			HyperJump::UserCmd_ActivateJumpDrive, L"Usage: /jump"},
 	{ L"/jump*",		HyperJump::UserCmd_ActivateJumpDrive, L"Usage: /jump"},
 	{ L"/beacon",		HyperJump::UserCmd_DeployBeacon, L"Usage: /beacon"},
 	{ L"/beacon*",		HyperJump::UserCmd_DeployBeacon, L"Usage: /beacon"},
-	{ L"/jumpbeacon",		HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
-	{ L"/jumpbeacon*",		HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
+	{ L"/jumpbeacon",	HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
+	{ L"/jumpbeacon*",	HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
+	{ L"/canjump",		HyperJump::UserCmd_IsSystemJumpable, L"Usage: /canjump <systemname>" },
+	{ L"/beaconrange",	HyperJump::UserCmd_CanBeaconJumpToPlayer, L"Usage: /beaconrange <playername/playerID>" },
 	{ L"/charge",		HyperJump::UserCmd_ChargeJumpDrive, L"Usage: /charge"},
 	{ L"/charge*",		HyperJump::UserCmd_ChargeJumpDrive, L"Usage: /charge"},
-	{ L"/jumpsys",		HyperJump::UserCmd_ListJumpableSystems, L"Usage: /jumpsys"},
+	{ L"/jumplist",		HyperJump::UserCmd_ListJumpableSystems, L"Usage: /jumplist"},
 	{ L"/showscan",		SystemSensor::UserCmd_ShowScan, L"Usage: /showscan or /scan <charname>"},
 	{ L"/showscan$",	SystemSensor::UserCmd_ShowScan, L"Usage: /showscan$ or /scanid <clientid>"},
 	{ L"/scan",			SystemSensor::UserCmd_ShowScan, L"Usage: /showscan or /scan <charname>"},
@@ -1462,18 +1453,6 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HyperJump::AdminCmd_Chase(cmds, cmds->ArgCharname(1));
-		return true;
-	}
-	else if (IS_CMD("lrs"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_ListRestrictedShips(cmds);
-		return true;
-	}
-	else if (IS_CMD("makecoord"))
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		HyperJump::AdminCmd_MakeCoord(cmds);
 		return true;
 	}
 	else if (IS_CMD("authchar"))

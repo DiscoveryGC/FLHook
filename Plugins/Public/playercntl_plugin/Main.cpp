@@ -446,7 +446,8 @@ namespace HkIServerImpl
 
 	void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 	{
-		HyperJump::CheckForMatrix(iClientID);
+		HyperJump::CheckForMatrix(iClientID, true);
+		HyperJump::InitJumpDriveInfo(iClientID, true);
 		returncode = DEFAULT_RETURNCODE;
 	}
 
@@ -1086,8 +1087,10 @@ USERCMD UserCmds[] =
 	{ L"/jump*",		HyperJump::UserCmd_ActivateJumpDrive, L"Usage: /jump"},
 	{ L"/beacon",		HyperJump::UserCmd_DeployBeacon, L"Usage: /beacon"},
 	{ L"/beacon*",		HyperJump::UserCmd_DeployBeacon, L"Usage: /beacon"},
-	{ L"/jumpbeacon",		HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
-	{ L"/jumpbeacon*",		HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
+	{ L"/jumpbeacon",	HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
+	{ L"/jumpbeacon*",	HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon"},
+	{ L"/canjump",		HyperJump::UserCmd_IsSystemJumpable, L"Usage: /canjump <systemname>" },
+	{ L"/beaconrange",	HyperJump::UserCmd_CanBeaconJumpToPlayer, L"Usage: /beaconrange <playername/playerID>" },
 	{ L"/charge",		HyperJump::UserCmd_ChargeJumpDrive, L"Usage: /charge"},
 	{ L"/charge*",		HyperJump::UserCmd_ChargeJumpDrive, L"Usage: /charge"},
 	{ L"/jumplist",		HyperJump::UserCmd_ListJumpableSystems, L"Usage: /jumplist"},

@@ -319,6 +319,8 @@ namespace HyperJump
 
 		if (ini.open(scCfgFileSystemList.c_str(), false))
 		{
+			uint sysConnectionListSize = 0;
+			uint coordListSize = 0;
 			while (ini.read_header())
 			{
 				if (ini.is_header("system"))
@@ -331,6 +333,7 @@ namespace HyperJump
 						if (ini.is_value("target_system"))
 						{
 							targetSystemsList.push_back(CreateID(ini.get_value_string(0)));
+							sysConnectionListSize++;
 						}
 						else if (ini.is_value("origin_system"))
 						{
@@ -341,7 +344,7 @@ namespace HyperJump
 							jumpRange = ini.get_value_int(0);
 						}
 					}
-					mapAvailableJumpSystems[originSystem][jumpRange-1] = targetSystemsList;
+					mapAvailableJumpSystems[originSystem][jumpRange] = targetSystemsList;
 				}
 				if (ini.is_header("system_jump_positions")) {
 					while (ini.read_value())
@@ -357,10 +360,12 @@ namespace HyperJump
 							coords.sector = VectorToSectorCoord(coords.system, coords.pos);
 
 							mapSystemJumps[coords.system].push_back(coords);
+							coordListSize++;
 						}
 					}
 				}
 			}
+			ConPrint(L"Hyperspace: Loaded %u system coordinates and %u connections for %u systems\n", coordListSize, sysConnectionListSize, mapAvailableJumpSystems.size());
 			ini.close();
 		}
 
@@ -484,7 +489,7 @@ namespace HyperJump
 			return false;
 
 		auto& allowedSystemsByRange = mapAvailableJumpSystems[systemFrom];
-		for (uint depth = 0; depth < range; depth++) {
+		for (uint depth = 1; depth <= range; depth++) {
 			if (allowedSystemsByRange.count(range) && find(allowedSystemsByRange[depth].begin(), allowedSystemsByRange[depth].end(), systemTo) != allowedSystemsByRange[depth].end())
 				return true;
 		}
@@ -547,7 +552,7 @@ namespace HyperJump
 
 			PrintUserCmdText(iClientID, L"You are allowed to jump to:");
 			auto& systemRangeList = mapAvailableJumpSystems[iSystemID];
-			for (uint depth = 0; depth < playerJumpDrive.arch->jump_range; depth++)
+			for (uint depth = 1; depth <= playerJumpDrive.arch->jump_range; depth++)
 			{
 				for (uint &allowed_sys : systemRangeList[depth])
 				{
@@ -561,6 +566,17 @@ namespace HyperJump
 		{
 			PrintUserCmdText(iClientID, L"Jump System Whitelisting is not enabled.");
 		}
+		return true;
+	}
+
+	bool UserCmd_ClearSystem(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
+	{
+		if (!InitJumpDriveInfo(iClientID)) {
+			PrintUserCmdText(iClientID, L"ERR No jump drive installed");
+			return true;
+		}
+		mapJumpDrives[iClientID].iTargetSystem = 0;
+		PrintUserCmdText(iClientID, L"System coordinates cleared");
 		return true;
 	}
 

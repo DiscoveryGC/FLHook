@@ -676,7 +676,6 @@ namespace HyperJump
 		list<uint> lstOldClients;
 
 		// Handle beacons
-
 		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
 		{
 			BEACONTIMER &bc = i->second;
@@ -723,7 +722,9 @@ namespace HyperJump
 			else
 			{
 				JUMPDRIVE &jd = iter->second;
-
+				if (jd.arch == nullptr) {
+					continue;
+				}
 				if (jd.jump_timer > 0)
 				{
 					if (setCloakingClients.find(iClientID) != setCloakingClients.end())

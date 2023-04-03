@@ -132,19 +132,19 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 
 	if (returnJumpHoles.size() > legalReturnSystems.size()
 	 || unchartedJumpHoles.size() > unchartedSystems.size()) {
-		ConPrint(L"ERROR: more random jump bases than distinct available destinations, aborting randomization!\n");
+		ConPrint(L"HYPERSPACE HUB: ERROR! more random jump bases than distinct available destinations, aborting randomization!\n");
 		return;
 	}
 
 	for (uint returnJH : returnJumpHoles) {
 		if (!player_bases.count(returnJH)) {
-			ConPrint(L"Warning: Return wormhole-base hash %u not found, check config!\n", returnJH);
+			ConPrint(L"HYPERSPACE HUB: Warning! Return wormhole-base hash %u not found, check config!\n", returnJH);
 			continue;
 		}
 		PlayerBase* pb = player_bases[returnJH];
 		uint index = rand() % legalReturnSystems.size();
 		if (mapSystemJumps.count(legalReturnSystems.at(index)) == 0) {
-			ConPrint(L"Jump Point data for return system not found, aborting randomization!\n");
+			ConPrint(L"HYPERSPACE HUB: Jump Point data for return system not found, aborting randomization!\n");
 			continue;
 		}
 		const auto& coordsList = mapSystemJumps[legalReturnSystems.at(index)];
@@ -163,13 +163,13 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 
 	for (uint unchartedJH : unchartedJumpHoles) {
 		if (!player_bases.count(unchartedJH)) {
-			ConPrint(L"Warning: Uncharted wormhole-base hash %u not found, check config!\n", unchartedJH);
+			ConPrint(L"HYPERSPACE HUB: Warning! Uncharted wormhole-base hash %u not found, check config!\n", unchartedJH);
 			continue;
 		}
 		PlayerBase* pb = player_bases[unchartedJH];
 		const uint index = rand() % unchartedSystems.size();
 		if (mapSystemJumps.count(unchartedSystems.at(index)) == 0) {
-			ConPrint(L"Jump Point data for uncharted system not found, aborting randomization!\n");
+			ConPrint(L"HYPERSPACE HUB: Jump Point data for uncharted system not found, aborting randomization!\n");
 			continue;
 		}
 		const auto& coordsList = mapSystemJumps[unchartedSystems.at(index)];

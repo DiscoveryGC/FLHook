@@ -67,8 +67,10 @@ namespace HyperJump
 	static int BeaconCooldown = 300;
 	static uint BeaconFuse = 0;
 	static int JumpInnacuracy = 2000;
-	static float JumpCargoSizeRestriction = 0;
+	static float JumpCargoSizeRestriction = 7000;
 	static uint BlindJumpOverrideSystem = 0;
+	static boolean CanJumpWithCommodities = true;
+	static boolean CanGroupJumpWithCommodities = true;
 
 	struct SYSTEMJUMPCOORDS
 	{
@@ -208,6 +210,14 @@ namespace HyperJump
 						}
 						else if (ini.is_value("BlindJumpOverrideSystem")) {
 							BlindJumpOverrideSystem = CreateID(ini.get_value_string());
+						}
+						else if (ini.is_value("CanJumpWithCommodities"))
+						{
+							CanJumpWithCommodities = ini.get_value_bool(0);
+						}
+						else if (ini.is_value("CanGroupJumpWithCommodities"))
+						{
+							CanGroupJumpWithCommodities = ini.get_value_bool(0);
 						}
 					}
 				}
@@ -499,6 +509,20 @@ namespace HyperJump
 		return false;
 	}
 
+	bool CheckForCommodities(uint iClientID)
+	{
+		int iRemHoldSize;
+		std::list<CARGO_INFO> lstCargo;
+		HkEnumCargo(ARG_CLIENTID(iClientID), lstCargo, iRemHoldSize);
+		for (const auto& cargo : lstCargo) {
+			bool flag;
+			pub::IsCommodity(cargo.iArchID, flag);
+			if (flag && cargo.iCount)
+				return true;
+		}
+		return false;
+	}
+
 	bool HyperJump::UserCmd_CanBeaconJumpToPlayer(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage) {
 		if (!InitJumpDriveInfo(iClientID)) {
 			PrintUserCmdText(iClientID, L"ERR Jump Drive not equipped");
@@ -768,6 +792,7 @@ namespace HyperJump
 					// Execute the jump and do the pop sound
 					else if (jd.jump_timer == 2)
 					{
+
 						// Stop the charging fuses
 						StopChargeFuses(iClientID);
 
@@ -782,9 +807,10 @@ namespace HyperJump
 						pub::SpaceObj::DrainShields(iShip);
 						// Restrict some ships from jumping, this is for the jumpship
 						auto shipInfo1 = Archetype::GetShip(Players[iClientID].iShipArchetype);
-						if (JumpCargoSizeRestriction <= shipInfo1->fHoldSize || (jumpRestrictedShipsList.find(Players[iClientID].iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
+						if (!CanJumpWithCommodities && CheckForCommodities(iClientID) || JumpCargoSizeRestriction <= shipInfo1->fHoldSize || (jumpRestrictedShipsList.find(Players[iClientID].iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
 						{
 							PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump.");
+							continue;
 						}
 						else
 						{
@@ -813,7 +839,7 @@ namespace HyperJump
 								continue;
 							// Restrict some ships from jumping, this is for the jumpers
 							auto shipInfo2 = Archetype::GetShip(Players[iClientID].iShipArchetype);
-							if (JumpCargoSizeRestriction <= shipInfo2->fHoldSize || (jumpRestrictedShipsList.find(pPD->iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
+							if ((!CanGroupJumpWithCommodities && CheckForCommodities(pPD->iOnlineID)) || JumpCargoSizeRestriction <= shipInfo2->fHoldSize || (jumpRestrictedShipsList.find(pPD->iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
 							{
 								PrintUserCmdText(pPD->iOnlineID, L"ERR Ship is not allowed to jump.");
 								continue;

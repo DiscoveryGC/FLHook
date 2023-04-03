@@ -600,10 +600,10 @@ namespace HyperJump
 				uint &iTargetSystemID = sysinfo->id;
 
 				if (IsSystemJumpable(Players[iClientID].iSystemID, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
-					PrintUserCmdText(iClientID, L"%ls is within jump range(%u jumps)", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
+					PrintUserCmdText(iClientID, L"%ls is within jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
 				}
 				else {
-					PrintUserCmdText(iClientID, L"%ls out of jump range(%u jumps)", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
+					PrintUserCmdText(iClientID, L"%ls is out of your jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
 				}
 				return true;
 			}

@@ -488,6 +488,9 @@ namespace HyperJump
 		if (mapAvailableJumpSystems.count(systemFrom) == 0)
 			return false;
 
+		if (systemFrom == systemTo)
+			return true;
+
 		auto& allowedSystemsByRange = mapAvailableJumpSystems[systemFrom];
 		for (uint depth = 1; depth <= range; depth++) {
 			if (allowedSystemsByRange.count(range) && find(allowedSystemsByRange[depth].begin(), allowedSystemsByRange[depth].end(), systemTo) != allowedSystemsByRange[depth].end())
@@ -546,7 +549,7 @@ namespace HyperJump
 		if (JumpSystemListEnabled == 1)
 		{
 			if (mapAvailableJumpSystems.count(iSystemID) == 0) {
-				PrintUserCmdText(iClientID, L"ERR Jumps from this system not configured, please report the issue to the staff");
+				PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
 				return true;
 			}
 
@@ -1321,8 +1324,14 @@ namespace HyperJump
 			return true;
 		}
 
+		if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID) == 0) {
+			PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
+			return true;
+		}
+
 		if (jd.iTargetSystem == 0)
 		{
+
 			PrintUserCmdText(iClientID, L"WARNING NO JUMP COORDINATES");
 			PrintUserCmdText(iClientID, L"BLIND JUMP ACTIVATED");
 

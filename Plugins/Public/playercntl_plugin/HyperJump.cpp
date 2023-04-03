@@ -514,10 +514,10 @@ namespace HyperJump
 		int iRemHoldSize;
 		std::list<CARGO_INFO> lstCargo;
 		HkEnumCargo(ARG_CLIENTID(iClientID), lstCargo, iRemHoldSize);
-		for (const auto& cargo : lstCargo) {
-			bool flag;
+		for (auto& cargo : lstCargo) {
+			bool flag = false;
 			pub::IsCommodity(cargo.iArchID, flag);
-			if (flag && cargo.iCount)
+			if (flag)
 				return true;
 		}
 		return false;
@@ -807,16 +807,23 @@ namespace HyperJump
 						pub::SpaceObj::DrainShields(iShip);
 						// Restrict some ships from jumping, this is for the jumpship
 						auto shipInfo1 = Archetype::GetShip(Players[iClientID].iShipArchetype);
-						if (!CanJumpWithCommodities && CheckForCommodities(iClientID) || JumpCargoSizeRestriction <= shipInfo1->fHoldSize || (jumpRestrictedShipsList.find(Players[iClientID].iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
+						if (!CanJumpWithCommodities && CheckForCommodities(iClientID))
+						{
+							PrintUserCmdText(iClientID, L"ERR Jumping with commodities onboard is forbidden.");
+							continue;
+						}
+						if (JumpCargoSizeRestriction <= shipInfo1->fHoldSize) {
+							PrintUserCmdText(iClientID, L"ERR Cargo hold too large, jumping forbidden");
+							continue;
+						}
+						if (JumpWhiteListEnabled == 1 && jumpRestrictedShipsList.find(Players[iClientID].iShipArchetype) != jumpRestrictedShipsList.end())
 						{
 							PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump.");
 							continue;
 						}
-						else
-						{
-							RandomizeCoords(jd.vTargetPosition);
-							SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient);
-						}
+						
+						RandomizeCoords(jd.vTargetPosition);
+						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient);
 
 						// Find all ships within the jump field including the one with the jump engine.
 						if (jd.arch->field_range <= 0)
@@ -839,9 +846,18 @@ namespace HyperJump
 								continue;
 							// Restrict some ships from jumping, this is for the jumpers
 							auto shipInfo2 = Archetype::GetShip(Players[iClientID].iShipArchetype);
-							if ((!CanGroupJumpWithCommodities && CheckForCommodities(pPD->iOnlineID)) || JumpCargoSizeRestriction <= shipInfo2->fHoldSize || (jumpRestrictedShipsList.find(pPD->iShipArchetype) != jumpRestrictedShipsList.end() && JumpWhiteListEnabled == 1))
+							if (!CanJumpWithCommodities && CheckForCommodities(pPD->iOnlineID))
 							{
-								PrintUserCmdText(pPD->iOnlineID, L"ERR Ship is not allowed to jump.");
+								PrintUserCmdText(iClientID, L"ERR Jumping with commodities onboard is forbidden.");
+								continue;
+							}
+							if (JumpCargoSizeRestriction <= shipInfo2->fHoldSize) {
+								PrintUserCmdText(iClientID, L"ERR Cargo hold too large, jumping forbidden");
+								continue;
+							}
+							if (JumpWhiteListEnabled == 1 && jumpRestrictedShipsList.find(Players[pPD->iOnlineID].iShipArchetype) != jumpRestrictedShipsList.end())
+							{
+								PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump.");
 								continue;
 							}
 							PrintUserCmdText(pPD->iOnlineID, L"Jumping...");
@@ -896,7 +912,6 @@ namespace HyperJump
 				{
 					// Use fuel to charge the jump drive's storage capacitors
 					jd.charging_on = false;
-
 
 					if (setCloakingClients.find(iClientID) != setCloakingClients.end())
 					{
@@ -1013,8 +1028,6 @@ namespace HyperJump
 			DWORD dummy;
 			VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
 		}
-
-		mapJumpDrives[iClientID].iTargetSystem = 0;
 
 		// Patch the system switch out routine to put the ship in a
 		// system of our choosing.
@@ -1271,6 +1284,10 @@ namespace HyperJump
 			PrintUserCmdText(iClientID, L"Insufficient power to charge jumpdrive");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
+		}
+
+		if (!CanJumpWithCommodities && CheckForCommodities(iClientID)) {
+			PrintUserCmdText(iClientID, L"Warning! You cannot jump without clearing your cargo hold!");
 		}
 
 		// Toogle the charge state

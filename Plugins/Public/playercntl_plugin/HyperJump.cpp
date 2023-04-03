@@ -433,7 +433,7 @@ namespace HyperJump
 	bool InitJumpDriveInfo(uint iClientID, bool fullCheck = false)
 	{
 		// Initialise the drive parameters for this ship
-		if (mapJumpDrives.count(iClientID) && !fullCheck)
+		if (mapJumpDrives.count(iClientID) && mapJumpDrives[iClientID].arch != nullptr && !fullCheck)
 		{
 			return true;
 		}
@@ -487,6 +487,9 @@ namespace HyperJump
 	{
 		if (mapAvailableJumpSystems.count(systemFrom) == 0)
 			return false;
+
+		if (systemFrom == systemTo)
+			return true;
 
 		auto& allowedSystemsByRange = mapAvailableJumpSystems[systemFrom];
 		for (uint depth = 1; depth <= range; depth++) {
@@ -546,7 +549,7 @@ namespace HyperJump
 		if (JumpSystemListEnabled == 1)
 		{
 			if (mapAvailableJumpSystems.count(iSystemID) == 0) {
-				PrintUserCmdText(iClientID, L"ERR Jumps from this system not configured, please report the issue to the staff");
+				PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
 				return true;
 			}
 
@@ -597,10 +600,10 @@ namespace HyperJump
 				uint &iTargetSystemID = sysinfo->id;
 
 				if (IsSystemJumpable(Players[iClientID].iSystemID, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
-					PrintUserCmdText(iClientID, L"%ls is within jump range(%u jumps)", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
+					PrintUserCmdText(iClientID, L"%ls is within your jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
 				}
 				else {
-					PrintUserCmdText(iClientID, L"%ls out of jump range(%u jumps)", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
+					PrintUserCmdText(iClientID, L"%ls is out of your jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
 				}
 				return true;
 			}
@@ -613,7 +616,7 @@ namespace HyperJump
 	bool UserCmd_SetSystem(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
 	{
 		if (!InitJumpDriveInfo(iClientID)) {
-			PrintUserCmdText(iClientID, L"Jump drive not available");
+			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -662,7 +665,7 @@ namespace HyperJump
 	bool UserCmd_SetSector(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
 	{
 		if (!InitJumpDriveInfo(iClientID)) {
-			PrintUserCmdText(iClientID, L"Jump drive not available");
+			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -1222,14 +1225,14 @@ namespace HyperJump
 		IObjInspectImpl *obj = HkGetInspect(iClientID);
 		if (!obj)
 		{
-			PrintUserCmdText(iClientID, L"Jump drive charging failed");
+			PrintUserCmdText(iClientID, L"ERR Jump drive charging failed");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
 
 		if (!InitJumpDriveInfo(iClientID))
 		{
-			PrintUserCmdText(iClientID, L"Jump drive not available");
+			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -1306,7 +1309,7 @@ namespace HyperJump
 		// If no jumpdrive, report a warning.
 		if (!InitJumpDriveInfo(iClientID))
 		{
-			PrintUserCmdText(iClientID, L"Jump drive not ready");
+			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -1321,8 +1324,14 @@ namespace HyperJump
 			return true;
 		}
 
+		if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID) == 0) {
+			PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
+			return true;
+		}
+
 		if (jd.iTargetSystem == 0)
 		{
+
 			PrintUserCmdText(iClientID, L"WARNING NO JUMP COORDINATES");
 			PrintUserCmdText(iClientID, L"BLIND JUMP ACTIVATED");
 
@@ -1541,7 +1550,7 @@ namespace HyperJump
 		// If no jumpdrive, report a warning.
 		if (!InitJumpDriveInfo(iClientID))
 		{
-			PrintUserCmdText(iClientID, L"Jump drive not ready");
+			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}

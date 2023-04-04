@@ -142,7 +142,7 @@ namespace HyperJump
 	void ClearClientInfo(uint iClientID);
 	void PlayerLaunch(unsigned int iShip, unsigned int iClientID);
 	void MissileTorpHit(uint iClientID, DamageList *dmg);
-	bool CheckForMatrix(uint iClientID, bool fullCheck);
+	bool CheckForBeacon(uint iClientID, bool fullCheck);
 	bool InitJumpDriveInfo(uint iClientID, bool fullCheck);
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
 

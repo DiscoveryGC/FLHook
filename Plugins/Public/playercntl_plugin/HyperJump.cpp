@@ -1392,8 +1392,7 @@ namespace HyperJump
 				mapJumpDrives[iClientID].vTargetPosition = overrideDestination.pos;
 				mapJumpDrives[iClientID].matTargetOrient = overrideDestination.ornt;
 			}
-
-			if (!JumpSystemListEnabled)
+			else if (!JumpSystemListEnabled)
 			{
 				vector<string> systems;
 				for (struct Universe::ISystem *sysinfo = Universe::GetFirstSystem(); sysinfo; sysinfo = Universe::GetNextSystem())

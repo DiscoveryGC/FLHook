@@ -463,10 +463,6 @@ void CoreModule::RepairDamage(float max_base_health)
 bool CoreModule::Timer(uint time)
 {
 
-	if ((time%set_tick_time) != 0 || set_holiday_mode) {
-		return false;
-	}
-
 	if (space_obj)
 	{
 		if ((base->logic == 1) || (base->invulnerable == 0))
@@ -499,7 +495,7 @@ bool CoreModule::Timer(uint time)
 
 			if (base->base_health > base->max_base_health)
 				base->base_health = base->max_base_health;
-			else if (base->base_health <= 0)
+			else if (base->base_health < 0)
 				base->base_health = 0;
 
 			if (!dont_eat)

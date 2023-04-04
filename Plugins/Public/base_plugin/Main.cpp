@@ -880,9 +880,8 @@ void HkTimerCheckKick()
 			repairIterator = player_bases.begin();
 		}
 		bool repairSuccessful = false;
-		while (!repairSuccessful || repairIterator == player_bases.end()) {
+		while (!repairSuccessful && repairIterator != player_bases.end()) {
 			auto& pb = repairIterator->second;
-			ConPrint(L"Attempting to Fixing base %ls\n", pb->basename.c_str());
 			if (pb->logic == 1 || pb->invulnerable == 0) {
 				pb->Save();
 				repairSuccessful = true;

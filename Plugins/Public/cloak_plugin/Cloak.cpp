@@ -49,6 +49,8 @@ struct CLOAK_ARCH
 	int iHoldSizeLimit;
 	map<uint, CLOAK_FUEL_USAGE> mapFuelToUsage;
 	bool bDropShieldsOnUncloak;
+	bool bBreakOnProximity;
+	float fRange;
 };
 
 struct CLOAK_INFO
@@ -103,6 +105,7 @@ static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
 
 static set<uint> setJumpingClients;
+static uint CloakAlertSound = CreateID("cloak_osiris");
 
 void LoadSettings();
 
@@ -172,6 +175,13 @@ void LoadSettings()
 					{
 						device.bDropShieldsOnUncloak = ini.get_value_bool(0);
 					}
+					else if (ini.is_value("break_cloak_on_proximity"))
+					{
+						device.bBreakOnProximity = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("detection_range")) {
+						device.fRange = ini.get_value_float(0);;
+					}
 				}
 				mapCloakingDevices[CreateID(device.scNickName.c_str())] = device;
 				++cloakamt;
@@ -208,6 +218,13 @@ void LoadSettings()
 				}
 				mapCloakDisruptors[CreateID(disruptor.nickname.c_str())] = disruptor;
 				++cdamt;
+			}
+			else if (ini.is_header("General")) {
+				while (ini.read_value()) {
+					if (ini.is_value("cloak_alert_sound")) {
+						CloakAlertSound = CreateID(ini.get_value_string());
+					}
+				}
 			}
 		}
 		ini.close();
@@ -475,7 +492,6 @@ void HkTimerCheckKick()
 				{
 					pub::SpaceObj::DrainShields(iShipID);
 
-
 					if ((curr_time % 5) == 0)
 					{
 						uint iShip;
@@ -488,13 +504,17 @@ void HkTimerCheckKick()
 						uint iSystem;
 						pub::Player::GetSystem(iClientID, iSystem);
 
-						uint MusictoID = CreateID("dsy_jumpdrive_survey");
 						//pub::Audio::PlaySoundEffect(iClientID, MusictoID);
+
+						list<GROUP_MEMBER> lstGrpMembers;
+						HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
 
 						// For all players in system...
 						struct PlayerData *pPD = 0;
 						while (pPD = Players.traverse_active(pPD))
 						{
+							if (pPD->iOnlineID == iClientID)
+								continue;
 							// Get the this player's current system and location in the system.
 							uint client2 = HkGetClientIdFromPD(pPD);
 							uint iSystem2 = 0;
@@ -510,10 +530,33 @@ void HkTimerCheckKick()
 							pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
 
 							// Is player within the specified range of the sending char.
-							if (HkDistance3D(pos, pos2) > 4000)
-								continue;
+							if (HkDistance3D(pos, pos2) < info.arch.fRange) {
+								if (info.arch.bBreakOnProximity)
+								{
+									bool isGroupMember = false;
+									for (auto& member : lstGrpMembers) {
+										if (member.iClientID == pPD->iOnlineID) {
+											isGroupMember = true;
+											break;
+										}
+									}
+									if (isGroupMember)
+									{
+										pub::Audio::PlaySoundEffect(client2, CloakAlertSound);
+									}
+									else
+									{
+										PrintUserCmdText(iClientID, L"Cloak broken by %ls", (const wchar_t*)Players.GetActiveCharacterName(pPD->iOnlineID));
+										SetState(iClientID, iShipID, STATE_CLOAK_OFF);
+										break;
+									}
+								}
+								else
+								{
+									pub::Audio::PlaySoundEffect(client2, CloakAlertSound);
+								}
+							}
 
-							pub::Audio::PlaySoundEffect(client2, MusictoID);
 						}
 					}
 				}

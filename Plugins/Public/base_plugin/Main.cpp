@@ -28,6 +28,7 @@ map<uint, CLIENT_DATA> clients;
 
 // Bases
 map<uint, PlayerBase*> player_bases;
+map<uint, PlayerBase*>::iterator repairIterator = player_bases.begin();
 
 map<uint, bool> mapPOBShipPurchases;
 
@@ -828,6 +829,21 @@ void HkTimerCheckKick()
 		++iter;
 		// Dispatch timer but we can safely ignore the return
 		base->Timer(curr_time);
+	}
+	if (!player_bases.empty() && !set_holiday_mode) {
+		if (repairIterator == player_bases.end()) {
+			repairIterator = player_bases.begin();
+		}
+		bool repairSuccessful = false;
+		while (!repairSuccessful || repairIterator == player_bases.end()) {
+			auto& pb = repairIterator->second;
+			ConPrint(L"Attempting to Fixing base %ls\n", pb->basename.c_str());
+			if (pb->logic == 1 || pb->invulnerable == 0) {
+				pb->Save();
+				repairSuccessful = true;
+			}
+			repairIterator++;
+		}
 	}
 
 	if (ExportType == 0 || ExportType == 2)

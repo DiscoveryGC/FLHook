@@ -476,7 +476,7 @@ namespace HyperJump
 		return false;
 	}
 
-	bool CheckForMatrix(uint iClientID, bool fullCheck = false)
+	bool CheckForBeacon(uint iClientID, bool fullCheck = false)
 	{
 		if (mapPlayerBeaconMatrix.count(iClientID) && !fullCheck) {
 			return true;
@@ -490,7 +490,7 @@ namespace HyperJump
 			}
 		}
 
-		return true;
+		return false;
 	}
 
 	bool IsSystemJumpable(uint systemFrom, uint systemTo, uint range)
@@ -523,19 +523,24 @@ namespace HyperJump
 		return false;
 	}
 
-	bool HyperJump::UserCmd_CanBeaconJumpToPlayer(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage) {
+	bool HyperJump::UserCmd_CanBeaconJumpToPlayer(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
+		if (wscParam.empty()) {
+			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+			PrintUserCmdText(iClientID, usage);
+			return true;
+		}
 		if (!InitJumpDriveInfo(iClientID)) {
 			PrintUserCmdText(iClientID, L"ERR Jump Drive not equipped");
 			return true;
 		}
-
 		wstring wscCharname = GetParam(wscParam, L' ', 0);
 		uint iTargetClientID = HkGetClientIdFromCharname(wscCharname);
-		if (iTargetClientID == 0) {
-			uint paramID = ToUInt(wscCharname);
-			if (paramID && HkIsValidClientID(paramID))
+		if (iTargetClientID == UINT_MAX) {
+			uint targetClientID = ToUInt(wscCharname);
+			if (targetClientID && HkIsValidClientID(targetClientID))
 			{
-				iTargetClientID = paramID;
+				iTargetClientID = targetClientID;
 			}
 			else 
 			{
@@ -544,12 +549,12 @@ namespace HyperJump
 			}
 		}
 
-		if (!CheckForMatrix(iTargetClientID)) {
-			PrintUserCmdText(iClientID, L"ERR No active beacon found");
+		if (!CheckForBeacon(iTargetClientID)) {
+			PrintUserCmdText(iClientID, L"ERR Target has no beacon equipped");
 			return true;
 		}
-		
-		if (IsSystemJumpable(Players[iClientID].iSystemID, Players[iTargetClientID].iSystemID, mapJumpDrives[iClientID].arch->jump_range + mapPlayerBeaconMatrix[iTargetClientID]->range)) 
+
+		if (!JumpSystemListEnabled || IsSystemJumpable(Players[iClientID].iSystemID, Players[iTargetClientID].iSystemID, mapJumpDrives[iClientID].arch->jump_range + mapPlayerBeaconMatrix[iTargetClientID]->range))
 		{
 			PrintUserCmdText(iClientID, L"Player beacon in jump range");
 		}
@@ -1281,7 +1286,7 @@ namespace HyperJump
 		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
 		if (cship->get_max_power() < jd.arch->power)
 		{
-			PrintUserCmdText(iClientID, L"Insufficient power to charge jumpdrive");
+			PrintUserCmdText(iClientID, L"Insufficient power to charge jumpdrive, your ship has %f, required: %f", cship->get_max_power(), jd.arch->power);
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -1511,7 +1516,7 @@ namespace HyperJump
 			return true;
 		}
 
-		if (!CheckForMatrix(iClientID))
+		if (!CheckForBeacon(iClientID))
 		{
 			PrintUserCmdText(iClientID, L"ERR No hyperspace matrix device found.");
 			return true;
@@ -1573,7 +1578,7 @@ namespace HyperJump
 	{
 		// Indicate an error if the command does not appear to be formatted correctly 
 		// and stop processing but tell FLHook that we processed the command.
-		if (wscParam.size() == 0)
+		if (wscParam.empty())
 		{
 			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
@@ -1600,98 +1605,88 @@ namespace HyperJump
 		JUMPDRIVE &jd = mapJumpDrives[iClientID];
 
 		wstring wscCharname = GetParam(wscParam, L' ', 0);
-		uint iClientIDTarget = HkGetClientIdFromCharname(wscCharname);
-
-		//Check if the client and the ship exist. Extra caution? Probably, but this command won't be run often so it's acceptable.
-		if (iClientIDTarget)
-		{
-			IObjInspectImpl *obj = HkGetInspect(iClientIDTarget);
-			if (!obj)
+		uint iTargetClientID = HkGetClientIdFromCharname(wscCharname);
+		if (iTargetClientID == UINT_MAX) {
+			uint targetClientID = ToUInt(wscCharname);
+			if (targetClientID && HkIsValidClientID(targetClientID))
 			{
-				PrintUserCmdText(iClientID, L"ERR Ship not found");
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
+				iTargetClientID = targetClientID;
+			}
+			else
+			{
+				PrintUserCmdText(iClientID, L"ERR Player not online");
 				return true;
 			}
-
-			if (mapActiveBeacons.find(iClientIDTarget) == mapActiveBeacons.end())
-			{
-				PrintUserCmdText(iClientID, L"ERR No active beacon found.");
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
-				return true;
-			}
-
-			if (mapActiveBeacons[iClientIDTarget].decayed == true)
-			{
-				PrintUserCmdText(iClientID, L"ERR No active beacon found.");
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
-				return true;
-			}
-
-			// If insufficient charging, report a warning
-			if (!jd.charging_complete)
-			{
-				PrintUserCmdText(iClientID, L"Jump drive not ready");
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
-				return true;
-			}
-
-			uint iShipTarget;
-			pub::Player::GetShip(iClientIDTarget, iShipTarget);
-
-			uint iSystemID;
-			pub::Player::GetSystem(iClientID, iSystemID);
-
-			uint iTargetSystem;
-			Vector pos;
-			Matrix rot;
-			pub::SpaceObj::GetLocation(iShipTarget, pos, rot);
-			pub::Player::GetSystem(iClientIDTarget, iTargetSystem);
-
-
-			////////////////////////// System limit restriction ///////////////////////////////////////
-			if (JumpSystemListEnabled == 1 && !IsSystemJumpable(iSystemID, iTargetSystem, (jd.arch->jump_range + mapPlayerBeaconMatrix[iClientID]->range)))
-			{
-				const Universe::ISystem *iSysList = Universe::get_system(iTargetSystem);
-				wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
-				PrintUserCmdText(iClientID, L"ERROR: Gravitational rift detected. Cannot jump to %s from this system.", wscSysNameList.c_str());
-				PrintUserCmdText(iClientID, L"Jump drive disabled. Use /jumpsys for the list of available systems.");
-				jd.charging_complete = false;
-				jd.curr_charge = 0.0;
-				jd.charging_on = false;
-				StopChargeFuses(iClientID);
-				return true;
-				
-			}
-			////////////////////////// End of System limit restriction ///////////////////////////////////////
-
-			jd.iTargetSystem = iTargetSystem;
-			jd.vTargetPosition.x = pos.x;
-			jd.vTargetPosition.y = pos.y;
-			jd.vTargetPosition.z = pos.z;
-
-			const struct Universe::ISystem *sysinfo = Universe::get_system(jd.iTargetSystem);
-			PrintUserCmdText(iClientID, L"OK Beacon coordinates verified: %s %0.0f.%0.0f.%0.0f",
-				HkGetWStringFromIDS(sysinfo->strid_name).c_str(),
-				*(float*)&jd.vTargetPosition.x,
-				*(float*)&jd.vTargetPosition.y,
-				*(float*)&jd.vTargetPosition.z);
-
-			int wiggle_factor = (int)mapPlayerBeaconMatrix[iClientIDTarget]->accuracy;
-			jd.vTargetPosition.x += ((rand() * 10) % wiggle_factor*2) - wiggle_factor;
-			jd.vTargetPosition.y += ((rand() * 10) % wiggle_factor*2) - wiggle_factor;
-			jd.vTargetPosition.z += ((rand() * 10) % wiggle_factor*2) - wiggle_factor;
-
-			// Start the jump timer.
-			jd.jump_timer = 8;
-			return true;
 		}
-		else
+		obj = HkGetInspect(iTargetClientID);
+		if (!obj)
 		{
-			PrintUserCmdText(iClientID, L"ERR Name not found");
+			PrintUserCmdText(iClientID, L"ERR Ship not found");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
 			return true;
 		}
 
+		if (mapActiveBeacons[iTargetClientID].decayed == true)
+		{
+			PrintUserCmdText(iClientID, L"ERR No active beacon found.");
+			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
+			return true;
+		}
+
+		// If insufficient charging, report a warning
+		if (!jd.charging_complete)
+		{
+			PrintUserCmdText(iClientID, L"Jump drive not ready");
+			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
+			return true;
+		}
+
+		uint iShipTarget;
+		pub::Player::GetShip(iTargetClientID, iShipTarget);
+
+		uint iSystemID;
+		pub::Player::GetSystem(iClientID, iSystemID);
+
+		uint iTargetSystem;
+		Vector pos;
+		Matrix rot;
+		pub::SpaceObj::GetLocation(iShipTarget, pos, rot);
+		pub::Player::GetSystem(iTargetClientID, iTargetSystem);
+
+		////////////////////////// System limit restriction ///////////////////////////////////////
+		if (JumpSystemListEnabled && !IsSystemJumpable(iSystemID, iTargetSystem, (jd.arch->jump_range + mapPlayerBeaconMatrix[iTargetClientID]->range)))
+		{
+			const Universe::ISystem *iSysList = Universe::get_system(iTargetSystem);
+			wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
+			PrintUserCmdText(iClientID, L"ERROR: Gravitational rift detected. Cannot jump to %s from this system.", wscSysNameList.c_str());
+			PrintUserCmdText(iClientID, L"Jump drive disabled. Use /jumpsys for the list of available systems.");
+			jd.charging_complete = false;
+			jd.curr_charge = 0.0;
+			jd.charging_on = false;
+			StopChargeFuses(iClientID);
+			return true;
+			
+		}
+		////////////////////////// End of System limit restriction ///////////////////////////////////////
+
+		jd.iTargetSystem = iTargetSystem;
+		jd.vTargetPosition = pos;
+		jd.matTargetOrient = rot;
+
+		const struct Universe::ISystem *sysinfo = Universe::get_system(jd.iTargetSystem);
+		PrintUserCmdText(iClientID, L"OK Beacon coordinates verified: %s %0.0f.%0.0f.%0.0f",
+			HkGetWStringFromIDS(sysinfo->strid_name).c_str(),
+			*(float*)&jd.vTargetPosition.x,
+			*(float*)&jd.vTargetPosition.y,
+			*(float*)&jd.vTargetPosition.z);
+
+		int wiggle_factor = (int)mapPlayerBeaconMatrix[iTargetClientID]->accuracy;
+		jd.vTargetPosition.x += ((rand() * 10) % wiggle_factor*2) - wiggle_factor;
+		jd.vTargetPosition.y += ((rand() * 10) % wiggle_factor*2) - wiggle_factor;
+		jd.vTargetPosition.z += ((rand() * 10) % wiggle_factor*2) - wiggle_factor;
+
+		// Start the jump timer.
+		jd.jump_timer = 8;
 		return true;
 	}
 }

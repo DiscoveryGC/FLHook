@@ -1552,6 +1552,16 @@ namespace HyperJump
 				wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
 				PrintLocalUserCmdText(iClientID, wscMsg, set_iLocalChatRange);
 				// End of local message
+                
+				list<GROUP_MEMBER> lstGrpMembers;
+				HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
+                
+                for(GROUP_MEMBER& member : lstGrpMembers){
+                    if(member.iClientID != iClientID)
+                    {
+                        PrintUserCmdText(member.iClientID, wscMsg);
+                    }
+                }
 
 				IObjInspectImpl *obj = HkGetInspect(iClientID);
 				if (obj)

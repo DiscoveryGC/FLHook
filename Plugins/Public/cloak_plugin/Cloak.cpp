@@ -546,7 +546,7 @@ void HkTimerCheckKick()
 									}
 									else
 									{
-										PrintUserCmdText(iClientID, L"Cloak broken by %ls", (const wchar_t*)Players.GetActiveCharacterName(pPD->iOnlineID));
+										PrintUserCmdText(iClientID, L"Cloak broken by proximity to another vessel!");
 										SetState(iClientID, iShipID, STATE_CLOAK_OFF);
 										break;
 									}

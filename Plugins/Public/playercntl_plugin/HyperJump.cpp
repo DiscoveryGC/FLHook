@@ -1546,10 +1546,11 @@ namespace HyperJump
 
 				pub::Player::RemoveCargo(iClientID, item->sID, mapPlayerBeaconMatrix[iClientID]->itemcount);
 
+                const wchar_t* playerName = (const wchar_t*)Players.GetActiveCharacterName(iClientID)
 				// Print out a message within the iLocalChatRange when a player engages a JD.
 				wstring wscMsg = L"%time WARNING: A hyperspace beacon has been activated by %player";
 				wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
-				wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
+				wscMsg = ReplaceStr(wscMsg, L"%player", playerName);
 				PrintLocalUserCmdText(iClientID, wscMsg, set_iLocalChatRange);
 				// End of local message
                 
@@ -1559,7 +1560,7 @@ namespace HyperJump
                 for(GROUP_MEMBER& member : lstGrpMembers){
                     if(member.iClientID != iClientID)
                     {
-                        PrintUserCmdText(member.iClientID, wscMsg);
+                        PrintUserCmdText(member.iClientID, L"Hyperspace beacon has been activated by %ls, it will remain active for %u seconds", playerName, BeaconTime);
                     }
                 }
 

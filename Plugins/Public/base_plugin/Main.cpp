@@ -2109,8 +2109,12 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
         return;
     }
     
+	if (!spaceobj_modules.count(iDmgToSpaceID)) {
+		return;
+	}
+
     Module* damagedModule = spaceobj_modules[iDmgToSpaceID];
-    if(damagedModule == nullptr || damagedModule->mining){
+    if(damagedModule->mining){
         return;
     }
     

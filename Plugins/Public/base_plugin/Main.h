@@ -22,7 +22,7 @@ uint GetAffliationFromClient(uint client);
 
 struct RECIPE
 {
-	RECIPE() : produced_item(0), cooking_rate(0) {}
+	RECIPE() : produced_item(0), cooking_rate(0), credit_cost(0) {}
 	uint nickname;
 	uint produced_item;
 	uint shortcut_number;
@@ -31,6 +31,7 @@ struct RECIPE
 	wstring infotext;
 	uint cooking_rate;
 	map<uint, uint> consumed_items;
+	uint credit_cost;
 	uint reqlevel;
 };
 

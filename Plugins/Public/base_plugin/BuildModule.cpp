@@ -9,7 +9,7 @@ BuildModule::BuildModule(PlayerBase *the_base)
 BuildModule::BuildModule(PlayerBase *the_base, uint the_build_type)
 	: Module(TYPE_BUILD), base(the_base), build_type(the_build_type)
 {
-	active_recipe = recipeNumberModuleMap[build_type];
+	active_recipe = moduleNumberRecipeMap[build_type];
 }
 
 wstring BuildModule::GetInfo(bool xml)
@@ -130,31 +130,18 @@ bool BuildModule::Timer(uint time)
 				case Module::TYPE_DEFENSE_1:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_1);
 					break;
-				case Module::TYPE_M_DOCKING:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_DOCKING);
-					break;
-				case Module::TYPE_M_JUMPDRIVES:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_JUMPDRIVES);
-					break;
-				case Module::TYPE_M_HYPERSPACE_SCANNER:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_HYPERSPACE_SCANNER);
-					break;
-				case Module::TYPE_M_CLOAK:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAK);
-					break;
 				case Module::TYPE_DEFENSE_2:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_2);
 					break;
 				case Module::TYPE_DEFENSE_3:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_3);
 					break;
-				case Module::TYPE_M_CLOAKDISRUPTOR:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
-					break;
-				case Module::TYPE_M_OREREFINERY:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_OREREFINERY);
-					break;
 				default:
+					//check if factory
+					if (factoryNicknameToCraftTypeMap.count(active_recipe.nickname)) {
+						base->modules[i] = new FactoryModule(base, active_recipe.nickname);
+						break;
+					}
 					base->modules[i] = 0;
 					break;
 				}
@@ -214,14 +201,14 @@ void BuildModule::SaveState(FILE *file)
 	}
 }
 
-RECIPE* BuildModule::GetModuleNickname(wstring module_name) {
+RECIPE* BuildModule::GetModuleRecipe(wstring module_name) {
 	transform(module_name.begin(), module_name.end(), module_name.begin(), ::tolower);
 	int shortcut_number = ToInt(module_name);
-	if (recipeNumberModuleMap.count(shortcut_number)) {
-		return &recipeNumberModuleMap[shortcut_number];
+	if (moduleNumberRecipeMap.count(shortcut_number)) {
+		return &moduleNumberRecipeMap[shortcut_number];
 	}
-	else if (recipeNameMap.count(module_name)){
-		return &recipeNameMap[module_name];
+	else if (moduleNameRecipeMap.count(module_name)){
+		return &moduleNameRecipeMap[module_name];
 	}
 	return 0;
 }

@@ -20,25 +20,16 @@
 
 namespace PlayerCommands
 {
-	static vector<wstring> buildmod_recipe_list;
-	static vector<wstring> facmod_recipe_list;
-	static vector<wstring> refinery_recipe_list;
+	static vector<wstring> modules_recipe_list;
+	static map<wstring, vector<wstring>> factory_recipe_map;
 
-	vector<wstring> GenerateHelpMenu(map<uint, RECIPE> recipeNumberMap, bool recipesPerBuilding) {
-		wstring currentFactoryType = L"";
+	vector<wstring> GenerateHelpMenu(map<uint, RECIPE> recipeNumberMap) {
 		vector<wstring> generatedHelpStringList;
 		wstring currentString = L"";
 		for (map<uint, RECIPE>::iterator i = recipeNumberMap.begin(); i != recipeNumberMap.end(); ++i) {
-			if (recipesPerBuilding && i->second.factory_type != currentFactoryType) {
-				currentFactoryType = i->second.factory_type;
-				currentString = L"|     For ";
-				currentString += (recipeMap[CreateID(wstos(currentFactoryType).c_str())].infotext.c_str());
-				currentString += L":";
-				generatedHelpStringList.push_back(currentString.c_str());
-			}
-			currentString = L"|     <type> = ";
+			currentString = L"|     ";
 			currentString += stows(itos(i->second.shortcut_number));
-			currentString += L" - ";
+			currentString += L" = ";
 			currentString += i->second.infotext.c_str();
 			generatedHelpStringList.push_back(currentString.c_str());
 		}
@@ -46,9 +37,25 @@ namespace PlayerCommands
 	}
 
 	void PopulateHelpMenus() {
-		buildmod_recipe_list = GenerateHelpMenu(recipeNumberModuleMap, false);
-		facmod_recipe_list = GenerateHelpMenu(recipeNumberFactoryMap, true);
-		refinery_recipe_list = GenerateHelpMenu(recipeNumberRefineryMap, false);
+		modules_recipe_list = GenerateHelpMenu(moduleNumberRecipeMap);
+		for (auto& craftType : recipeCraftTypeNameMap) {
+			factory_recipe_map[craftType.first] = GenerateHelpMenu(recipeCraftTypeNumberMap[craftType.first]);
+		}
+	}
+
+	bool checkBaseAdminAccess(PlayerBase *base, uint client) {
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return false;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return false;
+		}
+		return true;
 	}
 
 	void BaseHelp(uint client, const wstring &args)
@@ -116,11 +123,8 @@ namespace PlayerCommands
 			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Set the base's infocard description.</TEXT>";
 
-		pages[3] = L"<TRA bold=\"true\"/><TEXT>/factory</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control factory modules.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/refinery</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control refinery modules.</TEXT><PARA/><PARA/>"
+		pages[3] = L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
@@ -1139,7 +1143,13 @@ namespace PlayerCommands
 
 				return;
 			}
-
+			
+			if (base->modules[index]->type == Module::TYPE_FACTORY) {
+				FactoryModule* facMod = dynamic_cast<FactoryModule*>(base->modules[index]);
+				for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname]) {
+					base->availableCraftList.erase(craftType);
+				}
+			}
 			delete base->modules[index];
 			base->modules[index] = 0;
 			base->Save();
@@ -1208,7 +1218,7 @@ namespace PlayerCommands
 		else if (cmd == L"construct")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
-			RECIPE* recipePtr = BuildModule::GetModuleNickname(GetParamToEnd(args, ' ', 4));
+			RECIPE* recipePtr = BuildModule::GetModuleRecipe(GetParamToEnd(args, ' ', 4));
 
 			if (index < 1 || index >= base->modules.size() || base->modules[index])
 			{
@@ -1252,7 +1262,7 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|  construct <index> <type> - start building module <type> at <index>");
 			PrintUserCmdText(client, L"|  pause <index> - pauses building at <index>");
 			PrintUserCmdText(client, L"|  resume <index> - resumes building at <index>");
-			for (vector<wstring>::iterator i = buildmod_recipe_list.begin(); i != buildmod_recipe_list.end(); ++i) {
+			for (vector<wstring>::iterator i = modules_recipe_list.begin(); i != modules_recipe_list.end(); ++i) {
 				PrintUserCmdText(client, *i);
 			}
 		}
@@ -1262,171 +1272,88 @@ namespace PlayerCommands
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 
-		if (!checkBaseAdminAccess(base, client, args)) {
+		if (!checkBaseAdminAccess(base, client)) {
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 1);
+		if (base->availableCraftList.empty()) {
+			PrintUserCmdText(client, L"ERR no factories found");
+			return;
+		}
+
+		const wstring &craftType = GetParam(args, ' ', 1);
+		if (craftType == L"list")
+		{
+			PrintUserCmdText(client, L"Available crafting lists:");
+			for (wstring craftType : base->availableCraftList) {
+				PrintUserCmdText(client, L"|   %ls", craftType.c_str());
+			}
+			return;
+		}
+		else if (craftType == L"stopall")
+		{
+			FactoryModule::StopAllProduction(base);
+			PrintUserCmdText(client, L"OK Factories stopped");
+			return;
+		}
+		else if (!base->availableCraftList.count(craftType)) {
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause> <productName/productNr>");
+			return;
+		}
+
+		const wstring cmd = GetParam(args, ' ', 2);
+		const wstring param = GetParamToEnd(args, ' ', 3);
+		if (cmd.empty()) {
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause> <productName/productNr>");
+			return;
+		}
+
 		if (cmd == L"list")
 		{
-			PrintUserCmdText(client, L"Factory Modules:");
-			for (uint index = 1; index < base->modules.size(); index++)
-			{
-				if (FactoryModule::IsFactoryModule(base->modules[index]))
-				{
-					FactoryModule *mod = (FactoryModule*)base->modules[index];
-					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
-				}
+			PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
+			for (wstring& infoLine : factory_recipe_map[craftType]) {
+				PrintUserCmdText(client, infoLine);
 			}
-			PrintUserCmdText(client, L"OK");
-		}
-		else if (cmd == L"stop")
-		{
-			const wstring arg = GetParamToEnd(args, ' ', 2);
-			if (arg == L"all") {
-				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_DOCKING);
-				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_JUMPDRIVES);
-				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_HYPERSPACE_SCANNER);
-				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_CLOAK);
-				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_CLOAKDISRUPTOR);
-				PrintUserCmdText(client, L"OK Factories stopped");
-			}
-			else {
-				RECIPE* productToStop = FactoryModule::GetFactoryProductRecipe(GetParamToEnd(args, ' ', 2));
-				if (productToStop) {
-					PrintUserCmdText(client, L"ERR item not recognized");
-					return;
-				}
-				FactoryModule *factory = FactoryModule::FindModuleByProductInProduction(base, productToStop->nickname);
-				if (factory) {
-					factory->ClearQueue();
-					factory->ClearRecipe();
-					PrintUserCmdText(client, L"OK Factory stopped");
-				}
-				else {
-					PrintUserCmdText(client, L"ERR item is not being produced");
-				}
-			}
-			base->Save();
-		}
-		else if (cmd == L"start")
-		{
-			RECIPE* productRecipe = FactoryModule::GetFactoryProductRecipe(GetParamToEnd(args, ' ', 2));
-            if(productRecipe == nullptr){
-				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
-                return;
-            }
-            
-			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
-			if (!factory) {
-				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
-                return;
-			}
-
-			if (factory->AddToQueue(productRecipe->nickname, recipeMap[productRecipe->nickname].factory_type, recipeNumberModuleMap[factory->type].factory_type))
-				PrintUserCmdText(client, L"OK Item added to build queue");
-			else
-				PrintUserCmdText(client, L"ERR Item add to build queue failed");
-			base->Save();
-		}
-		else if (cmd == L"pause")
-		{
-			RECIPE* productRecipe = FactoryModule::GetFactoryProductRecipe(GetParamToEnd(args, ' ', 2));
-
-			if (productRecipe == nullptr) {
-				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
-				return;
-			}
-
-			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
-			if (!factory) {
-				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
-				return;
-			}
-
-			if (factory->ToggleQueuePaused(true))
-				PrintUserCmdText(client, L"OK Build queue resumed");
-			else {
-				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
-				return;
-			}
-			base->Save();
-		}
-		else if (cmd == L"resume")
-		{
-			RECIPE* productRecipe = FactoryModule::GetFactoryProductRecipe(GetParamToEnd(args, ' ', 2));
-
-			if (productRecipe == nullptr) {
-				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
-				return;
-			}
-
-			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
-			if (!factory) {
-				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
-				return;
-			}
-
-			if (factory->ToggleQueuePaused(false))
-				PrintUserCmdText(client, L"OK Build queue resumed");
-			else {
-				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
-				return;
-			}
-			base->Save();
-		}
-		else {
-			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/factory [list|clear|cancel|add|pause|resume]");
-			PrintUserCmdText(client, L"|  list - show factory modules and build status");
-			PrintUserCmdText(client, L"|  stop <name/itemNr> - stop production of the item");
-			PrintUserCmdText(client, L"|  start <name/itemNr> - start production of the item");
-			for (vector<wstring>::iterator i = facmod_recipe_list.begin(); i != facmod_recipe_list.end(); ++i) {
-				PrintUserCmdText(client, *i);
-			}
-			PrintUserCmdText(client, L"|  pause <index> - pause factory module at <index>");
-			PrintUserCmdText(client, L"|  resume <index> - resume factory module at <index>");
-		}
-	}
-
-	void BaseRefineryMod(uint client, const wstring &args) {
-
-		PlayerBase *base = GetPlayerBaseForClient(client);
-
-		if (!checkBaseAdminAccess(base, client, args)){
 			return;
 		}
-		const wstring &cmd = GetParam(args, ' ', 1);
-		
-		if (cmd == L"list") {
-			PrintUserCmdText(client, L"Refinery Modules:");
-            boolean foundRefinery = false;
-			for (uint index = 1; index < base->modules.size(); index++)
-			{
-				if (base->modules[index]->type == Module::TYPE_M_OREREFINERY)
-				{
-					FactoryModule *mod = (FactoryModule*)base->modules[index];
-					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
-                    foundRefinery = true;
-				}
+
+		RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
+		if (recipe == nullptr) {
+			PrintUserCmdText(client, L"ERR invalid product");
+			return;
+		}
+
+		if (cmd == L"stop")
+		{
+			FactoryModule *factory = FactoryModule::FindModuleByProductInProduction(base, recipe->nickname);
+			if (factory) {
+				factory->ClearQueue();
+				factory->ClearRecipe();
+				PrintUserCmdText(client, L"OK Factory stopped");
 			}
-            if(!foundRefinery){
-				PrintUserCmdText(client, L"No refineries built");
-            }
-			PrintUserCmdText(client, L"OK");
+			else {
+				PrintUserCmdText(client, L"ERR item is not being produced");
+			}
+			base->Save();
+		}
+		else if (cmd == L"start")
+		{
+			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
+                return;
+			}
+
+			factory->AddToQueue(recipe->nickname);
+			PrintUserCmdText(client, L"OK Item added to build queue");
+
+			base->Save();
 		}
 		else if (cmd == L"pause")
 		{
-			RECIPE* productRecipe = FactoryModule::GetRefineryProductRecipe(GetParamToEnd(args, ' ', 2));
-
-			if (productRecipe == nullptr) {
-				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
-				return;
-			}
-
-			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
+			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
 			if (!factory) {
-				PrintUserCmdText(client, L"ERR Refinery module not found!");
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
 				return;
 			}
 
@@ -1440,16 +1367,9 @@ namespace PlayerCommands
 		}
 		else if (cmd == L"resume")
 		{
-			RECIPE* productRecipe = FactoryModule::GetRefineryProductRecipe(GetParamToEnd(args, ' ', 2));
-
-			if (productRecipe == nullptr) {
-				PrintUserCmdText(client, L"ERR Product name/number not recognized!");
-				return;
-			}
-
-			FactoryModule* factory = FactoryModule::FindFirstFreeModuleByTypeWStr(base, productRecipe->factory_type);
+			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
 			if (!factory) {
-				PrintUserCmdText(client, L"ERR Refinery module not found!");
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
 				return;
 			}
 
@@ -1461,73 +1381,16 @@ namespace PlayerCommands
 			}
 			base->Save();
 		}
-		else if (cmd == L"stop")
-		{
-			const wstring arg = GetParamToEnd(args, ' ', 2);
-			if (arg == L"all") {
-				FactoryModule::StopAllModulesOfType(base, Module::TYPE_M_OREREFINERY);
-				PrintUserCmdText(client, L"OK Refineries stopped");
-			}
-			else {
-				RECIPE* productToStop = FactoryModule::GetRefineryProductRecipe(GetParamToEnd(args, ' ', 2));
-				if (productToStop) {
-					PrintUserCmdText(client, L"ERR item not recognized");
-					return;
-				}
-				FactoryModule *refinery = FactoryModule::FindModuleByProductInProduction(base, productToStop->nickname);
-				if (refinery) {
-					refinery->ClearQueue();
-					refinery->ClearRecipe();
-					PrintUserCmdText(client, L"OK Refinery stopped");
-				}
-				else {
-					PrintUserCmdText(client, L"ERR item is not being produced");
-				}
-			}
-			base->Save();
-		}
-		else if (cmd == L"start")
-		{
-			FactoryModule* refinery = FactoryModule::FindFirstFreeModuleByTypeInt(base, Module::TYPE_M_OREREFINERY);
-			if (!refinery) {
-				PrintUserCmdText(client, L"ERR Refinery module not found!");
-                return;
-			}
-			RECIPE* productRecipe = FactoryModule::GetRefineryProductRecipe(GetParamToEnd(args, ' ', 2));
-
-			if (refinery->AddToQueue(productRecipe->nickname, recipeMap[productRecipe->nickname].factory_type, recipeNumberModuleMap[refinery->type].factory_type))
-				PrintUserCmdText(client, L"OK Item added to build queue");
-			else
-				PrintUserCmdText(client, L"ERR Item add to build queue failed");
-			base->Save();
-		}
 		else {
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/refinery [list|stop|start]");
-			PrintUserCmdText(client, L"|  list - show modules and build status");
-			PrintUserCmdText(client, L"|  stop <name/itemNr> - stop production of <name>, accepts number or name");
-			PrintUserCmdText(client, L"|  start <name/itemNr> - start production of <name>, accepts number or name");
-			for (vector<wstring>::iterator i = refinery_recipe_list.begin(); i != refinery_recipe_list.end(); ++i) {
-				PrintUserCmdText(client, *i);
-			}
-			PrintUserCmdText(client, L"|  pause <name/itemNr> - pauses production of specified refinery item");
-			PrintUserCmdText(client, L"|  resume <name/itemNr> - resumes production of specified refinery item");
+			PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>] [start]");
+			PrintUserCmdText(client, L"|  list - show available lists of craftble items");
+			PrintUserCmdText(client, L"|  stopall - stops all production on the base");
+			PrintUserCmdText(client, L"|  <craftListName> start <name/itemNr> - adds selected item into the crafting queue");
+			PrintUserCmdText(client, L"|  <craftListName> stop <name/itemNr> - stops crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftListName> pause <name/itemNr> - pauses crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftListName> resume <name/itemNr> - resumes crafting of selected item");
 		}
-	}
-
-	bool checkBaseAdminAccess(PlayerBase *base, uint client, const wstring &args) {
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return false;
-		}
-
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
-			return false;
-		}
-		return true;
 	}
 
 	void BaseDefMod(uint client, const wstring &args)

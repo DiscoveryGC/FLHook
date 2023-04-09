@@ -25,7 +25,6 @@ struct RECIPE
 	RECIPE() : produced_item(0), cooking_rate(0) {}
 	uint nickname;
 	uint produced_item;
-	wstring factory_type;
 	uint shortcut_number;
 	uint produced_amount;
 	bool loop_production;
@@ -35,7 +34,12 @@ struct RECIPE
 	uint reqlevel;
 };
 
-void AddRecipeToMaps(RECIPE recipe, string recipe_type);
+struct MODULE_RECIPE
+{
+	RECIPE recipe;
+	vector<wstring> factory_types;
+
+};
 
 struct ARCHTYPE_STRUCT
 {
@@ -88,14 +92,9 @@ public:
 	static const int TYPE_SHIELDGEN = 2;
 	static const int TYPE_STORAGE = 3;
 	static const int TYPE_DEFENSE_1 = 4;
-	static const int TYPE_M_DOCKING = 5;
-	static const int TYPE_M_JUMPDRIVES = 6;
-	static const int TYPE_M_HYPERSPACE_SCANNER = 7;
-	static const int TYPE_M_CLOAK = 8;
+	static const int TYPE_FACTORY = 5;
 	static const int TYPE_DEFENSE_2 = 9;
 	static const int TYPE_DEFENSE_3 = 10;
-	static const int TYPE_M_CLOAKDISRUPTOR = 11;
-	static const int TYPE_M_OREREFINERY = 12;
 
 
 	Module(uint the_type) : type(the_type) {}
@@ -230,7 +229,7 @@ public:
 	bool Paused = false;
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
-	static RECIPE* GetModuleNickname(wstring module_name);
+	static RECIPE* GetModuleRecipe(wstring module_name);
 
 	bool Timer(uint time);
 };
@@ -240,6 +239,8 @@ class FactoryModule : public Module
 public:
 	PlayerBase *base;
 
+	uint factoryNickname;
+
 	// The currently active recipe
 	RECIPE active_recipe;
 
@@ -247,22 +248,19 @@ public:
 	list<uint> build_queue;
 
 	FactoryModule(PlayerBase *the_base);
-	FactoryModule(PlayerBase *the_base, uint type);
+	FactoryModule(PlayerBase *the_base, uint factoryNickname);
 	wstring GetInfo(bool xml);
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
 	bool Timer(uint time);
 	static FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct);
-	static FactoryModule* FactoryModule::FindFirstFreeModuleByTypeInt(PlayerBase* pb, uint searchedType);
-	static FactoryModule* FactoryModule::FindFirstFreeModuleByTypeWStr(PlayerBase* pb, wstring searchedType);
-	static RECIPE* FactoryModule::GetRefineryProductRecipe(wstring product);
-	static RECIPE* FactoryModule::GetFactoryProductRecipe(wstring product);
-	static void FactoryModule::StopAllModulesOfType(PlayerBase* pb, uint searchedType);
+	static RECIPE* FactoryModule::GetFactoryProductRecipe(wstring craftType, wstring product);
+	static void FactoryModule::StopAllProduction(PlayerBase* pb);
 	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;
 	bool ToggleQueuePaused(bool NewState);
-	bool AddToQueue(uint product, wstring product_type, wstring factory_type);
+	void AddToQueue(uint product);
 	bool ClearQueue();
 	void ClearRecipe();
 };
@@ -399,6 +397,10 @@ public:
 
 	// Modules for base
 	vector<Module*> modules;
+	map<uint, FactoryModule*> factoryModuleMap;
+
+	// Available crafting types
+	set<wstring> availableCraftList;
 
 	// Path to base ini file.
 	string path;
@@ -445,7 +447,6 @@ PlayerBase *GetPlayerBaseForClient(uint client);
 
 void BaseLogging(const char *szString, ...);
 
-void SaveBases();
 void DeleteBase(PlayerBase *base);
 void LoadDockState(uint client);
 void SaveDockState(uint client);
@@ -509,7 +510,7 @@ namespace AP
 {
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt);
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
-	void ClearClientInfo(unsigned int iClientID);
+	void ClearClientInfo(uint iClientID);
 }
 
 namespace PlayerCommands
@@ -539,10 +540,8 @@ namespace PlayerCommands
 	void BaseDefenseMode(uint client, const wstring &args);
 	void BaseDefMod(uint client, const wstring &args);
 	void BaseBuildMod(uint client, const wstring &args);
-	void BaseRefineryMod(uint client, const wstring &args);
 	void BaseFacMod(uint client, const wstring &args);
 	void PopulateHelpMenus();
-	bool isFactory(Module* module);
 	void BaseShieldMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
@@ -550,7 +549,6 @@ namespace PlayerCommands
 	void BaseDeploy(uint client, const wstring &args);
 
 	void Aff_initer();
-	bool checkBaseAdminAccess(PlayerBase *base, uint client, const wstring &args);
 }
 
 namespace Log {
@@ -582,12 +580,15 @@ extern POBSOUNDS pbsounds;
 
 extern int set_plugin_debug;
 
+/// Global recipe map
 extern map<uint, RECIPE> recipeMap;
-extern map<wstring, RECIPE> recipeNameMap;
-
-extern map<uint, RECIPE> recipeNumberModuleMap;
-extern map<uint, RECIPE> recipeNumberFactoryMap;
-extern map<uint, RECIPE> recipeNumberRefineryMap;
+/// Maps of shortcut numbers to recipes to construct item.
+extern map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+extern map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+extern map<wstring, RECIPE> moduleNameRecipeMap;
+extern map<uint, RECIPE> moduleNumberRecipeMap;
+extern map<wstring, RECIPE> crafttypeToFactoryRecipeMap;
 
 struct REPAIR_ITEM
 {

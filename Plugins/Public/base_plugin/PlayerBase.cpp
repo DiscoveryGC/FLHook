@@ -4,7 +4,8 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE)
+	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	isCrewFed(false)
 {
 	nickname = CreateBaseNickname(wstos(basename));
 	base = CreateID(nickname.c_str());
@@ -38,7 +39,8 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE)
+	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	isCrewFed(false)
 {
 	// Load and spawn base modules
 	Load();
@@ -306,6 +308,10 @@ void PlayerBase::Load()
 						}
 						passwords.push_back(bp);
 					}
+					else if (ini.is_value("crew_fed"))
+					{
+						isCrewFed = ini.get_value_bool(0);
+					}
 				}
 				if (basetype.empty())
 				{
@@ -376,6 +382,7 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
+		fprintf(file, "crew_fed = %u", isCrewFed);
 
 		fprintf(file, "money = %I64d\n", money);
 		fprintf(file, "system = %u\n", system);

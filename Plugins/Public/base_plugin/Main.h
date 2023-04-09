@@ -403,6 +403,7 @@ public:
 
 	// if true, the base was repaired or is able to be repaired
 	bool repairing;
+	bool isCrewFed;
 
 	// The state of the shield
 	static const int SHIELD_STATE_OFFLINE = 0;
@@ -595,6 +596,8 @@ extern uint set_base_crew_type;
 extern map<uint, uint> set_base_crew_consumption_items;
 
 extern map<uint, uint> set_base_crew_food_items;
+
+extern uint set_crew_check_frequency;
 
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
 

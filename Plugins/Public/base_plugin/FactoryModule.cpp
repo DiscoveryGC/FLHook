@@ -95,14 +95,25 @@ bool FactoryModule::Timer(uint time)
 	}
 
 	// Nothing to do.
-	if (!active_recipe.nickname)
-		return false;
-
-	if (Paused)
+	if (!active_recipe.nickname || !base->isCrewSupplied || Paused)
 		return false;
 
 	// Consume goods at the cooking rate.
 	bool cooked = true;
+
+	if(active_recipe.credit_cost)
+	{
+		uint moneyToRemove = min(active_recipe.cooking_rate, active_recipe.credit_cost);
+		if (base->money >= moneyToRemove)
+		{
+			base->money -= moneyToRemove;
+			active_recipe.credit_cost -= moneyToRemove;
+		}
+		if (active_recipe.credit_cost) {
+			cooked = false;
+		}
+	}
+
 	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
@@ -184,6 +195,10 @@ void FactoryModule::LoadState(INI_Reader &ini)
 		{
 			active_recipe.consumed_items[ini.get_value_int(0)] = ini.get_value_int(1);
 		}
+		else if (ini.is_value("credit_cost"))
+		{
+			active_recipe.credit_cost = ini.get_value_int(0);
+		}
 		else if (ini.is_value("build_queue"))
 		{
 			build_queue.push_back(ini.get_value_int(0));
@@ -198,6 +213,7 @@ void FactoryModule::SaveState(FILE *file)
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
 	if (active_recipe.nickname) {
+		fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
 		{

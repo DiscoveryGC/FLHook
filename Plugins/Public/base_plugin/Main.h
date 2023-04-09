@@ -22,7 +22,7 @@ uint GetAffliationFromClient(uint client);
 
 struct RECIPE
 {
-	RECIPE() : produced_item(0), cooking_rate(0) {}
+	RECIPE() : produced_item(0), cooking_rate(0), credit_cost(0) {}
 	uint nickname;
 	uint produced_item;
 	uint shortcut_number;
@@ -31,6 +31,7 @@ struct RECIPE
 	wstring infotext;
 	uint cooking_rate;
 	map<uint, uint> consumed_items;
+	uint credit_cost;
 	uint reqlevel;
 };
 
@@ -419,7 +420,7 @@ public:
 	uint proxy_base;
 
 	// if true, the base was repaired or is able to be repaired
-	bool repairing;
+	bool isCrewSupplied;
 
 	// The state of the shield
 	static const int SHIELD_STATE_OFFLINE = 0;
@@ -617,6 +618,8 @@ extern uint set_base_crew_type;
 extern map<uint, uint> set_base_crew_consumption_items;
 
 extern map<uint, uint> set_base_crew_food_items;
+
+extern uint set_crew_check_frequency;
 
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
 

@@ -23,6 +23,8 @@ namespace PlayerCommands
 	static vector<wstring> modules_recipe_list;
 	static map<wstring, vector<wstring>> factory_recipe_map;
 
+	//pre-generating crafting lists as they will probably be used quite a bit.
+	//paying with memory to save on processing.
 	vector<wstring> GenerateHelpMenu(map<uint, RECIPE> recipeNumberMap) {
 		vector<wstring> generatedHelpStringList;
 		wstring currentString = L"";
@@ -1300,100 +1302,92 @@ namespace PlayerCommands
 			return;
 		}
 		else if (!base->availableCraftList.count(craftType)) {
-			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause> <productName/productNr>");
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
 			return;
 		}
 
 		const wstring cmd = GetParam(args, ' ', 2);
 		const wstring param = GetParamToEnd(args, ' ', 3);
 		if (cmd.empty()) {
-			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause> <productName/productNr>");
-			return;
-		}
-
-		if (cmd == L"list")
-		{
-			PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
-			for (wstring& infoLine : factory_recipe_map[craftType]) {
-				PrintUserCmdText(client, infoLine);
-			}
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
 			return;
 		}
 
 		RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
-		if (recipe == nullptr) {
-			PrintUserCmdText(client, L"ERR invalid product");
+
+		if (cmd == L"list")
+		{
+			if (param.empty()) {
+				PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
+				for (wstring& infoLine : factory_recipe_map[craftType]) {
+					PrintUserCmdText(client, infoLine);
+				}
+				return;
+			}
+			else if(recipe)
+			{
+				PrintUserCmdText(client, L"Construction materials for %ls x%u:", recipe->infotext.c_str(), recipe->produced_amount);
+				for (auto& item : recipe->consumed_items) {
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(item.first).c_str(), item.second);
+				}
+				return;
+			}
+		}
+
+		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume")) {
+			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>]");
+			PrintUserCmdText(client, L"|  list - show available lists of craftble items");
+			PrintUserCmdText(client, L"|  stopall - stops all production on the base");
+			PrintUserCmdText(client, L"|  <craftList> start <name/itemNr> - adds selected item into the crafting queue");
+			PrintUserCmdText(client, L"|  <craftList> stop <name/itemNr> - stops crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftList> pause <name/itemNr> - pauses crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftList> resume <name/itemNr> - resumes crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftList> list - list item recipes available for this crafting list");
+			PrintUserCmdText(client, L"|  <craftList> list <name/itemNr> - list materials necessary for selected item");
+			return;
+		}
+
+		FactoryModule *factory;
+		factory = FactoryModule::FindModuleByProductInProduction(base, recipe->nickname);
+		if (!factory)
+		{
+			PrintUserCmdText(client, L"ERR item is not being produced");
 			return;
 		}
 
 		if (cmd == L"stop")
 		{
-			FactoryModule *factory = FactoryModule::FindModuleByProductInProduction(base, recipe->nickname);
-			if (factory) {
-				factory->ClearQueue();
-				factory->ClearRecipe();
-				PrintUserCmdText(client, L"OK Factory stopped");
-			}
-			else {
-				PrintUserCmdText(client, L"ERR item is not being produced");
-			}
-			base->Save();
+			factory->ClearQueue();
+			factory->ClearRecipe();
+			PrintUserCmdText(client, L"OK Factory stopped");
 		}
 		else if (cmd == L"start")
 		{
-			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
-			if (!factory) {
-				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
-                return;
-			}
-
 			factory->AddToQueue(recipe->nickname);
 			PrintUserCmdText(client, L"OK Item added to build queue");
-
-			base->Save();
 		}
 		else if (cmd == L"pause")
 		{
-			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
-			if (!factory) {
-				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
-				return;
-			}
-
 			if (factory->ToggleQueuePaused(true))
 				PrintUserCmdText(client, L"OK Build queue resumed");
-			else {
+			else
+			{
 				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
 				return;
 			}
-			base->Save();
 		}
 		else if (cmd == L"resume")
 		{
-			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
-			if (!factory) {
-				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
-				return;
-			}
-
 			if (factory->ToggleQueuePaused(false))
 				PrintUserCmdText(client, L"OK Build queue resumed");
-			else {
+			else
+			{
 				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
 				return;
 			}
-			base->Save();
 		}
-		else {
-			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>] [start]");
-			PrintUserCmdText(client, L"|  list - show available lists of craftble items");
-			PrintUserCmdText(client, L"|  stopall - stops all production on the base");
-			PrintUserCmdText(client, L"|  <craftListName> start <name/itemNr> - adds selected item into the crafting queue");
-			PrintUserCmdText(client, L"|  <craftListName> stop <name/itemNr> - stops crafting of selected item");
-			PrintUserCmdText(client, L"|  <craftListName> pause <name/itemNr> - pauses crafting of selected item");
-			PrintUserCmdText(client, L"|  <craftListName> resume <name/itemNr> - resumes crafting of selected item");
-		}
+		base->Save();
 	}
 
 	void BaseDefMod(uint client, const wstring &args)

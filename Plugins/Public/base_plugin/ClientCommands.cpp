@@ -155,13 +155,13 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	{
 		base_status += L"<TEXT>Repair Status: ALL I WANT FOR CHRISTMAS IS YOU</TEXT><PARA/>";
 	}
-	else if (base->repairing)
+	else if (base->isCrewSupplied)
 	{
-		base_status += L"<TEXT>Repair Status: Repairing</TEXT><PARA/>";
+		base_status += L"<TEXT>Crew Status: Working</TEXT><PARA/>";
 	}
 	else
 	{
-		base_status += L"<TEXT>Repair Status: Not repairing</TEXT><PARA/>";
+		base_status += L"<TEXT>Crew Status: Rioting over lack of supplies</TEXT><PARA/>";
 	}
 
 	base_status += L"<PARA/>";

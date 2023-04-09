@@ -410,51 +410,24 @@ void CoreModule::SaveState(FILE *file)
 
 void CoreModule::RepairDamage(float max_base_health)
 {
-	// We have to add this because of bug abusers
-	// Check for Oxygen and Water
-	int checkoxygenwater = 0;
-	for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
-		i != set_base_crew_consumption_items.end(); ++i)
-	{
-		// Use water and oxygen.
-		uint ow_available = base->HasMarketItem(i->first);
-		if (ow_available >= 250)
-		{
-			//HkMsgU(L"oxywater");
-			checkoxygenwater += 1;
-		}
-	}
-	// Check for Food
-	int checkfood = 0;
-	for (map<uint, uint>::iterator i = set_base_crew_food_items.begin();
-		i != set_base_crew_food_items.end(); ++i)
-	{
-		uint food_available = base->HasMarketItem(i->first);
-		if (food_available >= 250)
-		{
-			//HkMsgU(L"food");
-			checkfood += 1;
-		}
-	}
-
 	// no food & no water & no oxygen = RIOTS
-	if ((checkfood != 0) && (checkoxygenwater == 2))
+	if(!base->isCrewSupplied)
 	{
-		//HkMsgU(L"base can repair");
-		// The bigger the base the more damage can be repaired.
-		for (uint repair_cycles = 0; repair_cycles < base->base_level; ++repair_cycles)
-		{
-			foreach(set_base_repair_items, REPAIR_ITEM, item)
-			{
-				if (base->base_health >= max_base_health)
-					return;
+		return;
+	}
 
-				if (base->HasMarketItem(item->good) >= item->quantity)
-				{
-					base->RemoveMarketGood(item->good, item->quantity);
-					base->base_health += repair_per_repair_cycle;
-					base->repairing = true;
-				}
+	// The bigger the base the more damage can be repaired.
+	for (uint repair_cycles = 0; repair_cycles < base->base_level; ++repair_cycles)
+	{
+		for(REPAIR_ITEM& item : set_base_repair_items)
+		{
+			if (base->base_health >= max_base_health)
+				return;
+
+			if (base->HasMarketItem(item.good) >= item.quantity)
+			{
+				base->RemoveMarketGood(item.good, item.quantity);
+				base->base_health += repair_per_repair_cycle;
 			}
 		}
 	}
@@ -483,7 +456,6 @@ bool CoreModule::Timer(uint time)
 			}
 
 			// Repair damage if we have sufficient crew on the base.
-			base->repairing = false;
 			if (isCrewSufficient) {
 				RepairDamage(base->max_base_health);
 				if (dont_eat) {
@@ -502,8 +474,9 @@ bool CoreModule::Timer(uint time)
 			{
 				// Humans use commodity_oxygen, commodity_water. Consume these for
 				// the crew or kill 10 crew off and repeat this every 12 hours.
-				if (time % 43200 == 0)
+				if (time % set_crew_check_frequency == 0)
 				{
+					bool passedCheck = true;
 					for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
 						i != set_base_crew_consumption_items.end(); ++i)
 					{
@@ -512,10 +485,9 @@ bool CoreModule::Timer(uint time)
 						{
 							base->RemoveMarketGood(i->first, number_of_crew);
 						}
-						// Insufficient water and oxygen, kill crew.
-						else
-						{
-							base->RemoveMarketGood(set_base_crew_type, (number_of_crew >= 10) ? 10 : number_of_crew);
+						else {
+							base->RemoveMarketGood(i->first, base->HasMarketItem(i->first));
+							passedCheck = false;
 						}
 					}
 
@@ -539,8 +511,10 @@ bool CoreModule::Timer(uint time)
 					// Insufficent food so kill crew.
 					if (crew_to_feed)
 					{
-						base->RemoveMarketGood(set_base_crew_type, (crew_to_feed >= 10) ? 10 : crew_to_feed);
+						passedCheck = false;
 					}
+
+					base->isCrewSupplied = passedCheck;
 				}
 
 				// Save the new base health

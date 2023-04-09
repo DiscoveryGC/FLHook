@@ -95,7 +95,7 @@ bool FactoryModule::Timer(uint time)
 	}
 
 	// Nothing to do.
-	if (!active_recipe.nickname || !base->isCrewFed || Paused)
+	if (!active_recipe.nickname || !base->isCrewSupplied || Paused)
 		return false;
 
 	// Consume goods at the cooking rate.

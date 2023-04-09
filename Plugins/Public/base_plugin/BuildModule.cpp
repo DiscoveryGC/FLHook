@@ -72,7 +72,7 @@ bool BuildModule::Timer(uint time)
 
 	bool cooked = true;
 
-	if (Paused || !base->isCrewFed)
+	if (Paused || !base->isCrewSupplied)
 		return false;
 
 	// Consume goods at the cooking rate.

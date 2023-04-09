@@ -402,8 +402,7 @@ public:
 	uint proxy_base;
 
 	// if true, the base was repaired or is able to be repaired
-	bool repairing;
-	bool isCrewFed;
+	bool isCrewSupplied;
 
 	// The state of the shield
 	static const int SHIELD_STATE_OFFLINE = 0;

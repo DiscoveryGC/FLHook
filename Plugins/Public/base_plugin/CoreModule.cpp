@@ -405,7 +405,7 @@ void CoreModule::SaveState(FILE *file)
 void CoreModule::RepairDamage(float max_base_health)
 {
 	// no food & no water & no oxygen = RIOTS
-	if(!base->isCrewFed)
+	if(!base->isCrewSupplied)
 	{
 		return;
 	}
@@ -422,7 +422,6 @@ void CoreModule::RepairDamage(float max_base_health)
 			{
 				base->RemoveMarketGood(item.good, item.quantity);
 				base->base_health += repair_per_repair_cycle;
-				base->repairing = true;
 			}
 		}
 	}
@@ -458,7 +457,6 @@ bool CoreModule::Timer(uint time)
 			}
 
 			// Repair damage if we have sufficient crew on the base.
-			base->repairing = false;
 			uint number_of_crew = base->HasMarketItem(set_base_crew_type);
 			if (number_of_crew >= (base->base_level * 200)) {
 				RepairDamage(base->max_base_health);
@@ -518,7 +516,7 @@ bool CoreModule::Timer(uint time)
 						passedCheck = false;
 					}
 
-					base->isCrewFed = passedCheck;
+					base->isCrewSupplied = passedCheck;
 				}
 
 				// Save the new base health

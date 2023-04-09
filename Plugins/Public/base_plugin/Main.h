@@ -34,13 +34,6 @@ struct RECIPE
 	uint reqlevel;
 };
 
-struct MODULE_RECIPE
-{
-	RECIPE recipe;
-	vector<wstring> factory_types;
-
-};
-
 struct ARCHTYPE_STRUCT
 {
 	int logic;

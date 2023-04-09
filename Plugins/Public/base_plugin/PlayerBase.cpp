@@ -380,7 +380,7 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
-		fprintf(file, "crew_supplied = %u", isCrewSupplied);
+		fprintf(file, "crew_supplied = %u\n", isCrewSupplied);
 
 		fprintf(file, "money = %I64d\n", money);
 		fprintf(file, "system = %u\n", system);

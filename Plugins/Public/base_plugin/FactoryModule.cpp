@@ -1,16 +1,5 @@
 #include "Main.h"
 
-const char* RECIPE_NAMES[] =
-{ "Unknown", "recipe_make_dockmodule",
-	"recipe_make_jumpdrive_ii", "recipe_make_jumpdrive_iii", "recipe_make_jumpdrive_iv",
-	"recipe_make_hypscanner1", "recipe_make_hypscanner2", "recipe_make_hypscanner3",
-	"recipe_cloak_small", "recipe_cloak_medium", "recipe_cloak_large", "recipe_cloak_transport", "recipe_cloak_disruptor_1", "recipe_cloak_disruptor_2", "recipe_cloak_disruptor_3", "recipe_jdmatrix_1", 0 };
-
-const wchar_t* FACTORY_NAMES[] =
-{ L"Unknown", L"Unknown", L"Unknown", L"Unknown", L"Unknown",
-	L"Docking Module Factory", L"Jumpdrive Factory",
-	L"Hyperspace Scanner Factory", L"Cloaking Device Factory", L"Unknown", L"Unknown", L"Cloak Disruptor Factory", 0 };
-
 FactoryModule::FactoryModule(PlayerBase *the_base)
 	: Module(0), base(the_base)
 {
@@ -18,10 +7,13 @@ FactoryModule::FactoryModule(PlayerBase *the_base)
 }
 
 // Find the recipe for this building_type and start construction.
-FactoryModule::FactoryModule(PlayerBase *the_base, uint the_type)
-	: Module(the_type), base(the_base)
+FactoryModule::FactoryModule(PlayerBase *the_base, uint nickname)
+	: Module(Module::TYPE_FACTORY), factoryNickname(nickname), base(the_base)
 {
 	active_recipe.nickname = 0;
+	for (wstring& craftType : factoryNicknameToCraftTypeMap[factoryNickname]) {
+		base->availableCraftList.insert(craftType);
+	}
 }
 
 wstring FactoryModule::GetInfo(bool xml)
@@ -32,13 +24,14 @@ wstring FactoryModule::GetInfo(bool xml)
 	if (Paused)	Status = L"(Paused) ";
 	else Status = L"(Active) ";
 
+	info += recipeMap[factoryNickname].infotext;
+
 	if (xml)
 	{
-		info += FACTORY_NAMES[type];
 		info += L"</TEXT><PARA/><TEXT>      Pending " + stows(itos(build_queue.size())) + L" items</TEXT>";
 		if (active_recipe.nickname)
 		{
-			info += L"<PARA/><TEXT>      Building " + Status + active_recipe.infotext + L". Waiting for:</TEXT>";
+			info += L"<PARA/><TEXT>      Crafting " + Status + active_recipe.infotext + (active_recipe.produced_amount ? L" x%u" + active_recipe.produced_amount : L"") + L". Waiting for:</TEXT>";
 
 			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
@@ -60,11 +53,9 @@ wstring FactoryModule::GetInfo(bool xml)
 	}
 	else
 	{
-		info += FACTORY_NAMES[type];
-		info += L" - Pending " + stows(itos(build_queue.size())) + L" items ";
 		if (active_recipe.nickname)
 		{
-			info = L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
+			info += L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
 
 			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
@@ -78,6 +69,9 @@ wstring FactoryModule::GetInfo(bool xml)
 					info += L" " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
 				}
 			}
+		}
+		else {
+			info += L" - Pending " + stows(itos(build_queue.size())) + L" items ";
 		}
 	}
 
@@ -94,13 +88,9 @@ bool FactoryModule::Timer(uint time)
 		return false;
 
 	// Get the next item to make from the build queue.
-	if (!active_recipe.nickname && build_queue.size())
+	if (!active_recipe.nickname && !build_queue.empty())
 	{
-		map<uint, RECIPE>::iterator i = recipes.find(build_queue.front());
-		if (i != recipes.end())
-		{
-			active_recipe = i->second;
-		}
+		active_recipe = recipeMap[build_queue.front()];
 		build_queue.pop_front();
 	}
 
@@ -140,43 +130,55 @@ bool FactoryModule::Timer(uint time)
 
 	// Add the newly produced item to the market. If there is insufficient space
 	// to add the item, wait until there is space.
-	if (!base->AddMarketGood(active_recipe.produced_item, 1))
+	if (!base->AddMarketGood(active_recipe.produced_item, active_recipe.produced_amount))
 		return false;
 
-	// Reset the nickname to load a new item from the build queue
-	// next time around.
-	active_recipe.nickname = 0;
+	if (active_recipe.loop_production)
+	{
+		// If recipe is set to automatically loop, refresh the recipe data
+		active_recipe = recipeMap[active_recipe.nickname];
+	}
+	else if (!build_queue.empty())
+	{
+		// Load next item in the queue
+		active_recipe = recipeMap[build_queue.front()];
+		build_queue.pop_front();
+	}
+	else
+	{
+		active_recipe.nickname = 0;
+	}
+
 	return false;
 }
 
 void FactoryModule::LoadState(INI_Reader &ini)
 {
 	active_recipe.nickname = 0;
+	RECIPE foundRecipe;
 	while (ini.read_value())
 	{
-		if (ini.is_value("type"))
-		{
-			type = ini.get_value_int(0);
+		if (ini.is_value("type")) {
+			factoryNickname = moduleNumberRecipeMap[ini.get_value_int(0)].nickname;
+			for (auto& craftType : factoryNicknameToCraftTypeMap[factoryNickname]) {
+				base->availableCraftList.insert(craftType);
+			}
+			base->factoryModuleMap[factoryNickname] = this;
+			break;
 		}
 		else if (ini.is_value("nickname"))
 		{
 			active_recipe.nickname = ini.get_value_int(0);
+			foundRecipe = recipeMap[active_recipe.nickname];
+			active_recipe.produced_item = foundRecipe.produced_item;
+			active_recipe.produced_amount = foundRecipe.produced_amount;
+			active_recipe.loop_production = foundRecipe.loop_production;
+			active_recipe.cooking_rate = foundRecipe.cooking_rate;
+			active_recipe.infotext = foundRecipe.infotext;
 		}
 		else if (ini.is_value("paused"))
 		{
 			Paused = ini.get_value_bool(0);
-		}
-		else if (ini.is_value("produced_item"))
-		{
-			active_recipe.produced_item = ini.get_value_int(0);
-		}
-		else if (ini.is_value("cooking_rate"))
-		{
-			active_recipe.cooking_rate = ini.get_value_int(0);
-		}
-		else if (ini.is_value("infotext"))
-		{
-			active_recipe.infotext = stows(ini.get_value_string());
 		}
 		else if (ini.is_value("consumed"))
 		{
@@ -192,16 +194,15 @@ void FactoryModule::LoadState(INI_Reader &ini)
 void FactoryModule::SaveState(FILE *file)
 {
 	fprintf(file, "[FactoryModule]\n");
-	fprintf(file, "type = %u\n", type);
+	fprintf(file, "type = %u\n", recipeMap[factoryNickname].shortcut_number);
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
-	fprintf(file, "produced_item = %u\n", active_recipe.produced_item);
-	fprintf(file, "cooking_rate = %u\n", active_recipe.cooking_rate);
-	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
-	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
-		i != active_recipe.consumed_items.end(); ++i)
-	{
-		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+	if (active_recipe.nickname) {
+		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+			i != active_recipe.consumed_items.end(); ++i)
+		{
+			fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+		}
 	}
 	for (list<uint>::iterator i = build_queue.begin();
 		i != build_queue.end(); ++i)
@@ -210,61 +211,16 @@ void FactoryModule::SaveState(FILE *file)
 	}
 }
 
-bool FactoryModule::AddToQueue(uint equipment_type)
+void FactoryModule::AddToQueue(uint product)
 {
-	if (type == Module::TYPE_M_DOCKING)
+	if (build_queue.empty())
 	{
-		if (equipment_type == 1)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
+		active_recipe = recipeMap[product];
 	}
-	else if (type == Module::TYPE_M_JUMPDRIVES)
+	else
 	{
-		if (equipment_type == 2
-			|| equipment_type == 3
-			|| equipment_type == 4)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
+	build_queue.push_back(product);
 	}
-	else if (type == Module::TYPE_M_HYPERSPACE_SCANNER)
-	{
-		if (equipment_type == 5
-			|| equipment_type == 6
-			|| equipment_type == 7
-			|| equipment_type == 15)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-	else if (type == Module::TYPE_M_CLOAK)
-	{
-		if (equipment_type == 8
-			|| equipment_type == 9
-			|| equipment_type == 10
-			|| equipment_type == 11)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-
-	else if (type == Module::TYPE_M_CLOAKDISRUPTOR)
-	{
-		if (equipment_type == 12
-			|| equipment_type == 13
-			|| equipment_type == 14)
-		{
-			build_queue.push_back(CreateID(RECIPE_NAMES[equipment_type]));
-			return true;
-		}
-	}
-
-	return false;
 }
 
 bool FactoryModule::ClearQueue()
@@ -282,5 +238,43 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 {
 	bool RememberState = Paused;
 	Paused = NewState;
-	return RememberState;
+	//return true if value changed
+	return RememberState != NewState;
+}
+
+FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct) {
+	FactoryModule* facModPtr = 0;
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if(facModPtr && facModPtr->active_recipe.nickname == searchedProduct){
+			return facModPtr;
+		}
+	}
+	return 0;
+}
+
+void FactoryModule::StopAllProduction(PlayerBase* pb) {
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(*i);
+		if (facModPtr){
+			facModPtr->ClearQueue();
+			facModPtr->ClearRecipe();
+		}
+	}
+}
+
+bool FactoryModule::IsFactoryModule(Module* module) {
+	return module->type == Module::TYPE_FACTORY;
+}
+
+RECIPE* FactoryModule::GetFactoryProductRecipe(wstring craftType, wstring product) {
+	transform(product.begin(), product.end(), product.begin(), ::tolower);
+	int shortcut_number = ToInt(product);
+	if (recipeCraftTypeNumberMap[craftType].count(shortcut_number)) {
+		return &recipeCraftTypeNumberMap[craftType][shortcut_number];
+	}
+	else if (recipeCraftTypeNameMap[craftType].count(product)){
+		return &recipeCraftTypeNameMap[craftType][product];
+	}
+	return nullptr;
 }

@@ -25,6 +25,9 @@ struct RECIPE
 	RECIPE() : produced_item(0), cooking_rate(0) {}
 	uint nickname;
 	uint produced_item;
+	uint shortcut_number;
+	uint produced_amount;
+	bool loop_production;
 	wstring infotext;
 	uint cooking_rate;
 	map<uint, uint> consumed_items;
@@ -93,14 +96,10 @@ public:
 	static const int TYPE_SHIELDGEN = 2;
 	static const int TYPE_STORAGE = 3;
 	static const int TYPE_DEFENSE_1 = 4;
-	static const int TYPE_M_DOCKING = 5;
-	static const int TYPE_M_JUMPDRIVES = 6;
-	static const int TYPE_M_HYPERSPACE_SCANNER = 7;
-	static const int TYPE_M_CLOAK = 8;
+	static const int TYPE_FACTORY = 5;
 	static const int TYPE_DEFENSE_2 = 9;
 	static const int TYPE_DEFENSE_3 = 10;
-	static const int TYPE_M_CLOAKDISRUPTOR = 11;
-	static const int TYPE_LAST = TYPE_M_CLOAKDISRUPTOR;
+
 
 	Module(uint the_type) : type(the_type) {}
 	virtual ~Module() {}
@@ -235,6 +234,7 @@ public:
 	bool Paused = false;
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
+	static RECIPE* GetModuleRecipe(wstring module_name);
 
 	bool Timer(uint time);
 };
@@ -244,6 +244,8 @@ class FactoryModule : public Module
 public:
 	PlayerBase *base;
 
+	uint factoryNickname;
+
 	// The currently active recipe
 	RECIPE active_recipe;
 
@@ -251,15 +253,19 @@ public:
 	list<uint> build_queue;
 
 	FactoryModule(PlayerBase *the_base);
-	FactoryModule(PlayerBase *the_base, uint type);
+	FactoryModule(PlayerBase *the_base, uint factoryNickname);
 	wstring GetInfo(bool xml);
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
 	bool Timer(uint time);
+	static FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct);
+	static RECIPE* FactoryModule::GetFactoryProductRecipe(wstring craftType, wstring product);
+	static void FactoryModule::StopAllProduction(PlayerBase* pb);
+	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;
 	bool ToggleQueuePaused(bool NewState);
-	bool AddToQueue(uint the_equipment_type);
+	void AddToQueue(uint product);
 	bool ClearQueue();
 	void ClearRecipe();
 };
@@ -401,6 +407,10 @@ public:
 
 	// Modules for base
 	vector<Module*> modules;
+	map<uint, FactoryModule*> factoryModuleMap;
+
+	// Available crafting types
+	set<wstring> availableCraftList;
 
 	// Path to base ini file.
 	string path;
@@ -544,6 +554,7 @@ namespace PlayerCommands
 	void BaseDefMod(uint client, const wstring &args);
 	void BaseBuildMod(uint client, const wstring &args);
 	void BaseFacMod(uint client, const wstring &args);
+	void PopulateHelpMenus();
 	void BaseShieldMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
@@ -584,7 +595,15 @@ extern POBSOUNDS pbsounds;
 
 extern int set_plugin_debug;
 
-extern map<uint, RECIPE> recipes;
+/// Global recipe map
+extern map<uint, RECIPE> recipeMap;
+/// Maps of shortcut numbers to recipes to construct item.
+extern map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+extern map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+extern map<wstring, RECIPE> moduleNameRecipeMap;
+extern map<uint, RECIPE> moduleNumberRecipeMap;
+extern map<wstring, RECIPE> crafttypeToFactoryRecipeMap;
 
 struct REPAIR_ITEM
 {
@@ -651,8 +670,6 @@ wstring HtmlEncode(wstring text);
 
 extern string set_status_path_html;
 extern string set_status_path_json;
-
-extern const char* MODULE_TYPE_NICKNAMES[13];
 
 extern float damage_threshold;
 

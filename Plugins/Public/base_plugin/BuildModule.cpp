@@ -1,10 +1,5 @@
 #include "Main.h"
 
-const char* MODULE_TYPE_NICKNAMES[] =
-{ "module_build", "module_coreupgrade", "module_shieldgen",
-	"module_storage", "module_defense_1", "module_m_docking", "module_m_jumpdrives",
-	"module_m_hyperspace_scanner", "module_m_cloak", "module_defense_2", "module_defense_3", "module_m_cloakdisruptor", 0 };
-
 BuildModule::BuildModule(PlayerBase *the_base)
 	: Module(TYPE_BUILD), base(the_base), build_type(0)
 {
@@ -14,8 +9,7 @@ BuildModule::BuildModule(PlayerBase *the_base)
 BuildModule::BuildModule(PlayerBase *the_base, uint the_build_type)
 	: Module(TYPE_BUILD), base(the_base), build_type(the_build_type)
 {
-	uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[build_type]);
-	active_recipe = recipes[module_nickname];
+	active_recipe = moduleNumberRecipeMap[build_type];
 }
 
 wstring BuildModule::GetInfo(bool xml)
@@ -136,28 +130,18 @@ bool BuildModule::Timer(uint time)
 				case Module::TYPE_DEFENSE_1:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_1);
 					break;
-				case Module::TYPE_M_DOCKING:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_DOCKING);
-					break;
-				case Module::TYPE_M_JUMPDRIVES:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_JUMPDRIVES);
-					break;
-				case Module::TYPE_M_HYPERSPACE_SCANNER:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_HYPERSPACE_SCANNER);
-					break;
-				case Module::TYPE_M_CLOAK:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAK);
-					break;
 				case Module::TYPE_DEFENSE_2:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_2);
 					break;
 				case Module::TYPE_DEFENSE_3:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_3);
 					break;
-				case Module::TYPE_M_CLOAKDISRUPTOR:
-					base->modules[i] = new FactoryModule(base, Module::TYPE_M_CLOAKDISRUPTOR);
-					break;
 				default:
+					//check if factory
+					if (factoryNicknameToCraftTypeMap.count(active_recipe.nickname)) {
+						base->modules[i] = new FactoryModule(base, active_recipe.nickname);
+						break;
+					}
 					base->modules[i] = 0;
 					break;
 				}
@@ -215,4 +199,16 @@ void BuildModule::SaveState(FILE *file)
 	{
 		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
 	}
+}
+
+RECIPE* BuildModule::GetModuleRecipe(wstring module_name) {
+	transform(module_name.begin(), module_name.end(), module_name.begin(), ::tolower);
+	int shortcut_number = ToInt(module_name);
+	if (moduleNumberRecipeMap.count(shortcut_number)) {
+		return &moduleNumberRecipeMap[shortcut_number];
+	}
+	else if (moduleNameRecipeMap.count(module_name)){
+		return &moduleNameRecipeMap[module_name];
+	}
+	return 0;
 }

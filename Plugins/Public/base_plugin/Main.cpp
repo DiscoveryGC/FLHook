@@ -8,14 +8,6 @@
 
 // includes 
 
-#include <windows.h>
-#include <stdio.h>
-#include <string>
-#include <time.h>
-#include <math.h>
-#include <list>
-#include <map>
-#include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
@@ -57,8 +49,19 @@ uint set_base_crew_type;
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
 
-/// Map of item nickname hash to recipes to construct item.
-map<uint, RECIPE> recipes;
+/// Global recipe map
+map<uint, RECIPE> recipeMap;
+
+/// Maps of shortcut numbers to recipes to construct item.
+map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+map<wstring, RECIPE> moduleNameRecipeMap;
+map<uint, RECIPE> moduleNumberRecipeMap;
+map<wstring, RECIPE> crafttypeToFactoryRecipeMap;
+
+void AddFactoryRecipeToMaps(RECIPE recipe, wstring recipe_type);
+void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types);
 
 /// Map of item nickname hash to recipes to operate shield.
 map<uint, uint> shield_power_items;
@@ -426,12 +429,17 @@ void LoadSettingsActual()
 		delete base->second;
 	}
 
-	recipes.clear();
 	construction_items.clear();
 	set_base_repair_items.clear();
 	set_base_crew_consumption_items.clear();
 	set_base_crew_food_items.clear();
 	shield_power_items.clear();
+	recipeCraftTypeNumberMap.clear();
+	recipeCraftTypeNameMap.clear();
+	factoryNicknameToCraftTypeMap.clear();
+	moduleNameRecipeMap.clear();
+	moduleNumberRecipeMap.clear();
+	crafttypeToFactoryRecipeMap.clear();
 
 	HookExt::ClearMiningObjData();
 
@@ -598,46 +606,6 @@ void LoadSettingsActual()
 		ini.close();
 	}
 
-	if (ini.open(cfg_fileitems.c_str(), false))
-	{
-		while (ini.read_header())
-		{
-			if (ini.is_header("recipe"))
-			{
-				RECIPE recipe;
-				while (ini.read_value())
-				{
-					if (ini.is_value("nickname"))
-					{
-						recipe.nickname = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("produced_item"))
-					{
-						recipe.produced_item = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("infotext"))
-					{
-						recipe.infotext = stows(ini.get_value_string());
-					}
-					else if (ini.is_value("cooking_rate"))
-					{
-						recipe.cooking_rate = ini.get_value_int(0);
-					}
-					else if (ini.is_value("consumed"))
-					{
-						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
-					}
-					else if (ini.is_value("reqlevel"))
-					{
-						recipe.reqlevel = ini.get_value_int(0);
-					}
-				}
-				recipes[recipe.nickname] = recipe;
-			}
-		}
-		ini.close();
-	}
-
 	if (ini.open(cfg_filemodules.c_str(), false))
 	{
 		while (ini.read_header())
@@ -645,6 +613,7 @@ void LoadSettingsActual()
 			if (ini.is_header("recipe"))
 			{
 				RECIPE recipe;
+				vector<wstring> craft_types;
 				while (ini.read_value())
 				{
 					if (ini.is_value("nickname"))
@@ -654,6 +623,71 @@ void LoadSettingsActual()
 					else if (ini.is_value("produced_item"))
 					{
 						recipe.produced_item = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("infotext"))
+					{
+						recipe.infotext = stows(ini.get_value_string(0));
+					}
+					else if (ini.is_value("craft_list"))
+					{
+						craft_types.push_back(stows(ToLower(ini.get_value_string(0))));
+					}
+					else if (ini.is_value("shortcut_number"))
+					{
+						recipe.shortcut_number = ini.get_value_int(0);
+					}
+					else if (ini.is_value("cooking_rate"))
+					{
+						recipe.cooking_rate = ini.get_value_int(0);
+					}
+					else if (ini.is_value("consumed"))
+					{
+						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
+					}
+					else if (ini.is_value("reqlevel"))
+					{
+						recipe.reqlevel = ini.get_value_int(0);
+					}
+				}
+				AddModuleRecipeToMaps(recipe, craft_types);
+			}
+		}
+		ini.close();
+	}
+
+	if (ini.open(cfg_fileitems.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("recipe"))
+			{
+				RECIPE recipe;
+				wstring craft_type;
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						recipe.nickname = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("produced_item"))
+					{
+						recipe.produced_item = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("produced_amount"))
+					{
+						recipe.produced_amount = ini.get_value_int(0);
+					}
+					else if (ini.is_value("loop_production"))
+					{
+						recipe.loop_production = ini.get_value_int(0);
+					}
+					else if (ini.is_value("shortcut_number"))
+					{
+						recipe.shortcut_number = ini.get_value_int(0);
+					}
+					else if (ini.is_value("craft_type"))
+					{
+						craft_type = stows(ToLower(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("infotext"))
 					{
@@ -672,7 +706,7 @@ void LoadSettingsActual()
 						recipe.reqlevel = ini.get_value_int(0);
 					}
 				}
-				recipes[recipe.nickname] = recipe;
+				AddFactoryRecipeToMaps(recipe, craft_type);
 			}
 		}
 		ini.close();
@@ -765,6 +799,8 @@ void LoadSettingsActual()
 		}
 		ini.close();
 	}
+
+	PlayerCommands::PopulateHelpMenus();
 
 	//Create the POB sound hashes
 	pbsounds.destruction1 = CreateID("pob_evacuate2");
@@ -1260,7 +1296,7 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::GetNecessitiesStatus(client, args);
 		return true;
 	}
-	else if (args.find(L"/base facmod") == 0)
+	else if (args.find(L"/craft") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);
@@ -2260,7 +2296,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		return true;
 	}*/
 
-	if (args.find(L"testrecipe") == 0)
+	if (args.find(L"testmodulerecipe") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
@@ -2274,9 +2310,37 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			return true;
 		}
 
-		uint recipe_name = CreateID(wstos(cmd->ArgStr(1)).c_str());
+		const wchar_t* recipe_name = cmd->ArgStr(1).c_str();
 
-		RECIPE recipe = recipes[recipe_name];
+		RECIPE recipe = moduleNameRecipeMap[recipe_name];
+		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
+		{
+			base->market_items[i->first].quantity += i->second;
+			SendMarketGoodUpdated(base, i->first, base->market_items[i->first]);
+			cmd->Print(L"Added %ux %08x", i->second, i->first);
+		}
+		base->Save();
+		cmd->Print(L"OK");
+		return true;
+	}
+	else if (args.find(L"testfacrecipe") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			cmd->Print(L"ERR Not in player base");
+			return true;
+		}
+
+		const wchar_t* craft_type = cmd->ArgStr(1).c_str();
+		const wchar_t* recipe_name = cmd->ArgStr(2).c_str();
+
+		RECIPE recipe = recipeCraftTypeNameMap[craft_type][recipe_name];
 		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
 		{
 			base->market_items[i->first].quantity += i->second;
@@ -2843,6 +2907,32 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		}
 	}
 	return;
+}
+
+void AddFactoryRecipeToMaps(RECIPE recipe, wstring craft_type){
+
+	wstring recipeNameKey = recipe.infotext;
+	//convert to lowercase
+	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
+	transform(craft_type.begin(), craft_type.end(), craft_type.begin(), ::tolower);
+	recipeMap[recipe.nickname] = recipe;
+	recipeCraftTypeNumberMap[craft_type][recipe.shortcut_number] = recipe;
+	recipeCraftTypeNameMap[craft_type][recipeNameKey] = recipe;
+}
+
+void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types) {
+
+	wstring recipeNameKey = recipe.infotext;
+	//convert to lowercase
+	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
+
+	for (wstring craftType : craft_types) {
+		factoryNicknameToCraftTypeMap[recipe.nickname].push_back(craftType);
+		crafttypeToFactoryRecipeMap[craftType] = recipe;
+	}
+	recipeMap[recipe.nickname] = recipe;
+	moduleNameRecipeMap[recipeNameKey] = recipe;
+	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

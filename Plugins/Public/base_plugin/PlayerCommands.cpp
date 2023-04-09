@@ -20,6 +20,44 @@
 
 namespace PlayerCommands
 {
+	static vector<wstring> modules_recipe_list;
+	static map<wstring, vector<wstring>> factory_recipe_map;
+
+	vector<wstring> GenerateHelpMenu(map<uint, RECIPE> recipeNumberMap) {
+		vector<wstring> generatedHelpStringList;
+		wstring currentString = L"";
+		for (map<uint, RECIPE>::iterator i = recipeNumberMap.begin(); i != recipeNumberMap.end(); ++i) {
+			currentString = L"|     ";
+			currentString += stows(itos(i->second.shortcut_number));
+			currentString += L" = ";
+			currentString += i->second.infotext.c_str();
+			generatedHelpStringList.push_back(currentString.c_str());
+		}
+		return generatedHelpStringList;
+	}
+
+	void PopulateHelpMenus() {
+		modules_recipe_list = GenerateHelpMenu(moduleNumberRecipeMap);
+		for (auto& craftType : recipeCraftTypeNameMap) {
+			factory_recipe_map[craftType.first] = GenerateHelpMenu(recipeCraftTypeNumberMap[craftType.first]);
+		}
+	}
+
+	bool checkBaseAdminAccess(PlayerBase *base, uint client) {
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return false;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return false;
+		}
+		return true;
+	}
+
 	void BaseHelp(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -88,8 +126,8 @@ namespace PlayerCommands
 			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Set the base's infocard description.</TEXT>";
 
-		pages[3] = L"<TRA bold=\"true\"/><TEXT>/base facmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control factory modules.</TEXT><PARA/><PARA/>"
+		pages[3] = L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
 
 			L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
@@ -1108,7 +1146,13 @@ namespace PlayerCommands
 
 				return;
 			}
-
+			
+			if (base->modules[index]->type == Module::TYPE_FACTORY) {
+				FactoryModule* facMod = dynamic_cast<FactoryModule*>(base->modules[index]);
+				for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname]) {
+					base->availableCraftList.erase(craftType);
+				}
+			}
 			delete base->modules[index];
 			base->modules[index] = 0;
 			base->Save();
@@ -1177,20 +1221,21 @@ namespace PlayerCommands
 		else if (cmd == L"construct")
 		{
 			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
+			RECIPE* recipePtr = BuildModule::GetModuleRecipe(GetParamToEnd(args, ' ', 4));
+
 			if (index < 1 || index >= base->modules.size() || base->modules[index])
 			{
 				PrintUserCmdText(client, L"ERR Module index not valid");
 				return;
 			}
 
-			if (type < Module::TYPE_CORE || type > Module::TYPE_LAST)
+			if (recipePtr == 0)
 			{
 				PrintUserCmdText(client, L"ERR Module type not available");
 				return;
 			}
 
-			if (type == Module::TYPE_CORE)
+			if (recipePtr->shortcut_number == Module::TYPE_CORE)
 			{
 				if (base->base_level >= 4)
 				{
@@ -1200,15 +1245,14 @@ namespace PlayerCommands
 			}
 
 			//make the nickname for inspection
-			uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[type]);
 
-			if (recipes[module_nickname].reqlevel > base->base_level)
+			if (recipePtr->reqlevel > base->base_level)
 			{
 				PrintUserCmdText(client, L"ERR Insufficient Core Level");
 				return;
 			}
 
-			base->modules[index] = new BuildModule(base, type);
+			base->modules[index] = new BuildModule(base, recipePtr->shortcut_number);
 			base->Save();
 			PrintUserCmdText(client, L"OK Module construction started");
 		}
@@ -1221,220 +1265,134 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"|  construct <index> <type> - start building module <type> at <index>");
 			PrintUserCmdText(client, L"|  pause <index> - pauses building at <index>");
 			PrintUserCmdText(client, L"|  resume <index> - resumes building at <index>");
-			PrintUserCmdText(client, L"|     <type> = 1 - core upgrade");
-			PrintUserCmdText(client, L"|     <type> = 2 - shield generator");
-			PrintUserCmdText(client, L"|     <type> = 3 - cargo storage");
-			PrintUserCmdText(client, L"|     <type> = 4 - defense platform array type 1");
-			PrintUserCmdText(client, L"|     <type> = 5 - docking module factory");
-			PrintUserCmdText(client, L"|     <type> = 6 - jumpdrive manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 7 - hyperspace survey manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - cloaking device manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 9 - defense platform array type 2");
-			PrintUserCmdText(client, L"|     <type> = 10 - defense platform array type 3");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloak Disruptor Factory");
+			for (vector<wstring>::iterator i = modules_recipe_list.begin(); i != modules_recipe_list.end(); ++i) {
+				PrintUserCmdText(client, *i);
+			}
 		}
 	}
 
 	void BaseFacMod(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
+
+		if (!checkBaseAdminAccess(base, client)) {
 			return;
 		}
 
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
+		if (base->availableCraftList.empty()) {
+			PrintUserCmdText(client, L"ERR no factories found");
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 2);
+		const wstring &craftType = GetParam(args, ' ', 1);
+		if (craftType == L"list")
+		{
+			PrintUserCmdText(client, L"Available crafting lists:");
+			for (wstring craftType : base->availableCraftList) {
+				PrintUserCmdText(client, L"|   %ls", craftType.c_str());
+			}
+			return;
+		}
+		else if (craftType == L"stopall")
+		{
+			FactoryModule::StopAllProduction(base);
+			PrintUserCmdText(client, L"OK Factories stopped");
+			return;
+		}
+		else if (!base->availableCraftList.count(craftType)) {
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause> <productName/productNr>");
+			return;
+		}
+
+		const wstring cmd = GetParam(args, ' ', 2);
+		const wstring param = GetParamToEnd(args, ' ', 3);
+		if (cmd.empty()) {
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause> <productName/productNr>");
+			return;
+		}
+
 		if (cmd == L"list")
 		{
-			PrintUserCmdText(client, L"Factory Modules:");
-			for (uint index = 1; index < base->modules.size(); index++)
-			{
-				if (base->modules[index] &&
-					(base->modules[index]->type == Module::TYPE_M_CLOAK
-						|| base->modules[index]->type == Module::TYPE_M_HYPERSPACE_SCANNER
-						|| base->modules[index]->type == Module::TYPE_M_JUMPDRIVES
-						|| base->modules[index]->type == Module::TYPE_M_DOCKING
-						|| base->modules[index]->type == Module::TYPE_M_CLOAKDISRUPTOR))
-				{
-					FactoryModule *mod = (FactoryModule*)base->modules[index];
-					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
-				}
+			PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
+			for (wstring& infoLine : factory_recipe_map[craftType]) {
+				PrintUserCmdText(client, infoLine);
 			}
-			PrintUserCmdText(client, L"OK");
+			return;
 		}
-		else if (cmd == L"clear")
+
+		RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
+		if (recipe == nullptr) {
+			PrintUserCmdText(client, L"ERR invalid product");
+			return;
+		}
+
+		if (cmd == L"stop")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
+			FactoryModule *factory = FactoryModule::FindModuleByProductInProduction(base, recipe->nickname);
+			if (factory) {
+				factory->ClearQueue();
+				factory->ClearRecipe();
+				PrintUserCmdText(client, L"OK Factory stopped");
 			}
-
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
+			else {
+				PrintUserCmdText(client, L"ERR item is not being produced");
 			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ClearQueue())
-				PrintUserCmdText(client, L"OK Build queue cleared");
-			else
-				PrintUserCmdText(client, L"ERR Build queue clear failed");
 			base->Save();
 		}
-		else if (cmd == L"cancel")
+		else if (cmd == L"start")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
+			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
+                return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
+			factory->AddToQueue(recipe->nickname);
+			PrintUserCmdText(client, L"OK Item added to build queue");
 
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			mod->ClearRecipe();
-			PrintUserCmdText(client, L"OK Active recipe is canceled");
 			base->Save();
 		}
 		else if (cmd == L"pause")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
+			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
+			if (factory->ToggleQueuePaused(true))
+				PrintUserCmdText(client, L"OK Build queue resumed");
+			else {
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
 				return;
 			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(true))
-				PrintUserCmdText(client, L"ERR Build queue is already paused");
-			else
-				PrintUserCmdText(client, L"OK Build queue paused");
 			base->Save();
 		}
 		else if (cmd == L"resume")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
+			FactoryModule* factory = base->factoryModuleMap[crafttypeToFactoryRecipeMap[craftType].nickname];
+			if (!factory) {
+				PrintUserCmdText(client, L"ERR Appropriate factory module not found!");
 				return;
 			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(false))
+			if (factory->ToggleQueuePaused(false))
 				PrintUserCmdText(client, L"OK Build queue resumed");
-			else
-				PrintUserCmdText(client, L"ERR Build queue is not paused");
-			base->Save();
-		}
-		else if (cmd == L"add")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
+			else {
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
 				return;
 			}
-
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->AddToQueue(type))
-				PrintUserCmdText(client, L"OK Item added to build queue");
-			else
-				PrintUserCmdText(client, L"ERR Item add to build queue failed");
 			base->Save();
 		}
-		else
-		{
+		else {
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add|pause|resume]");
-			PrintUserCmdText(client, L"|  list - show factory modules and build status");
-			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
-
-			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
-			
-			PrintUserCmdText(client, L"|  add <index> <type> - add item <type> to build queue for factory module at <index>");
-			PrintUserCmdText(client, L"|     For Docking Module Factory:");
-			PrintUserCmdText(client, L"|     <type> = 1 - docking module type 1");
-			PrintUserCmdText(client, L"|     For Hyperspace Jumpdrive Factory");
-			PrintUserCmdText(client, L"|     <type> = 2 - Jump Drive Series II");
-			PrintUserCmdText(client, L"|     <type> = 3 - Jump Drive Series III");
-			PrintUserCmdText(client, L"|     <type> = 4 - Jump Drive Series IV");
-			PrintUserCmdText(client, L"|     For Hyperspace Survey Factory");
-			PrintUserCmdText(client, L"|     <type> = 5 - Hyperspace Survey Module Mk1");
-			PrintUserCmdText(client, L"|     <type> = 6 - Hyperspace Survey Module Mk2");
-			PrintUserCmdText(client, L"|     <type> = 7 - Hyperspace Survey Module Mk3");
-			PrintUserCmdText(client, L"|     <type> = 15 - Hyperspace Matrix Mk1");
-			PrintUserCmdText(client, L"|     For Cloaking Device Factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - Cloaking Device MK1 (small)");
-			PrintUserCmdText(client, L"|     <type> = 9 - Cloaking Device MK2 (medium)");
-			PrintUserCmdText(client, L"|     <type> = 10 - Cloaking Device MK2 Advanced (large)");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloaking Device MK3 (transport)");
-			PrintUserCmdText(client, L"|     For Cloak Disruptor Factory");
-			PrintUserCmdText(client, L"|     <type> = 12 - Cloak Disruptor Type-1");
-			PrintUserCmdText(client, L"|     <type> = 13 - Cloak Disruptor Type-2");
-			PrintUserCmdText(client, L"|     <type> = 14 - Cloak Disruptor Type-3");
-			PrintUserCmdText(client, L"|  pause <index> - pause factory module at <index>");
-			PrintUserCmdText(client, L"|  resume <index> - resume factory module at <index>");
+			PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>] [start]");
+			PrintUserCmdText(client, L"|  list - show available lists of craftble items");
+			PrintUserCmdText(client, L"|  stopall - stops all production on the base");
+			PrintUserCmdText(client, L"|  <craftListName> start <name/itemNr> - adds selected item into the crafting queue");
+			PrintUserCmdText(client, L"|  <craftListName> stop <name/itemNr> - stops crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftListName> pause <name/itemNr> - pauses crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftListName> resume <name/itemNr> - resumes crafting of selected item");
 		}
 	}
 

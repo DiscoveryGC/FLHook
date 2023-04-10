@@ -501,7 +501,7 @@ namespace HkIServerImpl
 		{
 			AntiJumpDisconnect::JumpInComplete(iSystem, iShip, iClientID);
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
-			HyperJump::SetJumpInFuse(iClientID);
+			HyperJump::SetJumpInFuse(iClientID, HyperJump::JumpType::JUMPHOLEGATE_JUMPTYPE);
 		}
 
 		// Make player damageable once the ship has jumped in system.
@@ -1594,7 +1594,13 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		if (iClientID)
 		{
 			SystemSensor::JumpInComplete(info->iSystemID, info->iShipID, iClientID);
+			HyperJump::SetJumpInFuse(iClientID, HyperJump::JumpType::JUMPDRIVE_JUMPTYPE);
 		}
+	}
+	else if (msg == CUSTOM_JUMP_CALLOUT)
+	{
+		//TODO: implement jump handling via Client/ShipID, SystemID, Pos, Ornt struct
+		//HyperJump::SetJumpInFuse(iClientID, HyperJump::JumpType::JUMPHOLEGATE_JUMPTYPE);
 	}
 	return;
 }

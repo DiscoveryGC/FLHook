@@ -72,8 +72,15 @@ namespace HyperJump
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
 
-	static uint JumpInFuse = 0;
-	static uint JumpInFuseTimer = 0;
+	struct JUMPFUSE
+	{
+		uint jump_fuse = 0;
+		float lifetime = 0.0f;
+		float delay = 0.0f;
+	};
+	
+	// map<shipclass, map<JH/JD type, JUMPFUSE>> 
+	static map<uint, map<JumpType, JUMPFUSE>> JumpInFuseMap;
 
 	struct SYSTEMJUMPCOORDS
 	{
@@ -224,8 +231,13 @@ namespace HyperJump
 						}
 						else if (ini.is_value("JumpInFuse"))
 						{
-							JumpInFuse = CreateID(ini.get_value_string(0));
-							JumpInFuseTimer = ini.get_value_float(1);
+							uint shipType = ini.get_value_int(0);
+							JumpType jumpType = static_cast<JumpType>(ini.get_value_int(1));
+							JUMPFUSE jumpFuse;
+							jumpFuse.jump_fuse = CreateID(ini.get_value_string(2));
+							jumpFuse.lifetime = ini.get_value_float(3);
+							jumpFuse.delay = ini.get_value_float(4);
+							JumpInFuseMap[shipType][jumpType] = jumpFuse;
 						}
 					}
 				}
@@ -403,7 +415,7 @@ namespace HyperJump
 		vec.z += (rand() % (JumpInnacuracy * 2)) - JumpInnacuracy;
 	}
 
-	void SetFuse(uint iClientID, uint fuse)
+	void SetFuse(uint iClientID, uint fuse, float lifetime = 0.0f, float delay = 0.0f)
 	{
 		JUMPDRIVE &jd = mapJumpDrives[iClientID];
 		if (jd.active_fuse)
@@ -422,14 +434,23 @@ namespace HyperJump
 			if (obj)
 			{
 				jd.active_fuse = fuse;
-				HkLightFuse((IObjRW*)obj, jd.active_fuse, 0.0f, 0.0f, 0.0f);
+				HkLightFuse((IObjRW*)obj, jd.active_fuse, delay, lifetime, 0.0f);
 			}
 		}
 	}
 
-	void HyperJump::SetJumpInFuse(uint iClientID)
+	void HyperJump::SetJumpInFuse(uint iClientID, JumpType jumpType)
 	{
-		SetFuse(iClientID, JumpInFuse);
+		Archetype::Ship* victimShiparch = Archetype::GetShip(Players[iClientID].iShipArchetype);
+		if (JumpInFuseMap.count(victimShiparch->iShipClass) && JumpInFuseMap[victimShiparch->iShipClass].count(jumpType))
+		{
+			const JUMPFUSE& jumpFuse = JumpInFuseMap[victimShiparch->iShipClass][jumpType];
+			SetFuse(iClientID, jumpFuse.jump_fuse, jumpFuse.lifetime, jumpFuse.delay);
+		}
+		else
+		{
+			SetFuse(iClientID, 0);
+		}
 	}
 
 	void AddChargeFuse(uint iClientID, uint fuse)
@@ -1097,8 +1118,6 @@ namespace HyperJump
 			info.iShipID = iShip;
 			info.iSystemID = iSystemID;
 			Plugin_Communication(CUSTOM_JUMP, &info);
-
-			SetJumpInFuse(iClientID);
 			return true;
 		}
 		return false;

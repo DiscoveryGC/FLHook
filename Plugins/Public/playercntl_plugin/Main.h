@@ -145,6 +145,7 @@ namespace HyperJump
 	bool CheckForBeacon(uint iClientID, bool fullCheck);
 	bool InitJumpDriveInfo(uint iClientID, bool fullCheck);
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
+	void SetJumpInFuse(uint iClientID);
 
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);

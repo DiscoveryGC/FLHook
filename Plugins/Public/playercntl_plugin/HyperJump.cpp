@@ -72,6 +72,9 @@ namespace HyperJump
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
 
+	static uint JumpInFuse = 0;
+	static uint JumpInFuseTimer = 0;
+
 	struct SYSTEMJUMPCOORDS
 	{
 		uint system;
@@ -218,6 +221,11 @@ namespace HyperJump
 						else if (ini.is_value("CanGroupJumpWithCommodities"))
 						{
 							CanGroupJumpWithCommodities = ini.get_value_bool(0);
+						}
+						else if (ini.is_value("JumpInFuse"))
+						{
+							JumpInFuse = CreateID(ini.get_value_string(0));
+							JumpInFuseTimer = ini.get_value_float(1);
 						}
 					}
 				}
@@ -417,6 +425,11 @@ namespace HyperJump
 				HkLightFuse((IObjRW*)obj, jd.active_fuse, 0.0f, 0.0f, 0.0f);
 			}
 		}
+	}
+
+	void HyperJump::SetJumpInFuse(uint iClientID)
+	{
+		SetFuse(iClientID, JumpInFuse);
 	}
 
 	void AddChargeFuse(uint iClientID, uint fuse)
@@ -1084,6 +1097,8 @@ namespace HyperJump
 			info.iShipID = iShip;
 			info.iSystemID = iSystemID;
 			Plugin_Communication(CUSTOM_JUMP, &info);
+
+			SetJumpInFuse(iClientID);
 			return true;
 		}
 		return false;
@@ -1546,7 +1561,7 @@ namespace HyperJump
 
 				pub::Player::RemoveCargo(iClientID, item->sID, mapPlayerBeaconMatrix[iClientID]->itemcount);
 
-                const wchar_t* playerName = (const wchar_t*)Players.GetActiveCharacterName(iClientID)
+				const wchar_t* playerName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 				// Print out a message within the iLocalChatRange when a player engages a JD.
 				wstring wscMsg = L"%time WARNING: A hyperspace beacon has been activated by %player";
 				wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));

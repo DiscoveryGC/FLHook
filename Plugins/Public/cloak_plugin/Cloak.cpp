@@ -180,7 +180,7 @@ void LoadSettings()
 						device.bBreakOnProximity = ini.get_value_bool(0);
 					}
 					else if (ini.is_value("detection_range")) {
-						device.fRange = ini.get_value_float(0);;
+						device.fRange = ini.get_value_float(0);
 					}
 				}
 				mapCloakingDevices[CreateID(device.scNickName.c_str())] = device;

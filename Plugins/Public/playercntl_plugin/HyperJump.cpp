@@ -1445,7 +1445,7 @@ namespace HyperJump
 			{
 				if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID)) {
 					auto& systemListForSyst = mapAvailableJumpSystems[Players[iClientID].iSystemID];
-					auto& systemListAtRandRange = systemListForSyst[rand() % jd.arch->jump_range];
+					auto& systemListAtRandRange = systemListForSyst[(rand() % jd.arch->jump_range)+1];
 					uint selectedSystem = systemListAtRandRange.at(rand() % systemListAtRandRange.size());
 					if (mapSystemJumps.count(selectedSystem) == 0) {
 						PrintUserCmdText(iClientID, L"ERR Issue performing a jump to system hash %u, contact staff", selectedSystem);

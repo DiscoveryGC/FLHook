@@ -72,6 +72,16 @@ namespace HyperJump
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
 
+	struct JUMPFUSE
+	{
+		uint jump_fuse = 0;
+		float lifetime = 0.0f;
+		float delay = 0.0f;
+	};
+	
+	// map<shipclass, map<JH/JD type, JUMPFUSE>> 
+	static map<uint, map<JumpType, JUMPFUSE>> JumpInFuseMap;
+
 	struct SYSTEMJUMPCOORDS
 	{
 		uint system;
@@ -218,6 +228,16 @@ namespace HyperJump
 						else if (ini.is_value("CanGroupJumpWithCommodities"))
 						{
 							CanGroupJumpWithCommodities = ini.get_value_bool(0);
+						}
+						else if (ini.is_value("JumpInFuse"))
+						{
+							uint shipType = ini.get_value_int(0);
+							JumpType jumpType = static_cast<JumpType>(ini.get_value_int(1));
+							JUMPFUSE jumpFuse;
+							jumpFuse.jump_fuse = CreateID(ini.get_value_string(2));
+							jumpFuse.lifetime = ini.get_value_float(3);
+							jumpFuse.delay = ini.get_value_float(4);
+							JumpInFuseMap[shipType][jumpType] = jumpFuse;
 						}
 					}
 				}
@@ -395,7 +415,7 @@ namespace HyperJump
 		vec.z += (rand() % (JumpInnacuracy * 2)) - JumpInnacuracy;
 	}
 
-	void SetFuse(uint iClientID, uint fuse)
+	void SetFuse(uint iClientID, uint fuse, float lifetime = 0.0f, float delay = 0.0f)
 	{
 		JUMPDRIVE &jd = mapJumpDrives[iClientID];
 		if (jd.active_fuse)
@@ -414,8 +434,22 @@ namespace HyperJump
 			if (obj)
 			{
 				jd.active_fuse = fuse;
-				HkLightFuse((IObjRW*)obj, jd.active_fuse, 0.0f, 0.0f, 0.0f);
+				HkLightFuse((IObjRW*)obj, jd.active_fuse, delay, lifetime, 0.0f);
 			}
+		}
+	}
+
+	void HyperJump::SetJumpInFuse(uint iClientID, JumpType jumpType)
+	{
+		Archetype::Ship* victimShiparch = Archetype::GetShip(Players[iClientID].iShipArchetype);
+		if (JumpInFuseMap.count(victimShiparch->iShipClass) && JumpInFuseMap[victimShiparch->iShipClass].count(jumpType))
+		{
+			const JUMPFUSE& jumpFuse = JumpInFuseMap[victimShiparch->iShipClass][jumpType];
+			SetFuse(iClientID, jumpFuse.jump_fuse, jumpFuse.lifetime, jumpFuse.delay);
+		}
+		else
+		{
+			SetFuse(iClientID, 0);
 		}
 	}
 
@@ -1411,7 +1445,7 @@ namespace HyperJump
 			{
 				if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID)) {
 					auto& systemListForSyst = mapAvailableJumpSystems[Players[iClientID].iSystemID];
-					auto& systemListAtRandRange = systemListForSyst[rand() % jd.arch->jump_range];
+					auto& systemListAtRandRange = systemListForSyst[(rand() % jd.arch->jump_range)+1];
 					uint selectedSystem = systemListAtRandRange.at(rand() % systemListAtRandRange.size());
 					if (mapSystemJumps.count(selectedSystem) == 0) {
 						PrintUserCmdText(iClientID, L"ERR Issue performing a jump to system hash %u, contact staff", selectedSystem);
@@ -1546,7 +1580,7 @@ namespace HyperJump
 
 				pub::Player::RemoveCargo(iClientID, item->sID, mapPlayerBeaconMatrix[iClientID]->itemcount);
 
-                const wchar_t* playerName = (const wchar_t*)Players.GetActiveCharacterName(iClientID)
+				const wchar_t* playerName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 				// Print out a message within the iLocalChatRange when a player engages a JD.
 				wstring wscMsg = L"%time WARNING: A hyperspace beacon has been activated by %player";
 				wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));

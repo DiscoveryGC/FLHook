@@ -252,7 +252,8 @@ enum PLUGIN_MESSAGE
 	COMBAT_DAMAGE_OVERRIDE = 45,
 	CUSTOM_JUMP = 47,
 	CUSTOM_IS_IT_POB = 50,
-	CUSTOM_REVERSE_TRANSACTION = 48
+	CUSTOM_REVERSE_TRANSACTION = 48,
+	CUSTOM_JUMP_CALLOUT = 49
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -359,6 +360,16 @@ struct CUSTOM_JUMP_STRUCT
 {
 	uint iShipID;
 	uint iSystemID;
+	uint iJumpType = 0;
+};
+
+struct CUSTOM_JUMP_CALLOUT_STRUCT
+{
+	uint iShipID;
+	uint iSystemID;
+	Vector pos;
+	Matrix ori;
+	uint jumpType = 0;
 };
 
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT

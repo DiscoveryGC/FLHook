@@ -91,6 +91,7 @@ namespace HyperJump
 	};
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
+	static map<uint, JumpType> mapJumpTypeOverride;
 
 	struct JUMPDRIVE_ARCH
 	{
@@ -1117,6 +1118,9 @@ namespace HyperJump
 			CUSTOM_JUMP_STRUCT info;
 			info.iShipID = iShip;
 			info.iSystemID = iSystemID;
+			if (mapJumpTypeOverride.count(iClientID)) {
+				info.iJumpType = mapJumpTypeOverride[iClientID];
+			}
 			Plugin_Communication(CUSTOM_JUMP, &info);
 			return true;
 		}
@@ -1733,5 +1737,11 @@ namespace HyperJump
 		// Start the jump timer.
 		jd.jump_timer = 8;
 		return true;
+	}
+
+	void ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData) {
+		uint clientID = HkGetClientIDByShip(jumpData.iShipID);
+		mapJumpTypeOverride[clientID] = static_cast<JumpType>(jumpData.jumpType);
+		SwitchSystem(clientID, jumpData.iSystemID, jumpData.pos, jumpData.ori);
 	}
 }

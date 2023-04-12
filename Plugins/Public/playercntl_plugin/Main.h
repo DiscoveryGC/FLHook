@@ -137,7 +137,8 @@ namespace HyperJump
 {
 	const enum JumpType {
 		JUMPHOLEGATE_JUMPTYPE = 0,
-		JUMPDRIVE_JUMPTYPE = 1
+		JUMPDRIVE_JUMPTYPE = 1,
+		MOBILEDOCK_JUMPTYPE = 2
 	};
 
 	void LoadSettings(const string &scPluginCfgFile);
@@ -151,6 +152,7 @@ namespace HyperJump
 	bool InitJumpDriveInfo(uint iClientID, bool fullCheck);
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
 	void SetJumpInFuse(uint iClientID, JumpType jumpType);
+	void ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData);
 
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);

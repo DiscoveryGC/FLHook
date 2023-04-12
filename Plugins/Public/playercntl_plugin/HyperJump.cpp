@@ -1739,9 +1739,8 @@ namespace HyperJump
 		return true;
 	}
 
-	void ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData) {
-		uint clientID = HkGetClientIDByShip(jumpData.iShipID);
-		mapJumpTypeOverride[clientID] = static_cast<JumpType>(jumpData.jumpType);
-		SwitchSystem(clientID, jumpData.iSystemID, jumpData.pos, jumpData.ori);
+	void HyperJump::ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData) {
+		mapJumpTypeOverride[jumpData.iClientID] = static_cast<JumpType>(jumpData.jumpType);
+		SwitchSystem(jumpData.iClientID, jumpData.iSystemID, jumpData.pos, jumpData.ori);
 	}
 }

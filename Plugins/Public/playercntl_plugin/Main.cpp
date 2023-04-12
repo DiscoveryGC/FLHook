@@ -1594,13 +1594,13 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		if (iClientID)
 		{
 			SystemSensor::JumpInComplete(info->iSystemID, info->iShipID, iClientID);
-			HyperJump::SetJumpInFuse(iClientID, HyperJump::JumpType::JUMPDRIVE_JUMPTYPE);
+			HyperJump::SetJumpInFuse(iClientID, static_cast<HyperJump::JumpType>(info->iJumpType));
 		}
 	}
 	else if (msg == CUSTOM_JUMP_CALLOUT)
 	{
-		//TODO: implement jump handling via Client/ShipID, SystemID, Pos, Ornt struct
-		//HyperJump::SetJumpInFuse(iClientID, HyperJump::JumpType::JUMPHOLEGATE_JUMPTYPE);
+		CUSTOM_JUMP_CALLOUT_STRUCT* jumpData = reinterpret_cast<CUSTOM_JUMP_CALLOUT_STRUCT*>(data);
+		HyperJump::ForceJump(*jumpData);
 	}
 	return;
 }

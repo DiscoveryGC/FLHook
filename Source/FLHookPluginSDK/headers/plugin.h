@@ -360,6 +360,16 @@ struct CUSTOM_JUMP_STRUCT
 {
 	uint iShipID;
 	uint iSystemID;
+	uint iJumpType = 0;
+};
+
+struct CUSTOM_JUMP_CALLOUT_STRUCT
+{
+	uint iShipID;
+	uint iSystemID;
+	Vector pos;
+	Matrix ori;
+	uint jumpType = 0;
 };
 
 struct CUSTOM_JUMP_CALLOUT_STRUCT

@@ -37,8 +37,9 @@ enum INFO_STATE
 
 struct CLOAK_FUEL_USAGE
 {
-	uint usageStatic = 0;
-	float usageMove = 0;
+	float usageStatic = 0;
+	float usageLinear = 0;
+	float usageSquare = 0;
 };
 
 struct CLOAK_ARCH
@@ -167,8 +168,9 @@ void LoadSettings()
 					{
 						CLOAK_FUEL_USAGE fuelUsage;
 						string scNickName = ini.get_value_string(0);
-						fuelUsage.usageStatic = ini.get_value_int(1);
-						fuelUsage.usageMove = ini.get_value_float(2);
+						fuelUsage.usageStatic = ini.get_value_float(1);
+						fuelUsage.usageLinear = ini.get_value_float(2);
+						fuelUsage.usageSquare = ini.get_value_float(3);
 						device.mapFuelToUsage[CreateID(scNickName.c_str())] = fuelUsage;
 					}
 					else if (ini.is_value("drop_shields_on_uncloak"))
@@ -316,18 +318,20 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 		if (info.arch.mapFuelToUsage.find(item->iArchID) != info.arch.mapFuelToUsage.end())
 		{
 			const auto& fuelUsage = info.arch.mapFuelToUsage[item->iArchID];
-			uint currFuelUsage = fuelUsage.usageStatic;
-			if (fuelUsage.usageMove != 0.0f) {
+			float currFuelUsage = fuelUsage.usageStatic;
+			if (fuelUsage.usageLinear != 0.0f || fuelUsage.usageSquare != 0.0f) {
 				Vector dir1;
 				Vector dir2;
 				pub::SpaceObj::GetMotion(iShipID, dir1, dir2);
 				float vecLength = sqrtf(dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z);
 				
-				currFuelUsage += static_cast<uint>(fuelUsage.usageMove * vecLength);
+				currFuelUsage += fuelUsage.usageLinear * vecLength;
+				currFuelUsage += fuelUsage.usageSquare * vecLength * vecLength;
 			}
-			if (item->iCount >= currFuelUsage)
+			uint totalFuelUsage = static_cast<uint>(max(currFuelUsage, 0.0f));
+			if (item->iCount >= totalFuelUsage)
 			{
-				pub::Player::RemoveCargo(iClientID, item->sID, currFuelUsage);
+				pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);
 				return true;
 			}
 			if(info.arch.mapFuelToUsage.size() == 1)

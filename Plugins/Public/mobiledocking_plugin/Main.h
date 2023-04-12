@@ -30,14 +30,6 @@ struct DOCKEDCRAFTINFO
 	uint lastDockedSolar;
 };
 
-struct ActionJettison
-{
-	int timeLeft;
-	wstring dockedCharname;
-};
-
-extern vector<ActionJettison> jettisonList;
-
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);
 

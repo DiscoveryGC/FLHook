@@ -94,6 +94,12 @@ void LoadSettings()
 					if (ini.is_value("carrier"))
 					{
 						carrierName = stows(ini.get_value_string(0));
+						const auto& accData = HkGetAccountByCharname(carrierName);
+						// don't load renamed/deleted ships
+						if (!accData)
+						{
+							doLoad = false;
+						}
 					}
 					else if (ini.is_value("lastLogin"))
 					{
@@ -108,6 +114,12 @@ void LoadSettings()
 					else if (ini.is_value("docked"))
 					{
 						wstring& dockedShipName = stows(ini.get_value_string(0));
+						const auto& accData = HkGetAccountByCharname(dockedShipName);
+						// skip loading renamed/deleted docked ships
+						if(!accData){
+							continue;
+						}
+
 						dockedToCarrierMap[dockedShipName].carrierName = carrierName.c_str();
 						dockedToCarrierMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
 

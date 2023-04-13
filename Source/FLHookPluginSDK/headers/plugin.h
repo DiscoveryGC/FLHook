@@ -364,7 +364,7 @@ struct CUSTOM_JUMP_STRUCT
 
 struct CUSTOM_JUMP_CALLOUT_STRUCT
 {
-	uint iShipID;
+	uint iClientID;
 	uint iSystemID;
 	Vector pos;
 	Matrix ori;

@@ -217,7 +217,7 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 				if (wcsstr(buf, wscBasename.c_str()))
 				{
 					// Ignore the intro bases.
-					if (_strnicmp("intro", (char*)pBase->iDunno2, 5) != 0)
+					if (_strnicmp("intro", pBase->cNickname, 5) != 0)
 					{
 						iBaseID = pBase->iBaseID;
 						break;

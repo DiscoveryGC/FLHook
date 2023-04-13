@@ -107,9 +107,9 @@ void LoadSettings()
 					}
 					else if (ini.is_value("docked"))
 					{
-						wstring dockedShipName = stows(ini.get_value_string(0));
+						wstring& dockedShipName = stows(ini.get_value_string(0));
 						dockedToCarrierMap[dockedShipName].carrierName = carrierName.c_str();
-						dockedToCarrierMap[dockedShipName].lastDockedSolar = ini.get_value_int(1);
+						dockedToCarrierMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
 
 						ci.dockedShipList.push_back(dockedShipName);
 						dockedCount++;
@@ -139,19 +139,18 @@ void SaveData()
 	FILE *file = fopen(path.c_str(), "w");
 	if (file)
 	{
-		time_t curTime = time(nullptr);
 		for (const auto& ci : carrierToCarriedMap)
 		{
-			if (ci.second.dockedShipList.empty()
-			|| (forgetCarrierDataInSeconds != 0 && ci.second.lastCarrierLogin < curTime - forgetCarrierDataInSeconds)) {
+			if (ci.second.dockedShipList.empty()) {
 				continue;
 			}
 			fprintf(file, "[CarrierData]\n");
 			fprintf(file, "carrier = %ls\n", ci.first.c_str());
 			fprintf(file, "lastLogin = %u\n", (uint)ci.second.lastCarrierLogin);
-			for (wstring dockedName : ci.second.dockedShipList)
+			for (const wstring& dockedName : ci.second.dockedShipList)
 			{
-				fprintf(file, "docked = %ls, %u\n", dockedName.c_str(), dockedToCarrierMap[dockedName.c_str()].lastDockedSolar);
+				const auto& lastSolarInfo = Universe::get_base(dockedToCarrierMap[dockedName.c_str()].lastDockedSolar);
+				fprintf(file, "docked = %ls, %s\n", dockedName.c_str(), lastSolarInfo->cNickname);
 			}
 		}
 
@@ -176,17 +175,21 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 	}
 	uint dockedClientID = HkGetClientIdFromCharname(dockedShipName);
 
-	if (dockedClientID != -1 && isForced)
+	if (dockedClientID != -1)
 	{
 		if (isForced) 
 		{
-			PrintUserCmdText(dockedClientID, L"Carrier has jettisonned your ship. Returning to last docked station.");
+			const auto& dockedInfo = idToDockedInfoMap[dockedClientID];
+			const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
+			const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
+			wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+			wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
+			PrintUserCmdText(dockedClientID, L"Carrier has jettisonned your ship. Returning to %ls, %ls.", baseName.c_str(), sysName.c_str());
 		}
 		idToDockedInfoMap.erase(dockedClientID);
 	}
 
-	wstring carrierName = dockedToCarrierMap[dockedShipName].carrierName;
-	dockedToCarrierMap.erase(dockedShipName);
+	wstring& carrierName = dockedToCarrierMap[dockedShipName].carrierName;
 
 	if (carrierToCarriedMap.count(carrierName))
 	{
@@ -198,6 +201,7 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 			}
 		}
 	}
+	dockedToCarrierMap.erase(dockedShipName);
 
 	return true;
 }
@@ -363,7 +367,7 @@ void __stdcall BaseEnter(uint iBaseID, uint client)
 		status += L"<TEXT>Currently docked on: " + XMLText(idToDockedInfoMap[client]->carrierName);
 		if (CarrierID != -1) {
 			const auto& sysInfo = Universe::get_system(Players[CarrierID].iSystemID);
-			wstring systemName = HkGetWStringFromIDS(sysInfo->strid_name);
+			wstring& systemName = HkGetWStringFromIDS(sysInfo->strid_name);
 			status += L", " + systemName;
 		}
 		status += L"</TEXT><PARA/><PARA/>";
@@ -387,13 +391,13 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		{
 			uint counter = 0;
 			PrintUserCmdText(client, L"Docked ships:");
-			for (wstring dockedShip : idToCarrierInfoMap[client]->dockedShipList)
+			for (wstring& dockedShip : idToCarrierInfoMap[client]->dockedShipList)
 			{
 				counter++;
 				uint dockedClientID = HkGetClientIdFromCharname(dockedShip.c_str());
 				if (dockedClientID != -1) {
 					const auto& shipInfo = Archetype::GetShip(Players[dockedClientID].iShipArchetype);
-					wstring shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
+					wstring& shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
 					PrintUserCmdText(client, L"%u. %ls - %ls - ONLINE", counter, dockedShip.c_str(), shipName.c_str());
 				}
 				else
@@ -422,7 +426,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			PrintUserCmdText(client, L"No ships currently docked");
 		}
 		// Get the supposed ship we should be ejecting from the command parameters
-		wstring selectedShip = Trim(GetParam(wscCmd, ' ', 1));
+		wstring& selectedShip = Trim(GetParam(wscCmd, ' ', 1));
 		if (selectedShip.empty())
 		{
 			PrintUserCmdText(client, L"Usage: /jettisonship <charName/charNr>");
@@ -518,21 +522,6 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 
 		return true;
 	}
-	else if (wscCmd.find(L"/dd") == 0) {
-		for (auto& car : idToCarrierInfoMap) {
-
-			ConPrint(L"Carrier %u\n", car.first);
-			for (auto& dock : car.second->dockedShipList) {
-				ConPrint(L"Docked %ls\n", dock.c_str());
-			}
-		}
-	}
-	else if (wscCmd.find(L"/cc") == 0) {
-	ConPrint(L"size %u\n", idToDockedInfoMap.size());
-		for (auto& dock : idToDockedInfoMap) {
-			ConPrint(L"Dock %u, Carr %ls\n", dock.first, dock.second->carrierName.c_str());
-		}
-	}
 	return false;
 }
 
@@ -544,11 +533,11 @@ void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 			uint dockedClientID = HkGetClientIdFromCharname(dockedPlayer.c_str());
 			if(dockedClientID != -1)
 			{
-				const auto& dockedInfo = idToDockedInfoMap[iClientID];
+				const auto& dockedInfo = idToDockedInfoMap[dockedClientID];
 				const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
 				const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
-				wstring baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
-				wstring sysName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+				wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+				wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
 				PrintUserCmdText(dockedClientID, L"Carrier logged off, redirecting undock to %ls, %ls", baseName.c_str(), sysName.c_str());
 			}
 		}
@@ -589,24 +578,24 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 		if (carrierClientID != -1)
 		{
 			const auto& shipInfo = Archetype::GetShip(Players[iClientID].iShipArchetype);
-			wstring shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
+			wstring& shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
 			PrintUserCmdText(carrierClientID, L"INFO: Docked %ls, %ls has come online", shipName.c_str(), charname);
 
 			const auto& carrierInfo = Players[carrierClientID];
 			const auto& sysInfo = Universe::get_system(carrierInfo.iSystemID);
-			wstring sysName = HkGetWStringFromIDS(sysInfo->strid_name);
+			wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
 			if (carrierInfo.iShipID)
 			{
 				Vector pos;
 				Matrix ori;
 				pub::SpaceObj::GetLocation(carrierInfo.iShipID, pos, ori);
-				wstring sector = VectorToSectorCoord(sysInfo->id, pos);
+				wstring& sector = VectorToSectorCoord(sysInfo->id, pos);
 				PrintUserCmdText(iClientID, L"Carrier already in flight, %ls %ls", sysName.c_str(), sector.c_str());
 			}
 			else if(carrierInfo.iBaseID)
 			{
 				const auto& baseInfo = Universe::get_base(carrierInfo.iBaseID);
-				wstring baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+				wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
 				PrintUserCmdText(iClientID, L"Carrier currently docked on %ls, %ls", baseName.c_str(), sysName.c_str());
 			}
 			else
@@ -619,8 +608,8 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 			const auto& dockedInfo = idToDockedInfoMap[iClientID];
 			const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
 			const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
-			wstring baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
-			wstring sysName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+			wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+			wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
 
 			PrintUserCmdText(iClientID, L"Carrier currently offline. Last docked base: %ls, %ls", baseName.c_str(), sysName.c_str());
 		}

@@ -195,7 +195,7 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 
 	if (dockedClientID != -1)
 	{
-		if (isForced) 
+		if (isForced)
 		{
 			const auto& dockedInfo = idToDockedInfoMap[dockedClientID];
 			const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
@@ -206,9 +206,28 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 		}
 		idToDockedInfoMap.erase(dockedClientID);
 	}
+	else
+	{
+		//player offline, edit their character file to put them on last docked solar
+		CAccount *acc = HkGetAccountByCharname(dockedShipName);
+		if (acc)
+		{
+			wstring dirName;
+			wstring charFilename;
+			HkGetAccountDirName(dockedShipName, dirName);
+			HkGetCharFileName(dockedShipName, charFilename);
+			string charpath = scAcctPath + wstos(dirName) + "\\" + wstos(charFilename) + ".fl";
+			const auto& dockedInfo = nameToDockedInfoMap[dockedShipName];
+			const auto& baseInfo = Universe::get_base(dockedInfo.lastDockedSolar);
+			const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
+			WritePrivateProfileString("Player", "system", reinterpret_cast<const char*>(sysInfo->nickname), charpath.c_str());
+			WritePrivateProfileString("Player", "base", baseInfo->cNickname, charpath.c_str());
+		}
+	}
 
 	wstring& carrierName = nameToDockedInfoMap[dockedShipName].carrierName;
 
+	//remove the docked ship entry from carrier's data
 	if (nameToCarrierInfoMap.count(carrierName))
 	{
 		auto& dockedList = nameToCarrierInfoMap[carrierName].dockedShipList;
@@ -219,6 +238,7 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 			}
 		}
 	}
+	//finally, clear the docked ship info
 	nameToDockedInfoMap.erase(dockedShipName);
 
 	return true;

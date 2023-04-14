@@ -464,6 +464,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		if (!idToCarrierInfoMap.count(client) || idToCarrierInfoMap[client]->dockedShipList.empty())
 		{
 			PrintUserCmdText(client, L"No ships currently docked");
+			return true;
 		}
 		// Get the supposed ship we should be ejecting from the command parameters
 		wstring& selectedShip = Trim(GetParam(wscCmd, ' ', 1));
@@ -475,13 +476,17 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		uint charNumber = ToInt(selectedShip);
 		const auto& dockedShipList = idToCarrierInfoMap[client]->dockedShipList;
 
-		if (charNumber > 0 && charNumber <= dockedShipList.size()) {
-			selectedShip = dockedShipList.at(charNumber - 1);
-		}
-		else 
+		if (charNumber > 0)
 		{
-			PrintUserCmdText(client, L"ERR Invalid docked ship index");
-			return true;
+			if (charNumber <= dockedShipList.size())
+			{
+				selectedShip = dockedShipList.at(charNumber - 1);
+			}
+			else
+			{
+				PrintUserCmdText(client, L"Invalid ship index selected");
+				return true;
+			}
 		}
 
 		if (!RemoveShipFromLists(selectedShip, true))
@@ -491,6 +496,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		else
 		{
 			PrintUserCmdText(client, L"%ls jettisoned", selectedShip.c_str());
+			mobiledockClients[client].iDockingModulesAvailable++;
 		}
 		return true;
 
@@ -656,6 +662,20 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	}
 }
 
+
+void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	if (msg == CUSTOM_MOBILE_DOCK_CHECK)
+	{
+		CUSTOM_MOBILE_DOCK_CHECK_STRUCT* mobileDockCheck = reinterpret_cast<CUSTOM_MOBILE_DOCK_CHECK_STRUCT*>(data);
+		if (idToDockedInfoMap.count(mobileDockCheck->iClientID)) {
+			mobileDockCheck->isMobileDocked = true;
+		}
+	}
+}
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	srand((uint)time(0));
@@ -703,6 +723,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 12));
 
 	return p_PI;
 }

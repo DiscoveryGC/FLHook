@@ -998,10 +998,21 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 			if (clients[client].player_base)
 				return true;
 
+			CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+			mobileCheck.iClientID = client;
+			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+			
+			// If player is mobile docking, do nothing.
+			if (mobileCheck.isMobileDocked)
+			{
+				clients[client].player_base = 0;
+				return true;
+			}
 			// If we're not docking at a player base then clear 
 			// the last base flag
 			clients[client].last_player_base = 0;
 			clients[client].player_base = 0;
+
 			if (base == 0)
 			{
 				char szSystem[1024];
@@ -1585,6 +1596,16 @@ void __stdcall BaseEnter(uint base, uint client)
 	clients[client].admin = false;
 	clients[client].viewshop = false;
 
+	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+	mobileCheck.iClientID = client;
+	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+
+	// skip processing in case of having docked on player ship to avoid overwriting F9 menu.
+	if (mobileCheck.isMobileDocked)
+	{
+		return;
+	}
+
 	// If the last player base is set then we have not docked at a non player base yet.
 	if (clients[client].last_player_base)
 	{
@@ -1630,7 +1651,12 @@ void __stdcall BaseExit(uint base, uint client)
 	// Reset client state and save it retaining the last player base ID to deal with respawn.
 	clients[client].admin = false;
 	clients[client].viewshop = false;
-	if (clients[client].player_base)
+
+	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+	mobileCheck.iClientID = client;
+	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+
+	if (clients[client].player_base || mobileCheck.isMobileDocked)
 	{
 		if (set_plugin_debug)
 			ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
@@ -1685,13 +1711,14 @@ void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigne
 
 /// The base the player is launching from.
 PlayerBase* player_launch_base = 0;
+bool system_match = true;
 
 /// If the ship is launching from a player base record this so that
 /// override the launch location.
 bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Matrix &rot, int dock_mode)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (player_launch_base)
+	if (player_launch_base && system_match)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		pos = player_launch_base->position;
@@ -1713,6 +1740,14 @@ void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 	player_launch_base = GetPlayerBase(clients[client].last_player_base);
+	
+	if (player_launch_base)
+	{
+		uint systemID;
+		pub::Player::GetSystem(client, systemID);
+		// in case of system mismatch, skip LaunchPos hook and instead perform a jump callout in PlayerLaunch_AFTER
+		system_match = (systemID == player_launch_base->system);
+	}
 }
 
 
@@ -1720,6 +1755,20 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 	SyncReputationForClientShip(ship, client);
+
+	if (!system_match)
+	{
+		CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
+		jumpData.iClientID = client;
+		jumpData.iSystemID = player_launch_base->system;
+		jumpData.pos = player_launch_base->position;
+		jumpData.ori = player_launch_base->rotation;
+		jumpData.jumpType = 2;
+
+		TranslateX(jumpData.pos, jumpData.ori, -750);
+		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_JUMP_CALLOUT, &jumpData);
+		player_launch_base = 0;
+	}
 }
 
 void __stdcall JumpInComplete(unsigned int system, unsigned int ship)

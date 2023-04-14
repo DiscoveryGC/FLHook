@@ -253,7 +253,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_JUMP = 47,
 	CUSTOM_IS_IT_POB = 50,
 	CUSTOM_REVERSE_TRANSACTION = 48,
-	CUSTOM_JUMP_CALLOUT = 49
+	CUSTOM_JUMP_CALLOUT = 49,
+	CUSTOM_MOBILE_DOCK_CHECK = 50
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -372,18 +373,15 @@ struct CUSTOM_JUMP_CALLOUT_STRUCT
 	uint jumpType = 0;
 };
 
-struct CUSTOM_JUMP_CALLOUT_STRUCT
-{
-	uint iClientID;
-	uint iSystemID;
-	Vector pos;
-	Matrix ori;
-	uint jumpType = 0;
-};
-
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 {
 	uint iClientID;
+};
+
+struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
+{
+	uint iClientID;
+	bool isMobileDocked = false;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

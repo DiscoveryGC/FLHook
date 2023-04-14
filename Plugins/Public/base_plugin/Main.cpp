@@ -1619,10 +1619,13 @@ void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 	player_launch_base = GetPlayerBase(clients[client].last_player_base);
 	
-	uint systemID;
-	pub::Player::GetSystem(client, systemID);
-	// in case of system mismatch, skip LaunchPos hook and instead perform a jump callout in PlayerLaunch_AFTER
-	system_match = (systemID == player_launch_base->system);
+	if (player_launch_base)
+	{
+		uint systemID;
+		pub::Player::GetSystem(client, systemID);
+		// in case of system mismatch, skip LaunchPos hook and instead perform a jump callout in PlayerLaunch_AFTER
+		system_match = (systemID == player_launch_base->system);
+	}
 }
 
 

@@ -13,8 +13,8 @@ map<uint, uint> mapPendingDockingRequests;
 vector<uint> dockingModuleEquipmentIds;
 map<uint, CLIENT_DATA> mobiledockClients;
 
-map<wstring, CARRIERINFO> carrierToCarriedMap;
-map<wstring, DOCKEDCRAFTINFO> dockedToCarrierMap;
+map<wstring, CARRIERINFO> nameToCarrierInfoMap;
+map<wstring, DOCKEDCRAFTINFO> nameToDockedInfoMap;
 map<uint, CARRIERINFO*> idToCarrierInfoMap;
 map<uint, DOCKEDCRAFTINFO*> idToDockedInfoMap;
 
@@ -23,6 +23,8 @@ uint forgetCarrierDataInSeconds = 31556926; // a year
 
 // Above how much cargo capacity, should a ship be rejected as a docking user?
 int cargoCapacityLimit = 275;
+
+float mobileDockingRange = 500.0f;
 
 // Load the configuration
 void LoadSettings()
@@ -73,6 +75,10 @@ void LoadSettings()
 					{
 						forgetCarrierDataInSeconds = ini.get_value_int(0);
 					}
+					else if (ini.is_value("mobileDockingRange"))
+					{
+						mobileDockingRange = ini.get_value_float(0);
+					}
 				}
 			}
 		}
@@ -120,15 +126,15 @@ void LoadSettings()
 							continue;
 						}
 
-						dockedToCarrierMap[dockedShipName].carrierName = carrierName.c_str();
-						dockedToCarrierMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
+						nameToDockedInfoMap[dockedShipName].carrierName = carrierName.c_str();
+						nameToDockedInfoMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
 
 						ci.dockedShipList.push_back(dockedShipName);
 						dockedCount++;
 					}
 				}
 				if (doLoad) {
-					carrierToCarriedMap[carrierName] = ci;
+					nameToCarrierInfoMap[carrierName] = ci;
 					carrierCount++;
 				}
 			}
@@ -142,7 +148,7 @@ void LoadSettings()
 
 void SaveData()
 {
-	if (carrierToCarriedMap.empty()){
+	if (nameToCarrierInfoMap.empty()){
 		return;
 	}
 	char datapath[MAX_PATH];
@@ -151,7 +157,7 @@ void SaveData()
 	FILE *file = fopen(path.c_str(), "w");
 	if (file)
 	{
-		for (const auto& ci : carrierToCarriedMap)
+		for (const auto& ci : nameToCarrierInfoMap)
 		{
 			if (ci.second.dockedShipList.empty()) {
 				continue;
@@ -161,7 +167,7 @@ void SaveData()
 			fprintf(file, "lastLogin = %u\n", (uint)ci.second.lastCarrierLogin);
 			for (const wstring& dockedName : ci.second.dockedShipList)
 			{
-				const auto& lastSolarInfo = Universe::get_base(dockedToCarrierMap[dockedName.c_str()].lastDockedSolar);
+				const auto& lastSolarInfo = Universe::get_base(nameToDockedInfoMap[dockedName.c_str()].lastDockedSolar);
 				fprintf(file, "docked = %ls, %s\n", dockedName.c_str(), lastSolarInfo->cNickname);
 			}
 		}
@@ -182,7 +188,7 @@ void HkTimerCheckKick()
 
 bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 {
-	if (!dockedToCarrierMap.count(dockedShipName)) {
+	if (!nameToDockedInfoMap.count(dockedShipName)) {
 		return false;
 	}
 	uint dockedClientID = HkGetClientIdFromCharname(dockedShipName);
@@ -201,11 +207,11 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 		idToDockedInfoMap.erase(dockedClientID);
 	}
 
-	wstring& carrierName = dockedToCarrierMap[dockedShipName].carrierName;
+	wstring& carrierName = nameToDockedInfoMap[dockedShipName].carrierName;
 
-	if (carrierToCarriedMap.count(carrierName))
+	if (nameToCarrierInfoMap.count(carrierName))
 	{
-		auto& dockedList = carrierToCarriedMap[carrierName].dockedShipList;
+		auto& dockedList = nameToCarrierInfoMap[carrierName].dockedShipList;
 		for (auto& iter = dockedList.begin(); iter != dockedList.end(); iter++) {
 			if (*iter == dockedShipName) {
 				dockedList.erase(iter);
@@ -213,7 +219,7 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 			}
 		}
 	}
-	dockedToCarrierMap.erase(dockedShipName);
+	nameToDockedInfoMap.erase(dockedShipName);
 
 	return true;
 }
@@ -274,11 +280,13 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		uint carrierShipID;
 		pub::Player::GetShip(carrierClientID, carrierShipID);
 		if (carrierShipID == 0) {
+			//carrier docked somewhere, undock into that base.
 			uint baseID;
 			pub::Player::GetBase(carrierClientID, baseID);
 			pub::Player::ForceLand(client, baseID);
 		}
 		else {
+			//teleport the player using same method as jumpdrives
 			CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
 			Vector pos;
 			Matrix ori;
@@ -295,7 +303,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			jumpData.iSystemID = iSystemID;
 			jumpData.pos = pos;
 			jumpData.ori = ori;
-			jumpData.jumpType = 2;
+			jumpData.jumpType = 2; // to avoid producing jump VFX
 
 			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_JUMP_CALLOUT, &jumpData);
 
@@ -331,23 +339,23 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 			return 0;
 
 		// If target is not player ship or ship is too far away then ignore the request.
-		const uint iTargetClientID = HkGetClientIDByShip(iTargetShip);
-		if (!iTargetClientID || HkDistance3DByShip(iShip, iTargetShip) > 1000.0f)
+		if (HkDistance3DByShip(iShip, iTargetShip) > mobileDockingRange)
 		{
 			PrintUserCmdText(client, L"Ship is out of range");
 			return 0;
 		}
 
+		const uint iTargetClientID = HkGetClientIDByShip(iTargetShip);
 		// Check that the target ship has an empty docking module.
-		if (mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
+		if (!iTargetClientID || mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
 		{
 			PrintUserCmdText(client, L"Target ship has no free docking capacity");
 			return 0;
 		}
 
 		// Check that the requesting ship is of the appropriate size to dock.
-		CShip* cship = dynamic_cast<CShip*>(HkGetEqObjFromObjRW(reinterpret_cast<IObjRW*>(HkGetInspect(client))));
-		if (cship->shiparch()->fHoldSize > cargoCapacityLimit)
+		const auto& shipInfo = Archetype::GetShip(Players[client].iShipArchetype);
+		if (shipInfo->fHoldSize > cargoCapacityLimit)
 		{
 			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
 			return 0;
@@ -378,6 +386,7 @@ void __stdcall BaseEnter(uint iBaseID, uint client)
 		wstring status = L"<RDL><PUSH/>";
 		status += L"<TEXT>Currently docked on: " + XMLText(idToDockedInfoMap[client]->carrierName);
 		if (CarrierID != -1) {
+			// if carrier online, add system info.
 			const auto& sysInfo = Universe::get_system(Players[CarrierID].iSystemID);
 			wstring& systemName = HkGetWStringFromIDS(sysInfo->strid_name);
 			status += L", " + systemName;
@@ -398,26 +407,25 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		if (!idToCarrierInfoMap.count(client) || idToCarrierInfoMap[client]->dockedShipList.empty())
 		{
 			PrintUserCmdText(client, L"No ships currently docked");
+			return true;
 		}
-		else
+		
+		uint counter = 0;
+		PrintUserCmdText(client, L"Docked ships:");
+		for (wstring& dockedShip : idToCarrierInfoMap[client]->dockedShipList)
 		{
-			uint counter = 0;
-			PrintUserCmdText(client, L"Docked ships:");
-			for (wstring& dockedShip : idToCarrierInfoMap[client]->dockedShipList)
-			{
-				counter++;
-				uint dockedClientID = HkGetClientIdFromCharname(dockedShip.c_str());
-				if (dockedClientID != -1) {
-					const auto& shipInfo = Archetype::GetShip(Players[dockedClientID].iShipArchetype);
-					wstring& shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
-					PrintUserCmdText(client, L"%u. %ls - %ls - ONLINE", counter, dockedShip.c_str(), shipName.c_str());
-				}
-				else
-				{
-					PrintUserCmdText(client, L"%u. %ls - OFFLINE", counter, dockedShip.c_str());
-				}
-				counter++;
+			counter++;
+			uint dockedClientID = HkGetClientIdFromCharname(dockedShip.c_str());
+			if (dockedClientID != -1) {
+				const auto& shipInfo = Archetype::GetShip(Players[dockedClientID].iShipArchetype);
+				wstring& shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
+				PrintUserCmdText(client, L"%u. %ls - %ls - ONLINE", counter, dockedShip.c_str(), shipName.c_str());
 			}
+			else
+			{
+				PrintUserCmdText(client, L"%u. %ls - OFFLINE", counter, dockedShip.c_str());
+			}
+			counter++;
 		}
 		return true;
 	}
@@ -519,12 +527,12 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		const wchar_t* carrierName = (const wchar_t*)Players.GetActiveCharacterName(client);
 		const wchar_t* dockedName = (const wchar_t*)Players.GetActiveCharacterName(iTargetClientID);
 
-		dockedToCarrierMap[dockedName].carrierName = carrierName;
-		dockedToCarrierMap[dockedName].lastDockedSolar = Players[iTargetClientID].iLastBaseID;
-		carrierToCarriedMap[carrierName].dockedShipList.push_back(dockedName);
-		carrierToCarriedMap[carrierName].lastCarrierLogin = time(0);
-		idToCarrierInfoMap[client] = &carrierToCarriedMap[carrierName];
-		idToDockedInfoMap[iTargetClientID] = &dockedToCarrierMap[dockedName];
+		nameToDockedInfoMap[dockedName].carrierName = carrierName;
+		nameToDockedInfoMap[dockedName].lastDockedSolar = Players[iTargetClientID].iLastBaseID;
+		nameToCarrierInfoMap[carrierName].dockedShipList.push_back(dockedName);
+		nameToCarrierInfoMap[carrierName].lastCarrierLogin = time(0);
+		idToCarrierInfoMap[client] = &nameToCarrierInfoMap[carrierName];
+		idToDockedInfoMap[iTargetClientID] = &nameToDockedInfoMap[dockedName];
 
 		mobiledockClients[client].iDockingModulesAvailable--;
 
@@ -574,8 +582,8 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 	
 	const wchar_t* charname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	if (carrierToCarriedMap.count(charname)) {
-		idToCarrierInfoMap[iClientID] = &carrierToCarriedMap[charname];
+	if (nameToCarrierInfoMap.count(charname)) {
+		idToCarrierInfoMap[iClientID] = &nameToCarrierInfoMap[charname];
 		for (const auto& dockedShipName : idToCarrierInfoMap[iClientID]->dockedShipList) {
 			uint dockedClientID = HkGetClientIdFromCharname(dockedShipName.c_str());
 			if (dockedClientID != -1)
@@ -584,8 +592,8 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 			}
 		}
 	}
-	else if (dockedToCarrierMap.count(charname)) {
-		idToDockedInfoMap[iClientID] = &dockedToCarrierMap[charname];
+	else if (nameToDockedInfoMap.count(charname)) {
+		idToDockedInfoMap[iClientID] = &nameToDockedInfoMap[charname];
 		uint carrierClientID = HkGetClientIdFromCharname(idToDockedInfoMap[iClientID]->carrierName.c_str());
 		if (carrierClientID != -1)
 		{

@@ -1179,7 +1179,7 @@ __declspec(naked) void __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float f
 	}
 }
 
-__declspec(naked) void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno)
+__declspec(naked) void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDelay)
 {
 	__asm
 	{

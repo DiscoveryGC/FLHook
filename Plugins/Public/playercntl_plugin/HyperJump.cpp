@@ -116,6 +116,7 @@ namespace HyperJump
 		bool charging_on;
 		float curr_charge;
 		uint active_fuse;
+		float active_fuse_delay;
 		list<uint> active_charge_fuse;
 		bool charging_complete;
 		uint charge_status;
@@ -424,7 +425,7 @@ namespace HyperJump
 			IObjInspectImpl *obj = HkGetInspect(iClientID);
 			if (obj)
 			{
-				HkUnLightFuse((IObjRW*)obj, jd.active_fuse, 0.0f);
+				HkUnLightFuse((IObjRW*)obj, jd.active_fuse, jd.active_fuse_delay);
 			}
 			jd.active_fuse = 0;
 		}
@@ -435,6 +436,7 @@ namespace HyperJump
 			if (obj)
 			{
 				jd.active_fuse = fuse;
+				jd.active_fuse_delay = delay;
 				HkLightFuse((IObjRW*)obj, jd.active_fuse, delay, lifetime, 0.0f);
 			}
 		}
@@ -1026,7 +1028,7 @@ namespace HyperJump
 						}
 					}
 				}
-				else
+				else if (jd.curr_charge > 0.0f)
 				{
 					// The drive is inactive, discharge the jump capacitors.
 					jd.curr_charge -= jd.arch->discharge_rate;

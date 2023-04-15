@@ -1028,7 +1028,7 @@ namespace HyperJump
 						}
 					}
 				}
-				else
+				else if (jd.curr_charge > 0.0f)
 				{
 					// The drive is inactive, discharge the jump capacitors.
 					jd.curr_charge -= jd.arch->discharge_rate;

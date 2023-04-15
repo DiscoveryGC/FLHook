@@ -18,6 +18,13 @@ struct CLIENT_DATA
 	int iDockingModulesAvailable = 0;
 };
 
+struct DELAYEDDOCK
+{
+	uint carrierID;
+	uint dockingID;
+	uint timeLeft;
+};
+
 struct CARRIERINFO
 {
 	vector<wstring> dockedShipList;

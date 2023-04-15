@@ -1238,7 +1238,41 @@ bool UserCmd_Process(uint client, const wstring &args)
 	return false;
 }
 
+static void ForcePlayerBaseDock(uint client, PlayerBase *base)
+{
+	char system_nick[1024];
+	pub::GetSystemNickname(system_nick, sizeof(system_nick), base->system);
 
+	char proxy_base_nick[1024];
+	sprintf(proxy_base_nick, "%s_proxy_base", system_nick);
+
+	uint proxy_base_id = CreateID(proxy_base_nick);
+
+	clients[client].player_base = base->base;
+	clients[client].last_player_base = base->base;
+
+	if (set_plugin_debug > 1)
+		ConPrint(L"ForcePlayerBaseDock client=%u player_base=%u\n", client, clients[client].player_base);
+
+	uint system;
+	pub::Player::GetSystem(client, system);
+
+	pub::Player::ForceLand(client, proxy_base_id);
+	if (system != base->system)
+	{
+		Server.BaseEnter(proxy_base_id, client);
+		Server.BaseExit(proxy_base_id, client);
+
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		wstring charfilename;
+		HkGetCharFileName(charname, charfilename);
+		charfilename += L".fl";
+		CHARACTER_ID charid;
+		strcpy(charid.szCharFilename, wstos(charname.substr(0, 14)).c_str());
+
+		Server.CharacterSelect(charid, client); \
+	}
+}
 
 static bool IsDockingAllowed(PlayerBase *base, uint client)
 {
@@ -1539,9 +1573,11 @@ void __stdcall BaseExit(uint base, uint client)
 		if (set_plugin_debug)
 			ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
 
-		clients[client].last_player_base = clients[client].player_base;
-		clients[client].player_base = 0;
-		SaveDockState(client);
+		if (clients[client].player_base) {
+			clients[client].last_player_base = clients[client].player_base;
+			clients[client].player_base = 0;
+			SaveDockState(client);
+		}
 	}
 	else
 	{
@@ -1617,8 +1653,16 @@ void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
-	player_launch_base = GetPlayerBase(clients[client].last_player_base);
-	
+
+	if (!clients[client].last_player_base)
+		return;
+
+	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+	mobileCheck.iClientID = client;
+	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+	if (!mobileCheck.isMobileDocked)
+		player_launch_base = GetPlayerBase(clients[client].last_player_base);
+
 	if (player_launch_base)
 	{
 		uint systemID;
@@ -1636,16 +1680,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 
 	if (player_launch_base && !system_match)
 	{
-		CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
-		jumpData.iClientID = client;
-		jumpData.iSystemID = player_launch_base->system;
-		jumpData.pos = player_launch_base->position;
-		jumpData.ori = player_launch_base->rotation;
-		jumpData.jumpType = 2;
-
-		TranslateX(jumpData.pos, jumpData.ori, -750);
-		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_JUMP_CALLOUT, &jumpData);
-		player_launch_base = 0;
+		ForcePlayerBaseDock(client, player_launch_base);
 	}
 }
 
@@ -2156,42 +2191,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damag
 			iDmgToSpaceID = 0;
 			return;
 		}
-	}
-}
-
-static void ForcePlayerBaseDock(uint client, PlayerBase *base)
-{
-	char system_nick[1024];
-	pub::GetSystemNickname(system_nick, sizeof(system_nick), base->system);
-
-	char proxy_base_nick[1024];
-	sprintf(proxy_base_nick, "%s_proxy_base", system_nick);
-
-	uint proxy_base_id = CreateID(proxy_base_nick);
-
-	clients[client].player_base = base->base;
-	clients[client].last_player_base = base->base;
-
-	if (set_plugin_debug > 1)
-		ConPrint(L"ForcePlayerBaseDock client=%u player_base=%u\n", client, clients[client].player_base);
-
-	uint system;
-	pub::Player::GetSystem(client, system);
-
-	pub::Player::ForceLand(client, proxy_base_id);
-	if (system != base->system)
-	{
-		Server.BaseEnter(proxy_base_id, client);
-		Server.BaseExit(proxy_base_id, client);
-
-		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		wstring charfilename;
-		HkGetCharFileName(charname, charfilename);
-		charfilename += L".fl";
-		CHARACTER_ID charid;
-		strcpy(charid.szCharFilename, wstos(charname.substr(0, 14)).c_str());
-
-		Server.CharacterSelect(charid, client); \
 	}
 }
 
@@ -2825,6 +2824,26 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		}
 	}
 	else if (msg == CUSTOM_BASE_LAST_DOCKED)
+	{
+		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
+		if (clients.count(info->clientID))
+		{
+			uint lastBaseID = clients[info->clientID].last_player_base;
+			if (player_bases.count(lastBaseID))
+			{
+				info->lastBaseName = player_bases[lastBaseID]->basename;
+			}
+			else
+			{
+				info->lastBaseName = L"Destroyed Player Base";
+			}
+		}
+		else
+		{
+			info->lastBaseName = L"Object Unknown";
+		}
+	}
+	else if (msg == CUSTOM_BASE_GET_NAME)
 	{
 		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
 		if (clients.count(info->clientID))

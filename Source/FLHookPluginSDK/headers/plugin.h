@@ -254,7 +254,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_IS_IT_POB = 50,
 	CUSTOM_REVERSE_TRANSACTION = 48,
 	CUSTOM_JUMP_CALLOUT = 49,
-	CUSTOM_MOBILE_DOCK_CHECK = 50
+	CUSTOM_MOBILE_DOCK_CHECK = 50,
+	CUSTOM_BASE_GET_NAME = 51
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -374,6 +375,11 @@ struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
 	bool isMobileDocked = false;
 };
 
+struct LAST_PLAYER_BASE_NAME_STRUCT
+{
+	uint clientID;
+	wstring lastBaseName;
+};
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #endif

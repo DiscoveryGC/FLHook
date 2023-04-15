@@ -262,6 +262,23 @@ void HkTimerCheckKick()
 	}
 }
 
+wstring GetLastBaseName(uint client)
+{
+	const auto& dockedInfo = idToDockedInfoMap[client];
+	const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
+	const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
+	wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+	wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
+	if (baseName == L"Object Unknown")
+	{
+		LAST_PLAYER_BASE_NAME_STRUCT pobName;
+		pobName.clientID = client;
+		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_LAST_DOCKED, &pobName);
+		baseName = pobName.lastBaseName;
+	}
+	return baseName + L', ' + sysName;
+}
+
 bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 {
 	if (!nameToDockedInfoMap.count(dockedShipName)) {
@@ -273,12 +290,8 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 	{
 		if (isForced)
 		{
-			const auto& dockedInfo = idToDockedInfoMap[dockedClientID];
-			const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
-			const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
-			wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
-			wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
-			PrintUserCmdText(dockedClientID, L"Carrier has jettisonned your ship. Returning to %ls, %ls.", baseName.c_str(), sysName.c_str());
+			wstring& lastBaseName = GetLastBaseName(dockedClientID);
+			PrintUserCmdText(dockedClientID, L"Carrier has jettisonned your ship. Returning to %ls", lastBaseName.c_str());
 		}
 		idToDockedInfoMap.erase(dockedClientID);
 	}
@@ -640,12 +653,8 @@ void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 			uint dockedClientID = HkGetClientIdFromCharname(dockedPlayer.c_str());
 			if(dockedClientID != -1)
 			{
-				const auto& dockedInfo = idToDockedInfoMap[dockedClientID];
-				const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
-				const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
-				wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
-				wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
-				PrintUserCmdText(dockedClientID, L"Carrier logged off, redirecting undock to %ls, %ls", baseName.c_str(), sysName.c_str());
+				wstring& lastBaseName = GetLastBaseName(dockedClientID);
+				PrintUserCmdText(dockedClientID, L"Carrier logged off, redirecting undock to %ls", lastBaseName);
 			}
 		}
 	}
@@ -712,13 +721,9 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 		}
 		else
 		{
-			const auto& dockedInfo = idToDockedInfoMap[iClientID];
-			const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
-			const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
-			wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
-			wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
+			wstring& lastBaseName = GetLastBaseName(iClientID);
 
-			PrintUserCmdText(iClientID, L"Carrier currently offline. Last docked base: %ls, %ls", baseName.c_str(), sysName.c_str());
+			PrintUserCmdText(iClientID, L"Carrier currently offline. Last docked base: %ls", lastBaseName);
 		}
 	}
 }

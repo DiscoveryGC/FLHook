@@ -1634,7 +1634,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 	SyncReputationForClientShip(ship, client);
 
-	if (!system_match)
+	if (player_launch_base && !system_match)
 	{
 		CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
 		jumpData.iClientID = client;
@@ -2822,6 +2822,26 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			pub::Player::AdjustCash(info->iClientID, -price);
 			base->ChangeMoney(price);
 			base->Save();
+		}
+	}
+	else if (msg == CUSTOM_BASE_LAST_DOCKED)
+	{
+		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
+		if (clients.count(info->clientID))
+		{
+			uint lastBaseID = clients[info->clientID].last_player_base;
+			if (player_bases.count(lastBaseID))
+			{
+				info->lastBaseName = player_bases[lastBaseID]->basename;
+			}
+			else
+			{
+				info->lastBaseName = L"Destroyed Player Base";
+			}
+		}
+		else
+		{
+			info->lastBaseName = L"Object Unknown";
 		}
 	}
 	return;

@@ -267,16 +267,21 @@ wstring GetLastBaseName(uint client)
 	const auto& dockedInfo = idToDockedInfoMap[client];
 	const auto& baseInfo = Universe::get_base(dockedInfo->lastDockedSolar);
 	const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
-	wstring& baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+	wstring baseName;
 	wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
-	if (baseName == L"Object Unknown")
+	// if last base is a proxy base, it's a POB, call to base plugin for its name
+	if (((string)baseInfo->cNickname).find("_proxy_base") != string::npos)
 	{
 		LAST_PLAYER_BASE_NAME_STRUCT pobName;
 		pobName.clientID = client;
-		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_LAST_DOCKED, &pobName);
-		baseName = pobName.lastBaseName;
+		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_GET_NAME, &pobName);
+		baseName = L"player base " + pobName.lastBaseName;
 	}
-	return baseName + L', ' + sysName;
+	else
+	{
+		baseName = HkGetWStringFromIDS(baseInfo->iBaseIDS);
+	}
+	return baseName + L", " + sysName;
 }
 
 bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)

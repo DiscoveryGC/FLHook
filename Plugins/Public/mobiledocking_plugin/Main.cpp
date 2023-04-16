@@ -30,6 +30,8 @@ int cargoCapacityLimit = 275;
 
 float mobileDockingRange = 500.0f;
 
+float maxDockingDistanceTolerance = 8.0f;
+
 // Load the configuration
 void LoadSettings()
 {
@@ -86,6 +88,10 @@ void LoadSettings()
 					else if (ini.is_value("docking_period"))
 					{
 						dockingPeriod = ini.get_value_int(0);
+					}
+					else if (ini.is_value("docking_tolerance"))
+					{
+						maxDockingDistanceTolerance = ini.get_value_float(0);
 					}
 				}
 			}
@@ -256,7 +262,7 @@ void HkTimerCheckKick()
 			Matrix _;
 			pub::SpaceObj::GetLocation(dockingShipID, pos, _);
 			float distance = HkDistance3D(pos, dd->startPosition);
-			if (distance > 8)
+			if (distance > maxDockingDistanceTolerance)
 			{
 				PrintUserCmdText(dd->dockingID, L"Docking aborted due to craft movement");
 				PrintUserCmdText(dd->carrierID, L"Docking aborted due to craft movement");

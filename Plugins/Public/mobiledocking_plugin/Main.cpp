@@ -214,7 +214,7 @@ void dockShipOnCarrier(uint dockingID, uint carrierID)
 	const wchar_t* dockedName = (const wchar_t*)Players.GetActiveCharacterName(dockingID);
 
 	nameToDockedInfoMap[dockedName].carrierName = carrierName;
-	nameToDockedInfoMap[dockedName].lastDockedSolar = Players[dockingShipID].iLastBaseID;
+	nameToDockedInfoMap[dockedName].lastDockedSolar = Players[dockingID].iLastBaseID;
 	nameToCarrierInfoMap[carrierName].dockedShipList.push_back(dockedName);
 	nameToCarrierInfoMap[carrierName].lastCarrierLogin = time(0);
 	idToCarrierInfoMap[carrierID] = &nameToCarrierInfoMap[carrierName];
@@ -386,6 +386,45 @@ uint GetInstalledModules(uint iClientID)
 	return modules;
 }
 
+void AddClientToDockQueue(uint dockingID, uint carrierID)
+{
+	const auto& dockMode = mobiledockClients[carrierID].dockMode;
+	if (dockMode == ALLOW_ALL)
+	{
+		dockShipOnCarrier(dockingID, carrierID);
+	}
+	else if (dockMode == ALLOW_NONE)
+	{
+		mapPendingDockingRequests[dockingID] = carrierID;
+		PrintUserCmdText(carrierID, L"%s is requesting to dock, authorise with /allowdock", Players.GetActiveCharacterName(dockingID));
+		PrintUserCmdText(dockingID, L"Docking request sent to %s", Players.GetActiveCharacterName(carrierID));
+	}
+	else if (dockMode == ALLOW_GROUP)
+	{
+		list<GROUP_MEMBER> lstGrpMembers;
+		HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(dockingID), lstGrpMembers);
+
+		bool isGroupMember = false;
+		for (auto& member : lstGrpMembers) {
+			if (member.iClientID == carrierID)
+			{
+				isGroupMember = true;
+				break;
+			}
+		}
+		if (isGroupMember)
+		{
+			dockShipOnCarrier(dockingID, carrierID);
+		}
+		else
+		{
+			mapPendingDockingRequests[dockingID] = carrierID;
+			PrintUserCmdText(carrierID, L"%s is requesting to dock, authorise with /allowdock", Players.GetActiveCharacterName(dockingID));
+			PrintUserCmdText(dockingID, L"Docking request sent to %s", Players.GetActiveCharacterName(carrierID));
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void __stdcall BaseExit(uint iBaseID, uint iClientID)
@@ -506,9 +545,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 		// Create a docking request and send a notification to the target ship.
-		mapPendingDockingRequests[client] = iTargetClientID;
-		PrintUserCmdText(iTargetClientID, L"%s is requesting to dock, authorise with /allowdock", Players.GetActiveCharacterName(client));
-		PrintUserCmdText(client, L"Docking request sent to %s", Players.GetActiveCharacterName(iTargetClientID));
+		AddClientToDockQueue(client, iTargetClientID);
 		return -1;
 	}
 	return 0;
@@ -679,6 +716,33 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			PrintUserCmdText(iTargetClientID, L"Dock request accepted, stand still for %u second(s)", dockingPeriod);
 		}
 		return true;
+	}
+	else if (wscCmd.find(L"/dockmode") == 0)
+	{
+		wstring& param = GetParam(wscCmd, ' ', 1);
+		if (param.empty())
+		{
+			PrintUserCmdText(client, L"Usage: /dockmode <all/group/none>");
+		}
+		else if (param == L"all")
+		{
+			mobiledockClients[client].dockMode = ALLOW_ALL;
+			PrintUserCmdText(client, L"Dockmode set to ALL");
+		}
+		else if (param == L"group")
+		{
+			mobiledockClients[client].dockMode = ALLOW_GROUP;
+			PrintUserCmdText(client, L"Dockmode set to GROUP");
+		}
+		else if (param == L"none")
+		{
+			mobiledockClients[client].dockMode = ALLOW_NONE;
+			PrintUserCmdText(client, L"Dockmode set to NONE");
+		}
+		else
+		{
+			PrintUserCmdText(client, L"Usage: /dockmode <all/group/none>");
+		}
 	}
 	return false;
 }

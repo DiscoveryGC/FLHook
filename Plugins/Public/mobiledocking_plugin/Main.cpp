@@ -223,6 +223,11 @@ void HkTimerCheckKick()
 	for (auto& dd = dockingInProgress.begin() ; dd != dockingInProgress.end();)
 	{
 		const auto& dockingShipID = Players[dd->dockingID].iShipID;
+		if (dockingShipID == 0)
+		{
+			dd = dockingInProgress.erase(dd);
+			continue;
+		}
 		Vector V1mov, V1rot;
 		pub::SpaceObj::GetMotion(dockingShipID, V1mov, V1rot);
 		if (V1mov.x > 5 || V1mov.y > 5 || V1mov.z > 5)
@@ -247,6 +252,17 @@ void HkTimerCheckKick()
 		dd->timeLeft--;
 		if (!dd->timeLeft)
 		{
+			Vector pos;
+			Matrix _;
+			pub::SpaceObj::GetLocation(dockingShipID, pos, _);
+			float distance = HkDistance3D(pos, dd->startPosition);
+			if (distance > 8)
+			{
+				PrintUserCmdText(dd->dockingID, L"Docking aborted due to craft movement");
+				PrintUserCmdText(dd->carrierID, L"Docking aborted due to craft movement");
+				dd = dockingInProgress.erase(dd);
+				continue;
+			}
 			dockShipOnCarrier(dd->dockingID, dd->carrierID);
 			dd = dockingInProgress.erase(dd);
 			continue;
@@ -637,10 +653,15 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		}
 		else
 		{
+			Vector pos;
+			Matrix _;
+			pub::SpaceObj::GetLocation(Players[iTargetClientID].iShipID, pos, _);
+
 			DELAYEDDOCK dd;
 			dd.carrierID = client;
 			dd.dockingID = iTargetClientID;
 			dd.timeLeft = dockingPeriod;
+			dd.startPosition = pos;
 			dockingInProgress.push_back(dd);
 			PrintUserCmdText(client, L"Docking procedure in progress", dockingPeriod);
 			PrintUserCmdText(iTargetClientID, L"Dock request accepted, stand still for %u second(s)", dockingPeriod);

@@ -719,6 +719,11 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 	}
 	else if (wscCmd.find(L"/dockmode") == 0)
 	{
+		if(mobiledockClients[client].iDockingModulesInstalled == 0)
+		{
+			PrintUserCmdText(client, L"ERR No docking modules installed");
+			return;
+		}
 		wstring& param = GetParam(wscCmd, ' ', 1);
 		if (param.empty())
 		{

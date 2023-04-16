@@ -196,6 +196,12 @@ void dockShipOnCarrier(uint dockingID, uint carrierID)
 	// The client is free to dock, erase from the pending list and handle
 	mapPendingDockingRequests.erase(dockingID);
 
+	if (mobiledockClients[carrierID].iDockingModulesAvailable == 0)
+	{
+		PrintUserCmdText(dockingID, L"Carrier has no free docking capacity");
+		return;
+	}
+
 	string scProxyBase = HkGetPlayerSystemS(carrierID) + "_proxy_base";
 	uint iBaseID;
 	if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)

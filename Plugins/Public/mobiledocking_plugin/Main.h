@@ -23,6 +23,7 @@ struct DELAYEDDOCK
 	uint carrierID;
 	uint dockingID;
 	uint timeLeft;
+	Vector startPosition;
 };
 
 struct CARRIERINFO

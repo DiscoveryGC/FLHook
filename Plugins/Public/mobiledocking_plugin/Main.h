@@ -12,10 +12,18 @@
 #include <plugin.h>
 #include <PluginUtilities.h>
 
+enum ALLOWDOCKMODE
+{
+	ALLOW_ALL = 0,
+	ALLOW_GROUP = 1,
+	ALLOW_NONE = 2
+};
+
 struct CLIENT_DATA
 {
 	uint iDockingModulesInstalled = 0;
 	int iDockingModulesAvailable = 0;
+	ALLOWDOCKMODE dockMode = ALLOW_NONE;
 };
 
 struct DELAYEDDOCK

@@ -364,6 +364,14 @@ struct CUSTOM_JUMP_STRUCT
 	uint iSystemID;
 };
 
+struct CUSTOM_JUMP_CALLOUT_STRUCT
+{
+	uint iClientID;
+	uint iSystemID;
+	Vector pos;
+	Matrix ori;
+	uint jumpType = 0;
+};
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 {
 	uint iClientID;

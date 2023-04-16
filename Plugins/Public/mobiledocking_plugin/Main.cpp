@@ -190,11 +190,11 @@ void SaveData()
 	}
 }
 
-void dockShipOnCarrier(uint dockingShipID, uint carrierID)
+void dockShipOnCarrier(uint dockingID, uint carrierID)
 {
 
 	// The client is free to dock, erase from the pending list and handle
-	mapPendingDockingRequests.erase(dockingShipID);
+	mapPendingDockingRequests.erase(dockingID);
 
 	string scProxyBase = HkGetPlayerSystemS(carrierID) + "_proxy_base";
 	uint iBaseID;
@@ -205,19 +205,19 @@ void dockShipOnCarrier(uint dockingShipID, uint carrierID)
 
 	// Save the carrier info
 	const wchar_t* carrierName = (const wchar_t*)Players.GetActiveCharacterName(carrierID);
-	const wchar_t* dockedName = (const wchar_t*)Players.GetActiveCharacterName(dockingShipID);
+	const wchar_t* dockedName = (const wchar_t*)Players.GetActiveCharacterName(dockingID);
 
 	nameToDockedInfoMap[dockedName].carrierName = carrierName;
 	nameToDockedInfoMap[dockedName].lastDockedSolar = Players[dockingShipID].iLastBaseID;
 	nameToCarrierInfoMap[carrierName].dockedShipList.push_back(dockedName);
 	nameToCarrierInfoMap[carrierName].lastCarrierLogin = time(0);
 	idToCarrierInfoMap[carrierID] = &nameToCarrierInfoMap[carrierName];
-	idToDockedInfoMap[dockingShipID] = &nameToDockedInfoMap[dockedName];
+	idToDockedInfoMap[dockingID] = &nameToDockedInfoMap[dockedName];
 
 	mobiledockClients[carrierID].iDockingModulesAvailable--;
 
 	// Land the ship on the proxy base
-	pub::Player::ForceLand(dockingShipID, iBaseID);
+	pub::Player::ForceLand(dockingID, iBaseID);
 	PrintUserCmdText(carrierID, L"Ship docked");
 }
 

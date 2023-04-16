@@ -23,7 +23,7 @@ struct CLIENT_DATA
 {
 	uint iDockingModulesInstalled = 0;
 	int iDockingModulesAvailable = 0;
-	ALLOWDOCKMODE dockMode = ALLOW_NONE;
+	ALLOWDOCKMODE dockMode = ALLOW_GROUP;
 };
 
 struct DELAYEDDOCK

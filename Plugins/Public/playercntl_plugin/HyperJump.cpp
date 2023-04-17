@@ -851,15 +851,27 @@ namespace HyperJump
 						auto shipInfo1 = Archetype::GetShip(Players[iClientID].iShipArchetype);
 						if (!CanJumpWithCommodities && CheckForCommodities(iClientID))
 						{
+							jd.charging_complete = false;
+							jd.curr_charge = 0.0;
+							jd.charging_on = false;
+							StopChargeFuses(iClientID);
 							PrintUserCmdText(iClientID, L"ERR Jumping with commodities onboard is forbidden.");
 							continue;
 						}
 						if (JumpCargoSizeRestriction <= shipInfo1->fHoldSize) {
+							jd.charging_complete = false;
+							jd.curr_charge = 0.0;
+							jd.charging_on = false;
+							StopChargeFuses(iClientID);
 							PrintUserCmdText(iClientID, L"ERR Cargo hold too large, jumping forbidden");
 							continue;
 						}
 						if (JumpWhiteListEnabled == 1 && jumpRestrictedShipsList.find(Players[iClientID].iShipArchetype) != jumpRestrictedShipsList.end())
 						{
+							jd.charging_complete = false;
+							jd.curr_charge = 0.0;
+							jd.charging_on = false;
+							StopChargeFuses(iClientID);
 							PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump.");
 							continue;
 						}

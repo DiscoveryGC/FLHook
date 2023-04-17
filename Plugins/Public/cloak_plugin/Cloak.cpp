@@ -74,6 +74,7 @@ struct CLOAK_INFO
 
 	ushort iCloakSlot;
 	bool bCanCloak;
+	bool bInWarpGate;
 	mstime tmCloakTime;
 	uint iState;
 	bool bAdmin;
@@ -311,6 +312,9 @@ void SetState(uint iClientID, uint iShipID, int iNewState)
 static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 {
 	if (info.bAdmin)
+		return true;
+
+	if(setJumpingClients.find(iClientID) != setJumpingClients.end())
 		return true;
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)

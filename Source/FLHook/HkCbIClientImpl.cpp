@@ -1023,24 +1023,24 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_GFDESTROYCHARACTER(uint iClientID, uint
 /**************************************************************************************************************
 **************************************************************************************************************/
 
-bool HkIClientImpl::Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(uint iClientID, FLPACKET_UNKNOWN &pDunno)
+bool HkIClientImpl::Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(uint iClientID, FLPACKET_SYSTEM_SWITCH_IN &switchInPacket)
 {
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
 
-	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, pDunno));
+	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket));
 	return reinterpret_cast<bool>(vRet);
 }
 
 /**************************************************************************************************************
 **************************************************************************************************************/
 
-bool HkIClientImpl::Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_UNKNOWN &pDunno)
+bool HkIClientImpl::Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT &switchOutPacket)
 {
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
 
-	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, pDunno));
+	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket));
 	return reinterpret_cast<bool>(vRet);
 }
 

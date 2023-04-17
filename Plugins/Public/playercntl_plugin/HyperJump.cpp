@@ -71,6 +71,7 @@ namespace HyperJump
 	static uint BlindJumpOverrideSystem = 0;
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
+	static boolean EnableFakeJumpTunnels = false;
 
 	struct JUMPFUSE
 	{
@@ -122,6 +123,7 @@ namespace HyperJump
 		uint charge_status;
 
 		int jump_timer;
+		int jump_tunnel_timer;
 		uint iTargetSystem;
 		Vector vTargetPosition;
 		Matrix matTargetOrient;
@@ -153,17 +155,44 @@ namespace HyperJump
 
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 	{
-		mapDeferredJumps[iClientID].system = system;
-		mapDeferredJumps[iClientID].pos = pos;
-		mapDeferredJumps[iClientID].ornt = ornt;
+		if (EnableFakeJumpTunnels)
+		{
+			//TODO: Find jump tunnel
+			uint iSystem;
+			uint iPlayerSystem;
+			const auto& proxyJH = HkGetSystemNickByID(Players[iClientID].iSystemID) + L"_proxy_jump_hole";
+			uint ProxyJumpHoleID = CreateID(wstos(proxyJH).c_str());
+			pub::Player::GetSystem(iClientID, iPlayerSystem);
+			pub::SpaceObj::GetSystem(ProxyJumpHoleID, iSystem);
 
-		// Force a launch to put the ship in the right location in the current system so that
-		// when the change system command arrives (hopefully) a fraction of a second later
-		// the ship will appear at the right location.
-		HkRelocateClient(iClientID, pos, ornt);
-		// Send the jump command to the client. The client will send a system switch out complete
-		// event which we intercept to set the new starting positions.
-		PrintUserCmdText(iClientID, L" ChangeSys %u", system);
+			if (iSystem != iPlayerSystem)
+			{
+				PrintUserCmdText(iClientID, L"Jump failed, proxy jump hole not located. Contact staff.");
+				return;
+			}
+			uint playerShip;
+			pub::Player::GetShip(iClientID, playerShip);
+			FLPACKET_SYSTEM_SWITCH_OUT switchOutPacket;
+			switchOutPacket.jumpObjectId = ProxyJumpHoleID;
+			switchOutPacket.shipId = playerShip;
+			HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket);
+
+			mapJumpDrives[iClientID].jump_tunnel_timer = 10;
+		}
+		else
+		{
+			mapDeferredJumps[iClientID].system = system;
+			mapDeferredJumps[iClientID].pos = pos;
+			mapDeferredJumps[iClientID].ornt = ornt;
+
+			// Force a launch to put the ship in the right location in the current system so that
+			// when the change system command arrives (hopefully) a fraction of a second later
+			// the ship will appear at the right location.
+			HkRelocateClient(iClientID, pos, ornt);
+			// Send the jump command to the client. The client will send a system switch out complete
+			// event which we intercept to set the new starting positions.
+			PrintUserCmdText(iClientID, L" ChangeSys %u", system);
+		}
 	}
 
 	void HyperJump::LoadSettings(const string &scPluginCfgFile)
@@ -230,6 +259,10 @@ namespace HyperJump
 						else if (ini.is_value("CanGroupJumpWithCommodities"))
 						{
 							CanGroupJumpWithCommodities = ini.get_value_bool(0);
+						}
+						else if (ini.is_value("EnableFakeJumpTunnels"))
+						{
+							EnableFakeJumpTunnels = ini.get_value_bool(0);
 						}
 						else if (ini.is_value("JumpInFuse"))
 						{
@@ -444,6 +477,9 @@ namespace HyperJump
 
 	void HyperJump::SetJumpInFuse(uint iClientID, JumpType jumpType)
 	{
+		if (jumpType == JUMPHOLE_JUMPTYPE && mapJumpDrives[iClientID].jump_tunnel_timer)
+			jumpType = JUMPDRIVE_JUMPTYPE;
+
 		Archetype::Ship* victimShiparch = Archetype::GetShip(Players[iClientID].iShipArchetype);
 		if (JumpInFuseMap.count(victimShiparch->iShipClass) && JumpInFuseMap[victimShiparch->iShipClass].count(jumpType))
 		{
@@ -807,6 +843,27 @@ namespace HyperJump
 			else
 			{
 				JUMPDRIVE &jd = iter->second;
+
+				if (jd.jump_tunnel_timer > 0)
+				{
+					jd.jump_tunnel_timer--;
+					PrintUserCmdText(iClientID, L"Tunnel timer %d\n", jd.jump_tunnel_timer);
+					if (jd.jump_tunnel_timer == 2)
+					{
+						// switch the system under the hood, final coordinates will be set by the packet next step.
+						PrintUserCmdText(iClientID, L" ChangeSys %u", jd.iTargetSystem);
+					}
+					else if (jd.jump_tunnel_timer == 1)
+					{
+						FLPACKET_SYSTEM_SWITCH_IN switchInPacket;
+						switchInPacket.objType = OBJ_JUMP_HOLE;
+						switchInPacket.pos = jd.vTargetPosition;
+						switchInPacket.quat = HkMatrixToQuaternion(jd.matTargetOrient);
+						switchInPacket.shipId = iShip;
+						HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket);
+					}
+				}
+
 				if (jd.arch == nullptr) {
 					continue;
 				}

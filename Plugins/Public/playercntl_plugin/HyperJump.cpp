@@ -157,17 +157,16 @@ namespace HyperJump
 	{
 		if (EnableFakeJumpTunnels)
 		{
-			//TODO: Find jump tunnel
 			uint iSystem;
 			uint iPlayerSystem;
-			const auto& proxyJH = HkGetSystemNickByID(Players[iClientID].iSystemID) + L"_proxy_jump_hole";
-			uint ProxyJumpHoleID = CreateID(wstos(proxyJH).c_str());
 			pub::Player::GetSystem(iClientID, iPlayerSystem);
+			const auto& proxyJH = HkGetSystemNickByID(iPlayerSystem) + L"_proxy_jump_hole";
+			uint ProxyJumpHoleID = CreateID(wstos(proxyJH).c_str());
 			pub::SpaceObj::GetSystem(ProxyJumpHoleID, iSystem);
 
 			if (iSystem != iPlayerSystem)
 			{
-				PrintUserCmdText(iClientID, L"Jump failed, proxy jump hole not located. Contact staff.");
+				PrintUserCmdText(iClientID, L"ERR Jump failed, proxy jump hole not located. Contact staff.");
 				return;
 			}
 			uint playerShip;
@@ -700,8 +699,10 @@ namespace HyperJump
 			const auto& fullSystemName = HkGetWStringFromIDS(sysinfo->strid_name);
 			if (ToLower(fullSystemName) == sysName) {
 				uint &iTargetSystemID = sysinfo->id;
+				uint iClientSystem;
+				pub::Player::GetSystem(iClientID, iClientSystem);
 
-				if (IsSystemJumpable(Players[iClientID].iSystemID, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
+				if (IsSystemJumpable(iClientSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
 					PrintUserCmdText(iClientID, L"%ls is within your jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
 				}
 				else {
@@ -1480,8 +1481,9 @@ namespace HyperJump
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
 			return true;
 		}
-
-		if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID) == 0) {
+		uint clientSystem;
+		pub::Player::GetSystem(iClientID, clientSystem);
+		if (mapAvailableJumpSystems.count(clientSystem) == 0) {
 			PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
 			return true;
 		}
@@ -1518,8 +1520,8 @@ namespace HyperJump
 			}
 			else
 			{
-				if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID)) {
-					auto& systemListForSyst = mapAvailableJumpSystems[Players[iClientID].iSystemID];
+				if (mapAvailableJumpSystems.count(clientSystem)) {
+					auto& systemListForSyst = mapAvailableJumpSystems[clientSystem];
 					auto& systemListAtRandRange = systemListForSyst[(rand() % jd.arch->jump_range)+1];
 					uint selectedSystem = systemListAtRandRange.at(rand() % systemListAtRandRange.size());
 					if (mapSystemJumps.count(selectedSystem) == 0) {

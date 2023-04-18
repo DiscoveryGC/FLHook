@@ -136,9 +136,10 @@ namespace PurchaseRestrictions
 namespace HyperJump
 {
 	const enum JumpType {
-		JUMPHOLEGATE_JUMPTYPE = 0,
+		JUMPHOLE_JUMPTYPE = 0,
 		JUMPDRIVE_JUMPTYPE = 1,
-		MOBILEDOCK_JUMPTYPE = 2
+		NOEFFECT_JUMPTYPE = 2,
+		JUMPGATE_JUMPTYPE = 3
 	};
 
 	void LoadSettings(const string &scPluginCfgFile);

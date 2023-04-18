@@ -501,7 +501,7 @@ namespace HkIServerImpl
 		{
 			AntiJumpDisconnect::JumpInComplete(iSystem, iShip, iClientID);
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
-			HyperJump::SetJumpInFuse(iClientID, HyperJump::JumpType::JUMPHOLEGATE_JUMPTYPE);
+			HyperJump::SetJumpInFuse(iClientID, HyperJump::JumpType::JUMPHOLE_JUMPTYPE);
 		}
 
 		// Make player damageable once the ship has jumped in system.

@@ -71,6 +71,7 @@ namespace HyperJump
 	static uint BlindJumpOverrideSystem = 0;
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
+	static boolean EnableFakeJumpTunnels = false;
 
 	struct JUMPFUSE
 	{
@@ -122,6 +123,7 @@ namespace HyperJump
 		uint charge_status;
 
 		int jump_timer;
+		int jump_tunnel_timer;
 		uint iTargetSystem;
 		Vector vTargetPosition;
 		Matrix matTargetOrient;
@@ -153,17 +155,43 @@ namespace HyperJump
 
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
 	{
-		mapDeferredJumps[iClientID].system = system;
-		mapDeferredJumps[iClientID].pos = pos;
-		mapDeferredJumps[iClientID].ornt = ornt;
+		if (EnableFakeJumpTunnels)
+		{
+			uint iSystem;
+			uint iPlayerSystem;
+			pub::Player::GetSystem(iClientID, iPlayerSystem);
+			const auto& proxyJH = HkGetSystemNickByID(iPlayerSystem) + L"_proxy_jump_hole";
+			uint ProxyJumpHoleID = CreateID(wstos(proxyJH).c_str());
+			pub::SpaceObj::GetSystem(ProxyJumpHoleID, iSystem);
 
-		// Force a launch to put the ship in the right location in the current system so that
-		// when the change system command arrives (hopefully) a fraction of a second later
-		// the ship will appear at the right location.
-		HkRelocateClient(iClientID, pos, ornt);
-		// Send the jump command to the client. The client will send a system switch out complete
-		// event which we intercept to set the new starting positions.
-		PrintUserCmdText(iClientID, L" ChangeSys %u", system);
+			if (iSystem != iPlayerSystem)
+			{
+				PrintUserCmdText(iClientID, L"ERR Jump failed, proxy jump hole not located. Contact staff.");
+				return;
+			}
+			uint playerShip;
+			pub::Player::GetShip(iClientID, playerShip);
+			FLPACKET_SYSTEM_SWITCH_OUT switchOutPacket;
+			switchOutPacket.jumpObjectId = ProxyJumpHoleID;
+			switchOutPacket.shipId = playerShip;
+			HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket);
+
+			mapJumpDrives[iClientID].jump_tunnel_timer = 10;
+		}
+		else
+		{
+			mapDeferredJumps[iClientID].system = system;
+			mapDeferredJumps[iClientID].pos = pos;
+			mapDeferredJumps[iClientID].ornt = ornt;
+
+			// Force a launch to put the ship in the right location in the current system so that
+			// when the change system command arrives (hopefully) a fraction of a second later
+			// the ship will appear at the right location.
+			HkRelocateClient(iClientID, pos, ornt);
+			// Send the jump command to the client. The client will send a system switch out complete
+			// event which we intercept to set the new starting positions.
+			PrintUserCmdText(iClientID, L" ChangeSys %u", system);
+		}
 	}
 
 	void HyperJump::LoadSettings(const string &scPluginCfgFile)
@@ -230,6 +258,10 @@ namespace HyperJump
 						else if (ini.is_value("CanGroupJumpWithCommodities"))
 						{
 							CanGroupJumpWithCommodities = ini.get_value_bool(0);
+						}
+						else if (ini.is_value("EnableFakeJumpTunnels"))
+						{
+							EnableFakeJumpTunnels = ini.get_value_bool(0);
 						}
 						else if (ini.is_value("JumpInFuse"))
 						{
@@ -444,6 +476,9 @@ namespace HyperJump
 
 	void HyperJump::SetJumpInFuse(uint iClientID, JumpType jumpType)
 	{
+		if (jumpType == JUMPHOLE_JUMPTYPE && mapJumpDrives[iClientID].jump_tunnel_timer)
+			jumpType = JUMPDRIVE_JUMPTYPE;
+
 		Archetype::Ship* victimShiparch = Archetype::GetShip(Players[iClientID].iShipArchetype);
 		if (JumpInFuseMap.count(victimShiparch->iShipClass) && JumpInFuseMap[victimShiparch->iShipClass].count(jumpType))
 		{
@@ -664,8 +699,10 @@ namespace HyperJump
 			const auto& fullSystemName = HkGetWStringFromIDS(sysinfo->strid_name);
 			if (ToLower(fullSystemName) == sysName) {
 				uint &iTargetSystemID = sysinfo->id;
+				uint iClientSystem;
+				pub::Player::GetSystem(iClientID, iClientSystem);
 
-				if (IsSystemJumpable(Players[iClientID].iSystemID, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
+				if (IsSystemJumpable(iClientSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
 					PrintUserCmdText(iClientID, L"%ls is within your jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
 				}
 				else {
@@ -807,6 +844,27 @@ namespace HyperJump
 			else
 			{
 				JUMPDRIVE &jd = iter->second;
+
+				if (jd.jump_tunnel_timer > 0)
+				{
+					jd.jump_tunnel_timer--;
+					PrintUserCmdText(iClientID, L"Tunnel timer %d\n", jd.jump_tunnel_timer);
+					if (jd.jump_tunnel_timer == 2)
+					{
+						// switch the system under the hood, final coordinates will be set by the packet next step.
+						PrintUserCmdText(iClientID, L" ChangeSys %u", jd.iTargetSystem);
+					}
+					else if (jd.jump_tunnel_timer == 1)
+					{
+						FLPACKET_SYSTEM_SWITCH_IN switchInPacket;
+						switchInPacket.objType = OBJ_JUMP_HOLE;
+						switchInPacket.pos = jd.vTargetPosition;
+						switchInPacket.quat = HkMatrixToQuaternion(jd.matTargetOrient);
+						switchInPacket.shipId = iShip;
+						HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket);
+					}
+				}
+
 				if (jd.arch == nullptr) {
 					continue;
 				}
@@ -851,15 +909,27 @@ namespace HyperJump
 						auto shipInfo1 = Archetype::GetShip(Players[iClientID].iShipArchetype);
 						if (!CanJumpWithCommodities && CheckForCommodities(iClientID))
 						{
+							jd.charging_complete = false;
+							jd.curr_charge = 0.0;
+							jd.charging_on = false;
+							StopChargeFuses(iClientID);
 							PrintUserCmdText(iClientID, L"ERR Jumping with commodities onboard is forbidden.");
 							continue;
 						}
 						if (JumpCargoSizeRestriction <= shipInfo1->fHoldSize) {
+							jd.charging_complete = false;
+							jd.curr_charge = 0.0;
+							jd.charging_on = false;
+							StopChargeFuses(iClientID);
 							PrintUserCmdText(iClientID, L"ERR Cargo hold too large, jumping forbidden");
 							continue;
 						}
 						if (JumpWhiteListEnabled == 1 && jumpRestrictedShipsList.find(Players[iClientID].iShipArchetype) != jumpRestrictedShipsList.end())
 						{
+							jd.charging_complete = false;
+							jd.curr_charge = 0.0;
+							jd.charging_on = false;
+							StopChargeFuses(iClientID);
 							PrintUserCmdText(iClientID, L"ERR Ship is not allowed to jump.");
 							continue;
 						}
@@ -1411,8 +1481,9 @@ namespace HyperJump
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));
 			return true;
 		}
-
-		if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID) == 0) {
+		uint clientSystem;
+		pub::Player::GetSystem(iClientID, clientSystem);
+		if (mapAvailableJumpSystems.count(clientSystem) == 0) {
 			PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
 			return true;
 		}
@@ -1449,8 +1520,8 @@ namespace HyperJump
 			}
 			else
 			{
-				if (mapAvailableJumpSystems.count(Players[iClientID].iSystemID)) {
-					auto& systemListForSyst = mapAvailableJumpSystems[Players[iClientID].iSystemID];
+				if (mapAvailableJumpSystems.count(clientSystem)) {
+					auto& systemListForSyst = mapAvailableJumpSystems[clientSystem];
 					auto& systemListAtRandRange = systemListForSyst[(rand() % jd.arch->jump_range)+1];
 					uint selectedSystem = systemListAtRandRange.at(rand() % systemListAtRandRange.size());
 					if (mapSystemJumps.count(selectedSystem) == 0) {

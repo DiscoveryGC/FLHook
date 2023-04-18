@@ -160,13 +160,13 @@ namespace HyperJump
 			uint iSystem;
 			uint iPlayerSystem;
 			pub::Player::GetSystem(iClientID, iPlayerSystem);
-			const auto& proxyJH = HkGetSystemNickByID(iPlayerSystem) + L"_proxy_jump_hole";
+			const auto& proxyJH = HkGetSystemNickByID(iPlayerSystem) + L"_proxy_jump_drive";
 			uint ProxyJumpHoleID = CreateID(wstos(proxyJH).c_str());
 			pub::SpaceObj::GetSystem(ProxyJumpHoleID, iSystem);
 
 			if (iSystem != iPlayerSystem)
 			{
-				PrintUserCmdText(iClientID, L"ERR Jump failed, proxy jump hole not located. Contact staff.");
+				PrintUserCmdText(iClientID, L"ERR Jump failed, proxy jump hole %ls not located. Contact staff.", proxyJH.c_str());
 				return;
 			}
 			uint playerShip;

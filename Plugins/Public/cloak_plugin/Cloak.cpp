@@ -74,7 +74,6 @@ struct CLOAK_INFO
 
 	ushort iCloakSlot;
 	bool bCanCloak;
-	bool bInWarpGate;
 	mstime tmCloakTime;
 	uint iState;
 	bool bAdmin;

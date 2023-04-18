@@ -72,6 +72,7 @@ namespace HyperJump
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
 	static boolean EnableFakeJumpTunnels = false;
+	static uint BaseTunnelTransitTime = 10;
 
 	struct JUMPFUSE
 	{
@@ -153,7 +154,7 @@ namespace HyperJump
 	//map the existing Matrix
 	static map<uint, BEACONMATRIX*> mapPlayerBeaconMatrix;
 
-	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
+	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt, uint tunnelTransitTime = BaseTunnelTransitTime)
 	{
 		if (EnableFakeJumpTunnels)
 		{
@@ -176,7 +177,7 @@ namespace HyperJump
 			switchOutPacket.shipId = playerShip;
 			HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket);
 
-			mapJumpDrives[iClientID].jump_tunnel_timer = 10;
+			mapJumpDrives[iClientID].jump_tunnel_timer = tunnelTransitTime;
 		}
 		else
 		{
@@ -262,6 +263,10 @@ namespace HyperJump
 						else if (ini.is_value("EnableFakeJumpTunnels"))
 						{
 							EnableFakeJumpTunnels = ini.get_value_bool(0);
+						}
+						else if (ini.is_value("BaseTunnelTransitTime"))
+						{
+							BaseTunnelTransitTime = ini.get_value_int(0);
 						}
 						else if (ini.is_value("JumpInFuse"))
 						{
@@ -935,11 +940,13 @@ namespace HyperJump
 						}
 						
 						RandomizeCoords(jd.vTargetPosition);
-						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient);
+						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, BaseTunnelTransitTime);
 
 						// Find all ships within the jump field including the one with the jump engine.
 						if (jd.arch->field_range <= 0)
 							continue;
+
+						uint tunnelTransitTime = BaseTunnelTransitTime;
 
 						struct PlayerData *pPD = nullptr;
 						while (pPD = Players.traverse_active(pPD))
@@ -991,7 +998,8 @@ namespace HyperJump
 							vNewTargetPosition.z = jd.vTargetPosition.z + (vPosition.z - vPosition2.z);
 							pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
 							pub::SpaceObj::DrainShields(pPD->iShipID);
-							SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2);
+							tunnelTransitTime++;
+							SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2, tunnelTransitTime);
 						}
 					}
 					// Wait until the ship is in the target system before turning off the fuse by

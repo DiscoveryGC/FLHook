@@ -313,6 +313,9 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 	if (info.bAdmin)
 		return true;
 
+	if(setJumpingClients.find(iClientID) != setJumpingClients.end())
+		return true;
+
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (info.arch.mapFuelToUsage.find(item->iArchID) != info.arch.mapFuelToUsage.end())

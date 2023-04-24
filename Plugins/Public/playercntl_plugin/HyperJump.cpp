@@ -479,9 +479,10 @@ namespace HyperJump
 		}
 	}
 
-	void HyperJump::SetJumpInFuse(uint iClientID, JumpType jumpType)
+	void HyperJump::SetJumpInFuse(uint iClientID, JUMP_TYPE jumpType)
 	{
-		if (jumpType == JUMPHOLE_JUMPTYPE && mapJumpDrives[iClientID].jump_tunnel_timer)
+		//if incoming from a jumpdrive jump, overwrite the type
+		if (mapJumpDrives[iClientID].jump_tunnel_timer)
 			jumpType = JUMPDRIVE_JUMPTYPE;
 
 		Archetype::Ship* victimShiparch = Archetype::GetShip(Players[iClientID].iShipArchetype);
@@ -1821,7 +1822,7 @@ namespace HyperJump
 	}
 
 	void HyperJump::ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData) {
-		mapJumpTypeOverride[jumpData.iClientID] = static_cast<JumpType>(jumpData.jumpType);
+		mapJumpTypeOverride[jumpData.iClientID] = jumpData.jumpType;
 		SwitchSystem(jumpData.iClientID, jumpData.iSystemID, jumpData.pos, jumpData.ori);
 	}
 }

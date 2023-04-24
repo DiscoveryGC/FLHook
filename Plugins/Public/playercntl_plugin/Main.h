@@ -135,13 +135,6 @@ namespace PurchaseRestrictions
 
 namespace HyperJump
 {
-	const enum JumpType {
-		JUMPHOLE_JUMPTYPE = 0,
-		JUMPDRIVE_JUMPTYPE = 1,
-		NOEFFECT_JUMPTYPE = 2,
-		JUMPGATE_JUMPTYPE = 3
-	};
-
 	void LoadSettings(const string &scPluginCfgFile);
 	void Timer();
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
@@ -152,7 +145,7 @@ namespace HyperJump
 	bool CheckForBeacon(uint iClientID, bool fullCheck);
 	bool InitJumpDriveInfo(uint iClientID, bool fullCheck);
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
-	void SetJumpInFuse(uint iClientID, JumpType jumpType);
+	void SetJumpInFuse(uint iClientID, JUMP_TYPE jumpType);
 	void ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData);
 
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);

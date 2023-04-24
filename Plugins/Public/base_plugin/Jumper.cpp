@@ -35,9 +35,6 @@ struct SYSTEMJUMPCOORDS
 	Vector pos;
 	Matrix ornt;
 };
-static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
-
-static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
 
 void SetReturnHole(PlayerBase* originBase);
 
@@ -54,6 +51,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 	vector<uint> returnJumpHoles;
 	vector<uint> unchartedJumpHoles;
 	map<uint, wstring> systemNameMap;
+	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	INI_Reader ini;
 
 	if (ini.open(cfg_filejumpMap.c_str(), false))

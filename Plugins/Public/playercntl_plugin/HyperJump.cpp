@@ -82,7 +82,7 @@ namespace HyperJump
 	};
 	
 	// map<shipclass, map<JH/JD type, JUMPFUSE>> 
-	static map<uint, map<JumpType, JUMPFUSE>> JumpInFuseMap;
+	static map<uint, map<JUMP_TYPE, JUMPFUSE>> JumpInFuseMap;
 
 	struct SYSTEMJUMPCOORDS
 	{
@@ -93,7 +93,7 @@ namespace HyperJump
 	};
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
-	static map<uint, JumpType> mapJumpTypeOverride;
+	static map<uint, JUMP_TYPE> mapJumpTypeOverride;
 
 	struct JUMPDRIVE_ARCH
 	{
@@ -271,7 +271,7 @@ namespace HyperJump
 						else if (ini.is_value("JumpInFuse"))
 						{
 							uint shipType = ini.get_value_int(0);
-							JumpType jumpType = static_cast<JumpType>(ini.get_value_int(1));
+							JUMP_TYPE jumpType = static_cast<JUMP_TYPE>(ini.get_value_int(1));
 							JUMPFUSE jumpFuse;
 							jumpFuse.jump_fuse = CreateID(ini.get_value_string(2));
 							jumpFuse.lifetime = ini.get_value_float(3);

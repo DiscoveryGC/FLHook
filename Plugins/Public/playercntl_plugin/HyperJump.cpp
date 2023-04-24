@@ -107,6 +107,7 @@ namespace HyperJump
 		map<uint, uint> mapFuelToUsage;
 		float power;
 		float field_range;
+		float group_jump_range;
 		boolean cd_disrupts_charge;
 	};
 	static map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
@@ -341,6 +342,10 @@ namespace HyperJump
 						else if (ini.is_value("field_range"))
 						{
 							jd.field_range = ini.get_value_float(0);
+						}
+						else if (ini.is_value("group_jump_range"))
+						{
+							jd.group_jump_range = ini.get_value_float(0);
 						}
 						else if (ini.is_value("cd_disrupts_charge"))
 						{
@@ -944,8 +949,11 @@ namespace HyperJump
 						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, BaseTunnelTransitTime);
 
 						// Find all ships within the jump field including the one with the jump engine.
-						if (jd.arch->field_range <= 0)
+						if (jd.arch->field_range <= 0 && jd.arch->group_jump_range <= 0)
 							continue;
+
+						list<GROUP_MEMBER> lstGrpMembers;
+						HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
 
 						uint tunnelTransitTime = BaseTunnelTransitTime;
 
@@ -955,14 +963,35 @@ namespace HyperJump
 							uint iSystemID2;
 							pub::SpaceObj::GetSystem(pPD->iShipID, iSystemID2);
 
-							if (iSystemID2 != iSystemID || pPD->iOnlineID != iClientID)
+							if (iSystemID2 != iSystemID || pPD->iOnlineID == iClientID)
 								continue;
 
 							Vector vPosition2;
 							Matrix mShipDir2;
 							pub::SpaceObj::GetLocation(pPD->iShipID, vPosition2, mShipDir2);
 
-							if (!(HkDistance3D(vPosition, vPosition2) <= jd.arch->field_range))
+							float distance = HkDistance3D(vPosition, vPosition2);
+							boolean isGroupMember = false;
+							boolean inRange = false;
+							for (const auto& member : lstGrpMembers)
+							{
+								if (member.iClientID == pPD->iOnlineID)
+								{
+									isGroupMember = true;
+									break;
+								}
+							}
+
+							if (isGroupMember)
+							{
+								inRange = distance <= jd.arch->group_jump_range;
+							}
+							else
+							{
+								inRange = distance <= jd.arch->jump_range;
+							}
+
+							if (!inRange)
 								continue;
 							// Restrict some ships from jumping, this is for the jumpers
 							auto shipInfo2 = Archetype::GetShip(Players[iClientID].iShipArchetype);
@@ -1550,6 +1579,45 @@ namespace HyperJump
 					PrintUserCmdText(iClientID, L"Jump drive malfunction. Cannot jump from the system.");
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 					return true;
+				}
+			}
+		}
+		//notify group members
+		if (jd.arch->group_jump_range > 0)
+		{
+			list<GROUP_MEMBER> lstGrpMembers;
+			HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
+
+			Vector pos;
+			Matrix orn;
+			uint clientShipID;
+			pub::Player::GetShip(iClientID, clientShipID);
+			pub::SpaceObj::GetLocation(clientShipID, pos, orn);
+			for (const auto& member : lstGrpMembers)
+			{
+				if (member.iClientID == iClientID)
+					continue;
+				uint memberSystemID;
+				pub::Player::GetSystem(member.iClientID, memberSystemID);
+				if (clientSystem != memberSystemID)
+					continue;
+				uint memberShipID;
+				pub::Player::GetShip(member.iClientID, memberShipID);
+				if (memberShipID == 0)
+					continue;
+				Vector memberPos;
+				Matrix memberOrn;
+				pub::SpaceObj::GetLocation(memberShipID, memberPos, memberOrn);
+				
+				float distance = HkDistance3D(pos, memberPos);
+
+				if (HkDistance3D(pos, memberPos) <= jd.arch->group_jump_range)
+				{
+					PrintUserCmdText(member.iClientID, L"Info: Group Jump initiated, you are in range.");
+				}
+				else
+				{
+					PrintUserCmdText(member.iClientID, L"Warning: Group Jump initiated, but you are out of range by %um!", static_cast<uint>(distance - jd.arch->group_jump_range));
 				}
 			}
 		}

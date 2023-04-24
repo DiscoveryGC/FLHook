@@ -1430,20 +1430,25 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 				else if (jump_lockout_duration)
 					mapJumpLockout[client] = jump_lockout_duration;
 
-				Vector pos;
-				Matrix ornt;
 
-				pub::SpaceObj::GetLocation(iShip, pos, ornt);
+				Vector destPos = pbase->destposition;
+				RandomizeCoords(destPos);
 
-				pos.x = pbase->destposition.x;
-				pos.y = pbase->destposition.y;
-				pos.z = pbase->destposition.z;
+				// disable cruise engine
+				XActivateCruise cruiseSetter;
+				cruiseSetter.bActivate = false;
+				cruiseSetter.iShip = Players[client].iShipID;
+				HookClient->Send_FLPACKET_COMMON_ACTIVATECRUISE(client, cruiseSetter);
 
-				const Universe::ISystem *iSys = Universe::get_system(pbase->destsystem);
-				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
+				CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
+				jumpData.iClientID = client;
+				jumpData.iSystemID = pbase->destsystem;
+				jumpData.pos = destPos;
+				jumpData.ori = pbase->destorientation;
+				jumpData.jumpType = JUMPHOLE_JUMPTYPE;
 
-				//PrintUserCmdText(client, L"Jump to system=%s x=%0.0f y=%0.0f z=%0.0f\n", wscSysName.c_str(), pos.x, pos.y, pos.z);
-				HyperJump::SwitchSystem(client, pbase->destsystem, pos, ornt);
+				Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_JUMP_CALLOUT, &jumpData);
+
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				return 1;
 			}

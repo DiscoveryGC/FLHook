@@ -873,6 +873,8 @@ namespace HyperJump
 						switchInPacket.quat = HkMatrixToQuaternion(jd.matTargetOrient);
 						switchInPacket.shipId = iShip;
 						HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket);
+
+						pub::SpaceObj::DrainShields(iShip);
 					}
 				}
 

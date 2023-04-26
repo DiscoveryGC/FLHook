@@ -157,7 +157,7 @@ namespace HyperJump
 
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt, uint tunnelTransitTime = BaseTunnelTransitTime)
 	{
-		if (EnableFakeJumpTunnels)
+		if (EnableFakeJumpTunnels && (!mapJumpTypeOverride.count(iClientID) || mapJumpTypeOverride[iClientID] != NOEFFECT_JUMPTYPE))
 		{
 			uint iSystem;
 			uint iPlayerSystem;

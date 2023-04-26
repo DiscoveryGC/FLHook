@@ -13,6 +13,7 @@ map<uint, uint> mapPendingDockingRequests;
 vector<DELAYEDDOCK> dockingInProgress;
 vector<uint> dockingModuleEquipmentIds;
 map<uint, CLIENT_DATA> mobiledockClients;
+map<uint, uint> jettisonRedirectMap;
 
 map<wstring, CARRIERINFO> nameToCarrierInfoMap;
 map<wstring, DOCKEDCRAFTINFO> nameToDockedInfoMap;
@@ -325,6 +326,7 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 		{
 			wstring& lastBaseName = GetLastBaseName(dockedClientID);
 			PrintUserCmdText(dockedClientID, L"Carrier has jettisonned your ship. Returning to %ls", lastBaseName.c_str());
+			jettisonRedirectMap[dockedClientID] = idToDockedInfoMap[dockedClientID]->lastDockedSolar;
 		}
 		idToDockedInfoMap.erase(dockedClientID);
 	}
@@ -386,12 +388,35 @@ uint GetInstalledModules(uint iClientID)
 	return modules;
 }
 
+void StartDockingProcedure(uint dockingID, uint carrierID) {
+
+	if (dockingPeriod)
+	{
+		Vector pos;
+		Matrix _;
+		pub::SpaceObj::GetLocation(Players[dockingID].iShipID, pos, _);
+
+		DELAYEDDOCK dd;
+		dd.carrierID = carrierID;
+		dd.dockingID = dockingID;
+		dd.timeLeft = dockingPeriod;
+		dd.startPosition = pos;
+		dockingInProgress.push_back(dd);
+		PrintUserCmdText(carrierID, L"Docking procedure in progress", dockingPeriod);
+		PrintUserCmdText(dockingID, L"Dock request accepted, stand still for %u second(s)", dockingPeriod);
+	}
+	else
+	{
+		dockShipOnCarrier(dockingID, carrierID);
+	}
+}
+
 void AddClientToDockQueue(uint dockingID, uint carrierID)
 {
 	const auto& dockMode = mobiledockClients[carrierID].dockMode;
 	if (dockMode == ALLOW_ALL)
 	{
-		dockShipOnCarrier(dockingID, carrierID);
+		StartDockingProcedure(dockingID, carrierID);
 	}
 	else if (dockMode == ALLOW_NONE)
 	{
@@ -414,7 +439,7 @@ void AddClientToDockQueue(uint dockingID, uint carrierID)
 		}
 		if (isGroupMember)
 		{
-			dockShipOnCarrier(dockingID, carrierID);
+			StartDockingProcedure(dockingID, carrierID);
 		}
 		else
 		{
@@ -447,6 +472,13 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	// If has pending dock redirect, dock there
+	if (jettisonRedirectMap.count(client))
+	{
+		pub::Player::ForceLand(client, jettisonRedirectMap[client]);
+		return;
+	}
+
 	// If not docked on another ship, skip processing.
 	if (!idToDockedInfoMap.count(client))
 	{
@@ -461,10 +493,23 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		uint carrierShipID;
 		pub::Player::GetShip(carrierClientID, carrierShipID);
 		if (carrierShipID == 0) {
-			//carrier docked somewhere, undock into that base.
-			uint baseID;
-			pub::Player::GetBase(carrierClientID, baseID);
-			pub::Player::ForceLand(client, baseID);
+			//carrier docked somewhere, undock into that base. POBs require special handling.
+			CUSTOM_BASE_IS_DOCKED_STRUCT POBcheckStruct;
+			POBcheckStruct.iClientID = carrierClientID;
+			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_IS_DOCKED, &POBcheckStruct);
+			if (POBcheckStruct.iDockedBaseID)
+			{
+				CUSTOM_BASE_BEAM_STRUCT POBbeamStruct;
+				POBbeamStruct.iClientID = client;
+				POBbeamStruct.iTargetBaseID = POBcheckStruct.iDockedBaseID;
+				Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_BEAM, &POBbeamStruct);
+			}
+			else
+			{
+				uint baseID;
+				pub::Player::GetBase(carrierClientID, baseID);
+				pub::Player::ForceLand(client, baseID);
+			}
 		}
 		else {
 			//teleport the player using same method as jumpdrives
@@ -490,6 +535,8 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 
 			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
 		}
+
+		mobiledockClients[carrierClientID].iDockingModulesAvailable++;
 	}
 	else
 	{
@@ -702,19 +749,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 		}
 		else
 		{
-			Vector pos;
-			Matrix _;
-			pub::SpaceObj::GetLocation(Players[iTargetClientID].iShipID, pos, _);
-
-			DELAYEDDOCK dd;
-			dd.carrierID = client;
-			dd.dockingID = iTargetClientID;
-			dd.timeLeft = dockingPeriod;
-			dd.startPosition = pos;
-			dockingInProgress.push_back(dd);
-			PrintUserCmdText(client, L"Docking procedure in progress", dockingPeriod);
-			PrintUserCmdText(iTargetClientID, L"Dock request accepted, stand still for %u second(s)", dockingPeriod);
-		}
+		StartDockingProcedure(iTargetClientID, client);
 		return true;
 	}
 	else if (wscCmd.find(L"/dockmode") == 0)

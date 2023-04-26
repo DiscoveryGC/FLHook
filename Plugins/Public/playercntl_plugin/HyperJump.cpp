@@ -72,6 +72,7 @@ namespace HyperJump
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
 	static boolean EnableFakeJumpTunnels = false;
+	static uint BaseTunnelTransitTime = 10;
 
 	struct JUMPFUSE
 	{
@@ -81,7 +82,7 @@ namespace HyperJump
 	};
 	
 	// map<shipclass, map<JH/JD type, JUMPFUSE>> 
-	static map<uint, map<JumpType, JUMPFUSE>> JumpInFuseMap;
+	static map<uint, map<JUMP_TYPE, JUMPFUSE>> JumpInFuseMap;
 
 	struct SYSTEMJUMPCOORDS
 	{
@@ -92,7 +93,7 @@ namespace HyperJump
 	};
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
-	static map<uint, JumpType> mapJumpTypeOverride;
+	static map<uint, JUMP_TYPE> mapJumpTypeOverride;
 
 	struct JUMPDRIVE_ARCH
 	{
@@ -106,6 +107,7 @@ namespace HyperJump
 		map<uint, uint> mapFuelToUsage;
 		float power;
 		float field_range;
+		float group_jump_range;
 		boolean cd_disrupts_charge;
 	};
 	static map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
@@ -153,7 +155,7 @@ namespace HyperJump
 	//map the existing Matrix
 	static map<uint, BEACONMATRIX*> mapPlayerBeaconMatrix;
 
-	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
+	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt, uint tunnelTransitTime = BaseTunnelTransitTime)
 	{
 		if (EnableFakeJumpTunnels)
 		{
@@ -176,7 +178,7 @@ namespace HyperJump
 			switchOutPacket.shipId = playerShip;
 			HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket);
 
-			mapJumpDrives[iClientID].jump_tunnel_timer = 10;
+			mapJumpDrives[iClientID].jump_tunnel_timer = tunnelTransitTime;
 		}
 		else
 		{
@@ -263,10 +265,14 @@ namespace HyperJump
 						{
 							EnableFakeJumpTunnels = ini.get_value_bool(0);
 						}
+						else if (ini.is_value("BaseTunnelTransitTime"))
+						{
+							BaseTunnelTransitTime = ini.get_value_int(0);
+						}
 						else if (ini.is_value("JumpInFuse"))
 						{
 							uint shipType = ini.get_value_int(0);
-							JumpType jumpType = static_cast<JumpType>(ini.get_value_int(1));
+							JUMP_TYPE jumpType = static_cast<JUMP_TYPE>(ini.get_value_int(1));
 							JUMPFUSE jumpFuse;
 							jumpFuse.jump_fuse = CreateID(ini.get_value_string(2));
 							jumpFuse.lifetime = ini.get_value_float(3);
@@ -336,6 +342,10 @@ namespace HyperJump
 						else if (ini.is_value("field_range"))
 						{
 							jd.field_range = ini.get_value_float(0);
+						}
+						else if (ini.is_value("group_jump_range"))
+						{
+							jd.group_jump_range = ini.get_value_float(0);
 						}
 						else if (ini.is_value("cd_disrupts_charge"))
 						{
@@ -474,9 +484,10 @@ namespace HyperJump
 		}
 	}
 
-	void HyperJump::SetJumpInFuse(uint iClientID, JumpType jumpType)
+	void HyperJump::SetJumpInFuse(uint iClientID, JUMP_TYPE jumpType)
 	{
-		if (jumpType == JUMPHOLE_JUMPTYPE && mapJumpDrives[iClientID].jump_tunnel_timer)
+		//if incoming from a jumpdrive jump, overwrite the type
+		if (mapJumpDrives[iClientID].jump_tunnel_timer)
 			jumpType = JUMPDRIVE_JUMPTYPE;
 
 		Archetype::Ship* victimShiparch = Archetype::GetShip(Players[iClientID].iShipArchetype);
@@ -862,6 +873,8 @@ namespace HyperJump
 						switchInPacket.quat = HkMatrixToQuaternion(jd.matTargetOrient);
 						switchInPacket.shipId = iShip;
 						HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket);
+
+						pub::SpaceObj::DrainShields(iShip);
 					}
 				}
 
@@ -935,11 +948,16 @@ namespace HyperJump
 						}
 						
 						RandomizeCoords(jd.vTargetPosition);
-						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient);
+						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, BaseTunnelTransitTime);
 
 						// Find all ships within the jump field including the one with the jump engine.
-						if (jd.arch->field_range <= 0)
+						if (jd.arch->field_range <= 0 && jd.arch->group_jump_range <= 0)
 							continue;
+
+						list<GROUP_MEMBER> lstGrpMembers;
+						HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
+
+						uint tunnelTransitTime = BaseTunnelTransitTime;
 
 						struct PlayerData *pPD = nullptr;
 						while (pPD = Players.traverse_active(pPD))
@@ -947,14 +965,35 @@ namespace HyperJump
 							uint iSystemID2;
 							pub::SpaceObj::GetSystem(pPD->iShipID, iSystemID2);
 
-							if (iSystemID2 != iSystemID || pPD->iOnlineID != iClientID)
+							if (iSystemID2 != iSystemID || pPD->iOnlineID == iClientID)
 								continue;
 
 							Vector vPosition2;
 							Matrix mShipDir2;
 							pub::SpaceObj::GetLocation(pPD->iShipID, vPosition2, mShipDir2);
 
-							if (!(HkDistance3D(vPosition, vPosition2) <= jd.arch->field_range))
+							float distance = HkDistance3D(vPosition, vPosition2);
+							boolean isGroupMember = false;
+							boolean inRange = false;
+							for (const auto& member : lstGrpMembers)
+							{
+								if (member.iClientID == pPD->iOnlineID)
+								{
+									isGroupMember = true;
+									break;
+								}
+							}
+
+							if (isGroupMember)
+							{
+								inRange = distance <= jd.arch->group_jump_range;
+							}
+							else
+							{
+								inRange = distance <= jd.arch->jump_range;
+							}
+
+							if (!inRange)
 								continue;
 							// Restrict some ships from jumping, this is for the jumpers
 							auto shipInfo2 = Archetype::GetShip(Players[iClientID].iShipArchetype);
@@ -991,7 +1030,8 @@ namespace HyperJump
 							vNewTargetPosition.z = jd.vTargetPosition.z + (vPosition.z - vPosition2.z);
 							pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
 							pub::SpaceObj::DrainShields(pPD->iShipID);
-							SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2);
+							tunnelTransitTime++;
+							SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2, tunnelTransitTime);
 						}
 					}
 					// Wait until the ship is in the target system before turning off the fuse by
@@ -1544,6 +1584,45 @@ namespace HyperJump
 				}
 			}
 		}
+		//notify group members
+		if (jd.arch->group_jump_range > 0)
+		{
+			list<GROUP_MEMBER> lstGrpMembers;
+			HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
+
+			Vector pos;
+			Matrix orn;
+			uint clientShipID;
+			pub::Player::GetShip(iClientID, clientShipID);
+			pub::SpaceObj::GetLocation(clientShipID, pos, orn);
+			for (const auto& member : lstGrpMembers)
+			{
+				if (member.iClientID == iClientID)
+					continue;
+				uint memberSystemID;
+				pub::Player::GetSystem(member.iClientID, memberSystemID);
+				if (clientSystem != memberSystemID)
+					continue;
+				uint memberShipID;
+				pub::Player::GetShip(member.iClientID, memberShipID);
+				if (memberShipID == 0)
+					continue;
+				Vector memberPos;
+				Matrix memberOrn;
+				pub::SpaceObj::GetLocation(memberShipID, memberPos, memberOrn);
+				
+				float distance = HkDistance3D(pos, memberPos);
+
+				if (HkDistance3D(pos, memberPos) <= jd.arch->group_jump_range)
+				{
+					PrintUserCmdText(member.iClientID, L"Info: Group Jump initiated, you are in range.");
+				}
+				else
+				{
+					PrintUserCmdText(member.iClientID, L"Warning: Group Jump initiated, but you are out of range by %um!", static_cast<uint>(distance - jd.arch->group_jump_range));
+				}
+			}
+		}
 
 		// Start the jump timer.
 		jd.jump_timer = 8;
@@ -1813,7 +1892,7 @@ namespace HyperJump
 	}
 
 	void HyperJump::ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData) {
-		mapJumpTypeOverride[jumpData.iClientID] = static_cast<JumpType>(jumpData.jumpType);
+		mapJumpTypeOverride[jumpData.iClientID] = jumpData.jumpType;
 		SwitchSystem(jumpData.iClientID, jumpData.iSystemID, jumpData.pos, jumpData.ori);
 	}
 }

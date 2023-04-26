@@ -358,11 +358,18 @@ struct COMBAT_DAMAGE_OVERRIDE_STRUCT
 	float fDamageMultiplier;
 };
 
+const enum JUMP_TYPE {
+	JUMPHOLE_JUMPTYPE = 0,
+	JUMPDRIVE_JUMPTYPE = 1,
+	NOEFFECT_JUMPTYPE = 2,
+	JUMPGATE_JUMPTYPE = 3
+};
+
 struct CUSTOM_JUMP_STRUCT
 {
 	uint iShipID;
 	uint iSystemID;
-	uint iJumpType = 0;
+	JUMP_TYPE iJumpType = NOEFFECT_JUMPTYPE;
 };
 
 struct CUSTOM_JUMP_CALLOUT_STRUCT
@@ -371,7 +378,7 @@ struct CUSTOM_JUMP_CALLOUT_STRUCT
 	uint iSystemID;
 	Vector pos;
 	Matrix ori;
-	uint jumpType = 0;
+	JUMP_TYPE jumpType = NOEFFECT_JUMPTYPE;
 };
 
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT

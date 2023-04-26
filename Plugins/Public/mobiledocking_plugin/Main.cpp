@@ -476,6 +476,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	if (jettisonRedirectMap.count(client))
 	{
 		pub::Player::ForceLand(client, jettisonRedirectMap[client]);
+		jettisonRedirectMap.erase(client);
 		return;
 	}
 
@@ -529,7 +530,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			jumpData.iSystemID = iSystemID;
 			jumpData.pos = pos;
 			jumpData.ori = ori;
-			jumpData.jumpType = 2; // to avoid producing jump VFX
 
 			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_JUMP_CALLOUT, &jumpData);
 
@@ -743,12 +743,6 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 			return true;
 		}
 
-		if (!dockingPeriod)
-		{
-			dockShipOnCarrier(iTargetClientID, client);
-		}
-		else
-		{
 		StartDockingProcedure(iTargetClientID, client);
 		return true;
 	}
@@ -804,6 +798,7 @@ void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 	mapPendingDockingRequests.erase(iClientID);
 	idToCarrierInfoMap.erase(iClientID);
 	idToDockedInfoMap.erase(iClientID);
+	jettisonRedirectMap.erase(iClientID);
 }
 
 void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
@@ -815,6 +810,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	mapPendingDockingRequests.erase(iClientID);
 	idToCarrierInfoMap.erase(iClientID);
 	idToDockedInfoMap.erase(iClientID);
+	jettisonRedirectMap.erase(iClientID);
 
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);

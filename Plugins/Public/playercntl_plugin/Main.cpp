@@ -118,8 +118,8 @@ void LoadSettings()
 	set_fSpinProtectMass = IniGetF(scPluginCfgFile, "General", "SpinProtectionMass", 180.0f);
 	set_fSpinImpulseMultiplier = IniGetF(scPluginCfgFile, "General", "SpinProtectionMultiplier", -1.0f);
 
-	set_iLocalChatRange = IniGetF(scPluginCfgFile, "General", "LocalChatRange", 0);
-	set_iDockBroadcastRange = IniGetF(scPluginCfgFile, "General", "DockBroadcastRange", 0);
+	set_iLocalChatRange = IniGetF(scPluginCfgFile, "General", "LocalChatRange", set_iLocalChatRange);
+	set_iDockBroadcastRange = IniGetF(scPluginCfgFile, "General", "DockBroadcastRange", set_iDockBroadcastRange);
 
 	set_bLocalTime = IniGetB(scPluginCfgFile, "General", "LocalTime", false);
 

@@ -497,6 +497,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			//carrier docked somewhere, undock into that base. POBs require special handling.
 			CUSTOM_BASE_IS_DOCKED_STRUCT POBcheckStruct;
 			POBcheckStruct.iClientID = carrierClientID;
+			POBcheckStruct.iDockedBaseID = 0;
 			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_IS_DOCKED, &POBcheckStruct);
 			if (POBcheckStruct.iDockedBaseID)
 			{

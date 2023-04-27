@@ -1329,25 +1329,15 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	return false;
 }
 
-// If this is a docking request at a player controlled based then send
-// an update to set the base arrival text, base economy and change the
-// infocards.
-
-void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
-{
-	returncode = DEFAULT_RETURNCODE;
-	// Make player invincible to fix JHs/JGs near mine fields sometimes
-	// exploding player while jumping (in jump tunnel)
-	pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-	if (HyperJump::SystemSwitchOutComplete(iShip, iClientID))
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-}
-
 void RandomizeCoords(Vector& vec) {
 	vec.x += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
 	vec.y += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
 	vec.z += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
 }
+
+// If this is a docking request at a player controlled based then send
+// an update to set the base arrival text, base economy and change the
+// infocards.
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int iCancel, enum DOCK_HOST_RESPONSE response)
 {
@@ -2871,8 +2861,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
-
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 15));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 15));

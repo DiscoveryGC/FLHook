@@ -46,13 +46,47 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 
 	string cfg_filejumpMap = configPath + "\\flhook_plugins\\jump_allowedsystems.cfg";
 	string cfg_filehyperspaceHub = configPath + "\\flhook_plugins\\base_hyperspacehub.cfg";
+	string cfg_filehyperspaceHubTimer = configPath + "\\flhook_plugins\\base_hyperspacehubtimer.cfg";
 	vector<uint> legalReturnSystems;
 	vector<uint> unchartedSystems;
 	vector<uint> returnJumpHoles;
 	vector<uint> unchartedJumpHoles;
 	map<uint, wstring> systemNameMap;
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
+	uint lastJumpholeRandomization = 0;
+	uint randomizationCooldown = 3600 * 23;
 	INI_Reader ini;
+
+	if (ini.open(cfg_filehyperspaceHubTimer.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("Timer")) {
+				while (ini.read_value())
+				{
+					if (ini.is_value("lastRandomization"))
+					{
+						lastJumpholeRandomization = ini.get_value_int(0);
+					}
+					if (ini.is_value("randomizationCooldown"))
+					{
+						randomizationCooldown = ini.get_value_int(0);
+					}
+				}
+			}
+		}
+
+		ini.close();
+	}
+
+	time_t currTime = time(0);
+	if (lastJumpholeRandomization + randomizationCooldown > currTime)
+	{
+		ConPrint(L"HYPERSPACE HUB: insufficient time passed, aborting randomization\n");
+		return;
+	}
+
+	ConPrint(L"HYPERSPACE HUB: Randomizing jump holes");
 
 	if (ini.open(cfg_filejumpMap.c_str(), false))
 	{
@@ -129,7 +163,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 	}
 
 	if (returnJumpHoles.size() > legalReturnSystems.size()
-	 || unchartedJumpHoles.size() > unchartedSystems.size()) {
+		|| unchartedJumpHoles.size() > unchartedSystems.size()) {
 		ConPrint(L"HYPERSPACE HUB: ERROR! more random jump bases than distinct available destinations, aborting randomization!\n");
 		return;
 	}
@@ -183,6 +217,8 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 		pb->Save();
 		RespawnBase(pb);
 	}
+
+	WritePrivateProfileString("Timer", "lastRandomization", itos((int)currTime).c_str(), cfg_filehyperspaceHubTimer.c_str());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

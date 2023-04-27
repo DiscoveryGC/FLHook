@@ -54,7 +54,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 	map<uint, wstring> systemNameMap;
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	uint lastJumpholeRandomization = 0;
-	const uint randomizationCooldown = 3600 * 23;
+	uint randomizationCooldown = 3600 * 23;
 	INI_Reader ini;
 
 	if (ini.open(cfg_filehyperspaceHubTimer.c_str(), false))
@@ -67,6 +67,10 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 					if (ini.is_value("lastRandomization"))
 					{
 						lastJumpholeRandomization = ini.get_value_int(0);
+					}
+					if (ini.is_value("randomizationCooldown"))
+					{
+						randomizationCooldown = ini.get_value_int(0);
 					}
 				}
 			}
@@ -81,6 +85,8 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 		ConPrint(L"HYPERSPACE HUB: insufficient time passed, aborting randomization\n");
 		return;
 	}
+
+	ConPrint(L"HYPERSPACE HUB: Randomizing jump holes");
 
 	if (ini.open(cfg_filejumpMap.c_str(), false))
 	{

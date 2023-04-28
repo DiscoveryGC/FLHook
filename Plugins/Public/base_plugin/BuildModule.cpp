@@ -200,6 +200,10 @@ void BuildModule::LoadState(INI_Reader &ini)
 		{
 			active_recipe.consumed_items[ini.get_value_int(0)] = ini.get_value_int(1);
 		}
+		else if (ini.is_value("credit_cost"))
+		{
+			active_recipe.credit_cost = ini.get_value_int(0);
+		}
 	}
 }
 
@@ -212,6 +216,10 @@ void BuildModule::SaveState(FILE *file)
 		i != active_recipe.consumed_items.end(); ++i)
 	{
 		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+	}
+	if (active_recipe.credit_cost)
+	{
+		fprintf(file, "credit_cost = %u", active_recipe.credit_cost);
 	}
 }
 

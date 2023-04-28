@@ -155,13 +155,21 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	{
 		base_status += L"<TEXT>Repair Status: ALL I WANT FOR CHRISTMAS IS YOU</TEXT><PARA/>";
 	}
+	else if (base->HasMarketItem(set_base_crew_type) < base->base_level * 200)
+	{
+		base_status += L"<TEXT>Crew Status: Insufficient crew onboard</TEXT><PARA/>";
+	}
 	else if (base->isCrewSupplied)
 	{
 		base_status += L"<TEXT>Crew Status: Working</TEXT><PARA/>";
 	}
 	else
 	{
-		base_status += L"<TEXT>Crew Status: Rioting over lack of supplies</TEXT><PARA/>";
+		time_t currTime = time(0);
+		uint nextCheckInSeconds = set_crew_check_frequency - (currTime % set_crew_check_frequency);
+		uint nextCheckHour = nextCheckInSeconds / 3600;
+		uint nextCheckMinute = (nextCheckInSeconds % 3600) / 60;
+		base_status += L"<TEXT>Crew Status: Refusing to work over lack of supplies, next supply check in " + stows(itos(nextCheckHour)) + L"h " + stows(itos(nextCheckMinute)) + L"m</TEXT><PARA/>";
 	}
 
 	base_status += L"<PARA/>";

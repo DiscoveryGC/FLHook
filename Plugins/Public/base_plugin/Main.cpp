@@ -579,6 +579,10 @@ void LoadSettingsActual()
 					{
 						recipe.cooking_rate = ini.get_value_int(0);
 					}
+					else if (ini.is_value("credit_cost"))
+					{
+						recipe.credit_cost = ini.get_value_int(0);
+					}
 					else if (ini.is_value("consumed"))
 					{
 						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
@@ -635,6 +639,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("cooking_rate"))
 					{
 						recipe.cooking_rate = ini.get_value_int(0);
+					}
+					else if (ini.is_value("credit_cost"))
+					{
+						recipe.credit_cost = ini.get_value_int(0);
 					}
 					else if (ini.is_value("consumed"))
 					{

@@ -38,6 +38,15 @@ wstring BuildModule::GetInfo(bool xml)
 				info += L"</TEXT>";
 			}
 		}
+		if (active_recipe.credit_cost)
+		{
+			info += L"<PARA/><TEXT>      - Credits x" + stows(itos(active_recipe.credit_cost));
+			if (base->money < active_recipe.credit_cost)
+			{
+				info += L" [Insufficient cash]";
+			}
+			info += L"</TEXT>";
+		}
 	}
 	else
 	{
@@ -53,6 +62,16 @@ wstring BuildModule::GetInfo(bool xml)
 			if (gi)
 			{
 				info += stows(itos(quantity)) + L"x" + HkGetWStringFromIDS(gi->iIDSName) + L" ";
+				if (base->HasMarketItem(good) < quantity)
+					info += L" [Out of stock]";
+			}
+		}
+		if (active_recipe.credit_cost)
+		{
+			info += L"Credits x" + stows(itos(active_recipe.credit_cost));
+			if (base->money < active_recipe.credit_cost)
+			{
+				info += L" [Insufficient cash]";
 			}
 		}
 	}
@@ -69,10 +88,23 @@ bool BuildModule::Timer(uint time)
 	if ((time%set_tick_time) != 0)
 		return false;
 
-	bool cooked = true;
-
 	if (Paused || !base->isCrewSupplied)
 		return false;
+
+	bool cooked = true;
+
+	if (active_recipe.credit_cost)
+	{
+		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
+		if (base->money >= moneyToRemove)
+		{
+			base->money -= moneyToRemove;
+			active_recipe.credit_cost -= moneyToRemove;
+		}
+		if (active_recipe.credit_cost) {
+			cooked = false;
+		}
+	}
 
 	// Consume goods at the cooking rate.
 	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();

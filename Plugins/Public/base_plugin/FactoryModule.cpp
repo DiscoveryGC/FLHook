@@ -48,8 +48,16 @@ wstring FactoryModule::GetInfo(bool xml)
 					info += L"</TEXT>";
 				}
 			}
+			if (active_recipe.credit_cost)
+			{
+				info += L"<PARA/><TEXT>      - Credits x" + stows(itos(active_recipe.credit_cost));
+				if (base->money < active_recipe.credit_cost)
+				{
+					info += L" [Insufficient cash]";
+				}
+				info += L"</TEXT>";
+			}
 		}
-		info += L"<TEXT>";
 	}
 	else
 	{
@@ -66,7 +74,17 @@ wstring FactoryModule::GetInfo(bool xml)
 				const GoodInfo *gi = GoodList::find_by_id(good);
 				if (gi)
 				{
-					info += L" " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+					info += stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+					if (base->HasMarketItem(good) < quantity)
+						info += L" [Out of stock]";
+				}
+				if (active_recipe.credit_cost)
+				{
+					info += L"Credits x" + stows(itos(active_recipe.credit_cost));
+					if (base->money < active_recipe.credit_cost)
+					{
+						info += L" [Insufficient cash]";
+					}
 				}
 			}
 		}
@@ -103,7 +121,7 @@ bool FactoryModule::Timer(uint time)
 
 	if(active_recipe.credit_cost)
 	{
-		uint moneyToRemove = min(active_recipe.cooking_rate, active_recipe.credit_cost);
+		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
 		if (base->money >= moneyToRemove)
 		{
 			base->money -= moneyToRemove;
@@ -213,7 +231,8 @@ void FactoryModule::SaveState(FILE *file)
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
 	if (active_recipe.nickname) {
-		fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
+		if (active_recipe.credit_cost);
+			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
 		{

@@ -1133,7 +1133,17 @@ namespace PlayerCommands
 		else if (buildingCraftLists.find(cmd) != buildingCraftLists.end())
 		{
 			const wstring &cmd2 = GetParam(args, ' ', 2);
-			const wstring &recipeName = GetParam(args, ' ', 3);
+			const wstring &recipeName = GetParamToEnd(args, ' ', 3);
+
+			if (cmd2 == L"list")
+			{
+				PrintUserCmdText(client, L"Modules available in %ls category:", cmd.c_str());
+				for (const auto& infoString : modules_recipe_map[cmd])
+				{
+					PrintUserCmdText(client, infoString);
+				}
+				return;
+			}
 
 			RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
 			if (!buildRecipe)
@@ -1170,21 +1180,6 @@ namespace PlayerCommands
 				}
 				PrintUserCmdText(client, L"ERR No free module slots!");
 			}
-			else if (cmd2 == L"stop")
-			{
-				for (auto& iter = base->modules.rbegin(); iter != base->modules.rend(); iter++)
-				{
-					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
-					if(buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
-					{
-						base->modules.erase(next(iter).base());
-						base->Save();
-						PrintUserCmdText(client, L"Module construction stopped");
-						return;
-					}
-				}
-				PrintUserCmdText(client, L"ERR Selected module is not being built");
-			}
 			else if (cmd2 == L"toggle")
 			{
 				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
@@ -1215,8 +1210,9 @@ namespace PlayerCommands
 		else
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/build <list|buildlist> <start|toggle|info> <moduleName/Nr");
+			PrintUserCmdText(client, L"/build <list|buildlist> <list|start|toggle|info> <moduleName/Nr");
 			PrintUserCmdText(client, L"|  list - lists available module lists");
+			PrintUserCmdText(client, L"|  buildlist list - lists modules available on the selected module list");
 			PrintUserCmdText(client, L"|  buildlist start - starts constructon of selected module");
 			PrintUserCmdText(client, L"|  buildlist toggle - toggles construction status between active and paused");
 			PrintUserCmdText(client, L"|  buildlist info - provides construction material info for selected module");

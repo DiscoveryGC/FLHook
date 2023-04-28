@@ -661,6 +661,10 @@ void LoadSettingsActual()
 					{
 						recipe.cooking_rate = ini.get_value_int(0);
 					}
+					else if (ini.is_value("credit_cost"))
+					{
+						recipe.credit_cost = ini.get_value_int(0);
+					}
 					else if (ini.is_value("consumed"))
 					{
 						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
@@ -717,6 +721,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("cooking_rate"))
 					{
 						recipe.cooking_rate = ini.get_value_int(0);
+					}
+					else if (ini.is_value("credit_cost"))
+					{
+						recipe.credit_cost = ini.get_value_int(0);
 					}
 					else if (ini.is_value("consumed"))
 					{
@@ -3038,12 +3046,12 @@ void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring b
 
 	for (wstring craftType : craft_types) {
 		factoryNicknameToCraftTypeMap[recipe.nickname].push_back(craftType);
-		buildingCraftLists.insert(craftType);
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
 	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
 	craftListNumberModuleMap[build_type][recipe_number] = recipe;
+	buildingCraftLists.insert(build_type);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

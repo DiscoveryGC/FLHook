@@ -231,7 +231,7 @@ void FactoryModule::SaveState(FILE *file)
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
 	if (active_recipe.nickname) {
-		if (active_recipe.credit_cost);
+		if (active_recipe.credit_cost)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)

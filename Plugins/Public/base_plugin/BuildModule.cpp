@@ -192,9 +192,9 @@ void BuildModule::LoadState(INI_Reader &ini)
 	{
 		if (ini.is_value("build_type"))
 		{
-			RECIPE recipe = moduleNumberRecipeMap[ini.get_value_int(0)];
-			recipe.consumed_items.clear();
-			active_recipe = recipe;
+			active_recipe = moduleNumberRecipeMap[ini.get_value_int(0)];
+			active_recipe.consumed_items.clear();
+			active_recipe.credit_cost = 0;
 		}
 		else if (ini.is_value("consumed"))
 		{

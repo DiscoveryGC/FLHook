@@ -59,10 +59,11 @@ map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
 map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 map<wstring, RECIPE> moduleNameRecipeMap;
 map<uint, RECIPE> moduleNumberRecipeMap;
-map<wstring, RECIPE> crafttypeToFactoryRecipeMap;
+map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+set<wstring> buildingCraftLists;
 
 void AddFactoryRecipeToMaps(RECIPE recipe, wstring recipe_type);
-void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types);
+void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number);
 
 /// Map of item nickname hash to recipes to operate shield.
 map<uint, uint> shield_power_items;
@@ -402,7 +403,7 @@ void LoadSettingsActual()
 	factoryNicknameToCraftTypeMap.clear();
 	moduleNameRecipeMap.clear();
 	moduleNumberRecipeMap.clear();
-	crafttypeToFactoryRecipeMap.clear();
+	craftListNumberModuleMap.clear();
 
 	HookExt::ClearMiningObjData();
 
@@ -538,6 +539,8 @@ void LoadSettingsActual()
 			{
 				RECIPE recipe;
 				vector<wstring> craft_types;
+				wstring build_type;
+				uint recipe_number;
 				while (ini.read_value())
 				{
 					if (ini.is_value("nickname"))
@@ -556,9 +559,21 @@ void LoadSettingsActual()
 					{
 						craft_types.push_back(stows(ToLower(ini.get_value_string(0))));
 					}
+					else if (ini.is_value("build_type"))
+					{
+						build_type = stows(ToLower(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("recipe_number"))
+					{
+						recipe_number = ini.get_value_int(0);
+					}
 					else if (ini.is_value("shortcut_number"))
 					{
 						recipe.shortcut_number = ini.get_value_int(0);
+					}
+					else if (ini.is_value("craft_type"))
+					{
+						recipe.craft_type = stows(ini.get_value_string(0));
 					}
 					else if (ini.is_value("cooking_rate"))
 					{
@@ -573,7 +588,7 @@ void LoadSettingsActual()
 						recipe.reqlevel = ini.get_value_int(0);
 					}
 				}
-				AddModuleRecipeToMaps(recipe, craft_types);
+				AddModuleRecipeToMaps(recipe, craft_types, build_type, recipe_number);
 			}
 		}
 		ini.close();
@@ -1181,10 +1196,16 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseShieldMod(client, args);
 		return true;
 	}
-	else if (args.find(L"/base buildmod") == 0)
+	else if (args.find(L"/build") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseBuildMod(client, args);
+		return true;
+	}
+	else if (args.find(L"/destroy") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseBuildModDestroy(client, args);
 		return true;
 	}
 	else if (args.find(L"/base") == 0)
@@ -2773,7 +2794,7 @@ void AddFactoryRecipeToMaps(RECIPE recipe, wstring craft_type){
 	recipeCraftTypeNameMap[craft_type][recipeNameKey] = recipe;
 }
 
-void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types) {
+void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number) {
 
 	wstring recipeNameKey = recipe.infotext;
 	//convert to lowercase
@@ -2781,11 +2802,12 @@ void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types) {
 
 	for (wstring craftType : craft_types) {
 		factoryNicknameToCraftTypeMap[recipe.nickname].push_back(craftType);
-		crafttypeToFactoryRecipeMap[craftType] = recipe;
+		buildingCraftLists.insert(craftType);
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
 	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
+	craftListNumberModuleMap[build_type][recipe_number] = recipe;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

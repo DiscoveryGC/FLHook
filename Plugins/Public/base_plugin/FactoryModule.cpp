@@ -173,8 +173,8 @@ void FactoryModule::LoadState(INI_Reader &ini)
 			factoryNickname = moduleNumberRecipeMap[ini.get_value_int(0)].nickname;
 			for (auto& craftType : factoryNicknameToCraftTypeMap[factoryNickname]) {
 				base->availableCraftList.insert(craftType);
+				base->craftTypeTofactoryModuleMap[craftType] = this;
 			}
-			base->factoryModuleMap[factoryNickname] = this;
 			break;
 		}
 		else if (ini.is_value("nickname"))
@@ -235,7 +235,7 @@ void FactoryModule::AddToQueue(uint product)
 	}
 	else
 	{
-	build_queue.push_back(product);
+		build_queue.push_back(product);
 	}
 }
 
@@ -259,14 +259,13 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 }
 
 FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct) {
-	FactoryModule* facModPtr = 0;
 	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
-		facModPtr = dynamic_cast<FactoryModule*>(*i);
+		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(*i);
 		if(facModPtr && facModPtr->active_recipe.nickname == searchedProduct){
 			return facModPtr;
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 void FactoryModule::StopAllProduction(PlayerBase* pb) {

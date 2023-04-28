@@ -20,28 +20,44 @@
 
 namespace PlayerCommands
 {
-	static vector<wstring> modules_recipe_list;
+	static map<wstring, vector<wstring>> modules_recipe_map;
 	static map<wstring, vector<wstring>> factory_recipe_map;
 
 	//pre-generating crafting lists as they will probably be used quite a bit.
 	//paying with memory to save on processing.
-	vector<wstring> GenerateHelpMenu(map<uint, RECIPE> recipeNumberMap) {
+	vector<wstring> GenerateModuleHelpMenu(wstring buildType)
+	{
 		vector<wstring> generatedHelpStringList;
-		wstring currentString = L"";
-		for (map<uint, RECIPE>::iterator i = recipeNumberMap.begin(); i != recipeNumberMap.end(); ++i) {
-			currentString = L"|     ";
-			currentString += stows(itos(i->second.shortcut_number));
+		for (const auto& recipe : craftListNumberModuleMap[buildType])
+		{
+			wstring currentString = L"|    ";
+			currentString += stows(itos(recipe.first));
 			currentString += L" = ";
-			currentString += i->second.infotext.c_str();
+			currentString += recipe.second.infotext.c_str();
+			generatedHelpStringList.push_back(currentString);
+		}
+		return generatedHelpStringList;
+	}
+	vector<wstring> GenerateFactoryHelpMenu(wstring craftType)
+	{
+		vector<wstring> generatedHelpStringList;
+		for (const auto& recipe : recipeCraftTypeNumberMap[craftType]) {
+			wstring currentString = L"|     ";
+			currentString += stows(itos(recipe.second.shortcut_number));
+			currentString += L" = ";
+			currentString += recipe.second.infotext.c_str();
 			generatedHelpStringList.push_back(currentString.c_str());
 		}
 		return generatedHelpStringList;
 	}
 
 	void PopulateHelpMenus() {
-		modules_recipe_list = GenerateHelpMenu(moduleNumberRecipeMap);
-		for (auto& craftType : recipeCraftTypeNameMap) {
-			factory_recipe_map[craftType.first] = GenerateHelpMenu(recipeCraftTypeNumberMap[craftType.first]);
+		for (const auto& buildType : buildingCraftLists)
+		{
+			modules_recipe_map[buildType] = GenerateModuleHelpMenu(buildType);
+		}
+		for (const auto& craftType : recipeCraftTypeNameMap) {
+			factory_recipe_map[craftType.first] = GenerateFactoryHelpMenu(craftType.first);
 		}
 	}
 
@@ -1105,172 +1121,157 @@ namespace PlayerCommands
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 2);
+		const wstring &cmd = GetParam(args, ' ', 1);
 		if (cmd == L"list")
 		{
-			PrintUserCmdText(client, L"Modules:");
-			for (uint index = 1; index < base->modules.size(); index++)
+			PrintUserCmdText(client, L"Available building lists:");
+			for (const auto& buildType : buildingCraftLists)
 			{
-				if (base->modules[index])
+				PrintUserCmdText(client, L"|   %ls", buildType.c_str());
+			}
+		}
+		else if (buildingCraftLists.find(cmd) != buildingCraftLists.end())
+		{
+			const wstring &cmd2 = GetParam(args, ' ', 2);
+			const wstring &recipeName = GetParam(args, ' ', 3);
+
+			RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
+			if (!buildRecipe)
+			{
+				PrintUserCmdText(client, L"ERR Invalid module selected");
+				return;
+			}
+
+			if (cmd2 == L"info")
+			{
+				PrintUserCmdText(client, L"Construction materials for %ls", buildRecipe->infotext.c_str());
+				for (const auto& material : buildRecipe->consumed_items)
 				{
-					Module *mod = (Module*)base->modules[index];
-					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
-				}
-				else
-				{
-					PrintUserCmdText(client, L"%u: Empty - available for new module", index);
+					const GoodInfo *gi = GoodList::find_by_id(material.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), material.second);
 				}
 			}
-			PrintUserCmdText(client, L"OK");
-		}
-		else if (cmd == L"destroy")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			else if (cmd2 == L"start")
 			{
-				PrintUserCmdText(client, L"ERR Module not found");
-				return;
-			}
-
-			if (base->modules[index]->type == Module::TYPE_STORAGE && base->GetRemainingCargoSpace() < STORAGE_MODULE_CAPACITY)
-			{
-				PrintUserCmdText(client, L"ERR Need %d free space to destroy a storage module", STORAGE_MODULE_CAPACITY);
-
-				wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-				wstring wscMsgU = L"KITTY ALERT: Possible type 5 POB cheating by %name (Index = %index, RemainingSpace = %space)\n";
-				wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
-				wscMsgU = ReplaceStr(wscMsgU, L"%index", stows(itos(index)).c_str());
-				wscMsgU = ReplaceStr(wscMsgU, L"%space", stows(itos((int)base->GetRemainingCargoSpace())).c_str());
-
-				ConPrint(wscMsgU);
-				LogCheater(client, wscMsgU);
-
-				return;
-			}
-			
-			if (base->modules[index]->type == Module::TYPE_FACTORY) {
-				FactoryModule* facMod = dynamic_cast<FactoryModule*>(base->modules[index]);
-				for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname]) {
-					base->availableCraftList.erase(craftType);
-				}
-			}
-			delete base->modules[index];
-			base->modules[index] = 0;
-			base->Save();
-			PrintUserCmdText(client, L"OK Module destroyed");
-		}
-		else if (cmd == L"pause")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module not found");
-				return;
-			}
-
-			if (base->modules[index]->type != Module::TYPE_BUILD)
-			{
-				PrintUserCmdText(client, L"ERR This module is not in building stage");
-				return;
-			}
-
-			BuildModule *mod = (BuildModule*)base->modules[index];
-
-			if (mod->Paused)
-			{
-				PrintUserCmdText(client, L"ERR Module is already paused");
-			}
-			else
-			{
-				mod->Paused = true;
-				PrintUserCmdText(client, L"OK Module construction paused");
-			}
-
-			base->Save();
-			
-		}
-		else if (cmd == L"resume")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module not found");
-				return;
-			}
-
-			if (base->modules[index]->type != Module::TYPE_BUILD)
-			{
-				PrintUserCmdText(client, L"ERR This module is not in building stage");
-				return;
-			}
-
-			BuildModule *mod = (BuildModule*)base->modules[index];
-
-			if (mod->Paused)
-			{
-				mod->Paused = false;
-				PrintUserCmdText(client, L"OK Module construction resumed");
-			}
-			else
-			{
-				PrintUserCmdText(client, L"ERR Module construction is not paused");
-			}
-
-			base->Save();
-
-		}
-		else if (cmd == L"construct")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			RECIPE* recipePtr = BuildModule::GetModuleRecipe(GetParamToEnd(args, ' ', 4));
-
-			if (index < 1 || index >= base->modules.size() || base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (recipePtr == 0)
-			{
-				PrintUserCmdText(client, L"ERR Module type not available");
-				return;
-			}
-
-			if (recipePtr->shortcut_number == Module::TYPE_CORE)
-			{
-				if (base->base_level >= 4)
+				if (buildRecipe->shortcut_number == Module::TYPE_CORE && base->base_level >= 4)
 				{
 					PrintUserCmdText(client, L"ERR Upgrade not available");
 					return;
 				}
+
+				for (auto& modSlot : base->modules) {
+					if (modSlot == nullptr)
+					{
+						modSlot = new BuildModule(base, buildRecipe);
+						base->Save();
+						PrintUserCmdText(client, L"Construction started");
+						return;
+					}
+				}
+				PrintUserCmdText(client, L"ERR No free module slots!");
 			}
-
-			//make the nickname for inspection
-
-			if (recipePtr->reqlevel > base->base_level)
+			else if (cmd2 == L"stop")
 			{
-				PrintUserCmdText(client, L"ERR Insufficient Core Level");
-				return;
+				for (auto& iter = base->modules.rbegin(); iter != base->modules.rend(); iter++)
+				{
+					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
+					if(buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					{
+						base->modules.erase(next(iter).base());
+						base->Save();
+						PrintUserCmdText(client, L"Module construction stopped");
+						return;
+					}
+				}
+				PrintUserCmdText(client, L"ERR Selected module is not being built");
 			}
-
-			base->modules[index] = new BuildModule(base, recipePtr->shortcut_number);
-			base->Save();
-			PrintUserCmdText(client, L"OK Module construction started");
+			else if (cmd2 == L"toggle")
+			{
+				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
+				{
+					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
+					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					{
+						if (buildmod->Paused)
+						{
+							buildmod->Paused = false;
+							PrintUserCmdText(client, L"Module construction resumed");
+						}
+						else
+						{
+							buildmod->Paused = true;
+							PrintUserCmdText(client, L"Module construction paused");
+						}
+						return;
+					}
+				}
+				PrintUserCmdText(client, L"ERR Selected module is not being built");
+			}
+			else
+			{
+				PrintUserCmdText(client, L"ERR Invalid command");
+			}
 		}
 		else
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base buildmod [list|construct|destroy|pause|resume]");
-			PrintUserCmdText(client, L"|  list - show modules and build status");
-			PrintUserCmdText(client, L"|  destroy <index> - destroy module at <index>");
-			PrintUserCmdText(client, L"|  construct <index> <type> - start building module <type> at <index>");
-			PrintUserCmdText(client, L"|  pause <index> - pauses building at <index>");
-			PrintUserCmdText(client, L"|  resume <index> - resumes building at <index>");
-			for (vector<wstring>::iterator i = modules_recipe_list.begin(); i != modules_recipe_list.end(); ++i) {
-				PrintUserCmdText(client, *i);
+			PrintUserCmdText(client, L"/build <list|buildlist> <start|toggle|info> <moduleName/Nr");
+			PrintUserCmdText(client, L"|  list - lists available module lists");
+			PrintUserCmdText(client, L"|  buildlist start - starts constructon of selected module");
+			PrintUserCmdText(client, L"|  buildlist toggle - toggles construction status between active and paused");
+			PrintUserCmdText(client, L"|  buildlist info - provides construction material info for selected module");
+		}
+	}
+
+	void BaseBuildModDestroy(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return;
+		}
+
+		uint index = ToInt(GetParam(args, ' ', 1));
+		if (index < 1 || index >= base->modules.size() || !base->modules[index])
+		{
+			PrintUserCmdText(client, L"ERR Module not found");
+			return;
+		}
+
+		if (base->modules[index]->type == Module::TYPE_STORAGE && base->GetRemainingCargoSpace() < STORAGE_MODULE_CAPACITY)
+		{
+			PrintUserCmdText(client, L"ERR Need %d free space to destroy a storage module", STORAGE_MODULE_CAPACITY);
+
+			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
+			wstring wscMsgU = L"KITTY ALERT: Possible type 5 POB cheating by %name (Index = %index, RemainingSpace = %space)\n";
+			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%index", stows(itos(index)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%space", stows(itos((int)base->GetRemainingCargoSpace())).c_str());
+
+			ConPrint(wscMsgU);
+			LogCheater(client, wscMsgU);
+
+			return;
+		}
+
+		if (base->modules[index]->type == Module::TYPE_FACTORY) {
+			FactoryModule* facMod = dynamic_cast<FactoryModule*>(base->modules[index]);
+			for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname]) {
+				base->availableCraftList.erase(craftType);
 			}
 		}
+		delete base->modules[index];
+		base->modules[index] = nullptr;
+		base->Save();
+		PrintUserCmdText(client, L"OK Module destroyed");
 	}
 
 	void BaseFacMod(uint client, const wstring &args)
@@ -1328,7 +1329,8 @@ namespace PlayerCommands
 			{
 				PrintUserCmdText(client, L"Construction materials for %ls x%u:", recipe->infotext.c_str(), recipe->produced_amount);
 				for (auto& item : recipe->consumed_items) {
-					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(item.first).c_str(), item.second);
+					const GoodInfo *gi = GoodList::find_by_id(item.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
 				}
 				return;
 			}
@@ -1348,6 +1350,24 @@ namespace PlayerCommands
 			return;
 		}
 
+		if (cmd == L"start")
+		{
+			if (base->availableCraftList.find(recipe->craft_type) == base->availableCraftList.end())
+			{
+				PrintUserCmdText(client, L"ERR incorrect craftlist");
+				return;
+			}
+			FactoryModule* factory = base->craftTypeTofactoryModuleMap[recipe->craft_type];
+			if (!factory)
+			{
+				PrintUserCmdText(client, L"ERR Impossible factory error, contact staff");
+				return;
+			}
+			factory->AddToQueue(recipe->nickname);
+			PrintUserCmdText(client, L"OK Item added to build queue");
+			return;
+		}
+
 		FactoryModule *factory;
 		factory = FactoryModule::FindModuleByProductInProduction(base, recipe->nickname);
 		if (!factory)
@@ -1361,11 +1381,6 @@ namespace PlayerCommands
 			factory->ClearQueue();
 			factory->ClearRecipe();
 			PrintUserCmdText(client, L"OK Factory stopped");
-		}
-		else if (cmd == L"start")
-		{
-			factory->AddToQueue(recipe->nickname);
-			PrintUserCmdText(client, L"OK Item added to build queue");
 		}
 		else if (cmd == L"pause")
 		{

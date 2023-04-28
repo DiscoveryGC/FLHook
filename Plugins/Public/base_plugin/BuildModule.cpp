@@ -1,22 +1,21 @@
 #include "Main.h"
 
 BuildModule::BuildModule(PlayerBase *the_base)
-	: Module(TYPE_BUILD), base(the_base), build_type(0)
+	: Module(TYPE_BUILD), base(the_base)
 {
 }
 
 // Find the recipe for this building_type and start construction.
-BuildModule::BuildModule(PlayerBase *the_base, uint the_build_type)
-	: Module(TYPE_BUILD), base(the_base), build_type(the_build_type)
+BuildModule::BuildModule(PlayerBase *the_base, RECIPE* module_recipe)
+	: Module(TYPE_BUILD), base(the_base)
 {
-	active_recipe = moduleNumberRecipeMap[build_type];
+	active_recipe = *module_recipe;
 }
 
 wstring BuildModule::GetInfo(bool xml)
 {
 	wstring info;
-
-	std::wstring Status = L"";
+	std::wstring Status;
 	if (Paused)	Status = L"(Paused) ";
 	else Status = L"(Active) ";
 	if (xml)
@@ -104,7 +103,7 @@ bool BuildModule::Timer(uint time)
 		{
 			if (base->modules[i] == this)
 			{
-				switch (build_type)
+				switch (this->active_recipe.shortcut_number)
 				{
 				case Module::TYPE_CORE:
 					base->base_level++;
@@ -161,23 +160,9 @@ void BuildModule::LoadState(INI_Reader &ini)
 	{
 		if (ini.is_value("build_type"))
 		{
-			build_type = ini.get_value_int(0);
-		}
-		else if (ini.is_value("paused"))
-		{
-			Paused = ini.get_value_bool(0);
-		}
-		else if (ini.is_value("produced_item"))
-		{
-			active_recipe.produced_item = ini.get_value_int(0);
-		}
-		else if (ini.is_value("cooking_rate"))
-		{
-			active_recipe.cooking_rate = ini.get_value_int(0);
-		}
-		else if (ini.is_value("infotext"))
-		{
-			active_recipe.infotext = stows(ini.get_value_string());
+			RECIPE recipe = moduleNumberRecipeMap[ini.get_value_int(0)];
+			recipe.consumed_items.clear();
+			active_recipe = recipe;
 		}
 		else if (ini.is_value("consumed"))
 		{
@@ -189,10 +174,7 @@ void BuildModule::LoadState(INI_Reader &ini)
 void BuildModule::SaveState(FILE *file)
 {
 	fprintf(file, "[BuildModule]\n");
-	fprintf(file, "build_type = %u\n", build_type);
-	fprintf(file, "paused = %d\n", Paused);
-	fprintf(file, "produced_item = %u\n", active_recipe.produced_item);
-	fprintf(file, "cooking_rate = %u\n", active_recipe.cooking_rate);
+	fprintf(file, "build_type = %u\n", active_recipe.shortcut_number);
 	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
 	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
@@ -201,11 +183,11 @@ void BuildModule::SaveState(FILE *file)
 	}
 }
 
-RECIPE* BuildModule::GetModuleRecipe(wstring module_name) {
+RECIPE* BuildModule::GetModuleRecipe(wstring module_name, wstring build_list) {
 	transform(module_name.begin(), module_name.end(), module_name.begin(), ::tolower);
-	int shortcut_number = ToInt(module_name);
-	if (moduleNumberRecipeMap.count(shortcut_number)) {
-		return &moduleNumberRecipeMap[shortcut_number];
+	uint shortcut_number = ToInt(module_name);
+	if (craftListNumberModuleMap.count(build_list) && craftListNumberModuleMap[build_list].count(shortcut_number)) {
+		return &craftListNumberModuleMap[build_list][shortcut_number];
 	}
 	else if (moduleNameRecipeMap.count(module_name)){
 		return &moduleNameRecipeMap[module_name];

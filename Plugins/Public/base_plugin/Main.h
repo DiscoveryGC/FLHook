@@ -29,6 +29,7 @@ struct RECIPE
 	uint produced_amount;
 	bool loop_production;
 	wstring infotext;
+	wstring craft_type;
 	uint cooking_rate;
 	map<uint, uint> consumed_items;
 	uint credit_cost;
@@ -223,19 +224,17 @@ class BuildModule : public Module
 public:
 	PlayerBase *base;
 
-	int build_type;
-
 	RECIPE active_recipe;
 
 	BuildModule(PlayerBase *the_base);
-	BuildModule(PlayerBase *the_base, uint the_building_type);
+	BuildModule(PlayerBase *the_base, RECIPE* moduleRecipe);
 
 	wstring GetInfo(bool xml);
 
 	bool Paused = false;
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
-	static RECIPE* GetModuleRecipe(wstring module_name);
+	static RECIPE* GetModuleRecipe(wstring module_name, wstring build_list);
 
 	bool Timer(uint time);
 };
@@ -408,7 +407,7 @@ public:
 
 	// Modules for base
 	vector<Module*> modules;
-	map<uint, FactoryModule*> factoryModuleMap;
+	map<wstring, FactoryModule*> craftTypeTofactoryModuleMap;
 
 	// Available crafting types
 	set<wstring> availableCraftList;
@@ -551,6 +550,7 @@ namespace PlayerCommands
 	void BaseDefenseMode(uint client, const wstring &args);
 	void BaseDefMod(uint client, const wstring &args);
 	void BaseBuildMod(uint client, const wstring &args);
+	void BaseBuildModDestroy(uint client, const wstring &args);
 	void BaseFacMod(uint client, const wstring &args);
 	void PopulateHelpMenus();
 	void BaseShieldMod(uint client, const wstring &args);
@@ -601,7 +601,8 @@ extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
 extern map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 extern map<wstring, RECIPE> moduleNameRecipeMap;
 extern map<uint, RECIPE> moduleNumberRecipeMap;
-extern map<wstring, RECIPE> crafttypeToFactoryRecipeMap;
+extern map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+extern set<wstring> buildingCraftLists;
 
 struct REPAIR_ITEM
 {

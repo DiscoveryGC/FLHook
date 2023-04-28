@@ -1979,6 +1979,7 @@ namespace PlayerCommands
 		newbase->basesolar = "legacy";
 		newbase->baseloadout = "legacy";
 		newbase->defense_mode = 1;
+		newbase->isCrewSupplied = true;
 
 		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
 		{

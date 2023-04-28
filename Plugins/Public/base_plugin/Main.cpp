@@ -2802,12 +2802,12 @@ void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring b
 
 	for (wstring craftType : craft_types) {
 		factoryNicknameToCraftTypeMap[recipe.nickname].push_back(craftType);
-		buildingCraftLists.insert(craftType);
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
 	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
 	craftListNumberModuleMap[build_type][recipe_number] = recipe;
+	buildingCraftLists.insert(build_type);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

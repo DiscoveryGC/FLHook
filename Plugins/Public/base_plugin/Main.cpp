@@ -1461,9 +1461,9 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 }
 
 void RandomizeCoords(Vector& vec) {
-	vec.x += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
-	vec.y += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
-	vec.z += ((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min) * (rand() %2 == 0 ? -1 : 1);
+	vec.x += static_cast<float>(((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min)) * (rand() %2 == 0 ? -1 : 1);
+	vec.y += static_cast<float>(((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min)) * (rand() %2 == 0 ? -1 : 1);
+	vec.z += static_cast<float>(((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min)) * (rand() %2 == 0 ? -1 : 1);
 }
 
 // If this is a docking request at a player controlled based then send

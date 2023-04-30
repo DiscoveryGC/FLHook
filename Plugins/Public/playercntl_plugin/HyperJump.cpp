@@ -93,7 +93,6 @@ namespace HyperJump
 	};
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
-	static map<uint, JUMP_TYPE> mapJumpTypeOverride;
 
 	struct JUMPDRIVE_ARCH
 	{
@@ -123,6 +122,7 @@ namespace HyperJump
 		list<uint> active_charge_fuse;
 		bool charging_complete;
 		uint charge_status;
+		JUMP_TYPE jump_type = NOEFFECT_JUMPTYPE;
 
 		int jump_timer;
 		int jump_tunnel_timer;
@@ -157,12 +157,16 @@ namespace HyperJump
 
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt, uint tunnelTransitTime = BaseTunnelTransitTime)
 	{
-		if (EnableFakeJumpTunnels && (!mapJumpTypeOverride.count(iClientID) || mapJumpTypeOverride[iClientID] != NOEFFECT_JUMPTYPE))
+		if (EnableFakeJumpTunnels && (mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE || mapJumpDrives[iClientID].jump_type == JUMPHOLE_JUMPTYPE))
 		{
-			uint iSystem;
+			uint iSystem = 0;
 			uint iPlayerSystem;
 			pub::Player::GetSystem(iClientID, iPlayerSystem);
-			const auto& proxyJH = HkGetSystemNickByID(iPlayerSystem) + L"_proxy_jump_drive";
+			wstring proxyJH;
+			if(mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE)
+				proxyJH = HkGetSystemNickByID(iPlayerSystem) + L"_proxy_jump_drive";
+			else
+				proxyJH = HkGetSystemNickByID(iPlayerSystem) + L"_proxy_jump_hole";
 			uint ProxyJumpHoleID = CreateID(wstos(proxyJH).c_str());
 			pub::SpaceObj::GetSystem(ProxyJumpHoleID, iSystem);
 
@@ -173,6 +177,9 @@ namespace HyperJump
 			}
 			uint playerShip;
 			pub::Player::GetShip(iClientID, playerShip);
+			mapJumpDrives[iClientID].iTargetSystem = system;
+			mapJumpDrives[iClientID].vTargetPosition = pos;
+			mapJumpDrives[iClientID].matTargetOrient = ornt;
 			FLPACKET_SYSTEM_SWITCH_OUT switchOutPacket;
 			switchOutPacket.jumpObjectId = ProxyJumpHoleID;
 			switchOutPacket.shipId = playerShip;
@@ -859,7 +866,6 @@ namespace HyperJump
 				if (jd.jump_tunnel_timer > 0)
 				{
 					jd.jump_tunnel_timer--;
-					PrintUserCmdText(iClientID, L"Tunnel timer %d\n", jd.jump_tunnel_timer);
 					if (jd.jump_tunnel_timer == 2)
 					{
 						// switch the system under the hood, final coordinates will be set by the packet next step.
@@ -874,7 +880,8 @@ namespace HyperJump
 						switchInPacket.shipId = iShip;
 						HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket);
 
-						pub::SpaceObj::DrainShields(iShip);
+						if(mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE)
+							pub::SpaceObj::DrainShields(iShip);
 					}
 				}
 
@@ -948,6 +955,7 @@ namespace HyperJump
 						}
 						
 						RandomizeCoords(jd.vTargetPosition);
+						mapJumpDrives[iClientID].jump_type = JUMPDRIVE_JUMPTYPE;
 						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, BaseTunnelTransitTime);
 
 						// Find all ships within the jump field including the one with the jump engine.
@@ -1031,6 +1039,7 @@ namespace HyperJump
 							pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
 							pub::SpaceObj::DrainShields(pPD->iShipID);
 							tunnelTransitTime++;
+							mapJumpDrives[pPD->iOnlineID].jump_type = JUMPDRIVE_JUMPTYPE;
 							SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2, tunnelTransitTime);
 						}
 					}
@@ -1230,9 +1239,8 @@ namespace HyperJump
 			CUSTOM_JUMP_STRUCT info;
 			info.iShipID = iShip;
 			info.iSystemID = iSystemID;
-			if (mapJumpTypeOverride.count(iClientID)) {
-				info.iJumpType = mapJumpTypeOverride[iClientID];
-			}
+			info.iJumpType = mapJumpDrives[iClientID].jump_type;
+			
 			Plugin_Communication(CUSTOM_JUMP, &info);
 			return true;
 		}
@@ -1273,6 +1281,7 @@ namespace HyperJump
 		pos.y += 100;
 
 		cmds->Print(L"Jump to system=%s x=%0.0f y=%0.0f z=%0.0f\n", targetPlyr.wscSystem.c_str(), pos.x, pos.y, pos.z);
+		mapJumpDrives[adminPlyr.iClientID].jump_type = NOEFFECT_JUMPTYPE;
 		SwitchSystem(adminPlyr.iClientID, targetPlyr.iSystem, pos, ornt);
 		return;
 	}
@@ -1376,6 +1385,7 @@ namespace HyperJump
 		pos.y += 400;
 
 		cmds->Print(L"Jump to system=%s x=%0.0f y=%0.0f z=%0.0f\n", adminPlyr.wscSystem.c_str(), pos.x, pos.y, pos.z);
+		mapJumpDrives[targetPlyr.iClientID].jump_type = NOEFFECT_JUMPTYPE;
 		SwitchSystem(targetPlyr.iClientID, adminPlyr.iSystem, pos, ornt);
 		return;
 	}
@@ -1892,7 +1902,7 @@ namespace HyperJump
 	}
 
 	void HyperJump::ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData) {
-		mapJumpTypeOverride[jumpData.iClientID] = jumpData.jumpType;
+		mapJumpDrives[jumpData.iClientID].jump_type = jumpData.jumpType;
 		SwitchSystem(jumpData.iClientID, jumpData.iSystemID, jumpData.pos, jumpData.ori);
 	}
 }

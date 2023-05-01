@@ -883,6 +883,11 @@ namespace HyperJump
 						if(mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE)
 							pub::SpaceObj::DrainShields(iShip);
 					}
+					else if (jd.jump_tunnel_timer == 0)
+					{
+						mapJumpDrives[iClientID].jump_type = NOEFFECT_JUMPTYPE;
+						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, BaseTunnelTransitTime);
+					}
 				}
 
 				if (jd.arch == nullptr) {

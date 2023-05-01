@@ -1399,11 +1399,7 @@ namespace HyperJump
 			return;
 		}
 
-		if (cmds->rights != RIGHT_CHASEPULL)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
+		RIGHT_CHECK(RIGHT_CHASEPULL)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)

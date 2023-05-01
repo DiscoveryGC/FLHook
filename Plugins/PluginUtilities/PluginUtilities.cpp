@@ -985,10 +985,24 @@ void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &w
 	wstring wscTRADataFormat = wszFormatBuf;
 	const wstring wscTRADataSenderColor = L"FFFFFF"; // white
 
-	wstring wscXML = L"<TRA data=\"0x" + wscTRADataSenderColor + wscTRADataFormat +
+	wstring wscXML = L"";
+	wstring textToDisplay;
+
+	if (wscText.length() > 2 && wscText[0] == '/' && wscText[1] == '/')
+	{
+		wscXML += L"<TRA data=\"0x2222FF" + wscTRADataFormat +
+			L"\" mask=\"-1\"/><TEXT>" + L"[OOC] " + L"</TEXT>";
+		textToDisplay = XMLText(wscText.substr(2, wscText.length() - 2));
+	}
+	else
+	{
+		textToDisplay = XMLText(wscText);
+	}
+
+	wscXML += L"<TRA data=\"0x" + wscTRADataSenderColor + wscTRADataFormat +
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(wscSender) + L": </TEXT>" +
 		L"<TRA data=\"0x" + wscTextColor + wscTRADataFormat +
-		L"\" mask=\"-1\"/><TEXT>" + XMLText(wscText) + L"</TEXT>";
+		L"\" mask=\"-1\"/><TEXT>" + textToDisplay + L"</TEXT>";
 
 	HkFMsg(iToClientID, wscXML);
 }

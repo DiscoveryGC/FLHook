@@ -183,6 +183,8 @@ namespace HyperJump
 			FLPACKET_SYSTEM_SWITCH_OUT switchOutPacket;
 			switchOutPacket.jumpObjectId = ProxyJumpHoleID;
 			switchOutPacket.shipId = playerShip;
+
+			pub::SpaceObj::SetInvincible(playerShip, true, true, 0);
 			HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket);
 
 			mapJumpDrives[iClientID].jump_tunnel_timer = tunnelTransitTime;
@@ -883,6 +885,11 @@ namespace HyperJump
 						if(mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE)
 							pub::SpaceObj::DrainShields(iShip);
 					}
+					else if (jd.jump_tunnel_timer == 0)
+					{
+						mapJumpDrives[iClientID].jump_type = NOEFFECT_JUMPTYPE;
+						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, BaseTunnelTransitTime);
+					}
 				}
 
 				if (jd.arch == nullptr) {
@@ -1399,11 +1406,7 @@ namespace HyperJump
 			return;
 		}
 
-		if (cmds->rights != RIGHT_CHASEPULL)
-		{
-			cmds->Print(L"ERR No permission\n");
-			return;
-		}
+		RIGHT_CHECK(RIGHT_CHASEPULL)
 
 		HKPLAYERINFO adminPlyr;
 		if (HkGetPlayerInfo(cmds->GetAdminName(), adminPlyr, false) != HKE_OK || adminPlyr.iShip == 0)

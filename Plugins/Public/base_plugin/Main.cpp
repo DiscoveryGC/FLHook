@@ -1498,7 +1498,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 								if (*iditer == item->iArchID)
 								{
 									foundid = true;
-									PrintUserCmdText(client, L"DEBUG: Found acceptable ID.");
 									break;
 								}
 								iditer++;
@@ -1528,7 +1527,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 						if (*iditer == shipclass)
 						{
 							foundclass = true;
-							PrintUserCmdText(client, L"DEBUG: Found acceptable shipclass.");
 							break;
 						}
 						iditer++;

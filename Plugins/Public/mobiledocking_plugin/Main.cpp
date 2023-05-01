@@ -493,7 +493,8 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	{
 		uint carrierShipID;
 		pub::Player::GetShip(carrierClientID, carrierShipID);
-		if (carrierShipID == 0) {
+		if (carrierShipID == 0)
+		{
 			//carrier docked somewhere, undock into that base. POBs require special handling.
 			CUSTOM_BASE_IS_DOCKED_STRUCT POBcheckStruct;
 			POBcheckStruct.iClientID = carrierClientID;
@@ -513,7 +514,8 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 				pub::Player::ForceLand(client, baseID);
 			}
 		}
-		else {
+		else
+		{
 			//teleport the player using same method as jumpdrives
 			CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
 			Vector pos;
@@ -533,15 +535,28 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			jumpData.ori = ori;
 
 			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_JUMP_CALLOUT, &jumpData);
-
-			mobiledockClients[carrierClientID].iDockingModulesAvailable++;
+			Players[client].iLastBaseID = idToDockedInfoMap[client]->lastDockedSolar;
 		}
 
 		mobiledockClients[carrierClientID].iDockingModulesAvailable++;
 	}
 	else
 	{
-		pub::Player::ForceLand(client, idToDockedInfoMap[client]->lastDockedSolar);
+		CUSTOM_BASE_LAST_DOCKED_STRUCT lastDockedCheck;
+		lastDockedCheck.iClientID = client;
+		lastDockedCheck.iLastDockedBaseID = 0;
+		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_LAST_DOCKED, &lastDockedCheck);
+		if (lastDockedCheck.iLastDockedBaseID)
+		{
+			CUSTOM_BASE_BEAM_STRUCT POBbeamStruct;
+			POBbeamStruct.iClientID = client;
+			POBbeamStruct.iTargetBaseID = lastDockedCheck.iLastDockedBaseID;
+			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_BEAM, &POBbeamStruct);
+		}
+		else
+		{
+			pub::Player::ForceLand(client, idToDockedInfoMap[client]->lastDockedSolar);
+		}
 	}
 
 	wstring dockedCharname = (const wchar_t*)Players.GetActiveCharacterName(client);

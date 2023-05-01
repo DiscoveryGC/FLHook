@@ -183,6 +183,8 @@ namespace HyperJump
 			FLPACKET_SYSTEM_SWITCH_OUT switchOutPacket;
 			switchOutPacket.jumpObjectId = ProxyJumpHoleID;
 			switchOutPacket.shipId = playerShip;
+
+			pub::SpaceObj::SetInvincible(playerShip, true, true, 0);
 			HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket);
 
 			mapJumpDrives[iClientID].jump_tunnel_timer = tunnelTransitTime;

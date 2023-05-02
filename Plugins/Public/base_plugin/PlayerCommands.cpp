@@ -1254,6 +1254,40 @@ namespace PlayerCommands
 		}
 	}
 
+	void BaseSwapModule(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return;
+		}
+
+		const uint index1 = ToUInt(GetParam(args, ' ', 1));
+		const uint index2 = ToUInt(GetParam(args, ' ', 2));
+		if (index1 == 0 || index2 == 0)
+		{
+			PrintUserCmdText(client, L"ERR Invalid module indexes");
+			return;
+		}
+		if (index1 == index2)
+		{
+			PrintUserCmdText(client, L"ERR Can't swap a module with itself");
+			return;
+		}
+
+		Module* tempModulePtr = base->modules[index1];
+		base->modules[index1] = base->modules[index2];
+		base->modules[index2] = tempModulePtr;
+		base->Save();
+	}
+
 	void BaseBuildModDestroy(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);

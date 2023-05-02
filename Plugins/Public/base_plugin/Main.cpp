@@ -1366,6 +1366,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseBuildModDestroy(client, args);
 		return true;
 	}
+	else if (args.find(L"/base swap") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseSwapModule(client, args);
+		return true;
+	}
 	else if (args.find(L"/base") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;

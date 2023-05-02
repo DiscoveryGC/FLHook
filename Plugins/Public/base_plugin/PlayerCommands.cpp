@@ -1172,6 +1172,23 @@ namespace PlayerCommands
 					return;
 				}
 
+				for (const auto& module : base->modules)
+				{
+					BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
+					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					{
+						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
+						return;
+					}
+					
+					FactoryModule* facmod = dynamic_cast<FactoryModule*>(module);
+					if (facmod && facmod->factoryNickname == buildRecipe->nickname)
+					{
+						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
+						return;
+					}
+				}
+
 				for (auto& modSlot : base->modules) {
 					if (modSlot == nullptr)
 					{
@@ -1183,7 +1200,7 @@ namespace PlayerCommands
 				}
 				PrintUserCmdText(client, L"ERR No free module slots!");
 			}
-			else if (cmd2 == L"toggle")
+			else if (cmd2 == L"resume")
 			{
 				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
 				{
@@ -1197,8 +1214,28 @@ namespace PlayerCommands
 						}
 						else
 						{
+							PrintUserCmdText(client, L"ERR Module construction already ongoing");
+						}
+						return;
+					}
+				}
+				PrintUserCmdText(client, L"ERR Selected module is not being built");
+			}
+			else if (cmd2 == L"pause")
+			{
+				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
+				{
+					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
+					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					{
+						if (!buildmod->Paused)
+						{
 							buildmod->Paused = true;
 							PrintUserCmdText(client, L"Module construction paused");
+						}
+						else
+						{
+							PrintUserCmdText(client, L"ERR Module construction already paused");
 						}
 						return;
 					}
@@ -1213,13 +1250,48 @@ namespace PlayerCommands
 		else
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/build <list|buildlist> <list|start|toggle|info> <moduleName/Nr");
+			PrintUserCmdText(client, L"/build <list|buildlist> <list|start|resume|pause|info> <moduleName/Nr");
 			PrintUserCmdText(client, L"|  list - lists available module lists");
 			PrintUserCmdText(client, L"|  buildlist list - lists modules available on the selected module list");
 			PrintUserCmdText(client, L"|  buildlist start - starts constructon of selected module");
-			PrintUserCmdText(client, L"|  buildlist toggle - toggles construction status between active and paused");
+			PrintUserCmdText(client, L"|  buildlist resume - pauses selected module construction");
+			PrintUserCmdText(client, L"|  buildlist pause - resumes selected module construction");
 			PrintUserCmdText(client, L"|  buildlist info - provides construction material info for selected module");
 		}
+	}
+
+	void BaseSwapModule(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return;
+		}
+
+		const uint index1 = ToUInt(GetParam(args, ' ', 1));
+		const uint index2 = ToUInt(GetParam(args, ' ', 2));
+		if (index1 == 0 || index2 == 0)
+		{
+			PrintUserCmdText(client, L"ERR Invalid module indexes");
+			return;
+		}
+		if (index1 == index2)
+		{
+			PrintUserCmdText(client, L"ERR Can't swap a module with itself");
+			return;
+		}
+
+		Module* tempModulePtr = base->modules[index1];
+		base->modules[index1] = base->modules[index2];
+		base->modules[index2] = tempModulePtr;
+		base->Save();
 	}
 
 	void BaseBuildModDestroy(uint client, const wstring &args)

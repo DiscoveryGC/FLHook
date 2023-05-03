@@ -501,8 +501,8 @@ namespace HkIServerImpl
 		{
 			AntiJumpDisconnect::JumpInComplete(iSystem, iShip, iClientID);
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
-			//TODO: Apply discerning of JHs with JG intercepting data in SystemSwitchOut hook
-			HyperJump::SetJumpInFuse(iClientID, JUMPHOLE_JUMPTYPE);
+			//TODO: Apply discerning of JHs with JG intercepting data in SystemSwitchOut
+			HyperJump::SetJumpInFuse(iClientID);
 		}
 
 		// Make player damageable once the ship has jumped in system.
@@ -1595,7 +1595,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		if (iClientID)
 		{
 			SystemSensor::JumpInComplete(info->iSystemID, info->iShipID, iClientID);
-			HyperJump::SetJumpInFuse(iClientID, info->iJumpType);
 		}
 	}
 	else if (msg == CUSTOM_JUMP_CALLOUT)

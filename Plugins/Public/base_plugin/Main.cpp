@@ -1559,12 +1559,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 				Vector destPos = pbase->destposition;
 				RandomizeCoords(destPos);
 
-				// disable cruise engine
-				XActivateCruise cruiseSetter;
-				cruiseSetter.bActivate = false;
-				cruiseSetter.iShip = Players[client].iShipID;
-				HookClient->Send_FLPACKET_COMMON_ACTIVATECRUISE(client, cruiseSetter);
-
 				CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
 				jumpData.iClientID = client;
 				jumpData.iSystemID = pbase->destsystem;

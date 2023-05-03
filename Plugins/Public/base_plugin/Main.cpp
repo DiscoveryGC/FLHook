@@ -547,10 +547,6 @@ void LoadSettingsActual()
 					{
 						recipe.nickname = CreateID(ini.get_value_string(0));
 					}
-					else if (ini.is_value("produced_item"))
-					{
-						recipe.produced_item = CreateID(ini.get_value_string(0));
-					}
 					else if (ini.is_value("infotext"))
 					{
 						recipe.infotext = stows(ini.get_value_string(0));
@@ -570,10 +566,6 @@ void LoadSettingsActual()
 					else if (ini.is_value("shortcut_number"))
 					{
 						recipe.shortcut_number = ini.get_value_int(0);
-					}
-					else if (ini.is_value("craft_type"))
-					{
-						recipe.craft_type = stows(ini.get_value_string(0));
 					}
 					else if (ini.is_value("cooking_rate"))
 					{

@@ -155,9 +155,30 @@ namespace HyperJump
 	//map the existing Matrix
 	static map<uint, BEACONMATRIX*> mapPlayerBeaconMatrix;
 
+	void ClearJumpDriveInfo(uint iClientID, bool clearFuses)
+	{
+		auto& jd = mapJumpDrives[iClientID];
+		jd.charging_on = false;
+		jd.curr_charge = 0;
+		jd.charging_complete = false;
+		jd.charge_status = -1;
+
+		jd.jump_timer = 0;
+		jd.iTargetSystem = 0;
+		jd.vTargetPosition.x = 0;
+		jd.vTargetPosition.y = 0;
+		jd.vTargetPosition.z = 0;
+
+		if (clearFuses)
+		{
+			jd.active_fuse = 0;
+			jd.active_charge_fuse.clear();
+		}
+	}
+
 	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt, uint tunnelTransitTime = BaseTunnelTransitTime)
 	{
-		if (EnableFakeJumpTunnels && (mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE || mapJumpDrives[iClientID].jump_type == JUMPHOLE_JUMPTYPE))
+		if (EnableFakeJumpTunnels && tunnelTransitTime && (mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE || mapJumpDrives[iClientID].jump_type == JUMPHOLE_JUMPTYPE))
 		{
 			uint iSystem = 0;
 			uint iPlayerSystem;
@@ -191,6 +212,12 @@ namespace HyperJump
 		}
 		else
 		{
+			// disable cruise engine
+			XActivateCruise cruiseSetter;
+			cruiseSetter.bActivate = false;
+			cruiseSetter.iShip = Players[iClientID].iShipID;
+			HookClient->Send_FLPACKET_COMMON_ACTIVATECRUISE(iClientID, cruiseSetter);
+
 			mapDeferredJumps[iClientID].system = system;
 			mapDeferredJumps[iClientID].pos = pos;
 			mapDeferredJumps[iClientID].ornt = ornt;
@@ -202,6 +229,8 @@ namespace HyperJump
 			// Send the jump command to the client. The client will send a system switch out complete
 			// event which we intercept to set the new starting positions.
 			PrintUserCmdText(iClientID, L" ChangeSys %u", system);
+
+			ClearJumpDriveInfo(iClientID, false);
 		}
 	}
 
@@ -493,16 +522,14 @@ namespace HyperJump
 		}
 	}
 
-	void HyperJump::SetJumpInFuse(uint iClientID, JUMP_TYPE jumpType)
+	void HyperJump::SetJumpInFuse(uint iClientID)
 	{
-		//if incoming from a jumpdrive jump, overwrite the type
-		if (mapJumpDrives[iClientID].jump_tunnel_timer)
-			jumpType = JUMPDRIVE_JUMPTYPE;
+		JUMP_TYPE jumpType = mapJumpDrives[iClientID].jump_type;
 
-		Archetype::Ship* victimShiparch = Archetype::GetShip(Players[iClientID].iShipArchetype);
-		if (JumpInFuseMap.count(victimShiparch->iShipClass) && JumpInFuseMap[victimShiparch->iShipClass].count(jumpType))
+		Archetype::Ship* playerShip = Archetype::GetShip(Players[iClientID].iShipArchetype);
+		if (JumpInFuseMap.count(playerShip->iShipClass) && JumpInFuseMap[playerShip->iShipClass].count(jumpType))
 		{
-			const JUMPFUSE& jumpFuse = JumpInFuseMap[victimShiparch->iShipClass][jumpType];
+			const JUMPFUSE& jumpFuse = JumpInFuseMap[playerShip->iShipClass][jumpType];
 			SetFuse(iClientID, jumpFuse.jump_fuse, jumpFuse.lifetime, jumpFuse.delay);
 		}
 		else
@@ -539,18 +566,8 @@ namespace HyperJump
 		{
 			return true;
 		}
-		mapJumpDrives[iClientID].charging_on = false;
-		mapJumpDrives[iClientID].curr_charge = 0;
-		mapJumpDrives[iClientID].active_fuse = 0;
-		mapJumpDrives[iClientID].active_charge_fuse.clear();
-		mapJumpDrives[iClientID].charging_complete = false;
-		mapJumpDrives[iClientID].charge_status = -1;
 
-		mapJumpDrives[iClientID].jump_timer = 0;
-		mapJumpDrives[iClientID].iTargetSystem = 0;
-		mapJumpDrives[iClientID].vTargetPosition.x = 0;
-		mapJumpDrives[iClientID].vTargetPosition.y = 0;
-		mapJumpDrives[iClientID].vTargetPosition.z = 0;
+		ClearJumpDriveInfo(iClientID, true);
 
 		// Check that the player has a jump drive and initialise the infomation
 		// about it - otherwise return false.
@@ -887,8 +904,7 @@ namespace HyperJump
 					}
 					else if (jd.jump_tunnel_timer == 0)
 					{
-						mapJumpDrives[iClientID].jump_type = NOEFFECT_JUMPTYPE;
-						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, BaseTunnelTransitTime);
+						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, 0);
 					}
 				}
 
@@ -922,6 +938,7 @@ namespace HyperJump
 
 						// Stop the charging fuses
 						StopChargeFuses(iClientID);
+						SetFuse(iClientID, 0);
 
 						// Jump the player's ship
 						Vector vPosition;
@@ -931,7 +948,6 @@ namespace HyperJump
 						uint iSystemID;
 						pub::SpaceObj::GetSystem(iShip, iSystemID);
 
-						pub::SpaceObj::DrainShields(iShip);
 						// Restrict some ships from jumping, this is for the jumpship
 						auto shipInfo1 = Archetype::GetShip(Players[iClientID].iShipArchetype);
 						if (!CanJumpWithCommodities && CheckForCommodities(iClientID))
@@ -1044,32 +1060,17 @@ namespace HyperJump
 							vNewTargetPosition.y = jd.vTargetPosition.y + (vPosition.y - vPosition2.y);
 							vNewTargetPosition.z = jd.vTargetPosition.z + (vPosition.z - vPosition2.z);
 							pub::Audio::PlaySoundEffect(pPD->iOnlineID, CreateID("dsy_jumpdrive_activate"));
-							pub::SpaceObj::DrainShields(pPD->iShipID);
 							tunnelTransitTime++;
 							mapJumpDrives[pPD->iOnlineID].jump_type = JUMPDRIVE_JUMPTYPE;
 							SwitchSystem(pPD->iOnlineID, jd.iTargetSystem, vNewTargetPosition, mShipDir2, tunnelTransitTime);
 						}
 					}
-					// Wait until the ship is in the target system before turning off the fuse by
-					// holding the timer.
-					else if (jd.jump_timer == 1)
-					{
-						uint iSystem;
-						pub::Player::GetSystem(iClientID, iSystem);
-						if (iSystem != jd.iTargetSystem)
-							jd.jump_timer = 2;
-					}
-					// Finally turn off the fuse and make sure the ship is damagable
-					// (the switch out causes the ship to be invincible
+
+					// Make sure the ship is damagable
+					// (the switch out causes the ship to be invincible)
 					else if (jd.jump_timer == 0)
 					{
-						jd.iTargetSystem = 0;
-						jd.vTargetPosition.x = 0;
-						jd.vTargetPosition.y = 0;
-						jd.vTargetPosition.z = 0;
 						pub::SpaceObj::SetInvincible(iShip, false, false, 0);
-						SetFuse(iClientID, 0);
-						StopChargeFuses(iClientID);
 					}
 
 					// Proceed to the next ship.

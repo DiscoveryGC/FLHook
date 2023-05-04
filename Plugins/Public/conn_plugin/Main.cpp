@@ -139,26 +139,24 @@ bool ValidateCargo(unsigned int client)
 	return true;
 }
 
-uint GetCustomBaseForClient(unsigned int client)
+void StoreReturnPointForClient(unsigned int client)
 {
-	// Pass to plugins incase this ship is docked at a custom base.
 	CUSTOM_BASE_IS_DOCKED_STRUCT info;
 	info.iClientID = client;
 	info.iDockedBaseID = 0;
 	Plugin_Communication(CUSTOM_BASE_IS_DOCKED, &info);
-	return info.iDockedBaseID;
-}
-
-void StoreReturnPointForClient(unsigned int client)
-{
 	// It's not docked at a custom base, check for a regular base
-	uint base = GetCustomBaseForClient(client);
-	if (!base)
+	if (info.iDockedBaseID)
+	{
+		HookExt::IniSetI(client, "conn.retbase", info.iDockedBaseID);
+		HookExt::IniSetI(client, "conn.retbasebackup", Players[client].iSystemID);
+	}
+	else
+	{
+		uint base;
 		pub::Player::GetBase(client, base);
-	if (!base)
-		return;
-
-	HookExt::IniSetI(client, "conn.retbase", base);
+		HookExt::IniSetI(client, "conn.retbase", base);
+	}
 }
 
 unsigned int ReadReturnPointForClient(unsigned int client)
@@ -178,24 +176,27 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 		return;
 
 	// No plugin handled it, do it ourselves.
-	unsigned int system;
-	pub::Player::GetSystem(client, system);
 	Universe::IBase* base = Universe::get_base(targetBase);
-
-	pub::Player::ForceLand(client, targetBase); // beam
-
-	// if not in the same system, emulate F1 charload
-	if (base->iSystemID != system)
+	if (base)
 	{
-		Server.BaseEnter(targetBase, client);
-		Server.BaseExit(targetBase, client);
-		wstring wscCharFileName;
-		HkGetCharFileName(ARG_CLIENTID(client), wscCharFileName);
-		wscCharFileName += L".fl";
-		CHARACTER_ID cID;
-		strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-		Server.CharacterSelect(cID, client);
+		pub::Player::ForceLand(client, targetBase); // beam
 	}
+	else
+	{
+		//All else failed, move to proxy base
+		uint returnSys = HookExt::IniGetI(client, "conn.retbasebackup");
+		auto sysInfo = Universe::get_system(returnSys);
+		string scProxyBase = (string)((const char*)sysInfo->nickname) + "_proxy_base";
+		uint proxyBaseID;
+		if (pub::GetBaseID(proxyBaseID, scProxyBase.c_str()) == -4)
+		{
+			PrintUserCmdText(client, L"Return impossible, contact staff");
+			return;
+		}
+		PrintUserCmdText(client, L"Player base renamed/destroyed, ship redirected to a proxy base");
+		pub::Player::ForceLand(client, proxyBaseID); // beam
+	}
+
 }
 
 bool CheckReturnDock(unsigned int client, unsigned int target)
@@ -219,8 +220,7 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 		uint system = 0;
 		pub::Player::GetSystem(client, system);
 		if (find(set_lRestrictedSystemIDs.begin(), set_lRestrictedSystemIDs.end(), system) != set_lRestrictedSystemIDs.end()
-			|| system == set_iTargetSystemID
-			|| GetCustomBaseForClient(client))
+			|| system == set_iTargetSystemID)
 		{
 			PrintUserCmdText(client, L"ERR Cannot use command in this system or base");
 			return true;
@@ -318,6 +318,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 
 		MoveClient(client, returnPoint);
 		HookExt::IniSetI(client, "conn.retbase", 0);
+		HookExt::IniSetI(client, "conn.retbasebackup", 0);
 		return;
 	}
 }

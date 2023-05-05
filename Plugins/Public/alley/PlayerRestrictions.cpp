@@ -238,6 +238,8 @@ struct HEALING_DATA
 };
 unordered_map<uint, HEALING_DATA> healingMultipliers;
 
+const uint repairMunitionId = CreateID("healing_gun01_ammo");
+
 void LoadSettings()
 {
 	PMLogging("-------------------- starting server --------------------");
@@ -1014,49 +1016,33 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (!iDmgToSpaceID || !dmg->is_inflictor_a_player())
-		return;
-
-	if (p1 != 1)
+	if (iDmgMunitionID != repairMunitionId
+		|| !iDmgToSpaceID
+		|| !dmg->is_inflictor_a_player()
+		|| p1 != 1)
 		return;
 
 	uint client = HkGetClientIDByShip(iDmgToSpaceID);
 	if (!client)
 		return;
 
-	uint ShootingClient = dmg->get_inflictor_owner_player();
-	Archetype::Ship* TheShipArch = Archetype::GetShip(Players[ShootingClient].iShipArchetype);
-
-	if (TheShipArch->iShipClass != 19)
-		return;
-
 	float curr, maxHP;
 	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, maxHP);
-	float expecteddmg = (float)1;
-	float projecteddamage = curr - damage;
-
-	//If a repair gun heals the ship but this doesn't show up, it's because it's hitting the shield.
-	//HkMsgU(L"DEBUG: damage by repair ship, is it healing?");					
-	//PrintUserCmdText(client, L"Projected damage: %f", projecteddamage);
-
-	if (!(projecteddamage <= 1 && projecteddamage > 0))
-		return;
 
 	//Handle the healing.
 	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
-	float amounttoheal = curr;
 
 	if (!healingMultipliers.count(TheShipArchHealed->iShipClass))
 		return;
 
 	const HEALING_DATA& healing = healingMultipliers[TheShipArchHealed->iShipClass];
 
-	if (maxHP * healing.maxHeal > healing.maxHeal)
+	if (curr / maxHP >= healing.maxHeal)
 		return;
 
-	amounttoheal = maxHP / 100 * healing.healingMultiplier + healing.healingStatic;
+	float amounttoheal = maxHP / 100 * healing.healingMultiplier + healing.healingStatic;
 
 	damage = min(maxHP * healing.maxHeal, curr + amounttoheal);
 }

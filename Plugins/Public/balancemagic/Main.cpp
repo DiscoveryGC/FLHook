@@ -25,6 +25,7 @@ typedef unsigned char byte;
 #include <FLHook.h>
 #include <plugin.h>
 #include <math.h>
+#include <unordered_map>
 
 bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 
@@ -32,6 +33,7 @@ typedef void(*wprintf_fp)(std::wstring format, ...);
 typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
 struct DamageMultiplier {
+	float projectileDamage;
 	float fighter;
 	float freighter;
 	float transport;
@@ -56,8 +58,7 @@ USERCMD UserCmds[] =
 
 int iLoadedDamageAdjusts = 0;
 
-map<uint, DamageMultiplier> mapDamageAdjust;
-map<uint, float> mapProjectileDamage;
+unordered_map<uint, DamageMultiplier> mapDamageAdjust;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -68,7 +69,6 @@ void LoadSettings()
 	returncode = DEFAULT_RETURNCODE;
 
 	mapDamageAdjust.clear();
-	mapProjectileDamage.clear();
 	iLoadedDamageAdjusts = 0;
 
 	// The path to the configuration file.
@@ -87,8 +87,8 @@ void LoadSettings()
 				{
 					uint projNameHash = CreateID(ini.get_name_ptr());
 					auto projectileInfo = reinterpret_cast<Archetype::Munition*>(Archetype::GetEquipment(projNameHash));
-					mapProjectileDamage[projNameHash] = projectileInfo->fHullDamage;
 					DamageMultiplier stEntry = { 0.0f };
+					stEntry.projectileDamage = projectileInfo->fHullDamage;
 					stEntry.fighter = ini.get_value_float(0);
 					stEntry.freighter = ini.get_value_float(1) ? ini.get_value_float(1) : stEntry.fighter;
 					stEntry.transport = ini.get_value_float(2) ? ini.get_value_float(2) : stEntry.freighter;
@@ -208,7 +208,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 	returncode = DEFAULT_RETURNCODE;
 	if ((iDmgToSpaceID || iDmgTo) && iDmgMunitionID)
 	{
-		map<uint, DamageMultiplier>::iterator iter = mapDamageAdjust.find(iDmgMunitionID);
+		const auto& iter = mapDamageAdjust.find(iDmgMunitionID);
 		if (iter != mapDamageAdjust.end())
 		{
 			float curr, max;
@@ -219,9 +219,9 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 			else if (subObjID == 65521) // 65521 is shield (bubble, not equipment)
 				pub::SpaceObj::GetShieldHealth(iDmgToSpaceID, curr, max, bShieldsUp);
 			else if (subObjID <= 32) // collision groups
-				curr = setHealth + (mapProjectileDamage[iDmgMunitionID] / PLAYER_COLLISION_GROUP_HIT_PTS_SCALE);
+				curr = setHealth + (iter->second.projectileDamage / PLAYER_COLLISION_GROUP_HIT_PTS_SCALE);
 			else // external equipment (shield, thrusters, guns)
-				curr = setHealth + (mapProjectileDamage[iDmgMunitionID] / PLAYER_ATTACHED_EQUIP_HIT_PTS_SCALE);
+				curr = setHealth + (iter->second.projectileDamage / PLAYER_ATTACHED_EQUIP_HIT_PTS_SCALE);
 
 			if (iDmgToSpaceID == 0) { // for external equipment, this value isn't populated and needs to be fetched
 				pub::Player::GetShip(iDmgTo, iDmgToSpaceID);
@@ -267,7 +267,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 				ClientInfo[iDmgTo].dmgLast = *dmg;
 				float currHullHP;
 				pub::SpaceObj::GetHealth(iDmgToSpaceID, currHullHP, max);
-				float newHullHP = currHullHP - (curr - setHealth - mapProjectileDamage[iDmgMunitionID]);
+				float newHullHP = currHullHP - (curr - setHealth - iter->second.projectileDamage);
 				if (newHullHP < 0) {
 					newHullHP = 0;
 				}
@@ -285,7 +285,7 @@ void Plugin_Communication_Callback(PLUGIN_MESSAGE msg, void* data)
 	{
 		returncode = SKIPPLUGINS;
 		COMBAT_DAMAGE_OVERRIDE_STRUCT* info = reinterpret_cast<COMBAT_DAMAGE_OVERRIDE_STRUCT*>(data);
-		map<uint, DamageMultiplier>::iterator iter = mapDamageAdjust.find(info->iMunitionID);
+		const auto& iter = mapDamageAdjust.find(info->iMunitionID);
 		if (iter != mapDamageAdjust.end())
 		{
 			info->fDamageMultiplier = iter->second.solar;

@@ -27,6 +27,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/lexical_cast.hpp>
+#include <unordered_map>
 
 namespace pt = boost::posix_time;
 static int set_iPluginDebug = 0;
@@ -229,8 +230,13 @@ void PMLogging(const char *szString, ...)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-map<uint, float> healingMultipliers;
-map<uint, uint> healingAdditions;
+struct HEALING_DATA
+{
+	float healingMultiplier;
+	float healingStatic;
+	float maxHeal;
+};
+unordered_map<uint, HEALING_DATA> healingMultipliers;
 
 void LoadSettings()
 {
@@ -269,7 +275,8 @@ void LoadSettings()
 			{
 				list<uint> shipclasses;
 				float multiplier = 1.0f;
-				uint addition = 0;
+				float addition = 0;
+				float max_hp = 1.0f;
 				while (ini.read_value())
 				{
 					if (ini.is_value("target_shipclass"))
@@ -278,17 +285,24 @@ void LoadSettings()
 					}
 					else if (ini.is_value("addition"))
 					{
-						addition = ini.get_value_int(0);
+						addition = ini.get_value_float(0);
 					}
 					else if (ini.is_value("multiplier"))
 					{
 						multiplier = ini.get_value_float(0);
 					}
+					else if (ini.is_value("max_heal"))
+					{
+						max_hp = ini.get_value_float(0);
+					}
 				}
 				foreach(shipclasses, uint, shipclass)
 				{
-					healingMultipliers[*shipclass] = multiplier;
-					healingAdditions[*shipclass] = addition;
+					HEALING_DATA healing;
+					healing.healingMultiplier = multiplier;
+					healing.healingStatic = addition;
+					healing.maxHeal = max_hp;
+					healingMultipliers[*shipclass] = healing;
 				}
 			}
 		}
@@ -1000,60 +1014,51 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())
-	{
-		uint client = HkGetClientIDByShip(iDmgToSpaceID);
-		if (client)
-		{
-			uint ShootingClient = dmg->get_inflictor_owner_player();
-			Archetype::Ship* TheShipArch = Archetype::GetShip(Players[ShootingClient].iShipArchetype);
+	if (!iDmgToSpaceID || !dmg->is_inflictor_a_player())
+		return;
 
-			if (TheShipArch->iShipClass == 19)
-			{
-				float curr, max;
-				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-				float expecteddmg = (float)1;
-				float projecteddamage = curr - damage;
+	if (p1 != 1)
+		return;
 
-				//If a repair gun heals the ship but this doesn't show up, it's because it's hitting the shield.
-				//HkMsgU(L"DEBUG: damage by repair ship, is it healing?");					
-				//PrintUserCmdText(client, L"Projected damage: %f", projecteddamage);
+	uint client = HkGetClientIDByShip(iDmgToSpaceID);
+	if (!client)
+		return;
 
-				if ((projecteddamage <= 1) && (projecteddamage > 0))
-				{
-					//Handle the healing.
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	uint ShootingClient = dmg->get_inflictor_owner_player();
+	Archetype::Ship* TheShipArch = Archetype::GetShip(Players[ShootingClient].iShipArchetype);
 
-					Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
-					float amounttoheal = curr;
+	if (TheShipArch->iShipClass != 19)
+		return;
 
-					if (healingMultipliers.find(TheShipArchHealed->iShipClass) == healingMultipliers.end())
-					{
-						return;
-					}
-					// no need to check healingAdditions here as it is set at the same time as healingMultipliers
-					amounttoheal = max / 100 * healingMultipliers[TheShipArchHealed->iShipClass] + healingAdditions[TheShipArchHealed->iShipClass];
+	float curr, maxHP;
+	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, maxHP);
+	float expecteddmg = (float)1;
+	float projecteddamage = curr - damage;
 
-					float testhealth = curr + amounttoheal;
+	//If a repair gun heals the ship but this doesn't show up, it's because it's hitting the shield.
+	//HkMsgU(L"DEBUG: damage by repair ship, is it healing?");					
+	//PrintUserCmdText(client, L"Projected damage: %f", projecteddamage);
 
+	if (!(projecteddamage <= 1 && projecteddamage > 0))
+		return;
 
-					if (testhealth > max)
-					{
-						//HkMsgU(L"DEBUG: Health would be superior to max");
-						dmg->add_damage_entry(1, max, (DamageEntry::SubObjFate)0);
-						return;
-					}
-					else
-					{
-						//HkMsgU(L"DEBUG: Health less max");
-						dmg->add_damage_entry(1, testhealth, (DamageEntry::SubObjFate)0);
-						return;
-					}
-				}
-				//else do nothing, means it isn't a healing call.
-			}
-		}
-	}
+	//Handle the healing.
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
+	float amounttoheal = curr;
+
+	if (!healingMultipliers.count(TheShipArchHealed->iShipClass))
+		return;
+
+	const HEALING_DATA& healing = healingMultipliers[TheShipArchHealed->iShipClass];
+
+	if (maxHP * healing.maxHeal > healing.maxHeal)
+		return;
+
+	amounttoheal = maxHP / 100 * healing.healingMultiplier + healing.healingStatic;
+
+	damage = min(maxHP * healing.maxHeal, curr + amounttoheal);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Actual Code

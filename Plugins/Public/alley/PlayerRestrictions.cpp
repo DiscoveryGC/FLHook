@@ -268,7 +268,7 @@ void LoadSettings()
 		ini.close();
 	}
 
-	string scHealingCfgFile = string(szCurDir) + "\\..\\DATA\\EQUIPMENT\\healingrates.cfg";
+	string scHealingCfgFile = string(szCurDir) + "\\flhook_plugins\\healingrates.cfg";
 	if (ini.open(scHealingCfgFile.c_str(), false))
 	{
 		while (ini.read_header())
@@ -1034,10 +1034,11 @@ void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float&
 
 	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
 
-	if (!healingMultipliers.count(TheShipArchHealed->iShipClass))
+	const auto& healingData = healingMultipliers.find(TheShipArchHealed->iShipClass);
+	if (healingData == healingMultipliers.end())
 		return;
 
-	const HEALING_DATA& healing = healingMultipliers[TheShipArchHealed->iShipClass];
+	const HEALING_DATA& healing = healingData->second;
 
 	if (curr / maxHP >= healing.maxHeal)
 		return;

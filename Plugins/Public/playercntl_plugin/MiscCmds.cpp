@@ -71,7 +71,7 @@ namespace MiscCmds
 	map<string, uint> factions;
 
 	// Resetrep is not allowed if attempted within the resetrep time limit (in seconds)
-	int set_iResetrepTimeLimit = 0;
+	uint set_iResetrepTimeLimit = 0;
 
 	/// Local chat range
 	float set_iLocalChatRange = 9999;

@@ -34,14 +34,7 @@ typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_
 
 struct DamageMultiplier {
 	float projectileDamage;
-	float fighter;
-	float freighter;
-	float transport;
-	float gunboat;
-	float cruiser;
-	float battlecruiser;
-	float battleship;
-	float solar;
+	float classMultipliers[21];
 };
 
 struct USERCMD
@@ -89,14 +82,45 @@ void LoadSettings()
 					auto projectileInfo = reinterpret_cast<Archetype::Munition*>(Archetype::GetEquipment(projNameHash));
 					DamageMultiplier stEntry = { 0.0f };
 					stEntry.projectileDamage = projectileInfo->fHullDamage;
-					stEntry.fighter = ini.get_value_float(0);
-					stEntry.freighter = ini.get_value_float(1) ? ini.get_value_float(1) : stEntry.fighter;
-					stEntry.transport = ini.get_value_float(2) ? ini.get_value_float(2) : stEntry.freighter;
-					stEntry.gunboat = ini.get_value_float(3) ? ini.get_value_float(3) : stEntry.transport;
-					stEntry.cruiser = ini.get_value_float(4) ? ini.get_value_float(4) : stEntry.gunboat;
-					stEntry.battlecruiser = ini.get_value_float(5) ? ini.get_value_float(5) : stEntry.cruiser;
-					stEntry.battleship = ini.get_value_float(6) ? ini.get_value_float(6) : stEntry.battlecruiser;
-					stEntry.solar = ini.get_value_float(7) ? ini.get_value_float(7) : stEntry.battleship;
+					float fighterMultiplier = ini.get_value_float(0);
+					float freighterMultiplier = ini.get_value_float(1) ? ini.get_value_float(1) : fighterMultiplier;
+					float transportMultiplier = ini.get_value_float(2) ? ini.get_value_float(2) : freighterMultiplier;
+					float gunboatMultiplier = ini.get_value_float(3) ? ini.get_value_float(3) : transportMultiplier;
+					float cruiserMultiplier = ini.get_value_float(4) ? ini.get_value_float(4) : gunboatMultiplier;
+					float battlecruiserMultiplier = ini.get_value_float(5) ? ini.get_value_float(5) : cruiserMultiplier;
+					float battleshipMultiplier = ini.get_value_float(6) ? ini.get_value_float(6) : battlecruiserMultiplier;
+					float solarMultiplier = ini.get_value_float(7) ? ini.get_value_float(7) : battleshipMultiplier;
+
+
+					stEntry.classMultipliers[0] = fighterMultiplier;
+					stEntry.classMultipliers[1] = fighterMultiplier;
+					stEntry.classMultipliers[3] = fighterMultiplier;
+
+					stEntry.classMultipliers[2] = freighterMultiplier;
+					stEntry.classMultipliers[4] = freighterMultiplier;
+					stEntry.classMultipliers[5] = freighterMultiplier;
+					stEntry.classMultipliers[19] = freighterMultiplier;
+
+					stEntry.classMultipliers[6] = transportMultiplier;
+					stEntry.classMultipliers[7] = transportMultiplier;
+					stEntry.classMultipliers[8] = transportMultiplier;
+					stEntry.classMultipliers[9] = transportMultiplier;
+					stEntry.classMultipliers[10] = transportMultiplier;
+
+					stEntry.classMultipliers[11] = gunboatMultiplier;
+					stEntry.classMultipliers[12] = gunboatMultiplier;
+
+					stEntry.classMultipliers[13] = cruiserMultiplier;
+					stEntry.classMultipliers[14] = cruiserMultiplier;
+
+					stEntry.classMultipliers[15] = battlecruiserMultiplier;
+
+					stEntry.classMultipliers[16] = battleshipMultiplier;
+					stEntry.classMultipliers[17] = battleshipMultiplier;
+					stEntry.classMultipliers[18] = battleshipMultiplier;
+
+					stEntry.classMultipliers[20] = solarMultiplier;
+
 					mapDamageAdjust[projNameHash] = stEntry;
 					++iLoadedDamageAdjusts;
 				}
@@ -206,74 +230,65 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHealth, DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if ((iDmgToSpaceID || iDmgTo) && iDmgMunitionID)
+	if (!iDmgMunitionID || (!iDmgToSpaceID && !iDmgTo))
 	{
-		const auto& iter = mapDamageAdjust.find(iDmgMunitionID);
-		if (iter != mapDamageAdjust.end())
-		{
-			float curr, max;
-			bool bShieldsUp;
+		return;
+	}
+	const auto& iter = mapDamageAdjust.find(iDmgMunitionID);
+	if (iter == mapDamageAdjust.end())
+	{
+		return;
+	}
 
-			if (subObjID == 1) // 1 is base (hull)
-				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-			else if (subObjID == 65521) // 65521 is shield (bubble, not equipment)
-				pub::SpaceObj::GetShieldHealth(iDmgToSpaceID, curr, max, bShieldsUp);
-			else if (subObjID <= 32) // collision groups
-				curr = setHealth + (iter->second.projectileDamage / PLAYER_COLLISION_GROUP_HIT_PTS_SCALE);
-			else // external equipment (shield, thrusters, guns)
-				curr = setHealth + (iter->second.projectileDamage / PLAYER_ATTACHED_EQUIP_HIT_PTS_SCALE);
+	const DamageMultiplier& dmgInfo = iter->second;
+	float curr, max;
+	bool bShieldsUp;
 
-			if (iDmgToSpaceID == 0) { // for external equipment, this value isn't populated and needs to be fetched
-				pub::Player::GetShip(iDmgTo, iDmgToSpaceID);
-			}
-			uint iTargetType;
-			pub::SpaceObj::GetType(iDmgToSpaceID, iTargetType);
+	if (subObjID == 1) // 1 is base (hull)
+		pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
+	else if (subObjID == 65521) // 65521 is shield (bubble, not equipment)
+		pub::SpaceObj::GetShieldHealth(iDmgToSpaceID, curr, max, bShieldsUp);
+	else if (subObjID <= 32) // collision groups
+		curr = setHealth + (dmgInfo.projectileDamage / PLAYER_COLLISION_GROUP_HIT_PTS_SCALE);
+	else // external equipment (shield, thrusters, guns)
+		curr = setHealth + (dmgInfo.projectileDamage / PLAYER_ATTACHED_EQUIP_HIT_PTS_SCALE);
 
-			// Deduce: if not fighter nor freighter, then it's obviously solar object.
-			if (iTargetType != OBJ_FIGHTER && iTargetType != OBJ_FREIGHTER)
-			{
-				setHealth = curr - (curr - setHealth) * iter->second.solar;
-			}
-			else
-			{
-				uint iArchID;
-				pub::SpaceObj::GetSolarArchetypeID(iDmgToSpaceID, iArchID);
-				uint targetShipClass = Archetype::GetShip(iArchID)->iShipClass;
+	if (iDmgToSpaceID == 0) { // for external equipment, this value isn't populated and needs to be fetched
+		pub::Player::GetShip(iDmgTo, iDmgToSpaceID);
+	}
+	uint iTargetType;
+	pub::SpaceObj::GetType(iDmgToSpaceID, iTargetType);
 
-				if (targetShipClass == 0 || targetShipClass == 1 || targetShipClass == 3)
-					setHealth = curr - (curr - setHealth) * iter->second.fighter;
-				else if (targetShipClass == 2 || targetShipClass == 4 || targetShipClass == 5 || targetShipClass == 19)
-					setHealth = curr - (curr - setHealth) * iter->second.freighter;
-				else if (targetShipClass < 11)
-					setHealth = curr - (curr - setHealth) * iter->second.transport;
-				else if (targetShipClass < 13)
-					setHealth = curr - (curr - setHealth) * iter->second.gunboat;
-				else if (targetShipClass < 15)
-					setHealth = curr - (curr - setHealth) * iter->second.cruiser;
-				else if (targetShipClass < 16)
-					setHealth = curr - (curr - setHealth) * iter->second.battlecruiser;
-				else if (targetShipClass < 19)
-					setHealth = curr - (curr - setHealth) * iter->second.battleship;
-			}
+	// Deduce: if not fighter nor freighter, then it's obviously solar object.
+	if (iTargetType != OBJ_FIGHTER && iTargetType != OBJ_FREIGHTER)
+	{
+		setHealth = curr - (curr - setHealth) * dmgInfo.classMultipliers[20];
+	}
+	else
+	{
+		uint iArchID;
+		pub::SpaceObj::GetSolarArchetypeID(iDmgToSpaceID, iArchID);
+		uint targetShipClass = Archetype::GetShip(iArchID)->iShipClass;
 
-			// Fix wrong shield rebuild time bug.
-			if (setHealth < 0) {
-				setHealth = 0;
-				fate = static_cast<DamageEntry::SubObjFate>(2); // update fate to ensure destruction event of the element 
-			}
-			
-			// Collision Group Handling
-			if (iDmgTo && subObjID > 1 && subObjID <= 32) {
-				ClientInfo[iDmgTo].dmgLast = *dmg;
-				float currHullHP;
-				pub::SpaceObj::GetHealth(iDmgToSpaceID, currHullHP, max);
-				float newHullHP = currHullHP - (curr - setHealth - iter->second.projectileDamage);
-				if (newHullHP < 0) {
-					newHullHP = 0;
-				}
-				dmg->add_damage_entry(1, newHullHP, static_cast<DamageEntry::SubObjFate>(0));
-			}
+		setHealth = curr - (curr - setHealth) * dmgInfo.classMultipliers[targetShipClass];
+	}
+
+	// Fix wrong shield rebuild time bug.
+	if (setHealth < 0) {
+		setHealth = 0;
+		fate = static_cast<DamageEntry::SubObjFate>(2); // update fate to ensure destruction event of the element 
+	}
+	
+	// Collision Group Handling
+	if (iDmgTo && subObjID > 1 && subObjID <= 32) {
+		ClientInfo[iDmgTo].dmgLast = *dmg;
+		float currHullHP;
+		pub::SpaceObj::GetHealth(iDmgToSpaceID, currHullHP, max);
+		float newHullHP = currHullHP - (curr - setHealth - iter->second.projectileDamage);
+		if (newHullHP < 0) {
+			newHullHP = 0;
 		}
+		dmg->add_damage_entry(1, newHullHP, static_cast<DamageEntry::SubObjFate>(0));
 	}
 }
 
@@ -288,7 +303,7 @@ void Plugin_Communication_Callback(PLUGIN_MESSAGE msg, void* data)
 		const auto& iter = mapDamageAdjust.find(info->iMunitionID);
 		if (iter != mapDamageAdjust.end())
 		{
-			info->fDamageMultiplier = iter->second.solar;
+			info->fDamageMultiplier = iter->second.classMultipliers[20];
 		}
 	}
 	return;

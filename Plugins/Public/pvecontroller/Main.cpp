@@ -392,7 +392,7 @@ bool UserCmd_Value(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 {
 	float fShipValue = 0;
 	HKGetShipValue((const wchar_t*)Players.GetActiveCharacterName(iClientID), fShipValue);
-	PrintUserCmdText(iClientID, L"Ship value: $%s credits.", ToMoneyStr(fShipValue).c_str());
+	PrintUserCmdText(iClientID, L"Ship value: $%s credits.", ToMoneyStr(static_cast<int>(fShipValue)).c_str());
 
 	return true;
 }

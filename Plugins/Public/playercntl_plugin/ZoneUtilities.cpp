@@ -63,21 +63,21 @@ static TransformMatrix SetupTransform(Vector &p, Vector &r)
 	// X-axis rotation matrix
 	TransformMatrix xmat;
 	xmat.d[0][0] = 1;        xmat.d[0][1] = 0;        xmat.d[0][2] = 0;        xmat.d[0][3] = 0;
-	xmat.d[1][0] = 0;        xmat.d[1][1] = cos(ax);  xmat.d[1][2] = sin(ax);  xmat.d[1][3] = 0;
-	xmat.d[2][0] = 0;        xmat.d[2][1] = -sin(ax); xmat.d[2][2] = cos(ax);  xmat.d[2][3] = 0;
+	xmat.d[1][0] = 0;        xmat.d[1][1] = cosf(ax);  xmat.d[1][2] = sinf(ax);  xmat.d[1][3] = 0;
+	xmat.d[2][0] = 0;        xmat.d[2][1] = -sinf(ax); xmat.d[2][2] = cosf(ax);  xmat.d[2][3] = 0;
 	xmat.d[3][0] = 0;        xmat.d[3][1] = 0;        xmat.d[3][2] = 0;        xmat.d[3][3] = 1;
 
 	// Y-axis rotation matrix
 	TransformMatrix ymat;
-	ymat.d[0][0] = cos(ay);  ymat.d[0][1] = 0;        ymat.d[0][2] = -sin(ay); ymat.d[0][3] = 0;
+	ymat.d[0][0] = cosf(ay);  ymat.d[0][1] = 0;        ymat.d[0][2] = -sinf(ay); ymat.d[0][3] = 0;
 	ymat.d[1][0] = 0;        ymat.d[1][1] = 1;        ymat.d[1][2] = 0;        ymat.d[1][3] = 0;
-	ymat.d[2][0] = sin(ay);  ymat.d[2][1] = 0;        ymat.d[2][2] = cos(ay);  ymat.d[2][3] = 0;
+	ymat.d[2][0] = sinf(ay);  ymat.d[2][1] = 0;        ymat.d[2][2] = cosf(ay);  ymat.d[2][3] = 0;
 	ymat.d[3][0] = 0;        ymat.d[3][1] = 0;        ymat.d[3][2] = 0;        ymat.d[3][3] = 1;
 
 	// Z-axis rotation matrix
 	TransformMatrix zmat;
-	zmat.d[0][0] = cos(az);  zmat.d[0][1] = sin(az);  zmat.d[0][2] = 0;        zmat.d[0][3] = 0;
-	zmat.d[1][0] = -sin(az); zmat.d[1][1] = cos(az);  zmat.d[1][2] = 0;        zmat.d[1][3] = 0;
+	zmat.d[0][0] = cosf(az);  zmat.d[0][1] = sinf(az);  zmat.d[0][2] = 0;        zmat.d[0][3] = 0;
+	zmat.d[1][0] = -sinf(az); zmat.d[1][1] = cosf(az);  zmat.d[1][2] = 0;        zmat.d[1][3] = 0;
 	zmat.d[2][0] = 0;        zmat.d[2][1] = 0;        zmat.d[2][2] = 1;        zmat.d[2][3] = 0;
 	zmat.d[3][0] = 0;        zmat.d[3][1] = 0;        zmat.d[3][2] = 0;        zmat.d[3][3] = 1;
 
@@ -276,7 +276,7 @@ bool ZoneUtilities::InZone(uint system, const Vector &pos, ZONE &rlz)
 			+ pos.z*lz.transform.d[2][2] + lz.transform.d[3][2];
 
 		// If r is less than/equal to 1 then the point is inside the ellipsoid.
-		float result = sqrt(powf(x / lz.size.x, 2) + powf(y / lz.size.y, 2) + powf(z / lz.size.z, 2));
+		float result = sqrtf(powf(x / lz.size.x, 2) + powf(y / lz.size.y, 2) + powf(z / lz.size.z, 2));
 		if (result <= 1)
 		{
 			rlz = lz;
@@ -310,7 +310,7 @@ bool ZoneUtilities::InDeathZone(uint system, const Vector &pos, ZONE &rlz)
 			+ pos.z*lz.transform.d[2][2] + lz.transform.d[3][2];
 
 		// If r is less than/equal to 1 then the point is inside the ellipsoid.
-		float result = sqrt(powf(x / lz.size.x, 2) + powf(y / lz.size.y, 2) + powf(z / lz.size.z, 2));
+		float result = sqrtf(powf(x / lz.size.x, 2) + powf(y / lz.size.y, 2) + powf(z / lz.size.z, 2));
 		if (result <= 1 && lz.damage > 250)
 		{
 			rlz = lz;

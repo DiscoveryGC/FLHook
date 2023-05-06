@@ -268,7 +268,7 @@ void LoadSettings()
 		ini.close();
 	}
 
-	string scHealingCfgFile = string(szCurDir) + "\\..\\DATA\\EQUIPMENT\\healingrates.cfg";
+	string scHealingCfgFile = string(szCurDir) + "\\flhook_plugins\\healingrates.cfg";
 	if (ini.open(scHealingCfgFile.c_str(), false))
 	{
 		while (ini.read_header())

@@ -1393,9 +1393,14 @@ namespace PlayerCommands
 			else if(recipe)
 			{
 				PrintUserCmdText(client, L"Construction materials for %ls x%u:", recipe->infotext.c_str(), recipe->produced_amount);
-				for (auto& item : recipe->consumed_items) {
+				for (const auto& item : recipe->consumed_items) {
 					const GoodInfo *gi = GoodList::find_by_id(item.first);
 					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
+				}
+				for (const auto& rep : recipe->affiliationBonus)
+				{
+					PrintUserCmdText(client, L"|   %ls - +%u%% bonus",
+						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), ((1.0f - rep.second) * 100));
 				}
 				return;
 			}

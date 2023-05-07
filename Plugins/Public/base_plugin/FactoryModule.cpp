@@ -197,13 +197,8 @@ void FactoryModule::LoadState(INI_Reader &ini)
 		}
 		else if (ini.is_value("nickname"))
 		{
-			active_recipe.nickname = ini.get_value_int(0);
-			foundRecipe = recipeMap[active_recipe.nickname];
-			active_recipe.produced_item = foundRecipe.produced_item;
-			active_recipe.produced_amount = foundRecipe.produced_amount;
-			active_recipe.loop_production = foundRecipe.loop_production;
-			active_recipe.cooking_rate = foundRecipe.cooking_rate;
-			active_recipe.infotext = foundRecipe.infotext;
+			SetActiveRecipe(ini.get_value_int(0));
+			active_recipe.consumed_items.clear();
 		}
 		else if (ini.is_value("paused"))
 		{

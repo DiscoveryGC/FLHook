@@ -546,32 +546,26 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
-	if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE && base->shield_strength_multiplier < 1.0 && !isGlobalBaseInvulnerabilityActive && base->invulnerable == 0)
-	{
-		//force the base to keep current health
-		return curr_hitpoints;
-	}
-
 	if (base->shield_strength_multiplier >= 1.0f || isGlobalBaseInvulnerabilityActive || base->invulnerable == 1)
 	{
-        // base invulnerable, keep current health value
-        return curr_hitpoints;
+		// base invulnerable, keep current health value
+		return curr_hitpoints;
 	}
-    
-    if(base->shield_state == PlayerBase::SHIELD_STATE_OFFLINE){
-        // shield offline, return expected damage without modifications
-        return new_hitpoints;
-    }
-    
-    float damageTaken = ((curr_hitpoints - new_hitpoints) * (1 - base->shield_strength_multiplier));
+	
+	if(base->shield_state == PlayerBase::SHIELD_STATE_OFFLINE){
+		// shield offline, return expected damage without modifications
+		return new_hitpoints;
+	}
+	
+	float damageTaken = ((curr_hitpoints - new_hitpoints) * (1 - base->shield_strength_multiplier));
 
-    base->damage_taken_since_last_threshold += damageTaken;
-    if (base->damage_taken_since_last_threshold >= base->base_shield_reinforcement_threshold) {
-        base->damage_taken_since_last_threshold -= base->base_shield_reinforcement_threshold;
-        base->shield_strength_multiplier += shield_reinforcement_increment;
-    }
-    
-    return curr_hitpoints - damageTaken;
+	base->damage_taken_since_last_threshold += damageTaken;
+	if (base->damage_taken_since_last_threshold >= base->base_shield_reinforcement_threshold) {
+		base->damage_taken_since_last_threshold -= base->base_shield_reinforcement_threshold;
+		base->shield_strength_multiplier += shield_reinforcement_increment;
+	}
+	
+	return curr_hitpoints - damageTaken;
 }
 
 bool CoreModule::SpaceObjDestroyed(uint space_obj)

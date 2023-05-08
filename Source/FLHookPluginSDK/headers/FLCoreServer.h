@@ -21,6 +21,8 @@
 
 #include "FLCoreDefs.h"
 #include "FLCoreCommon.h"
+#define ST6_ALLOCATION_DEFINED
+#include "st6.h"
 
 #pragma comment( lib, "FLCoreServer.lib" )
 
@@ -89,6 +91,12 @@ struct XActivateThrusters
 {
 	uint	iShip;
 	bool	bActivate;
+};
+
+struct XCollisionGroup
+{
+	ushort sId;
+	float fHealth;
 };
 
 struct XTractorObjects
@@ -351,10 +359,7 @@ public:
 
 struct CollisionGroupDescList
 {
-	// std::list<CollisionGroupDesc> data; // FIXME: std::list is not compatible with VC9 libs
-	CollisionGroupDesc *iter;
-	CollisionGroupDesc *first;
-	UINT count;
+	st6::list<CollisionGroupDesc> data;
 };
 
 struct FLString

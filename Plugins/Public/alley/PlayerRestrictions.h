@@ -25,6 +25,7 @@ namespace SCI
 {
 	void LoadSettings();
 	void CheckItems(unsigned int iClientID);
+	bool CanBuyItem(uint iArchID, uint iClientID);
 	void ClearClientInfo(unsigned int iClientID);
 	void CheckOwned(unsigned int iClientID);
 	void UpdatePlayerID(unsigned int iClientID);

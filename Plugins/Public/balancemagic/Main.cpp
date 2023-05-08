@@ -32,6 +32,8 @@ bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &w
 typedef void(*wprintf_fp)(std::wstring format, ...);
 typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
+const uint SOLAR_INDEX = 20;
+
 struct DamageMultiplier {
 	float projectileDamage;
 	float classMultipliers[21];
@@ -119,7 +121,7 @@ void LoadSettings()
 					stEntry.classMultipliers[17] = battleshipMultiplier;
 					stEntry.classMultipliers[18] = battleshipMultiplier;
 
-					stEntry.classMultipliers[20] = solarMultiplier;
+					stEntry.classMultipliers[SOLAR_INDEX] = solarMultiplier;
 
 					mapDamageAdjust[projNameHash] = stEntry;
 					++iLoadedDamageAdjusts;
@@ -248,7 +250,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 		pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
 	else if (subObjID == 65521) // 65521 is shield (bubble, not equipment)
 		pub::SpaceObj::GetShieldHealth(iDmgToSpaceID, curr, max, bShieldsUp);
-	else if (subObjID <= 32) // collision groups
+	else if (subObjID < 34) // collision groups, external equipment starts at 34 onwards
 		curr = setHealth + (dmgInfo.projectileDamage / PLAYER_COLLISION_GROUP_HIT_PTS_SCALE);
 	else // external equipment (shield, thrusters, guns)
 		curr = setHealth + (dmgInfo.projectileDamage / PLAYER_ATTACHED_EQUIP_HIT_PTS_SCALE);
@@ -262,7 +264,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 	// Deduce: if not fighter nor freighter, then it's obviously solar object.
 	if (iTargetType != OBJ_FIGHTER && iTargetType != OBJ_FREIGHTER)
 	{
-		setHealth = curr - (curr - setHealth) * dmgInfo.classMultipliers[20];
+		setHealth = curr - (curr - setHealth) * dmgInfo.classMultipliers[SOLAR_INDEX];
 	}
 	else
 	{
@@ -303,7 +305,7 @@ void Plugin_Communication_Callback(PLUGIN_MESSAGE msg, void* data)
 		const auto& iter = mapDamageAdjust.find(info->iMunitionID);
 		if (iter != mapDamageAdjust.end())
 		{
-			info->fDamageMultiplier = iter->second.classMultipliers[20];
+			info->fDamageMultiplier = iter->second.classMultipliers[SOLAR_INDEX];
 		}
 	}
 	return;

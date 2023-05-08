@@ -665,29 +665,26 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 
 void RemoveSurplusJettisonItems()
 {
-	uint counter = 0;
-	unordered_map<uint, deque<uint>> jettisonedItemsMap;
+	unordered_map<uint, vector<uint>> jettisonedItemsMap;
 	auto cObj = dynamic_cast<CLoot*>(CObject::FindFirst(CObject::CLOOT_OBJECT));
-	while (cObj)
+	for (; cObj; cObj = dynamic_cast<CLoot*>(CObject::FindNext()))
 	{
-		counter++;
 		uint ownerSpaceObjID = cObj->get_owner();
 		if (ownerSpaceObjID)
 		{
 			jettisonedItemsMap[ownerSpaceObjID].push_back(cObj->iSpaceID);
 		}
-		cObj = dynamic_cast<CLoot*>(CObject::FindNext());
 	}
-	for (auto& jettisonData : jettisonedItemsMap)
+	for (const auto& jettisonData : jettisonedItemsMap)
 	{
 		if (jettisonData.second.size() <= MAX_JETTISON_COUNT)
 			continue;
+		//iterate from the beginning until the 25th last element
 		for (uint i = 0; i < jettisonData.second.size() - MAX_JETTISON_COUNT; i++)
 		{
-			pub::SpaceObj::Destroy(jettisonData.second.at(i), DestroyType::VANISH);
+			pub::SpaceObj::Destroy(jettisonData.second[i], DestroyType::VANISH);
 		}
 	}
-	ConPrint(L"%u\n", counter);
 }
 
 bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)

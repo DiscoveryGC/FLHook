@@ -32,11 +32,10 @@ bool UserCmd_SnacClassic(uint iClientID, const wstring &wscCmd, const wstring &w
 typedef void(*wprintf_fp)(std::wstring format, ...);
 typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
-const uint SOLAR_INDEX = 20;
-
 struct DamageMultiplier {
 	float projectileDamage;
-	float classMultipliers[21];
+	float classMultipliers[20];
+	float solarMultiplier;
 };
 
 struct USERCMD
@@ -121,7 +120,7 @@ void LoadSettings()
 					stEntry.classMultipliers[17] = battleshipMultiplier;
 					stEntry.classMultipliers[18] = battleshipMultiplier;
 
-					stEntry.classMultipliers[SOLAR_INDEX] = solarMultiplier;
+					stEntry.solarMultiplier = solarMultiplier;
 
 					mapDamageAdjust[projNameHash] = stEntry;
 					++iLoadedDamageAdjusts;
@@ -264,7 +263,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 	// Deduce: if not fighter nor freighter, then it's obviously solar object.
 	if (iTargetType != OBJ_FIGHTER && iTargetType != OBJ_FREIGHTER)
 	{
-		setHealth = curr - (curr - setHealth) * dmgInfo.classMultipliers[SOLAR_INDEX];
+		setHealth = curr - (curr - setHealth) * dmgInfo.solarMultiplier;
 	}
 	else
 	{
@@ -278,7 +277,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 	// Fix wrong shield rebuild time bug.
 	if (setHealth < 0) {
 		setHealth = 0;
-		fate = static_cast<DamageEntry::SubObjFate>(2); // update fate to ensure destruction event of the element 
+		fate = static_cast<DamageEntry::SubObjFate>(2); // update fate to ensure destruction event of the element, fate 2 means destroyed
 	}
 	
 	// Collision Group Handling
@@ -290,7 +289,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 		if (newHullHP < 0) {
 			newHullHP = 0;
 		}
-		dmg->add_damage_entry(1, newHullHP, static_cast<DamageEntry::SubObjFate>(0));
+		dmg->add_damage_entry(1, newHullHP, static_cast<DamageEntry::SubObjFate>(0)); // fate 0 means alive, but even at 0 hp, it still triggers death fuses correctly in case of ship death, possibly overridden in further FLServer processing?
 	}
 }
 
@@ -305,7 +304,7 @@ void Plugin_Communication_Callback(PLUGIN_MESSAGE msg, void* data)
 		const auto& iter = mapDamageAdjust.find(info->iMunitionID);
 		if (iter != mapDamageAdjust.end())
 		{
-			info->fDamageMultiplier = iter->second.classMultipliers[SOLAR_INDEX];
+			info->fDamageMultiplier = iter->second.solarMultiplier;
 		}
 	}
 	return;

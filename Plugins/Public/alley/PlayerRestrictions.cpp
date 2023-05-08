@@ -1202,7 +1202,7 @@ void __stdcall ReqAddItem(unsigned int iArchID, char const *Hardpoint, int count
 	*/
 
 	returncode = DEFAULT_RETURNCODE;
-	if (reverseTrade[iClientID] == true)
+	if (reverseTrade[iClientID])
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	}
@@ -1211,7 +1211,7 @@ void __stdcall ReqAddItem(unsigned int iArchID, char const *Hardpoint, int count
 void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (false == SCI::CanBuyItem(gbi.iGoodID, client)) {
+	if (!SCI::CanBuyItem(gbi.iGoodID, client)) {
 		const GoodInfo* gi = GoodList::find_by_id(gbi.iGoodID);
 		switch (gi->iType) {
 			case GOODINFO_TYPE_COMMODITY: {
@@ -1237,7 +1237,7 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 void __stdcall ReqChangeCash(int cash, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (reverseTrade[iClientID] == true)
+	if (reverseTrade[iClientID])
 	{
 		reverseTrade[iClientID] = false;
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1247,7 +1247,7 @@ void __stdcall ReqChangeCash(int cash, unsigned int iClientID)
 void __stdcall ReqSetCash(int cash, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (reverseTrade[iClientID] == true)
+	if (reverseTrade[iClientID])
 	{
 		reverseTrade[iClientID] = false;
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;

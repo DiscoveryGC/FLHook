@@ -576,12 +576,6 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
-	if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE && base->shield_strength_multiplier < 1.0 && !isGlobalBaseInvulnerabilityActive && base->invulnerable == 0)
-	{
-		//force the base to keep current health
-		return curr_hitpoints;
-	}
-
 	if (shield_strength_multiplier >= 1.0f || isGlobalBaseInvulnerabilityActive || base->invulnerable == 1)
 	{
 		// base invulnerable, keep current health value

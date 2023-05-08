@@ -11,22 +11,13 @@
 //Includes
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <windows.h>
-#include <stdio.h>
-#include <string>
-#include <time.h>
-#include <math.h>
-#include <list>
-#include <map>
-#include <algorithm>
+#include <set>
 #include <FLHook.h>
-#include <plugin.h>
-#include <PluginUtilities.h>
-#include "Main.h"
-#include <sstream>
-#include <iostream>
 #include <hookext_exports.h>
-
+using st6_malloc_t = void* (*)(size_t);
+using st6_free_t = void(*)(void*);
+IMPORT st6_malloc_t st6_malloc;
+IMPORT st6_free_t st6_free;
 #define ADDR_COMMON_VFTABLE_MINE 0x139C64
 #define ADDR_COMMON_VFTABLE_CM 0x139C90
 #define ADDR_COMMON_VFTABLE_GUN 0x139C38
@@ -527,7 +518,7 @@ void PlayerAutorepair(uint iClientID)
 	// Magic factor of 0.33
 	int repairCost = (int)floor(Archetype::GetShip(Players[iClientID].iShipArchetype)->fHitPoints * (1 - Players[iClientID].fRelativeHealth) / 100 * 33);
 
-	vector<ushort> sIDs;
+	set<ushort> eqToFix;
 	list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
 	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
 	{
@@ -540,7 +531,7 @@ void PlayerAutorepair(uint iClientID)
 
 		// Magic factor of 0.3
 		repairCost += (int)floor(info->fPrice * (1 - item->fHealth) / 10 * 3);
-		sIDs.push_back(item->sID);
+		eqToFix.insert(item->sID);
 	}
 
 	int iCash = 0;
@@ -555,14 +546,29 @@ void PlayerAutorepair(uint iClientID)
 
 	HkAddCash(wscCharName, -repairCost);
 
-	// Not doing this in the above loop because we need to ensure the player has the credits for it.
-	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
-		if (find(sIDs.begin(), sIDs.end(), item->sID) != sIDs.end())
-			item->fHealth = 1;
+	if (!eqToFix.empty())
+	{
+		for (auto& item : Players[iClientID].equipDescList.equip)
+		{
+			if (eqToFix.find(item.sID) != eqToFix.end())
+				item.fHealth = 1.0f;
+		}
 
-	// TODO: Why does DynPacket stuff in HkSetEquip and for SETCOLLISIONGROUPS below seem to require the server to be running in compatibility mode with an older OS?
-	if (!sIDs.empty())
-		HkSetEquip(iClientID, equip);
+		auto& equip = Players[iClientID].equipDescList.equip;
+
+		if (&equip != &Players[iClientID].lShadowEquipDescList.equip)
+			Players[iClientID].lShadowEquipDescList.equip = equip;
+
+		st6::vector<EquipDesc> eqVector;
+		for (auto& eq : equip)
+		{
+			if(eq.bMounted)
+				eq.fHealth = 1.0f;
+			eqVector.push_back(eq);
+		}
+
+		HookClient->Send_FLPACKET_SERVER_SETEQUIPMENT(iClientID, eqVector);
+	}
 
 	if (Players[iClientID].fRelativeHealth != 1)
 	{
@@ -571,31 +577,17 @@ void PlayerAutorepair(uint iClientID)
 	}
 
 	// Repair all collision groups.
-	if (Players[iClientID].collisionGroupDesc.count)
+	if (!Players[iClientID].collisionGroupDesc.data.empty())
 	{
-		// Calculate packet size. First two bytes reserved for count of groups.
-		uint groupBufSize = 2 + sizeof(COLLISION_GROUP) * Players[iClientID].collisionGroupDesc.count;
-
-		FLPACKET* packet = FLPACKET::Create(groupBufSize, FLPACKET::FLPACKET_SERVER_SETCOLLISIONGROUPS);
-		FLPACKET_SETEQUIPMENT* pSetEquipment = (FLPACKET_SETEQUIPMENT*)packet->content;
-
-		// Add groups to packet.
-		uint index = 0;
-		for (int i = 0; i != Players[iClientID].collisionGroupDesc.count; i++)
+		auto& playerCollision = Players[iClientID].collisionGroupDesc.data;
+		st6::list<XCollisionGroup> componentList;
+		for (auto& colGrp : playerCollision)
 		{
-			pSetEquipment->count++;
-
-			COLLISION_GROUP group;
-			// Group IDs seem to begin at 4
-			group.sID = i + 4;
-			group.fHealth = 1;
-
-			byte* buf = (byte*)&group;
-			for (int i = 0; i < sizeof(COLLISION_GROUP); i++)
-				pSetEquipment->items[index++] = buf[i];
+			auto* newColGrp = reinterpret_cast<XCollisionGroup*>(colGrp.data);
+			newColGrp->fHealth = 1.0f;
+			componentList.push_back(*newColGrp);
 		}
-
-		packet->SendTo(iClientID);
+		HookClient->Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(iClientID, componentList);
 	}
 
 	if (repairCost)

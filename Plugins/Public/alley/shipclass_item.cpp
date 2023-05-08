@@ -279,6 +279,21 @@ void SCI::CheckItems(unsigned int iClientID)
 	return;
 }
 
+bool SCI::CanBuyItem(uint iArchID, uint iClientID) {
+
+	auto foundItem = shipclassitems.find(iArchID);
+	if (foundItem != shipclassitems.end()) {
+		Archetype::Ship* shipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
+		for (uint allowedClass : foundItem->second.canmount) {
+			if (allowedClass == shipArch->iShipClass) {
+				return true;
+			}
+		}
+		return false;
+	}
+	return true;
+}
+
 // based on conn plugin
 void SCI::StoreReturnPointForClient(unsigned int client)
 {

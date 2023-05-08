@@ -13,7 +13,7 @@
 #include <hookext_exports.h>
 
 CoreModule::CoreModule(PlayerBase *the_base) : Module(TYPE_CORE), base(the_base), space_obj(0), dont_eat(false), 
-dont_rust(false), shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
+dont_rust(false)
 {
 }
 
@@ -357,7 +357,7 @@ void CoreModule::Spawn()
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
 		if (shield_reinforcement_threshold_map.count(base->base_level))
-			base_shield_reinforcement_threshold = shield_reinforcement_threshold_map[base->base_level];
+			base->base_shield_reinforcement_threshold = shield_reinforcement_threshold_map[base->base_level];
 		else
 			base_shield_reinforcement_threshold = FLT_MAX;
 
@@ -576,7 +576,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
-	if (set_holiday_mode || (base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock") || (base->basetype == "planet"))
+	if (base->shield_state != PlayerBase::SHIELD_STATE_OFFLINE && base->shield_strength_multiplier < 1.0 && !isGlobalBaseInvulnerabilityActive && base->invulnerable == 0)
 	{
 		//force the base to keep current health
 		return curr_hitpoints;

@@ -13,6 +13,7 @@
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
+#include <unordered_map>
 
 using namespace std;
 
@@ -34,6 +35,7 @@ struct RECIPE
 	map<uint, uint> consumed_items;
 	uint credit_cost;
 	uint reqlevel;
+	unordered_map<uint, float> affiliationBonus;
 };
 
 struct BASE_VULNERABILITY_WINDOW {
@@ -257,6 +259,7 @@ public:
 	wstring GetInfo(bool xml);
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
+	void SetActiveRecipe(uint product);
 	bool Timer(uint time);
 	static FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct);
 	static RECIPE* FactoryModule::GetFactoryProductRecipe(wstring craftType, wstring product);

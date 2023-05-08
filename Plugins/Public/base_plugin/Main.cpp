@@ -726,6 +726,10 @@ void LoadSettingsActual()
 					{
 						recipe.reqlevel = ini.get_value_int(0);
 					}
+					else if (ini.is_value("affiliation_bonus"))
+					{
+						recipe.affiliationBonus[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+					}
 				}
 				AddFactoryRecipeToMaps(recipe, craft_type);
 			}

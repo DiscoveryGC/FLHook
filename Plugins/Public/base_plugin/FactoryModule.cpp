@@ -108,7 +108,7 @@ bool FactoryModule::Timer(uint time)
 	// Get the next item to make from the build queue.
 	if (!active_recipe.nickname && !build_queue.empty())
 	{
-		active_recipe = recipeMap[build_queue.front()];
+		SetActiveRecipe(build_queue.front());
 		build_queue.pop_front();
 	}
 
@@ -165,12 +165,12 @@ bool FactoryModule::Timer(uint time)
 	if (active_recipe.loop_production)
 	{
 		// If recipe is set to automatically loop, refresh the recipe data
-		active_recipe = recipeMap[active_recipe.nickname];
+		SetActiveRecipe(active_recipe.nickname);
 	}
 	else if (!build_queue.empty())
 	{
 		// Load next item in the queue
-		active_recipe = recipeMap[build_queue.front()];
+		SetActiveRecipe(build_queue.front());
 		build_queue.pop_front();
 	}
 	else
@@ -197,13 +197,8 @@ void FactoryModule::LoadState(INI_Reader &ini)
 		}
 		else if (ini.is_value("nickname"))
 		{
-			active_recipe.nickname = ini.get_value_int(0);
-			foundRecipe = recipeMap[active_recipe.nickname];
-			active_recipe.produced_item = foundRecipe.produced_item;
-			active_recipe.produced_amount = foundRecipe.produced_amount;
-			active_recipe.loop_production = foundRecipe.loop_production;
-			active_recipe.cooking_rate = foundRecipe.cooking_rate;
-			active_recipe.infotext = foundRecipe.infotext;
+			SetActiveRecipe(ini.get_value_int(0));
+			active_recipe.consumed_items.clear();
 		}
 		else if (ini.is_value("paused"))
 		{
@@ -246,11 +241,18 @@ void FactoryModule::SaveState(FILE *file)
 	}
 }
 
+void FactoryModule::SetActiveRecipe(uint product)
+{
+	active_recipe = recipeMap[product];
+	if (active_recipe.affiliationBonus.count(base->affiliation))
+		active_recipe.produced_amount *= active_recipe.affiliationBonus.at(base->affiliation);
+}
+
 void FactoryModule::AddToQueue(uint product)
 {
 	if (build_queue.empty())
 	{
-		active_recipe = recipeMap[product];
+		SetActiveRecipe(product);
 	}
 	else
 	{

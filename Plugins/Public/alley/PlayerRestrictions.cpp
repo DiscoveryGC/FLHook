@@ -29,6 +29,8 @@
 #include <boost/lexical_cast.hpp>
 #include <unordered_map>
 
+const static uint MAX_JETTISON_COUNT = 25;
+
 namespace pt = boost::posix_time;
 static int set_iPluginDebug = 0;
 
@@ -660,6 +662,33 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 	return true;
 }
 
+void RemoveSurplusJettisonItems()
+{
+	uint counter = 0;
+	unordered_map<uint, deque<uint>> jettisonedItemsMap;
+	auto cObj = dynamic_cast<CLoot*>(CObject::FindFirst(CObject::CLOOT_OBJECT));
+	while (cObj)
+	{
+		counter++;
+		uint ownerSpaceObjID = cObj->get_owner();
+		if (ownerSpaceObjID)
+		{
+			jettisonedItemsMap[ownerSpaceObjID].push_back(cObj->iSpaceID);
+		}
+		cObj = dynamic_cast<CLoot*>(CObject::FindNext());
+	}
+	for (auto& jettisonData : jettisonedItemsMap)
+	{
+		if (jettisonData.second.size() <= MAX_JETTISON_COUNT)
+			continue;
+		for (uint i = 0; i < jettisonData.second.size() - MAX_JETTISON_COUNT; i++)
+		{
+			pub::SpaceObj::Destroy(jettisonData.second.at(i), DestroyType::VANISH);
+		}
+	}
+	ConPrint(L"%u\n", counter);
+}
+
 bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
 	uint baseID = 0;
@@ -1257,6 +1286,11 @@ void HkTimerCheckKick()
 	if ((curr_time % 15) == 0)
 	{
 		MarkUsageTimer.clear();
+	}
+	// every 7 minutes, sweep and clean up CLoot entries
+	if ((curr_time % 420) == 0)
+	{
+		RemoveSurplusJettisonItems();
 	}
 
 	AP::Timer();

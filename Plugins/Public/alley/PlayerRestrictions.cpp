@@ -238,7 +238,7 @@ struct HEALING_DATA
 };
 unordered_map<uint, HEALING_DATA> healingMultipliers;
 
-const uint repairMunitionId = CreateID("healing_gun01_ammo");
+uint repairMunitionId = CreateID("healing_gun01_ammo");
 
 void LoadSettings()
 {
@@ -273,7 +273,17 @@ void LoadSettings()
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("HealingRate"))
+			if (ini.is_header("General"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("repair_munition"))
+					{
+						repairMunitionId = CreateID(ini.get_value_string(0));
+					}
+				}
+			}
+			else if (ini.is_header("HealingRate"))
 			{
 				list<uint> shipclasses;
 				float multiplier = 1.0f;

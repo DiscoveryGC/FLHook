@@ -18,6 +18,82 @@
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
+
+// Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
+const uint numPages = 4;
+const wstring pages[numPages] = {
+L"<TRA bold=\"true\"/><TEXT>/base help [page]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Show this help page. Specify the page number to see the next page.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base login [password]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Login as base administrator. The following commands are only available if you are logged in as a base administrator.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addpwd [password] [viewshop], /base rmpwd [password], /base lstpwd</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list administrator passwords for the base. Add 'viewshop' to addpwd to only allow the password to view the shop.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addtag [tag], /base rmtag [tag], /base lsttag</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list ally tags for the base.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addhostile [tag], /base rmhostile [tag], /base lsthostile</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list blacklisted tags for the base. They will be shot on sight so use complete tags like =LSF= or IMG| or a shipname like Crunchy_Salad.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base setmasterpwd [old password] [new password]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set the master password for the base.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT>",
+
+L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set the [price] of [item]. If the current stock is less than [min stock]"
+L" then the item cannot be bought by docked ships. If the current stock is more or equal"
+L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
+L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
+L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/shop remove [item]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/shop [page]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT>",
+
+L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
+L"<TEXT>Defense Mode 1 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 2 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 3 - Logic: Blacklist > Whitelist > Faction Whitelist > Hostile</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 4 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set the base's infocard description.</TEXT>",
+
+L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base shieldmod</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control shield modules.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addfac [aff tag], /base rmfac [aff tag], /base lstfac, /base myfac</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list ally factions for the base. Show your affiliation ID and all available.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addhfac [aff tag], /base rmhfac [aff tag], /base lsthfac</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list hostile factions for the base.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/build</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control the construction and destruction of base modules and upgrades.</TEXT>"
+};
+
 namespace PlayerCommands
 {
 	static map<wstring, vector<wstring>> modules_recipe_map;
@@ -85,85 +161,6 @@ namespace PlayerCommands
 			return;
 		}
 
-		// Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
-		const uint numPages = 4;
-		wstring pages[numPages];
-		pages[0] = L"<TRA bold=\"true\"/><TEXT>/base help [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show this help page. Specify the page number to see the next page.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base login [password]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Login as base administrator. The following commands are only available if you are logged in as a base administrator.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addpwd [password] [viewshop], /base rmpwd [password], /base lstpwd</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list administrator passwords for the base. Add 'viewshop' to addpwd to only allow the password to view the shop.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addtag [tag], /base rmtag [tag], /base lsttag</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list ally tags for the base.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addhostile [tag], /base rmhostile [tag], /base lsthostile</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list blacklisted tags for the base. They will be shot on sight so use complete tags like =LSF= or IMG| or a shipname like Crunchy_Salad.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base setmasterpwd [old password] [new password]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the master password for the base.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
-			
-			L"<TRA bold=\"true\"/><TEXT>/base supplies</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>";
-
-		pages[1] = L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the [price] of [item].</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop stock [item] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the [min stock] and [max stock] of [item]. If the current stock is less than [min stock]"
-			L" then the item cannot be bought by docked ships. If the current stock is more or equal"
-			L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
-			L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
-			L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop remove [item]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT>";
-
-		pages[2] = L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
-			L"<TEXT>Defense Mode 1 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 2 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 3 - Logic: Blacklist > Whitelist > Faction Whitelist > Hostile</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 4 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the base's infocard description.</TEXT>";
-
-		pages[3] = L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base shieldmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control shield modules.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addfac [aff tag], /base rmfac [aff tag], /base lstfac, /base myfac</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list ally factions for the base. Show your affiliation ID and all available.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addhfac [aff tag], /base rmhfac [aff tag], /base lsthfac</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list hostile factions for the base.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base buildmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control the construction and destruction of base modules and upgrades.</TEXT>";
 
 		uint page = 0;
 		wstring pageNum = GetParam(args, ' ', 2);

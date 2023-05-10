@@ -191,7 +191,7 @@ EXPORT void LoadSettings()
 	set_enableNodeMining = IniGetB(scPluginCfgFile, "MiningGeneral", "NodeMining", false);
 	set_globalModifier = IniGetF(scPluginCfgFile, "MiningGeneral", "GlobalModifier", 1.0f);
 	if(set_iPluginDebug)
-		ConPrint(L"NOTICE: debug=%d\n", set_iPluginDebug);
+		ConPrint(L"NOTICE: debug=%d, node mining=%d\n", set_iPluginDebug, set_enableNodeMining);
 
 	// Load the player bonus list and the field bonus list.
 	// To receive the bonus for the particular commodity the player has to have 
@@ -380,18 +380,18 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		uint iSendToClientID = iClientID;
 		const Archetype::Equipment* lootInfo = Archetype::GetEquipment(lootId);
 
-		uint iTargetShip;
-		pub::SpaceObj::GetTarget(iShip, iTargetShip);
-		if (iTargetShip)
+		uint iTargetObj;
+		pub::SpaceObj::GetTarget(iShip, iTargetObj);
+		if (iTargetObj && HkDistance3DByShip(iShip, iTargetObj) < 1000.0f)
 		{
-			uint iTargetClientID = HkGetClientIDByShip(iTargetShip);
-			if (iTargetClientID && HkDistance3DByShip(iShip, iTargetShip) < 1000.0f)
+			uint iTargetClientID = HkGetClientIDByShip(iTargetObj);
+			if (iTargetClientID)
 			{
 				iSendToClientID = iTargetClientID;
 			}
 			else if (set_enableNodeMining)
 			{
-				CLoot* lootObj = dynamic_cast<CLoot*>(CObject::Find(iTargetShip, CObject::CLOOT_OBJECT));
+				CLoot* lootObj = dynamic_cast<CLoot*>(CObject::Find(iTargetObj, CObject::CLOOT_OBJECT));
 				if (lootObj && lootObj->contents_arch()->iArchID == lootId) {
 					uint newUnits = lootObj->get_units() + itemCountInt;
 					lootObj->set_units(newUnits);

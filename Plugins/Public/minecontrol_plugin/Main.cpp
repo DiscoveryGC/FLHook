@@ -45,7 +45,7 @@
 
 static int set_iPluginDebug = 0;
 static string set_scStatsPath;
-static uint miningMunition = CreateID("dsy_miningturret_ammo");
+static uint set_miningMunition = CreateID("mining_gun_ammo");
 static uint set_deployableContainerCommodity = CreateID("commodity_scrap_metal");
 static float set_globalModifier = 1.0f;
 static uint set_containerJettisonCount = 5000;
@@ -240,6 +240,7 @@ EXPORT void LoadSettings()
 	set_containerSolarArchetypeID = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerSolarArchetype", "dsy_playerbase_01").c_str());
 	set_containerLoadoutArchetypeID = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerLoadoutArchetype", "dsy_playerbase_01").c_str());
 	set_deployableContainerCommodity = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerCommodity", "commodity_scrap_metal").c_str());
+	set_miningMunition = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "MiningMunition", "mining_gun_ammo").c_str());
 
 	if(set_iPluginDebug)
 		ConPrint(L"NOTICE: debug=%d\n", set_iPluginDebug);
@@ -401,7 +402,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 
 	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
-	if (ci.iProjectileArchID != miningMunition)
+	if (ci.iProjectileArchID != set_miningMunition)
 		return;
 
 	CLIENT_DATA& cd = mapClients[iClientID];

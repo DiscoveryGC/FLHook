@@ -21,6 +21,8 @@
 #include <PluginUtilities.h>
 #include "Cloak.h"
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 static int set_iPluginDebug = 0;
 
@@ -92,13 +94,13 @@ struct CLIENTCDSTRUCT
 	CDSTRUCT cd;
 };
 
-static map<uint, CLOAK_INFO> mapClientsCloak;
+static unordered_map<uint, CLOAK_INFO> mapClientsCloak;
 static map<uint, CLIENTCDSTRUCT> mapClientsCD;
 
 static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
 
-static set<uint> setJumpingClients;
+static unordered_set<uint> setJumpingClients;
 
 void LoadSettings();
 
@@ -423,7 +425,7 @@ void HkTimerCheckKick()
 	uint curr_time = (uint)time(0);
 
 
-	for (map<uint, CLOAK_INFO>::iterator ci = mapClientsCloak.begin(); ci != mapClientsCloak.end(); ++ci)
+	for (auto& ci = mapClientsCloak.begin(); ci != mapClientsCloak.end(); ++ci)
 	{
 		uint iClientID = ci->first;
 		uint iShipID = Players[iClientID].iShipID;
@@ -845,26 +847,24 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id())
+	if (!iDmgToSpaceID || !dmg->get_inflictor_id())
+		return;
+
+	if (dmg->get_cause() != 0x06 && dmg->get_cause() != 0x15)
+		return;
+	
+	uint client = HkGetClientIDByShip(iDmgToSpaceID);
+	if (!client)
+		return;
+
+	if (mapClientsCloak[client].bCanCloak
+		&& !mapClientsCloak[client].bAdmin
+		&& mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
 	{
-		if (dmg->get_cause() == 0x06 || dmg->get_cause() == 0x15)
-		{
-			float curr, max;
-			pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-			uint client = HkGetClientIDByShip(iDmgToSpaceID);
-			if (client)
-			{
-				if (mapClientsCloak[client].bCanCloak
-					&& !mapClientsCloak[client].bAdmin
-					&& mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
-				{
-					SetState(client, iDmgToSpaceID, STATE_CLOAK_OFF);
-				}
-			}
-		}
+		SetState(client, iDmgToSpaceID, STATE_CLOAK_OFF);
 	}
 }
 

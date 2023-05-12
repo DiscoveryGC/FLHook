@@ -22,6 +22,7 @@
 #include "Main.h"
 #include <sstream>
 #include <hookext_exports.h>
+#include <unordered_map>
 
 // Clients
 map<uint, CLIENT_DATA> clients;
@@ -63,7 +64,7 @@ map<uint, RECIPE> recipes;
 map<uint, uint> shield_power_items;
 
 /// Map of space obj IDs to base modules to speed up damage algorithms.
-map<uint, Module*> spaceobj_modules;
+unordered_map<uint, Module*> spaceobj_modules;
 
 /// Path to shield status html page
 string set_status_path_html;
@@ -2002,7 +2003,7 @@ void __stdcall CShip_destroy(CShip* ship)
 
 	// Dispatch the destroy event to the appropriate module.
 	uint space_obj = ship->get_id();
-	map<uint, Module*>::iterator i = spaceobj_modules.find(space_obj);
+	auto& i = spaceobj_modules.find(space_obj);
 	if (i != spaceobj_modules.end())
 	{
 		returncode = SKIPPLUGINS;
@@ -2013,7 +2014,7 @@ void __stdcall CShip_destroy(CShip* ship)
 void BaseDestroyed(uint space_obj, uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	map<uint, Module*>::iterator i = spaceobj_modules.find(space_obj);
+	auto& i = spaceobj_modules.find(space_obj);
 	if (i != spaceobj_modules.end())
 	{
 		returncode = SKIPPLUGINS;
@@ -2021,7 +2022,7 @@ void BaseDestroyed(uint space_obj, uint client)
 	}
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (iDmgToSpaceID && dmg->get_inflictor_id())

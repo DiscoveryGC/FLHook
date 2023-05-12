@@ -572,6 +572,12 @@ namespace Log {
 	void LogGenericAction(string message);
 }
 
+namespace CreateSolar {
+	pub::AI::SetPersonalityParams MakePersonality();
+	void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo);
+	void CreateSolarCallout(SPAWN_SOLAR_STRUCT* info);
+}
+
 extern map<uint, CLIENT_DATA> clients;
 
 extern map<uint, Module*> spaceobj_modules;
@@ -681,4 +687,6 @@ extern float damage_threshold;
 extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
+
+extern vector<uint> customSolarList;
 #endif

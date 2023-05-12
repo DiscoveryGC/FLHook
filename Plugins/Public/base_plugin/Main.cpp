@@ -147,6 +147,8 @@ uint jump_lockout_duration = 30;
 uint jump_innacurracy_min = 300;
 uint jump_innacurracy_max = 500;
 
+vector<uint> customSolarList;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;
@@ -1155,6 +1157,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			delete base->second;
 		}
+
+		for (uint customSolar : customSolarList)
+		{
+			int isAlive = pub::SpaceObj::ExistsAndAlive(customSolar);
+			if(isAlive)
+				pub::SpaceObj::Destroy(customSolar, DestroyType::VANISH);
+		}
+		customSolarList.clear();
 
 		HkUnloadStringDLLs();
 	}
@@ -2978,26 +2988,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			base->Save();
 		}
 	}
-	else if (msg == CUSTOM_BASE_LAST_DOCKED)
-	{
-		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
-		if (clients.count(info->clientID))
-		{
-			uint lastBaseID = clients[info->clientID].last_player_base;
-			if (player_bases.count(lastBaseID))
-			{
-				info->lastBaseName = player_bases[lastBaseID]->basename;
-			}
-			else
-			{
-				info->lastBaseName = L"Destroyed Player Base";
-			}
-		}
-		else
-		{
-			info->lastBaseName = L"Object Unknown";
-		}
-	}
 	else if (msg == CUSTOM_BASE_GET_NAME)
 	{
 		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
@@ -3017,6 +3007,11 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		{
 			info->lastBaseName = L"Object Unknown";
 		}
+	}
+	else if (msg == CUSTOM_SPAWN_SOLAR)
+	{
+		SPAWN_SOLAR_STRUCT* info = reinterpret_cast<SPAWN_SOLAR_STRUCT*>(data);
+		CreateSolar::CreateSolarCallout(info);	
 	}
 	return;
 }

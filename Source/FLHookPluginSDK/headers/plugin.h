@@ -247,15 +247,16 @@ enum PLUGIN_MESSAGE
 	DSACE_SPEED_EXCEPTION = 41,
 	CUSTOM_BASE_BEAM = 42,
 	CUSTOM_BASE_IS_DOCKED = 43,
-	CUSTOM_BASE_LAST_DOCKED = 46,
 	CLIENT_CLOAK_INFO = 44,
 	COMBAT_DAMAGE_OVERRIDE = 45,
+	CUSTOM_BASE_LAST_DOCKED = 46,
 	CUSTOM_JUMP = 47,
-	CUSTOM_IS_IT_POB = 50,
 	CUSTOM_REVERSE_TRANSACTION = 48,
 	CUSTOM_JUMP_CALLOUT = 49,
 	CUSTOM_MOBILE_DOCK_CHECK = 50,
-	CUSTOM_BASE_GET_NAME = 51
+	CUSTOM_BASE_GET_NAME = 51,
+	CUSTOM_SPAWN_SOLAR = 52,
+	CUSTOM_IS_IT_POB = 53
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -396,6 +397,18 @@ struct LAST_PLAYER_BASE_NAME_STRUCT
 {
 	uint clientID;
 	wstring lastBaseName;
+
+struct SPAWN_SOLAR_STRUCT
+{
+	uint solarArchetypeId;
+	uint loadoutArchetypeId;
+	string nickname;
+	uint solar_ids;
+	wstring initialName;
+	Vector pos;
+	Matrix ori;
+	uint iSystemId;
+	uint iSpaceObjId = 0;
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

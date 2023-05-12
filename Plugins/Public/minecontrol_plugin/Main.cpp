@@ -632,6 +632,7 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 			cd.clientId = iClientID;
 			mapMiningContainers[data.iSpaceObjId] = cd;
 			mapClients[iClientID].deployedContainerId = data.iSpaceObjId;
+			pub::Player::RemoveCargo(iClientID, item->sID, 1);
 		}
 
 		return;

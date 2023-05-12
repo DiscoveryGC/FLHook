@@ -397,6 +397,7 @@ struct LAST_PLAYER_BASE_NAME_STRUCT
 {
 	uint clientID;
 	wstring lastBaseName;
+};
 
 struct SPAWN_SOLAR_STRUCT
 {

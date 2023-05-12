@@ -553,6 +553,13 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
+		const auto& cd = mapClients.find(iClientID);
+		if (cd != mapClients.end() && cd->second.deployedContainerId)
+		{
+			PrintUserCmdText(iClientID, L"ERR A mining container is already deployed");
+			return;
+		}
+
 		uint shipId;
 		uint systemId;
 		Vector pos;

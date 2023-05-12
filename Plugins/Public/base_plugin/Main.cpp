@@ -134,6 +134,8 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
+vector<uint> customSolarList;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;
@@ -1017,6 +1019,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			delete base->second;
 		}
+
+		for (uint customSolar : customSolarList)
+		{
+			int isAlive = pub::SpaceObj::ExistsAndAlive(customSolar);
+			if(isAlive)
+				pub::SpaceObj::Destroy(customSolar, DestroyType::VANISH);
+		}
+		customSolarList.clear();
 
 		HkUnloadStringDLLs();
 	}
@@ -2774,6 +2784,11 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			base->ChangeMoney(price);
 			base->Save();
 		}
+	}
+	else if (msg == CUSTOM_SPAWN_SOLAR)
+	{
+		SPAWN_SOLAR_STRUCT* info = reinterpret_cast<SPAWN_SOLAR_STRUCT*>(data);
+		CreateSolar::CreateSolarCallout(info);	
 	}
 	return;
 }

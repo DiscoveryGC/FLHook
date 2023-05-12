@@ -252,7 +252,8 @@ enum PLUGIN_MESSAGE
 	COMBAT_DAMAGE_OVERRIDE = 45,
 	CUSTOM_JUMP = 47,
 	CUSTOM_IS_IT_POB = 50,
-	CUSTOM_REVERSE_TRANSACTION = 48
+	CUSTOM_REVERSE_TRANSACTION = 48,
+	CUSTOM_SPAWN_SOLAR = 52
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -366,6 +367,18 @@ struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 	uint iClientID;
 };
 
+struct SPAWN_SOLAR_STRUCT
+{
+	uint solarArchetypeId;
+	uint loadoutArchetypeId;
+	string nickname;
+	uint solar_ids;
+	wstring initialName;
+	Vector pos;
+	Matrix ori;
+	uint iSystemId;
+};
+	uint iSpaceObjId = 0;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #endif

@@ -11,8 +11,7 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 	si.iArchID = info->solarArchetypeId;
 	si.iLoadoutID = info->loadoutArchetypeId;
 
-	auto arch = Archetype::GetSolar(si.iArchID);
-	si.iHitPointsLeft = arch->fHitPoints;
+	si.iHitPointsLeft = -1;
 	si.iSystemID = info->iSystemId;
 	si.mOrientation = info->ori;
 	si.vPos = info->pos;

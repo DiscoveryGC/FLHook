@@ -161,6 +161,9 @@ void DestroyContainer(uint clientID)
 	{
 		if (iter->second.deployedContainerId)
 		{
+			const auto& cd = mapMiningContainers[iter->second.deployedContainerId];
+			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
+			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
 			pub::SpaceObj::Destroy(iter->second.deployedContainerId, DestroyType::FUSE);
 			mapMiningContainers.erase(iter->second.deployedContainerId);
 		}
@@ -683,7 +686,6 @@ void __stdcall BaseDestroyed(uint space_obj, uint client)
 	if (i != mapMiningContainers.end())
 	{
 		const CONTAINER_DATA& cd = i->second;
-		returncode = SKIPPLUGINS;
 		// container destruction drop all contents as well as 'packed up' container.
 		Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
 		Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);

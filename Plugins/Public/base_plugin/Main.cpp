@@ -134,7 +134,7 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
-vector<uint> customSolarList;
+set<uint> customSolarList;
 
 uint GetAffliationFromClient(uint client)
 {

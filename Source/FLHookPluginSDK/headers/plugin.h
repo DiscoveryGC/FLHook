@@ -208,6 +208,7 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_ProcessEvent_BEFORE,
 	PLUGIN_LoadSettings,
 	PLUGIN_Plugin_Communication,
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, // adding here to avoid breaking private plugins due to enum mismatch, can be moved in case of global plugin recompile
 	PLUGIN_CALLBACKS_AMOUNT,
 };
 

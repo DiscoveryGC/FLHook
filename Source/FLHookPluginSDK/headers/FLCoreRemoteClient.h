@@ -55,6 +55,18 @@ struct FLPACKET_SYSTEM_SWITCH_IN
 	Quaternion quat;
 };
 
+struct FLPACKET_CREATEGUIDED
+{
+	uint iProjectileId;
+	Vector vPos;
+	Quaternion qOri;
+	uint iTargetId;
+	uint iDunno;
+	uint iMunitionId;
+	uint iDunno2; // zero (initial speed?)
+	uint iOwner;
+};
+
 struct FLPACKET_SETREPUTATION
 {
 	uint iSpaceID;
@@ -186,7 +198,7 @@ public:
 	virtual bool Send_FLPACKET_SERVER_CREATESHIP(uint iClientID, FLPACKET_CREATESHIP& pShip);
 	virtual bool Send_FLPACKET_SERVER_CREATELOOT(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual bool Send_FLPACKET_SERVER_CREATEMINE(uint iClientID, FLPACKET_UNKNOWN& pDunno);
-	virtual bool Send_FLPACKET_SERVER_CREATEGUIDED(uint iClientID, FLPACKET_UNKNOWN& pDunno);
+	virtual bool Send_FLPACKET_SERVER_CREATEGUIDED(uint iClientID, FLPACKET_CREATEGUIDED& pDunno);
 	virtual bool Send_FLPACKET_SERVER_CREATECOUNTER(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual void unknown_53(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual void unknown_54(uint iClientID, uint iDunno, uint iDunno2, uint iDunno3);

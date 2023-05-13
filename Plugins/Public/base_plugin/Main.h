@@ -688,5 +688,5 @@ extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
 
-extern vector<uint> customSolarList;
+extern set<uint> customSolarList;
 #endif

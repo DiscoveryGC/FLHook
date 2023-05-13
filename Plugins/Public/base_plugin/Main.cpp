@@ -2253,7 +2253,9 @@ void BaseDestroyed(uint space_obj, uint client)
 	{
 		returncode = SKIPPLUGINS;
 		i->second->SpaceObjDestroyed(space_obj);
+		return;
 	}
+	customSolarList.erase(space_obj);
 }
 
 void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate& fate)

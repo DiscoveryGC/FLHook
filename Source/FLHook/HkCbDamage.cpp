@@ -133,7 +133,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 			uint iType;
 			pub::SpaceObj::GetType(iDmgToSpaceID, iType);
 			uint iClientIDKiller = HkGetClientIDByShip(dmgList->get_inflictor_id());
-			if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
+			if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM | OBJ_DESTROYABLE_DEPOT))
 				BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
 		}
 

@@ -48,7 +48,7 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 
 	info->iSpaceObjId = spaceObjId;
 
-	customSolarList.push_back(spaceObjId);
+	customSolarList.insert(spaceObjId);
 }
 
 void CreateSolar::SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo)

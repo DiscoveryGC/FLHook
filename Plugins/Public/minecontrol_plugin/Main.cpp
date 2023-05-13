@@ -162,7 +162,8 @@ void DestroyContainer(uint clientID)
 		if (iter->second.deployedContainerId)
 		{
 			const auto& cd = mapMiningContainers[iter->second.deployedContainerId];
-			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
+			if(cd.lootCount)
+				Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
 			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
 			pub::SpaceObj::Destroy(iter->second.deployedContainerId, DestroyType::FUSE);
 			mapMiningContainers.erase(iter->second.deployedContainerId);
@@ -573,7 +574,7 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 		pub::Player::GetShip(iClientID, shipId);
 		pub::Player::GetSystem(iClientID, systemId);
 		pub::SpaceObj::GetLocation(shipId, pos, ori);
-		TranslateX(pos, ori, 500);
+		TranslateX(pos, ori, -400);
 
 		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemId);
 		if (!csys)
@@ -686,8 +687,10 @@ void __stdcall BaseDestroyed(uint space_obj, uint client)
 	if (i != mapMiningContainers.end())
 	{
 		const CONTAINER_DATA& cd = i->second;
+		mapClients[cd.clientId].deployedContainerId = 0;
 		// container destruction drop all contents as well as 'packed up' container.
-		Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
+		if(cd.lootCount)
+			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
 		Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
 		mapMiningContainers.erase(space_obj);
 	}
@@ -727,7 +730,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOut, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseDestroyed, PLUGIN_BaseDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&MineAsteroid, PLUGIN_HkIServerImpl_MineAsteroid, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPMunitionCollision, PLUGIN_HkIServerImpl_SPMunitionCollision, 0));

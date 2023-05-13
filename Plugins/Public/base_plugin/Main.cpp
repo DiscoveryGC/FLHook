@@ -148,7 +148,7 @@ uint jump_lockout_duration = 30;
 uint jump_innacurracy_min = 300;
 uint jump_innacurracy_max = 500;
 
-vector<uint> customSolarList;
+set<uint> customSolarList;
 
 uint GetAffliationFromClient(uint client)
 {

@@ -16,6 +16,7 @@
 #include <math.h>
 #include <list>
 #include <set>
+#include <unordered_map>
 #include <algorithm>
 
 #include <PluginUtilities.h>
@@ -58,7 +59,7 @@ namespace HyperJump
 		}
 	}
 
-	static map<uint, map<uint, vector<uint>>> mapAvailableJumpSystems;
+	static unordered_map<uint, unordered_map<uint, vector<uint>>> mapAvailableJumpSystems;
 
 	static int JumpWhiteListEnabled = 0;
 	static int JumpSystemListEnabled = 0;
@@ -82,7 +83,7 @@ namespace HyperJump
 	};
 	
 	// map<shipclass, map<JH/JD type, JUMPFUSE>> 
-	static map<uint, map<JUMP_TYPE, JUMPFUSE>> JumpInFuseMap;
+	static unordered_map<uint, map<JUMP_TYPE, JUMPFUSE>> JumpInFuseMap;
 
 	struct SYSTEMJUMPCOORDS
 	{
@@ -91,8 +92,8 @@ namespace HyperJump
 		Vector pos;
 		Matrix ornt;
 	};
-	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
-	static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
+	static unordered_map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
+	static unordered_map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
 
 	struct JUMPDRIVE_ARCH
 	{
@@ -109,7 +110,7 @@ namespace HyperJump
 		float group_jump_range;
 		boolean cd_disrupts_charge;
 	};
-	static map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
+	static unordered_map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
 
 	struct JUMPDRIVE
 	{
@@ -130,7 +131,7 @@ namespace HyperJump
 		Vector vTargetPosition;
 		Matrix matTargetOrient;
 	};
-	static map<uint, JUMPDRIVE> mapJumpDrives;
+	static unordered_map<uint, JUMPDRIVE> mapJumpDrives;
 
 	struct BEACONTIMER
 	{
@@ -139,7 +140,7 @@ namespace HyperJump
 		bool decayed;
 	};
 
-	static map<uint, BEACONTIMER> mapActiveBeacons;
+	static unordered_map<uint, BEACONTIMER> mapActiveBeacons;
 
 	struct BEACONMATRIX
 	{
@@ -151,9 +152,9 @@ namespace HyperJump
 	};
 
 	//There is only one kind of Matrix right now, but this might change later on
-	static map<uint, BEACONMATRIX> mapBeaconMatrix;
+	static unordered_map<uint, BEACONMATRIX> mapBeaconMatrix;
 	//map the existing Matrix
-	static map<uint, BEACONMATRIX*> mapPlayerBeaconMatrix;
+	static unordered_map<uint, BEACONMATRIX*> mapPlayerBeaconMatrix;
 
 	void ClearJumpDriveInfo(uint iClientID, bool clearFuses)
 	{
@@ -835,7 +836,7 @@ namespace HyperJump
 		list<uint> lstOldClients;
 
 		// Handle beacons
-		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
+		for (auto& i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
 		{
 			BEACONTIMER &bc = i->second;
 
@@ -868,7 +869,7 @@ namespace HyperJump
 		lstOldClients.clear();
 
 		// Handle jump drive charging
-		for (map<uint, JUMPDRIVE>::iterator iter = mapJumpDrives.begin(); iter != mapJumpDrives.end(); iter++)
+		for (auto& iter = mapJumpDrives.begin(); iter != mapJumpDrives.end(); iter++)
 		{
 			uint iClientID = iter->first;
 
@@ -1726,7 +1727,7 @@ namespace HyperJump
 			return true;
 		}
 
-		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
+		for (auto& i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
 		{
 			if (i->first == iClientID)
 			{

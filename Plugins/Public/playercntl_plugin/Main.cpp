@@ -510,17 +510,19 @@ namespace HkIServerImpl
 	void __stdcall JumpInComplete_AFTER(unsigned int iSystem, unsigned int iShip)
 	{
 		returncode = DEFAULT_RETURNCODE;
+
+		// Make player damageable once the ship has jumped in system.
+		pub::SpaceObj::SetInvincible(iShip, false, false, 0);
+
 		uint iClientID = HkGetClientIDByShip(iShip);
 		if (iClientID)
 		{
 			AntiJumpDisconnect::JumpInComplete(iSystem, iShip, iClientID);
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
-			//TODO: Apply discerning of JHs with JG intercepting data in SystemSwitchOut
+			HyperJump::FinishSwitchSystem(iClientID);
 			HyperJump::SetJumpInFuse(iClientID);
+			HyperJump::SetJumpInInvulnerability(iClientID);
 		}
-
-		// Make player damageable once the ship has jumped in system.
-		pub::SpaceObj::SetInvincible(iShip, false, false, 0);
 	}
 
 	void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
@@ -530,8 +532,7 @@ namespace HkIServerImpl
 		// exploding player while jumping (in jump tunnel)
 		pub::SpaceObj::SetInvincible(iShip, true, true, 0);
 		AntiJumpDisconnect::SystemSwitchOutComplete(iShip, iClientID);
-		if (HyperJump::SystemSwitchOutComplete(iShip, iClientID))
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::SystemSwitchOutComplete(iShip, iClientID);
 	}
 
 	void __stdcall SPObjCollision(struct SSPObjCollisionInfo const &ci, unsigned int iClientID)

@@ -371,7 +371,6 @@ struct CUSTOM_JUMP_STRUCT
 {
 	uint iShipID;
 	uint iSystemID;
-	JUMP_TYPE iJumpType = NOEFFECT_JUMPTYPE;
 };
 
 struct CUSTOM_JUMP_CALLOUT_STRUCT

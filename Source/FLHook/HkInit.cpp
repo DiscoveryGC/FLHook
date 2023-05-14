@@ -169,7 +169,7 @@ void ClearClientInfo(uint iClientID)
 	ClientInfo[iClientID].dieMsg = DIEMSG_ALL;
 	ClientInfo[iClientID].iShip = 0;
 	ClientInfo[iClientID].iShipOld = 0;
-	ClientInfo[iClientID].tmSpawnTime = 0;
+	ClientInfo[iClientID].tmProtectedUntil = 0;
 	ClientInfo[iClientID].lstMoneyFix.clear();
 	ClientInfo[iClientID].iTradePartner = 0;
 	ClientInfo[iClientID].iBaseEnterTime = 0;
@@ -202,8 +202,6 @@ void ClearClientInfo(uint iClientID)
 	ClientInfo[iClientID].bEngineKilled = false;
 	ClientInfo[iClientID].bThrusterActivated = false;
 	ClientInfo[iClientID].bTradelane = false;
-
-	ClientInfo[iClientID].bSpawnProtected = false;
 
 	CALL_PLUGINS_V(PLUGIN_ClearClientInfo, , (uint), (iClientID));
 }

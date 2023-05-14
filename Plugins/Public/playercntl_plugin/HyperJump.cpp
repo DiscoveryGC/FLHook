@@ -16,6 +16,7 @@
 #include <math.h>
 #include <list>
 #include <set>
+#include <unordered_map>
 #include <algorithm>
 
 #include <PluginUtilities.h>
@@ -58,7 +59,7 @@ namespace HyperJump
 		}
 	}
 
-	static map<uint, map<uint, vector<uint>>> mapAvailableJumpSystems;
+	static unordered_map<uint, unordered_map<uint, vector<uint>>> mapAvailableJumpSystems;
 
 	static int JumpWhiteListEnabled = 0;
 	static int JumpSystemListEnabled = 0;
@@ -72,7 +73,8 @@ namespace HyperJump
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
 	static boolean EnableFakeJumpTunnels = false;
-	static uint BaseTunnelTransitTime = 10;
+	static uint BaseTunnelTransitTime = 11;
+	static uint JumpInInvulnerabilityPeriod = 5000;
 
 	struct JUMPFUSE
 	{
@@ -82,7 +84,7 @@ namespace HyperJump
 	};
 	
 	// map<shipclass, map<JH/JD type, JUMPFUSE>> 
-	static map<uint, map<JUMP_TYPE, JUMPFUSE>> JumpInFuseMap;
+	static unordered_map<uint, map<JUMP_TYPE, JUMPFUSE>> JumpInFuseMap;
 
 	struct SYSTEMJUMPCOORDS
 	{
@@ -91,8 +93,8 @@ namespace HyperJump
 		Vector pos;
 		Matrix ornt;
 	};
-	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
-	static map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
+	static unordered_map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
+	static unordered_map<uint, SYSTEMJUMPCOORDS> mapDeferredJumps;
 
 	struct JUMPDRIVE_ARCH
 	{
@@ -109,7 +111,7 @@ namespace HyperJump
 		float group_jump_range;
 		boolean cd_disrupts_charge;
 	};
-	static map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
+	static unordered_map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
 
 	struct JUMPDRIVE
 	{
@@ -122,7 +124,7 @@ namespace HyperJump
 		list<uint> active_charge_fuse;
 		bool charging_complete;
 		uint charge_status;
-		JUMP_TYPE jump_type = NOEFFECT_JUMPTYPE;
+		JUMP_TYPE jump_type = JUMPHOLE_JUMPTYPE;
 
 		int jump_timer;
 		int jump_tunnel_timer;
@@ -130,7 +132,7 @@ namespace HyperJump
 		Vector vTargetPosition;
 		Matrix matTargetOrient;
 	};
-	static map<uint, JUMPDRIVE> mapJumpDrives;
+	static unordered_map<uint, JUMPDRIVE> mapJumpDrives;
 
 	struct BEACONTIMER
 	{
@@ -139,7 +141,7 @@ namespace HyperJump
 		bool decayed;
 	};
 
-	static map<uint, BEACONTIMER> mapActiveBeacons;
+	static unordered_map<uint, BEACONTIMER> mapActiveBeacons;
 
 	struct BEACONMATRIX
 	{
@@ -151,9 +153,9 @@ namespace HyperJump
 	};
 
 	//There is only one kind of Matrix right now, but this might change later on
-	static map<uint, BEACONMATRIX> mapBeaconMatrix;
+	static unordered_map<uint, BEACONMATRIX> mapBeaconMatrix;
 	//map the existing Matrix
-	static map<uint, BEACONMATRIX*> mapPlayerBeaconMatrix;
+	static unordered_map<uint, BEACONMATRIX*> mapPlayerBeaconMatrix;
 
 	void ClearJumpDriveInfo(uint iClientID, bool clearFuses)
 	{
@@ -234,6 +236,19 @@ namespace HyperJump
 		}
 	}
 
+	void HyperJump::FinishSwitchSystem(uint iClientID)
+	{
+		auto& jd = mapJumpDrives[iClientID];
+
+		if (!jd.jump_tunnel_timer)
+			return;
+
+		SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, 0);
+		jd.jump_tunnel_timer = 0;
+
+		if (jd.jump_type == JUMPDRIVE_JUMPTYPE)
+			pub::SpaceObj::DrainShields(Players[iClientID].iShipID);
+	}
 	void HyperJump::LoadSettings(const string &scPluginCfgFile)
 	{
 		// Patch Archetype::GetEquipment & Archetype::GetShip to suppress annoying warnings flserver-errors.log
@@ -306,6 +321,10 @@ namespace HyperJump
 						else if (ini.is_value("BaseTunnelTransitTime"))
 						{
 							BaseTunnelTransitTime = ini.get_value_int(0);
+						}
+						else if (ini.is_value("JumpInInvulnerabilityPeriod"))
+						{
+							JumpInInvulnerabilityPeriod = ini.get_value_int(0);
 						}
 						else if (ini.is_value("JumpInFuse"))
 						{
@@ -524,7 +543,11 @@ namespace HyperJump
 
 	void HyperJump::SetJumpInFuse(uint iClientID)
 	{
-		JUMP_TYPE jumpType = mapJumpDrives[iClientID].jump_type;
+		auto& jdData = mapJumpDrives[iClientID];
+		if (jdData.jump_tunnel_timer)
+			return;
+
+		JUMP_TYPE jumpType = jdData.jump_type;
 
 		Archetype::Ship* playerShip = Archetype::GetShip(Players[iClientID].iShipArchetype);
 		if (JumpInFuseMap.count(playerShip->iShipClass) && JumpInFuseMap[playerShip->iShipClass].count(jumpType))
@@ -536,6 +559,7 @@ namespace HyperJump
 		{
 			SetFuse(iClientID, 0);
 		}
+		jdData.jump_type = JUMPHOLE_JUMPTYPE;
 	}
 
 	void AddChargeFuse(uint iClientID, uint fuse)
@@ -585,7 +609,7 @@ namespace HyperJump
 		return false;
 	}
 
-	bool CheckForBeacon(uint iClientID, bool fullCheck = false)
+	bool HyperJump::CheckForBeacon(uint iClientID, bool fullCheck = false)
 	{
 		if (mapPlayerBeaconMatrix.count(iClientID) && !fullCheck) {
 			return true;
@@ -835,7 +859,7 @@ namespace HyperJump
 		list<uint> lstOldClients;
 
 		// Handle beacons
-		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
+		for (auto& i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
 		{
 			BEACONTIMER &bc = i->second;
 
@@ -868,7 +892,7 @@ namespace HyperJump
 		lstOldClients.clear();
 
 		// Handle jump drive charging
-		for (map<uint, JUMPDRIVE>::iterator iter = mapJumpDrives.begin(); iter != mapJumpDrives.end(); iter++)
+		for (auto& iter = mapJumpDrives.begin(); iter != mapJumpDrives.end(); iter++)
 		{
 			uint iClientID = iter->first;
 
@@ -885,12 +909,12 @@ namespace HyperJump
 				if (jd.jump_tunnel_timer > 0)
 				{
 					jd.jump_tunnel_timer--;
-					if (jd.jump_tunnel_timer == 2)
+					if (jd.jump_tunnel_timer == 3)
 					{
 						// switch the system under the hood, final coordinates will be set by the packet next step.
 						PrintUserCmdText(iClientID, L" ChangeSys %u", jd.iTargetSystem);
 					}
-					else if (jd.jump_tunnel_timer == 1)
+					else if (jd.jump_tunnel_timer == 2)
 					{
 						FLPACKET_SYSTEM_SWITCH_IN switchInPacket;
 						switchInPacket.objType = OBJ_JUMP_HOLE;
@@ -898,13 +922,10 @@ namespace HyperJump
 						switchInPacket.quat = HkMatrixToQuaternion(jd.matTargetOrient);
 						switchInPacket.shipId = iShip;
 						HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket);
-
-						if(mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE)
-							pub::SpaceObj::DrainShields(iShip);
 					}
-					else if (jd.jump_tunnel_timer == 0)
+					else if (jd.jump_tunnel_timer == 1)
 					{
-						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, 0);
+						jd.jump_tunnel_timer++; // keep the timer active until JumpInComplete hook fires
 					}
 				}
 
@@ -1187,6 +1208,13 @@ namespace HyperJump
 		}
 	}
 
+	void HyperJump::SetJumpInInvulnerability(uint clientID)
+	{
+		if (JumpInInvulnerabilityPeriod) {
+			ClientInfo[clientID].tmProtectedUntil = timeInMS() + JumpInInvulnerabilityPeriod;
+		}
+	}
+
 	bool HyperJump::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 	{
 		static PBYTE SwitchOut = 0;
@@ -1247,7 +1275,6 @@ namespace HyperJump
 			CUSTOM_JUMP_STRUCT info;
 			info.iShipID = iShip;
 			info.iSystemID = iSystemID;
-			info.iJumpType = mapJumpDrives[iClientID].jump_type;
 			
 			Plugin_Communication(CUSTOM_JUMP, &info);
 			return true;
@@ -1726,7 +1753,7 @@ namespace HyperJump
 			return true;
 		}
 
-		for (map<uint, BEACONTIMER>::iterator i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
+		for (auto& i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
 		{
 			if (i->first == iClientID)
 			{

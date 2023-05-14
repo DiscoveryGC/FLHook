@@ -501,7 +501,7 @@ namespace HkIServerImpl
 		{
 			AntiJumpDisconnect::JumpInComplete(iSystem, iShip, iClientID);
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
-			//TODO: Apply discerning of JHs with JG intercepting data in SystemSwitchOut
+			HyperJump::FinishSwitchSystem(iClientID);
 			HyperJump::SetJumpInFuse(iClientID);
 		}
 
@@ -516,8 +516,7 @@ namespace HkIServerImpl
 		// exploding player while jumping (in jump tunnel)
 		pub::SpaceObj::SetInvincible(iShip, true, true, 0);
 		AntiJumpDisconnect::SystemSwitchOutComplete(iShip, iClientID);
-		if (HyperJump::SystemSwitchOutComplete(iShip, iClientID))
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::SystemSwitchOutComplete(iShip, iClientID);
 	}
 
 	void __stdcall SPObjCollision(struct SSPObjCollisionInfo const &ci, unsigned int iClientID)

@@ -73,7 +73,7 @@ namespace HyperJump
 	static boolean CanJumpWithCommodities = true;
 	static boolean CanGroupJumpWithCommodities = true;
 	static boolean EnableFakeJumpTunnels = false;
-	static uint BaseTunnelTransitTime = 10;
+	static uint BaseTunnelTransitTime = 11;
 
 	struct JUMPFUSE
 	{
@@ -123,7 +123,7 @@ namespace HyperJump
 		list<uint> active_charge_fuse;
 		bool charging_complete;
 		uint charge_status;
-		JUMP_TYPE jump_type = NOEFFECT_JUMPTYPE;
+		JUMP_TYPE jump_type = JUMPHOLE_JUMPTYPE;
 
 		int jump_timer;
 		int jump_tunnel_timer;
@@ -235,6 +235,19 @@ namespace HyperJump
 		}
 	}
 
+	void HyperJump::FinishSwitchSystem(uint iClientID)
+	{
+		auto& jd = mapJumpDrives[iClientID];
+
+		if (!jd.jump_tunnel_timer)
+			return;
+
+		SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, 0);
+		jd.jump_tunnel_timer = 0;
+
+		if (jd.jump_type == JUMPDRIVE_JUMPTYPE)
+			pub::SpaceObj::DrainShields(Players[iClientID].iShipID);
+	}
 	void HyperJump::LoadSettings(const string &scPluginCfgFile)
 	{
 		// Patch Archetype::GetEquipment & Archetype::GetShip to suppress annoying warnings flserver-errors.log
@@ -525,7 +538,11 @@ namespace HyperJump
 
 	void HyperJump::SetJumpInFuse(uint iClientID)
 	{
-		JUMP_TYPE jumpType = mapJumpDrives[iClientID].jump_type;
+		auto& jdData = mapJumpDrives[iClientID];
+		if (jdData.jump_tunnel_timer)
+			return;
+
+		JUMP_TYPE jumpType = jdData.jump_type;
 
 		Archetype::Ship* playerShip = Archetype::GetShip(Players[iClientID].iShipArchetype);
 		if (JumpInFuseMap.count(playerShip->iShipClass) && JumpInFuseMap[playerShip->iShipClass].count(jumpType))
@@ -537,6 +554,7 @@ namespace HyperJump
 		{
 			SetFuse(iClientID, 0);
 		}
+		jdData.jump_type = JUMPHOLE_JUMPTYPE;
 	}
 
 	void AddChargeFuse(uint iClientID, uint fuse)
@@ -586,7 +604,7 @@ namespace HyperJump
 		return false;
 	}
 
-	bool CheckForBeacon(uint iClientID, bool fullCheck = false)
+	bool HyperJump::CheckForBeacon(uint iClientID, bool fullCheck = false)
 	{
 		if (mapPlayerBeaconMatrix.count(iClientID) && !fullCheck) {
 			return true;
@@ -886,12 +904,12 @@ namespace HyperJump
 				if (jd.jump_tunnel_timer > 0)
 				{
 					jd.jump_tunnel_timer--;
-					if (jd.jump_tunnel_timer == 2)
+					if (jd.jump_tunnel_timer == 3)
 					{
 						// switch the system under the hood, final coordinates will be set by the packet next step.
 						PrintUserCmdText(iClientID, L" ChangeSys %u", jd.iTargetSystem);
 					}
-					else if (jd.jump_tunnel_timer == 1)
+					else if (jd.jump_tunnel_timer == 2)
 					{
 						FLPACKET_SYSTEM_SWITCH_IN switchInPacket;
 						switchInPacket.objType = OBJ_JUMP_HOLE;
@@ -899,13 +917,10 @@ namespace HyperJump
 						switchInPacket.quat = HkMatrixToQuaternion(jd.matTargetOrient);
 						switchInPacket.shipId = iShip;
 						HookClient->Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(iClientID, switchInPacket);
-
-						if(mapJumpDrives[iClientID].jump_type == JUMPDRIVE_JUMPTYPE)
-							pub::SpaceObj::DrainShields(iShip);
 					}
-					else if (jd.jump_tunnel_timer == 0)
+					else if (jd.jump_tunnel_timer == 1)
 					{
-						SwitchSystem(iClientID, jd.iTargetSystem, jd.vTargetPosition, jd.matTargetOrient, 0);
+						jd.jump_tunnel_timer++; // keep the timer active until JumpInComplete hook fires
 					}
 				}
 
@@ -1248,7 +1263,6 @@ namespace HyperJump
 			CUSTOM_JUMP_STRUCT info;
 			info.iShipID = iShip;
 			info.iSystemID = iSystemID;
-			info.iJumpType = mapJumpDrives[iClientID].jump_type;
 			
 			Plugin_Communication(CUSTOM_JUMP, &info);
 			return true;

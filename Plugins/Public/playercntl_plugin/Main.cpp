@@ -496,6 +496,10 @@ namespace HkIServerImpl
 	void __stdcall JumpInComplete_AFTER(unsigned int iSystem, unsigned int iShip)
 	{
 		returncode = DEFAULT_RETURNCODE;
+
+		// Make player damageable once the ship has jumped in system.
+		pub::SpaceObj::SetInvincible(iShip, false, false, 0);
+
 		uint iClientID = HkGetClientIDByShip(iShip);
 		if (iClientID)
 		{
@@ -503,10 +507,8 @@ namespace HkIServerImpl
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
 			HyperJump::FinishSwitchSystem(iClientID);
 			HyperJump::SetJumpInFuse(iClientID);
+			HyperJump::SetJumpInInvulnerability(iClientID);
 		}
-
-		// Make player damageable once the ship has jumped in system.
-		pub::SpaceObj::SetInvincible(iShip, false, false, 0);
 	}
 
 	void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)

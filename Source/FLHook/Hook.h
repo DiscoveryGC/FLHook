@@ -398,7 +398,7 @@ struct CLIENT_INFO
 	// kill msgs
 	uint		iShip;
 	uint		iShipOld;
-	mstime		tmSpawnTime;
+	mstime		tmProtectedUntil;
 
 	DamageList	dmgLast;
 

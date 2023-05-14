@@ -148,6 +148,7 @@ namespace HyperJump
 	void SetJumpInFuse(uint iClientID);
 	void ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData);
 	void FinishSwitchSystem(uint iClientID);
+	void SetJumpInInvulnerability(uint iClientID);
 
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);

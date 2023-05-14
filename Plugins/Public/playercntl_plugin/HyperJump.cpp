@@ -74,6 +74,7 @@ namespace HyperJump
 	static boolean CanGroupJumpWithCommodities = true;
 	static boolean EnableFakeJumpTunnels = false;
 	static uint BaseTunnelTransitTime = 11;
+	static uint JumpInInvulnerabilityPeriod = 5000;
 
 	struct JUMPFUSE
 	{
@@ -320,6 +321,10 @@ namespace HyperJump
 						else if (ini.is_value("BaseTunnelTransitTime"))
 						{
 							BaseTunnelTransitTime = ini.get_value_int(0);
+						}
+						else if (ini.is_value("JumpInInvulnerabilityPeriod"))
+						{
+							JumpInInvulnerabilityPeriod = ini.get_value_int(0);
 						}
 						else if (ini.is_value("JumpInFuse"))
 						{
@@ -1200,6 +1205,13 @@ namespace HyperJump
 		if (mapActiveBeacons.find(iClientIDVictim) != mapActiveBeacons.end())
 		{
 			mapActiveBeacons.erase(iClientIDVictim);
+		}
+	}
+
+	void HyperJump::SetJumpInInvulnerability(uint clientID)
+	{
+		if (JumpInInvulnerabilityPeriod) {
+			ClientInfo[clientID].tmProtectedUntil = timeInMS() + JumpInInvulnerabilityPeriod;
 		}
 	}
 

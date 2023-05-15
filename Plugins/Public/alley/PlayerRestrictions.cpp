@@ -167,6 +167,7 @@ static map<uint, string> notradelist;
 static list<uint> MarkedPlayers;
 //Added this due to idiocy
 static list<uint> MarkUsageTimer;
+static map<uint, bool> reverseTrade;
 
 
 
@@ -675,6 +676,18 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 			pub::IsCommodity(item->iArchID, flag);
 			if (!item->bMounted && flag)
 			{
+				bool skipItem = false;
+				for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+				{
+					if (i->first == item->iArchID)
+					{
+						skipItem = true;
+						break;
+					}
+				}
+				if (skipItem) {
+					continue;
+				}
 				HkRemoveCargo(wscCharname, item->iID, item->iCount);
 				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
 				items++;
@@ -985,7 +998,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())
@@ -1071,10 +1084,12 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 	returncode = DEFAULT_RETURNCODE;
 	//int iSlotPlayer;
 
+	boolean matchFound = false;
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (item->sID == jc.iSlot)
 		{
+			matchFound = true;
 			//PrintUserCmdText(iClientID, L"Slot match");
 			for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 			{
@@ -1085,6 +1100,11 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 				}
 			}
 		}
+	}
+	// no match found, something went VERY wrong
+	if(!matchFound){
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PrintUserCmdText(iClientID, L"ERR couldn't verify cargo, please try again.");
 	}
 }
 
@@ -1187,7 +1207,60 @@ void __stdcall ReqAddItem(unsigned int iArchID, char const *Hardpoint, int count
 		PrintUserCmdText(iClientID, L"Triggered on add equip");
 	}
 	*/
+
+	returncode = DEFAULT_RETURNCODE;
+	if (reverseTrade[iClientID])
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
 }
+
+void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (!SCI::CanBuyItem(gbi.iGoodID, client)) {
+		const GoodInfo* gi = GoodList::find_by_id(gbi.iGoodID);
+		switch (gi->iType) {
+			case GOODINFO_TYPE_COMMODITY: {
+				PrintUserCmdText(client, L"ERR Your ship can't load this cargo");
+				break;
+			}
+			case GOODINFO_TYPE_EQUIPMENT: {
+				PrintUserCmdText(client, L"ERR Your ship can't use this equipment");
+				break;
+			}
+			default:
+				PrintUserCmdText(client, L"ERR You can't buy this");
+		}
+
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		reverseTrade[client] = true;
+		return;
+	}
+
+	reverseTrade[client] = false;
+}
+
+void __stdcall ReqChangeCash(int cash, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (reverseTrade[iClientID])
+	{
+		reverseTrade[iClientID] = false;
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
+}
+
+void __stdcall ReqSetCash(int cash, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (reverseTrade[iClientID])
+	{
+		reverseTrade[iClientID] = false;
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
+}
+
 
 void __stdcall ReqEquipment(class EquipDescList const &edl, unsigned int iClientID)
 {
@@ -1272,6 +1345,9 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry_AFTER, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JettisonCargo, PLUGIN_HkIServerImpl_JettisonCargo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddTradeEquip, PLUGIN_HkIServerImpl_AddTradeEquip, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqChangeCash, PLUGIN_HkIServerImpl_ReqChangeCash, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqSetCash, PLUGIN_HkIServerImpl_ReqSetCash, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));

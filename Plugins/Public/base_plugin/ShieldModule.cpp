@@ -6,6 +6,7 @@ ShieldModule::ShieldModule(PlayerBase *the_base)
 	: Module(TYPE_SHIELDGEN), base(the_base), reset_needed(false)
 {
 	shield_fuse = CreateID("player_base_shield");
+	base->shield_state = HasShieldPower() ? PlayerBase::SHIELD_STATE_ONLINE : PlayerBase::SHIELD_STATE_OFFLINE;
 }
 
 ShieldModule::~ShieldModule()

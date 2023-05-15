@@ -38,6 +38,17 @@ struct RECIPE
 	unordered_map<uint, float> affiliationBonus;
 };
 
+struct BASE_VULNERABILITY_WINDOW {
+	uint start;
+	uint end;
+};
+
+struct WEAR_N_TEAR_MODIFIER{
+	float fromHP;
+	float toHP;
+	float modifier;
+};
+
 struct ARCHTYPE_STRUCT
 {
 	int logic;
@@ -141,6 +152,7 @@ public:
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
+	float FindWearNTearModifier(float currHpPercentage);
 
 	void RepairDamage(float max_base_health);
 };
@@ -375,6 +387,11 @@ public:
 	//changes how defense mod act depending on the amount of damage made to base in the last hours
 	bool siege_mode;
 
+	//shield strength parameters
+	float shield_strength_multiplier;
+	float base_shield_reinforcement_threshold;
+	float damage_taken_since_last_threshold;
+
 	// List of allied ship tags.
 	list<wstring> ally_tags;
 
@@ -543,6 +560,7 @@ namespace PlayerCommands
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
 	void BaseSwapModule(uint client, const wstring &args);
+	void GetNecessitiesStatus(uint client, const wstring &args);
 
 	void BaseDeploy(uint client, const wstring &args);
 
@@ -621,6 +639,13 @@ extern uint set_damage_per_10sec;
 /// Damage to the base every tick
 extern uint set_damage_per_tick;
 
+/// Damage multiplier for damaged/abandoned stations
+/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
+extern list<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
+
+/// Additional damage penalty for stations without proper crew
+extern float no_crew_damage_multiplier;
+
 /// How much damage to repair per cycle
 extern uint repair_per_repair_cycle;
 
@@ -630,8 +655,17 @@ extern uint set_damage_tick_time;
 /// The seconds per tick
 extern uint set_tick_time;
 
-/// If the shield is up then damage to the base is changed by this multiplier.
-extern float set_shield_damage_multiplier;
+// set of configurable variables defining the diminishing returns on damage during POB siege
+// POB starts at base_shield_strength, then every 'threshold' of damage taken, 
+// shield goes up in absorption by the 'increment'
+// threshold size is to be configured per core level.
+extern map<int, float> shield_reinforcement_threshold_map;
+extern float shield_reinforcement_increment;
+extern float base_shield_strength;
+
+extern bool isGlobalBaseInvulnerabilityActive;
+
+bool checkBaseVulnerabilityStatus();
 
 /// Holiday mode
 extern bool set_holiday_mode;

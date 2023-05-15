@@ -46,6 +46,7 @@ bool set_bLocalTime = false;
 
 /// Local chat range
 float set_iLocalChatRange = 9999;
+float set_iDockBroadcastRange = 9999;
 
 float set_fSpinProtectMass;
 float set_fSpinImpulseMultiplier;
@@ -118,6 +119,7 @@ void LoadSettings()
 	set_fSpinImpulseMultiplier = IniGetF(scPluginCfgFile, "General", "SpinProtectionMultiplier", -1.0f);
 
 	set_iLocalChatRange = IniGetF(scPluginCfgFile, "General", "LocalChatRange", 0);
+	set_iDockBroadcastRange = IniGetF(scPluginCfgFile, "General", "DockBroadcastRange", 0);
 
 	set_bLocalTime = IniGetB(scPluginCfgFile, "General", "LocalTime", false);
 
@@ -301,6 +303,11 @@ namespace HkIEngine
 		}
 		else
 		{
+			if (Players[iClientID].fRelativeHealth == 0.0f && (iCancel != -1)) {
+				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("dock_disallowed"));
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				return 0;
+			}
 			uint iTypeID;
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);
 			if (iTypeID == OBJ_DOCKING_RING || iTypeID == OBJ_STATION)
@@ -318,7 +325,7 @@ namespace HkIEngine
 					wstring wscMsg = L"%time Traffic control alert: %player has requested to dock";
 					wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
 					wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
-					PrintLocalUserCmdText(iClientID, wscMsg, set_iLocalChatRange);
+					PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
 				}
 			}
 

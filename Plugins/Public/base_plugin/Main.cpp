@@ -80,6 +80,13 @@ string set_status_path_json;
 /// Damage to the base every tick
 uint set_damage_per_tick = 600;
 
+/// Damage multiplier for damaged/abandoned stations
+/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
+list<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
+
+/// Additional damage penalty for stations without proper crew
+float no_crew_damage_multiplier = 1;
+
 // The seconds per damage tick
 uint set_damage_tick_time = 16;
 
@@ -89,8 +96,22 @@ uint set_tick_time = 16;
 // How much damage do we heal per repair cycle?
 uint repair_per_repair_cycle = 60000;
 
-/// If the shield is up then damage to the base is changed by this multiplier.
-float set_shield_damage_multiplier = 0.03f;
+
+// set of configurable variables defining the diminishing returns on damage during POB siege
+// POB starts at base_shield_strength, then every 'threshold' of damage taken, 
+// shield goes up in absorption by the 'increment'
+// threshold size is to be configured per core level.
+map<int, float> shield_reinforcement_threshold_map;
+float shield_reinforcement_increment = 0.0f;
+float base_shield_strength = 0.97f;
+
+// decides if bases are globally immune, based on server time
+bool isGlobalBaseInvulnerabilityActive;
+
+list<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
+
+/// List of commodities forbidden to store on POBs
+set<uint> forbidden_player_base_commodity_set;
 
 // If true, use the new solar based defense platform spawn 	 	
 bool set_new_spawn = true;
@@ -386,6 +407,7 @@ void LoadSettingsActual()
 	string cfg_fileitems = string(szCurDir) + "\\flhook_plugins\\base_recipe_items.cfg";
 	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
 	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
+	string cfg_fileforbiddencommodities = string(szCurDir) + "\\flhook_plugins\\base_forbidden_cargo.cfg";
 
 	map<uint, PlayerBase*>::iterator base = player_bases.begin();
 	for (; base != player_bases.end(); base++)
@@ -448,6 +470,18 @@ void LoadSettingsActual()
 					{
 						set_damage_per_tick = ini.get_value_int(0);
 					}
+					else if (ini.is_value("damage_multiplier"))
+					{
+						WEAR_N_TEAR_MODIFIER mod;
+						mod.fromHP = ini.get_value_float(0);
+						mod.toHP = ini.get_value_float(1);
+						mod.modifier = ini.get_value_float(2);
+						wear_n_tear_mod_list.push_back(mod);
+					}
+					else if (ini.is_value("no_crew_damage_multiplier"))
+					{
+						no_crew_damage_multiplier = ini.get_value_float(0);
+					}
 					else if (ini.is_value("damage_tick_time"))
 					{
 						set_damage_tick_time = ini.get_value_int(0);
@@ -460,9 +494,24 @@ void LoadSettingsActual()
 					{
 						repair_per_repair_cycle = ini.get_value_int(0);
 					}
-					else if (ini.is_value("shield_damage_multiplier"))
+					else if (ini.is_value("shield_reinforcement_threshold_per_core"))
 					{
-						set_shield_damage_multiplier = ini.get_value_float(0);
+						shield_reinforcement_threshold_map.emplace(ini.get_value_int(0), ini.get_value_float(1));
+					}
+					else if (ini.is_value("shield_reinforcement_increment"))
+					{
+						shield_reinforcement_increment = ini.get_value_float(0);
+					}
+					else if (ini.is_value("base_shield_strength"))
+					{
+						base_shield_strength = ini.get_value_float(0);
+					}
+					else if (ini.is_value("base_vulnerability_window"))
+					{
+						BASE_VULNERABILITY_WINDOW damageWindow;
+						damageWindow.start = ini.get_value_int(0);
+						damageWindow.end = ini.get_value_int(1);
+						baseVulnerabilityWindows.push_back(damageWindow);
 					}
 					else if (ini.is_value("construction_shiparch"))
 					{
@@ -726,6 +775,24 @@ void LoadSettingsActual()
 	}
 
 	PlayerCommands::PopulateHelpMenus();
+  
+	if (ini.open(cfg_fileforbiddencommodities.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("forbidden_commodities"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("commodity_name"))
+					{
+						forbidden_player_base_commodity_set.insert(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+		}
+		ini.close();
+	}
 
 	//Create the POB sound hashes
 	pbsounds.destruction1 = CreateID("pob_evacuate2");
@@ -814,6 +881,7 @@ void HkTimerCheckKick()
 	}
 
 	uint curr_time = (uint)time(0);
+	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
 	map<uint, PlayerBase*>::iterator iter = player_bases.begin();
 	while (iter != player_bases.end())
 	{
@@ -1182,6 +1250,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseInfo(client, args);
 		return true;
 	}
+	else if (args.find(L"/base supplies") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::GetNecessitiesStatus(client, args);
+		return true;
+	}
 	else if (args.find(L"/craft") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1264,7 +1338,7 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	}
 
 	// Base allows neutral ships to dock
-	if (base->defense_mode == 2)
+	if (base->defense_mode == 2 && base->GetAttitudeTowardsClient(client) > -0.55f)
 	{
 		return true;
 	}
@@ -1618,6 +1692,12 @@ bool lastTransactionBase = false;
 uint lastTransactionArchID = 0;
 int lastTransactionCount = 0;
 uint lastTransactionClientID = 0;
+
+bool checkIfCommodityForbidden(uint goodId) {
+	
+	return forbidden_player_base_commodity_set.find(goodId) != forbidden_player_base_commodity_set.end();
+}
+
 void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -1633,6 +1713,13 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 			&& !clients[client].admin)
 		{
 			PrintUserCmdText(client, L"ERR: Base will not accept goods");
+			clients[client].reverse_sell = true;
+			return;
+		}
+
+		if (checkIfCommodityForbidden(gsi.iArchID)) {
+
+			PrintUserCmdText(client, L"ERR: Cargo is not allowed on Player Bases");
 			clients[client].reverse_sell = true;
 			return;
 		}
@@ -2008,7 +2095,7 @@ void BaseDestroyed(uint space_obj, uint client)
 	}
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (iDmgToSpaceID && dmg->get_inflictor_id())
@@ -2866,4 +2953,40 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 15));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 11));
 	return p_PI;
+}
+
+void ResetAllBasesShieldStrength() {
+	for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i) {
+		i->second->shield_strength_multiplier = base_shield_strength;
+		i->second->damage_taken_since_last_threshold = 0;
+	}
+}
+
+//return value:
+// false = all bases vulnerable, true = invulnerable
+bool checkBaseVulnerabilityStatus() {
+
+	if (baseVulnerabilityWindows.empty()) {
+		return false;
+	}
+
+	time_t tNow = time(0);
+	struct tm *t = localtime(&tNow);
+	uint currHour = t->tm_hour;
+	// iterate over configured vulnerability periods to check if we're in one.
+	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
+	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
+	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i){
+		if((i->start < i->end 
+			&& i->start <= currHour && i->end > currHour)
+		|| (i->start > i->end
+			&& (i->start <= currHour || i->end > currHour))) {
+			// if bases are going vulnerable in this tick, reset their damage resistance to default
+			if (isGlobalBaseInvulnerabilityActive) {
+				ResetAllBasesShieldStrength();
+			}
+			return false;
+		}
+	}
+	return true;
 }

@@ -75,8 +75,15 @@ L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
 L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Set the base's infocard description.</TEXT>",
 
+
 L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
+			
+L"<TRA bold=\"true\"/><TEXT>/base supplies</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>";
 
 L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
@@ -1620,6 +1627,12 @@ namespace PlayerCommands
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
 		const wstring &cmd = GetParam(args, ' ', 1);
 		int money = ToInt(GetParam(args, ' ', 2));
 
@@ -1865,6 +1878,54 @@ namespace PlayerCommands
 			int page = ToInt(GetParam(args, ' ', 1));
 			ShowShopStatus(client, base, L"", page);
 			PrintUserCmdText(client, L"OK");
+		}
+	}
+
+	void GetNecessitiesStatus(uint client, const wstring &args) {
+		// Check that this player is in a player controlled base
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!clients[client].admin && !clients[client].viewshop)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return;
+		}
+
+		uint crewItemCount = base->HasMarketItem(set_base_crew_type);
+		uint crewItemNeed = base->base_level * 200;
+		if (crewItemCount < crewItemNeed) {
+			PrintUserCmdText(client, L"WARNING, CREW COUNT TOO LOW");
+		}
+		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);
+
+		PrintUserCmdText(client, L"Crew supplies:");
+		for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin(); i != set_base_crew_consumption_items.end(); ++i) {
+			const GoodInfo *gi = GoodList::find_by_id(i->first);
+			if (gi)
+			{
+				PrintUserCmdText(client, L"|    %s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first));
+			}
+		}
+		
+		uint foodCount = 0;
+		for (map<uint, uint>::iterator i = set_base_crew_food_items.begin(); i != set_base_crew_food_items.end(); ++i) {
+			foodCount += base->HasMarketItem(i->first);
+		}
+		PrintUserCmdText(client, L"|    Food: %u", foodCount);
+
+		PrintUserCmdText(client, L"Repair materials:");
+		for (list<REPAIR_ITEM>::iterator i = set_base_repair_items.begin(); i != set_base_repair_items.end(); ++i) {
+
+			const GoodInfo *gi = GoodList::find_by_id(i->good);
+			if (gi)
+			{
+				PrintUserCmdText(client, L"|    %s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good));
+			}
 		}
 	}
 

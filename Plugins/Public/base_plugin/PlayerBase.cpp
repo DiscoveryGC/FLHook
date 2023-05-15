@@ -4,7 +4,8 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false)
+	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false),
+	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
 	base = CreateID(nickname.c_str());
@@ -38,7 +39,8 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0),
-	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false)
+	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false),
+	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules
 	Load();
@@ -223,6 +225,14 @@ void PlayerBase::Load()
 					{
 						invulnerable = ini.get_value_int(0);
 					}
+					else if (ini.is_value("shieldstrength"))
+					{
+						shield_strength_multiplier = ini.get_value_float(0);
+					}
+					else if (ini.is_value("shielddmgtaken"))
+					{
+						damage_taken_since_last_threshold = ini.get_value_float(0);
+					}
 					else if (ini.is_value("destposition"))
 					{
 						destposition.x = ini.get_value_float(0);
@@ -381,6 +391,8 @@ void PlayerBase::Save()
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
 		fprintf(file, "crew_supplied = %u\n", isCrewSupplied);
+		fprintf(file, "shieldstrength = %f\n", shield_strength_multiplier);
+		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 
 		fprintf(file, "money = %I64d\n", money);
 		fprintf(file, "system = %u\n", system);
@@ -590,8 +602,11 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 			pub::Player::GetRep(client, rep);
 			pub::Reputation::GetGroupFeelingsTowards(rep, affiliation, attitude);
 
-			if (attitude > 0 || siege_mode || emulated_siege_mode)
+			// if in siege mode, return true affiliation, otherwise clamp to minimum neutralNoDock rep
+			if (siege_mode || emulated_siege_mode)
 				return attitude;
+			else
+				return max(-0.59f, attitude);
 		}
 	}
 

@@ -18,6 +18,7 @@
 #include <math.h>
 #include <list>
 #include <set>
+#include <unordered_set>
 
 
 #include <PluginUtilities.h>
@@ -50,6 +51,8 @@ float set_iDockBroadcastRange = 9999;
 
 float set_fSpinProtectMass;
 float set_fSpinImpulseMultiplier;
+
+unordered_set<uint> setDumbProjectiles;
 
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
@@ -122,6 +125,25 @@ void LoadSettings()
 	set_iDockBroadcastRange = IniGetF(scPluginCfgFile, "General", "DockBroadcastRange", set_iDockBroadcastRange);
 
 	set_bLocalTime = IniGetB(scPluginCfgFile, "General", "LocalTime", false);
+
+	INI_Reader ini;
+	if (ini.open(scPluginCfgFile.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("MissileFix"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("DumbProjectile"))
+					{
+						setDumbProjectiles.insert(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+		}
+		ini.close();
+	}
 
 	//JDDisruptAmmo = CreateID("dsy_torpedo_jd_ammo");
 
@@ -415,11 +437,21 @@ namespace HkIServerImpl
 			return;
 		uint targetId;
 		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
-		if (targetId)
-			return;
+		if (!targetId)
+		{
+			const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
+			projectile->set_target(nullptr);
+			createGuidedPacket.iTargetId = 0;
+		}
+		else
+		{
+			const auto& dumbProjectileMatch = setDumbProjectiles.find(createGuidedPacket.iMunitionId);
+			if (dumbProjectileMatch != setDumbProjectiles.end())
+			{
+				createGuidedPacket.iTargetId = 0; // prevents the 'incoming missile' warning client-side
+			}
+		}
 
-		const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
-		projectile->set_target(nullptr);
 	}
 
 	void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigned int iDockTarget, unsigned int p4, unsigned long p5, unsigned int iClientID)

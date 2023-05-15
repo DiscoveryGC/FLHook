@@ -28,6 +28,7 @@ map<uint, CLIENT_DATA> clients;
 
 // Bases
 map<uint, PlayerBase*> player_bases;
+map<uint, PlayerBase*>::iterator baseSaveIterator = player_bases.begin();
 
 map<uint, bool> mapPOBShipPurchases;
 
@@ -828,6 +829,20 @@ void HkTimerCheckKick()
 		++iter;
 		// Dispatch timer but we can safely ignore the return
 		base->Timer(curr_time);
+	}
+	if (!player_bases.empty() && !set_holiday_mode) {
+		if (baseSaveIterator == player_bases.end()) {
+			baseSaveIterator = player_bases.begin();
+		}
+		bool saveSuccessful = false;
+		while (!saveSuccessful && baseSaveIterator != player_bases.end()) {
+			auto& pb = baseSaveIterator->second;
+			if (pb->logic == 1 || pb->invulnerable == 0) {
+				pb->Save();
+				saveSuccessful = true;
+			}
+			baseSaveIterator++;
+		}
 	}
 
 	if (ExportType == 0 || ExportType == 2)

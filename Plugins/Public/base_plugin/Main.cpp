@@ -2024,21 +2024,21 @@ void BaseDestroyed(uint space_obj, uint client)
 void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (!iDmgToSpaceID || !dmg->is_inflictor_a_player())
+	if (!iDmgToSpaceID || !dmg->get_inflictor_id())
 	{
-        return;
-    }
-    
+		return;
+	}
+	
 	if (!spaceobj_modules.count(iDmgToSpaceID)) {
 		return;
 	}
 
-    Module* damagedModule = spaceobj_modules[iDmgToSpaceID];
-    if(damagedModule->mining){
-        return;
-    }
-    
-    if (set_holiday_mode)
+	Module* damagedModule = spaceobj_modules[iDmgToSpaceID];
+	if(damagedModule->mining){
+		return;
+	}
+	
+	if (set_holiday_mode)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		iDmgToSpaceID = 0;
@@ -2070,21 +2070,21 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 
 	if (info.fDamageMultiplier != 0.0f)
 	{
-		//ConPrint(L"base: Got a response back, info.fDamage = %0.0f\n", info.fDamage);
-		//ConPrint(L"base: Got a response back, changing damage = %0.0f -> ", damage);
 		newHealth = (curr - (curr - newHealth) * info.fDamageMultiplier);
 		if (newHealth < 0.0f)
 			newHealth = 0.0f;
-		//ConPrint(L"%0.0f\n", damage);
 	}
 
-	// This call is for us, skip all plugins.		
+	// This call is for us, skip all plugins.
+	iDmgToSpaceID = 0;
 	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
-    if(newHealth == curr){
-        returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-    } else{
-        returncode = SKIPPLUGINS;
-    }
+	if (newHealth == curr) {
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		return;
+	}
+
+	returncode = SKIPPLUGINS;
+
 	if (newHealth <= 0 && sID == 1)
 	{
 		uint iType;

@@ -89,14 +89,6 @@ bool PlayerBase::Timer(uint curr_time)
 				return true;
 		}
 	}
-	/*
-	// Save base status every 60 seconds.
-	if (save_timer-- < 0)
-	{
-		save_timer = 60;
-		Save();
-	}
-	*/
 	return false;
 }
 

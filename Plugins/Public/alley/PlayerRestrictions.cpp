@@ -1050,26 +1050,24 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
+
 	if (iDmgMunitionID != repairMunitionId
-		|| !iDmgToSpaceID
-		|| !dmg->is_inflictor_a_player()
-		|| p1 != 1)
+		|| !iDmgTo
+		|| !dmg->is_inflictor_a_player())
 		return;
 
-	uint client = HkGetClientIDByShip(iDmgToSpaceID);
-	if (!client)
-		return;
+	if (!iDmgToSpaceID)
+	{
+		pub::Player::GetShip(iDmgTo, iDmgToSpaceID);
+	}
 
 	float curr, maxHP;
 	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, maxHP);
 
-	//Handle the healing.
-	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-
-	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
+	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[iDmgTo].iShipArchetype);
 
 	const auto& healingData = healingMultipliers.find(TheShipArchHealed->iShipClass);
 	if (healingData == healingMultipliers.end())
@@ -1080,9 +1078,20 @@ void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float&
 	if (curr / maxHP >= healing.maxHeal)
 		return;
 
-	float amounttoheal = maxHP / 100 * healing.healingMultiplier + healing.healingStatic;
+	float healedHP = (((healing.healingMultiplier / 100) + (curr / maxHP)) * maxHP) + healing.healingStatic;
+	float newHP = min(maxHP * healing.maxHeal, healedHP);
 
-	damage = min(maxHP * healing.maxHeal, curr + amounttoheal);
+	if (p1 == 1) 
+	{
+		damage = newHP;
+	}
+	else
+	{
+		iDmgTo = 0;
+		iDmgMunitionID = 0;
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		dmg->add_damage_entry(1, newHP, static_cast<DamageEntry::SubObjFate>(0));
+	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Actual Code
@@ -1375,7 +1384,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry_AFTER, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JettisonCargo, PLUGIN_HkIServerImpl_JettisonCargo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddTradeEquip, PLUGIN_HkIServerImpl_AddTradeEquip, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));

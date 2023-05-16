@@ -1029,7 +1029,8 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damag
 
 	if (iDmgMunitionID != repairMunitionId
 		|| !iDmgTo
-		|| !dmg->is_inflictor_a_player())
+		|| !dmg->is_inflictor_a_player()
+		|| p1 == 65521)
 		return;
 
 	if (!iDmgToSpaceID)

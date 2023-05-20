@@ -163,7 +163,7 @@ void Init()
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
-static map<uint, string> notradelist;
+static map<uint, float> notradelist;
 static list<uint> MarkedPlayers;
 //Added this due to idiocy
 static list<uint> MarkUsageTimer;
@@ -188,9 +188,13 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		if (set_scCfgFile.length() > 0)
 			LoadSettings();
+
+		HkLoadStringDLLs();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
+
+		HkUnloadStringDLLs();
 	}
 	return true;
 }
@@ -253,7 +257,7 @@ void LoadSettings()
 				{
 					if (ini.is_value("tr"))
 					{
-						notradelist[CreateID(ini.get_value_string(0))] = ini.get_value_string(1);
+						notradelist[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
 					}
 				}
 			}
@@ -677,7 +681,7 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 			if (!item->bMounted && flag)
 			{
 				bool skipItem = false;
-				for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+				for (map<uint, float>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 				{
 					if (i->first == item->iArchID)
 					{
@@ -1082,42 +1086,61 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 {
 	returncode = DEFAULT_RETURNCODE;
-	//int iSlotPlayer;
-
-	boolean matchFound = false;
-	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	
+	for (const EquipDesc& item : Players[iClientID].equipDescList.equip)
 	{
-		if (item->sID == jc.iSlot)
+		if (item.sID != jc.iSlot)
 		{
-			matchFound = true;
-			//PrintUserCmdText(iClientID, L"Slot match");
-			for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
-			{
-				if (i->first == item->iArchID)
-				{
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-					PrintUserCmdText(iClientID, L"ERR you can't jettison %s.", stows(i->second).c_str());
-				}
+			continue;
+		}
+
+		const auto& noTradeGood = notradelist.find(item.iArchID);
+		if (noTradeGood == notradelist.end()) {
+			return;
+		}
+
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		const GoodInfo* gi = GoodList::find_by_id(noTradeGood->first);
+		wstring goodName = HkGetWStringFromIDS(gi->iIDSName).c_str();
+		if (noTradeGood->second == 0.0f)
+		{
+			PrintUserCmdText(iClientID, L"ERR you can't jettison %ls.", goodName.c_str());
+		}
+		else
+		{
+			uint amountToJettison = static_cast<uint>(jc.iCount * noTradeGood->second);
+			PrintUserCmdText(iClientID, L"%u units of %ls jettisonned, %u units lost in the process.", jc.iCount, goodName.c_str(), jc.iCount - amountToJettison);
+			pub::Player::RemoveCargo(iClientID, static_cast<ushort>(jc.iSlot), jc.iCount);
+			if (amountToJettison) {
+				uint shipId;
+				uint sysId;
+				Vector pos;
+				Matrix ori;
+				pub::Player::GetSystem(iClientID, sysId);
+				pub::Player::GetShip(iClientID, shipId);
+				pub::SpaceObj::GetLocation(shipId, pos, ori);
+				Server.MineAsteroid(sysId, pos, CreateID("lootcrate_ast_loot_metal"), item.iArchID, amountToJettison, iClientID);
 			}
 		}
+		return;
 	}
 	// no match found, something went VERY wrong
-	if(!matchFound){
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		PrintUserCmdText(iClientID, L"ERR couldn't verify cargo, please try again.");
-	}
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	PrintUserCmdText(iClientID, L"ERR couldn't verify cargo, please try again.");
 }
 
 void AddTradeEquip(unsigned int iClientID, struct EquipDesc const &ed)
 {
 	if (notradelist.find(ed.iArchID) != notradelist.end())
 	{
-		for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+		for (map<uint, float>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 		{
 			if (i->first == ed.iArchID)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				PrintUserCmdText(iClientID, L"ERR you can't trade %s. The player will not receive it.", stows(i->second).c_str());
+				const GoodInfo* gi = GoodList::find_by_id(i->first);
+				PrintUserCmdText(iClientID, L"ERR you can't trade %ls. The player will not receive it.", HkGetWStringFromIDS(gi->iIDSName).c_str());
+				return;
 			}
 		}
 	}

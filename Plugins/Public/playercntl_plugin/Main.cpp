@@ -1492,7 +1492,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		HyperJump::AdminCmd_Pull(cmds, cmds->ArgCharname(1));
 		return true;
 	}
-	if (IS_CMD("move"))
+	else if (IS_CMD("move"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HyperJump::AdminCmd_Move(cmds, cmds->ArgFloat(1), cmds->ArgFloat(2), cmds->ArgFloat(3));
@@ -1578,6 +1578,30 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		Rename::ReloadLockedShips();
+		return true;
+	}
+	else if (IS_CMD("sethp"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_SetHP(cmds, cmds->ArgUInt(1), cmds->ArgStr(2));
+		return true;
+	}
+	else if (IS_CMD("setfuse"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_SetFuse(cmds, cmds->ArgStr(1), cmds->ArgStr(2));
+		return true;
+	}
+	else if (IS_CMD("sethpfuse"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_SetHPFuse(cmds, cmds->ArgUInt(1), cmds->ArgStr(2), cmds->ArgStr(3));
+		return true;
+	}
+	else if (IS_CMD("unsetfuse"))
+		{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_UnsetFuse(cmds, cmds->ArgStr(1), cmds->ArgStr(2));
 		return true;
 	}
 	return false;

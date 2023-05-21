@@ -559,10 +559,11 @@ namespace Log {
 
 extern map<uint, CLIENT_DATA> clients;
 
-extern map<uint, Module*> spaceobj_modules;
+extern unordered_map<uint, Module*> spaceobj_modules;
 
 // Map of ingame hash to info
 extern map<uint, class PlayerBase*> player_bases;
+extern map<uint, PlayerBase*>::iterator baseSaveIterator;
 
 struct POBSOUNDS
 {

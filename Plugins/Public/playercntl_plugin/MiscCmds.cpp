@@ -954,7 +954,7 @@ namespace MiscCmds
 
 	uint CheckAdminRightAndGetTargetClient(CCmds* cmds, const wstring& charName)
 	{
-		if (!(cmds->rights & RIGHT_EVENTMODE))
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
 		{
 			cmds->Print(L"ERR No permission\n");
 			return 0;

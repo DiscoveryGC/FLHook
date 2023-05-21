@@ -930,8 +930,7 @@ namespace MiscCmds
 
 	void SetPlayerHp(uint clientId, float percentage)
 	{
-		Players[clientId].fRelativeHealth = percentage;
-		HookClient->Send_FLPACKET_SERVER_SETHULLSTATUS(clientId, percentage);
+		pub::SpaceObj::SetRelativeHealth(Players[clientId].iShipID, percentage);
 	}
 
 	void SetPlayerFuse(uint clientId, uint fuseId)
@@ -939,6 +938,7 @@ namespace MiscCmds
 		IObjInspectImpl *obj = HkGetInspect(clientId);
 		if (obj)
 		{
+			HkUnLightFuse((IObjRW*)obj, fuseId, 0.0f); // in case it's a one-time fuse, we want to pre-emptively remove the previous, lingering fuse.
 			HkLightFuse((IObjRW*)obj, fuseId, 0.0f, 0.0f, 0.0f);
 		}
 	}
@@ -982,7 +982,7 @@ namespace MiscCmds
 
 		uint targetShip;
 		pub::Player::GetShip(targetClient, targetShip);
-		if (!targetShip)
+		if (!targetClient || targetClient == -1 || !targetShip) // HkGetClientIDByShip returns 0, HkGetClientIdFromCharname returns -1
 		{
 			cmds->Print(L"ERR Incorrect shipname/target\n");
 			return 0;
@@ -998,7 +998,7 @@ namespace MiscCmds
 			return;
 		}
 
-		float percentage = hpPercentage / 100;
+		float percentage = static_cast<float>(hpPercentage) / 100;
 
 		SetPlayerHp(targetClient, percentage);
 	}
@@ -1011,7 +1011,7 @@ namespace MiscCmds
 			return;
 		}
 
-		float percentage = hpPercentage / 100;
+		float percentage = static_cast<float>(hpPercentage) / 100;
 		uint fuseId = CreateID(wstos(fuseName).c_str());
 
 		SetPlayerHp(targetClient, percentage);

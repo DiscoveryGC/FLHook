@@ -1001,6 +1001,7 @@ namespace MiscCmds
 		float percentage = static_cast<float>(hpPercentage) / 100;
 
 		SetPlayerHp(targetClient, percentage);
+		cmds->Print(L"OK\n");
 	}
 
 	void AdminCmd_SetHPFuse(CCmds * cmds, uint hpPercentage, const wstring & fuseName, const wstring& charName)
@@ -1016,6 +1017,7 @@ namespace MiscCmds
 
 		SetPlayerHp(targetClient, percentage);
 		SetPlayerFuse(targetClient, fuseId);
+		cmds->Print(L"OK\n");
 	}
 
 	void AdminCmd_SetFuse(CCmds * cmds, const wstring & fuseName, const wstring& charName)
@@ -1029,6 +1031,7 @@ namespace MiscCmds
 		uint fuseId = CreateID(wstos(fuseName).c_str());
 
 		SetPlayerFuse(targetClient, fuseId);
+		cmds->Print(L"OK\n");
 	}
 
 	void AdminCmd_UnsetFuse(CCmds * cmds, const wstring & fuseName, const wstring& charName)
@@ -1042,5 +1045,6 @@ namespace MiscCmds
 		uint fuseId = CreateID(wstos(fuseName).c_str());
 
 		UnsetPlayerFuse(targetClient, fuseId);
+		cmds->Print(L"OK\n");
 	}
 }

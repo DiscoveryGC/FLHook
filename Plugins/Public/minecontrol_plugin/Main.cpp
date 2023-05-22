@@ -201,19 +201,6 @@ EXPORT void HkTimerCheckKick()
 		if (file)
 			fclose(file);
 	}
-	if (currTime % 30 == 0)
-	{
-		for (auto& containerInfo : mapMiningContainers)
-		{
-			auto& container = containerInfo.second;
-
-			if (container.lootCount > set_containerJettisonCount)
-			{
-				Server.MineAsteroid(container.systemId, container.jettisonPos, set_containerLootCrateID, container.lootId, set_containerJettisonCount, container.clientId);
-				container.lootCount -= set_containerJettisonCount;
-			}
-		}
-	}
 }
 
 /// Clear client info when a client connects.
@@ -486,6 +473,12 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 				if (container.lootId == lootId)
 				{
 					container.lootCount += itemCountInt;
+
+					if (container.lootCount >= set_containerJettisonCount)
+					{
+						Server.MineAsteroid(container.systemId, container.jettisonPos, set_containerLootCrateID, container.lootId, set_containerJettisonCount, container.clientId);
+						container.lootCount -= set_containerJettisonCount;
+					}
 					return;
 				}
 			}

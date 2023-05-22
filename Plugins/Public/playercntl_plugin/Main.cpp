@@ -439,17 +439,14 @@ namespace HkIServerImpl
 		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
 		if (!targetId)
 		{
+			//disable both tracking and incoming-missile alert
 			const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
 			projectile->set_target(nullptr);
 			createGuidedPacket.iTargetId = 0;
 		}
-		else
+		else if(setDumbProjectiles.count(createGuidedPacket.iMunitionId))
 		{
-			const auto& dumbProjectileMatch = setDumbProjectiles.find(createGuidedPacket.iMunitionId);
-			if (dumbProjectileMatch != setDumbProjectiles.end())
-			{
-				createGuidedPacket.iTargetId = 0; // prevents the 'incoming missile' warning client-side
-			}
+			createGuidedPacket.iTargetId = 0; // prevents the 'incoming missile' warning client-side
 		}
 
 	}

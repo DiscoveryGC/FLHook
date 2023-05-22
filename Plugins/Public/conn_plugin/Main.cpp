@@ -149,7 +149,7 @@ void StoreReturnPointForClient(unsigned int client)
 	if (info.iDockedBaseID)
 	{
 		HookExt::IniSetI(client, "conn.retbase", info.iDockedBaseID);
-		HookExt::IniSetI(client, "conn.retbasebackup", Players[client].iSystemID);
+		HookExt::IniSetI(client, "conn.retsystembackup", Players[client].iSystemID);
 	}
 	else
 	{
@@ -184,7 +184,7 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 	else
 	{
 		//All else failed, move to proxy base
-		uint returnSys = HookExt::IniGetI(client, "conn.retbasebackup");
+		uint returnSys = HookExt::IniGetI(client, "conn.retsystembackup");
 		auto sysInfo = Universe::get_system(returnSys);
 		string scProxyBase = (string)((const char*)sysInfo->nickname) + "_proxy_base";
 		uint proxyBaseID;
@@ -318,7 +318,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 
 		MoveClient(client, returnPoint);
 		HookExt::IniSetI(client, "conn.retbase", 0);
-		HookExt::IniSetI(client, "conn.retbasebackup", 0);
+		HookExt::IniSetI(client, "conn.retsystembackup", 0);
 		return;
 	}
 }

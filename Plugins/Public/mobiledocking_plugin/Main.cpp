@@ -9,16 +9,16 @@
 #include <ctime>
 
 PLUGIN_RETURNCODE returncode;
-map<uint, uint> mapPendingDockingRequests;
+unordered_map<uint, uint> mapPendingDockingRequests;
 vector<DELAYEDDOCK> dockingInProgress;
 vector<uint> dockingModuleEquipmentIds;
-map<uint, CLIENT_DATA> mobiledockClients;
-map<uint, uint> jettisonRedirectMap;
+unordered_map<uint, CLIENT_DATA> mobiledockClients;
+unordered_map<uint, uint> jettisonRedirectMap;
 
-map<wstring, CARRIERINFO> nameToCarrierInfoMap;
-map<wstring, DOCKEDCRAFTINFO> nameToDockedInfoMap;
-map<uint, CARRIERINFO*> idToCarrierInfoMap;
-map<uint, DOCKEDCRAFTINFO*> idToDockedInfoMap;
+unordered_map<wstring, CARRIERINFO> nameToCarrierInfoMap;
+unordered_map<wstring, DOCKEDCRAFTINFO> nameToDockedInfoMap;
+unordered_map<uint, CARRIERINFO*> idToCarrierInfoMap;
+unordered_map<uint, DOCKEDCRAFTINFO*> idToDockedInfoMap;
 
 uint saveFrequency = 7200; // once every 2 hours, possibly a heavy operation so doesn't have to happen often
 uint forgetCarrierDataInSeconds = 31556926; // since it's all kept in a single file, clear old enough values. Default value being a year

@@ -7,6 +7,7 @@
 #include <math.h>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>

@@ -1119,6 +1119,7 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 				pub::Player::GetSystem(iClientID, sysId);
 				pub::Player::GetShip(iClientID, shipId);
 				pub::SpaceObj::GetLocation(shipId, pos, ori);
+				pos.x += 30.0;
 				Server.MineAsteroid(sysId, pos, CreateID("lootcrate_ast_loot_metal"), item.iArchID, amountToJettison, iClientID);
 			}
 		}

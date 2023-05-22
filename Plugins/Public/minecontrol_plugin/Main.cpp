@@ -46,7 +46,7 @@
 static int set_iPluginDebug = 0;
 static string set_scStatsPath;
 static uint set_miningMunition = CreateID("mining_gun_ammo");
-static uint set_deployableContainerCommodity = CreateID("commodity_scrap_metal");
+static uint set_deployableContainerCommodity = CreateID("commodity_deployable_container");
 static float set_globalModifier = 1.0f;
 static uint set_containerJettisonCount = 5000;
 static uint set_containerLootCrateID = CreateID("lootcrate_ast_loot_metal");
@@ -176,8 +176,8 @@ EXPORT void HkTimerCheckKick()
 {
 	returncode = DEFAULT_RETURNCODE;
 	uint currTime = static_cast<uint>(time(nullptr));
-	// Perform 60 second tasks. 
-	if (currTime % 60 == 0)
+	// Perform 120 second tasks. 
+	if (currTime % 120 == 0)
 	{
 		char szDataPath[MAX_PATH];
 		GetUserDataPath(szDataPath);
@@ -695,23 +695,6 @@ void __stdcall BaseDestroyed(uint space_obj, uint client)
 		mapMiningContainers.erase(space_obj);
 	}
 }
-
-#define IS_CMD(a) !wscCmd.compare(L##a)
-
-bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &wscCmd)
-{
-	returncode = DEFAULT_RETURNCODE;
-
-	if (IS_CMD("printminezones"))
-	{
-		returncode = NOFUNCTIONCALL;
-		PrintZones();
-		return true;
-	}
-
-	return false;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -1023,14 +1023,14 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate& fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& damage, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 
 	if (iDmgMunitionID != repairMunitionId
 		|| !iDmgTo
 		|| !dmg->is_inflictor_a_player()
-		|| p1 == 65521)
+		|| sID == 65521) //shield hit
 		return;
 
 	if (!iDmgToSpaceID)
@@ -1038,28 +1038,28 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damag
 		pub::Player::GetShip(iDmgTo, iDmgToSpaceID);
 	}
 
-	float curr, maxHP;
-	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, maxHP);
-
 	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[iDmgTo].iShipArchetype);
 
 	const auto& healingData = healingMultipliers.find(TheShipArchHealed->iShipClass);
 	if (healingData == healingMultipliers.end())
 		return;
 
+	float curr, maxHP;
+	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, maxHP);
+
 	const HEALING_DATA& healing = healingData->second;
 
-	if (curr / maxHP >= healing.maxHeal)
+	if (curr >= healing.maxHeal * maxHP)
 		return;
 
-	float healedHP = (((healing.healingMultiplier / 100) + (curr / maxHP)) * maxHP) + healing.healingStatic;
+	float healedHP = curr + healing.healingStatic + ((healing.healingMultiplier / 100) * maxHP) ;
 	float newHP = min(maxHP * healing.maxHeal, healedHP);
 
-	if (p1 == 1) 
+	if (sID == 1) // hull hit
 	{
 		damage = newHP;
 	}
-	else
+	else // not a hull hit, stop processing this event and add a hull-repairing one.
 	{
 		iDmgTo = 0;
 		iDmgMunitionID = 0;

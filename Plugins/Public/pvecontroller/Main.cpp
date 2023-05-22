@@ -13,6 +13,7 @@
 #include <math.h>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <random>
 
@@ -50,15 +51,15 @@ struct stWarzone {
 };
 
 CLIENT_DATA aClientData[250];
-map<uint, stBountyBasePayout> mapBountyPayouts;
-map<uint, stBountyBasePayout> mapBountyShipPayouts;
-map<uint, float> mapBountyGroupScale;
-map<uint, float> mapBountyArmorScales;
-map<uint, float> mapBountySystemScales;
+unordered_map<uint, stBountyBasePayout> mapBountyPayouts;
+unordered_map<uint, stBountyBasePayout> mapBountyShipPayouts;
+unordered_map<uint, float> mapBountyGroupScale;
+unordered_map<uint, float> mapBountyArmorScales;
+unordered_map<uint, float> mapBountySystemScales;
 multimap<uint, stWarzone> mmapBountyWarzoneScales;
 
 multimap<uint, stDropInfo> mmapDropInfo;
-map<uint, uint> mapShipClassTypes;
+unordered_map<uint, uint> mapShipClassTypes;
 map<int, float> mapClassDiffMultipliers;
 
 int set_iPluginDebug = 0;
@@ -591,14 +592,14 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		int iBountyPayout = 0;
 
 		// Determine bounty payout.
-		map<uint, stBountyBasePayout>::iterator iter = mapBountyShipPayouts.find(uArchID);
+		const auto& iter = mapBountyShipPayouts.find(uArchID);
 		if (iter != mapBountyShipPayouts.end()) {
 			if (set_iPluginDebug >= PLUGIN_DEBUG_VERBOSE)
 				PrintUserCmdText(iKillerClientId, L"Overriding payout for uarch %u to be $%d.", uArchID, iter->second.iBasePayout);
 			iBountyPayout = iter->second.iBasePayout;
 		}
 		else {
-			map<uint, stBountyBasePayout>::iterator iter = mapBountyPayouts.find(victimShiparch->iShipClass);
+			const auto& iter = mapBountyPayouts.find(victimShiparch->iShipClass);
 			if (iter != mapBountyPayouts.end()) {
 				iBountyPayout = iter->second.iBasePayout;
 				if (victimShiparch->iShipClass < 5) {
@@ -612,7 +613,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 
 							// If the NPC has armour, see if we have an armour scale multiplier to use on it.
 							if (cearmor) {
-								map<uint, float>::iterator iter = mapBountyArmorScales.find(cearmor->archetype->iArchID);
+								const auto& iter = mapBountyArmorScales.find(cearmor->archetype->iArchID);
 								if (iter != mapBountyArmorScales.end())
 									iBountyPayout = (int)((float)iBountyPayout * iter->second);
 							}
@@ -623,35 +624,35 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		}
 
 		if (iLoadedNPCBountyWarzoneScales) {
-			for (auto it = mmapBountyWarzoneScales.begin(); it != mmapBountyWarzoneScales.end(); it++) {
-				if (it->first == uKillerSystem) {
-					if ((it->second.uFaction1 == uKillerAffiliation && it->second.uFaction2 == uTargetAffiliation) || (it->second.uFaction2 == uKillerAffiliation && it->second.uFaction1 == uTargetAffiliation)) {
-						if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-							PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Killer (%u) and Target (%u) have valid warzone multipliyer of %0.2f", uKillerAffiliation, uTargetAffiliation, it->second.fMultiplier);
-						iBountyPayout *= it->second.fMultiplier;
-					}
+			const auto& iter = mmapBountyWarzoneScales.find(uKillerSystem);
+			if (iter != mmapBountyWarzoneScales.end())
+			{
+				if ((iter->second.uFaction1 == uKillerAffiliation && iter->second.uFaction2 == uTargetAffiliation) || (iter->second.uFaction2 == uKillerAffiliation && iter->second.uFaction1 == uTargetAffiliation)) {
+					if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+						PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Killer (%u) and Target (%u) have valid warzone multipliyer of %0.2f", uKillerAffiliation, uTargetAffiliation, iter->second.fMultiplier);
+					iBountyPayout *= iter->second.fMultiplier;
 				}
 			}
 		}
 
 		// Multiply by system multiplier if applicable.
 		if (iLoadedNPCBountySystemScales) {
-			map<uint, float>::iterator itSystemScale = mapBountySystemScales.find(uKillerSystem);
+			const auto& itSystemScale = mapBountySystemScales.find(uKillerSystem);
 			if (itSystemScale != mapBountySystemScales.end())
 				iBountyPayout *= itSystemScale->second;
 		}
 
 		// Multiply by class diff multiplier if applicable.
 		if (iLoadedClassDiffMultipliers) {
-			uint iKillerClientIdShipClass = Archetype::GetShip(Players[iKillerClientId].iShipArchetype)->iShipClass;
+			uint iKillerShipClass = Archetype::GetShip(Players[iKillerClientId].iShipArchetype)->iShipClass;
 
 			int classDiff = 0;
-			map<uint, uint>::iterator itVictimType = mapShipClassTypes.find(victimShiparch->iShipClass);
-			map<uint, uint>::iterator itKillerType = mapShipClassTypes.find(iKillerClientIdShipClass);
+			const auto& itVictimType = mapShipClassTypes.find(victimShiparch->iShipClass);
+			const auto& itKillerType = mapShipClassTypes.find(iKillerShipClass);
 			if (itVictimType != mapShipClassTypes.end() && itKillerType != mapShipClassTypes.end())
 				classDiff = itVictimType->second - itKillerType->second;
 
-			map<int, float>::iterator itDiffMultiplier = mapClassDiffMultipliers.lower_bound(classDiff);
+			const auto& itDiffMultiplier = mapClassDiffMultipliers.lower_bound(classDiff);
 			if (itDiffMultiplier != mapClassDiffMultipliers.end())
 				iBountyPayout *= itDiffMultiplier->second;
 			if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
@@ -659,7 +660,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		}
 
 		// If we've turned bounties off, don't pay it.
-		if (set_bBountiesEnabled == false)
+		if (!set_bBountiesEnabled)
 			iBountyPayout = 0;
 
 		if (iBountyPayout) {
@@ -676,7 +677,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 					lstMembers.erase(gm);
 			}
 
-			if (mapBountyGroupScale[lstMembers.size()])
+			if (mapBountyGroupScale.count(lstMembers.size()))
 				iBountyPayout = (int)((float)iBountyPayout * mapBountyGroupScale[lstMembers.size()]);
 			else
 				iBountyPayout = (int)((float)iBountyPayout / lstMembers.size());
@@ -695,25 +696,25 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 
 	// Process drops if enabled.
 	if (set_bDropsEnabled) {
-		for (auto it = mmapDropInfo.begin(); it != mmapDropInfo.end(); it++) {
-			if (it->first == victimShiparch->iShipClass) {
+		const auto& iter = mmapDropInfo.find(victimShiparch->iShipClass);
+		if (iter != mmapDropInfo.end())
+		{
+			if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+				PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: class %d drop entry found, %f chance to drop 0x%08X.\n", iter->first, iter->second.fChance, iter->second.uGoodID);
+			float roll = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+			if (roll < iter->second.fChance) {
 				if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-					PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: class %d drop entry found, %f chance to drop 0x%08X.\n", it->first, it->second.fChance, it->second.uGoodID);
-				float roll = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-				if (roll < it->second.fChance) {
-					if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-						PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, won a drop!\n", roll);
+					PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, won a drop!\n", roll);
 
-					Vector vLoc = { 0.0f, 0.0f, 0.0f };
-					Matrix mRot = { 0.0f, 0.0f, 0.0f };
-					pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
-					vLoc.x += 30.0;
-					Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, it->second.uGoodID, 1, iKillerClientId);
-				}
-				else
-					if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-						PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, no drop for you.\n", roll);
+				Vector vLoc = { 0.0f, 0.0f, 0.0f };
+				Matrix mRot = { 0.0f, 0.0f, 0.0f };
+				pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
+				vLoc.x += 30.0;
+				Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, iter->second.uGoodID, 1, iKillerClientId);
 			}
+			else
+				if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+					PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, no drop for you.\n", roll);
 		}
 	}
 }

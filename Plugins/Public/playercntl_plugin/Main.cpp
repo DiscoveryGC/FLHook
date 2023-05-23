@@ -1569,25 +1569,25 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	else if (IS_CMD("sethp"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_SetHP(cmds, cmds->ArgUInt(1), cmds->ArgStr(2));
+		MiscCmds::AdminCmd_SetHP(cmds, cmds->ArgCharname(1), cmds->ArgUInt(2));
 		return true;
 	}
 	else if (IS_CMD("setfuse"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_SetFuse(cmds, cmds->ArgStr(1), cmds->ArgStr(2));
+		MiscCmds::AdminCmd_SetFuse(cmds, cmds->ArgCharname(1), cmds->ArgStr(2));
 		return true;
 	}
 	else if (IS_CMD("sethpfuse"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_SetHPFuse(cmds, cmds->ArgUInt(1), cmds->ArgStr(2), cmds->ArgStr(3));
+		MiscCmds::AdminCmd_SetHPFuse(cmds, cmds->ArgCharname(1), cmds->ArgUInt(2), cmds->ArgStr(3));
 		return true;
 	}
 	else if (IS_CMD("unsetfuse"))
 		{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_UnsetFuse(cmds, cmds->ArgStr(1), cmds->ArgStr(2));
+		MiscCmds::AdminCmd_UnsetFuse(cmds, cmds->ArgCharname(1), cmds->ArgStr(2));
 		return true;
 	}
 	return false;

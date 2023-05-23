@@ -959,30 +959,19 @@ namespace MiscCmds
 			cmds->Print(L"ERR No permission\n");
 			return 0;
 		}
-		uint targetClient = 0;
-		if (charName.empty())
+
+		HK_GET_CLIENTID(targetClient, charName);
+
+		// check if logged in
+		if (targetClient == -1)
 		{
-			wstring adminName = cmds->GetAdminName();
-			if (adminName.empty())
-			{
-				cmds->Print(L"ERR No shipname provided\n");
-				return 0;
-			}
-			uint clientId = HkGetClientIdFromCharname(adminName);
-			uint shipId;
-			uint targetId;
-			pub::Player::GetShip(clientId, shipId);
-			pub::SpaceObj::GetTarget(shipId, targetId);
-			targetClient = HkGetClientIDByShip(targetId);
-		}
-		else
-		{
-			targetClient = HkGetClientIdFromCharname(charName);
+			cmds->Print(L"ERR Incorrect shipname/target\n");
+			return 0;
 		}
 
 		uint targetShip;
 		pub::Player::GetShip(targetClient, targetShip);
-		if (!targetClient || targetClient == -1 || !targetShip) // HkGetClientIDByShip returns 0, HkGetClientIdFromCharname returns -1
+		if (!targetShip)
 		{
 			cmds->Print(L"ERR Incorrect shipname/target\n");
 			return 0;
@@ -990,7 +979,7 @@ namespace MiscCmds
 		return targetClient;
 	}
 
-	void AdminCmd_SetHP(CCmds * cmds, uint hpPercentage, const wstring& charName)
+	void AdminCmd_SetHP(CCmds * cmds, const wstring& charName, uint hpPercentage)
 	{
 		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
 		if (!targetClient)
@@ -1004,7 +993,7 @@ namespace MiscCmds
 		cmds->Print(L"OK\n");
 	}
 
-	void AdminCmd_SetHPFuse(CCmds * cmds, uint hpPercentage, const wstring & fuseName, const wstring& charName)
+	void AdminCmd_SetHPFuse(CCmds * cmds, const wstring& charName, uint hpPercentage, const wstring & fuseName)
 	{
 		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
 		if (!targetClient)
@@ -1020,7 +1009,7 @@ namespace MiscCmds
 		cmds->Print(L"OK\n");
 	}
 
-	void AdminCmd_SetFuse(CCmds * cmds, const wstring & fuseName, const wstring& charName)
+	void AdminCmd_SetFuse(CCmds * cmds, const wstring& charName, const wstring & fuseName)
 	{
 		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
 		if (!targetClient)
@@ -1034,7 +1023,7 @@ namespace MiscCmds
 		cmds->Print(L"OK\n");
 	}
 
-	void AdminCmd_UnsetFuse(CCmds * cmds, const wstring & fuseName, const wstring& charName)
+	void AdminCmd_UnsetFuse(CCmds * cmds, const wstring& charName, const wstring & fuseName)
 	{
 		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
 		if (!targetClient)

@@ -179,6 +179,13 @@ EXPORT void HkTimerCheckKick()
 	// Perform 120 second tasks. 
 	if (currTime % 120 == 0)
 	{
+		uint playerCount = 0;
+		PlayerData* pd = nullptr;
+		while (pd = Players.traverse_active(pd))
+		{
+			playerCount++;
+		}
+
 		char szDataPath[MAX_PATH];
 		GetUserDataPath(szDataPath);
 		string scStatsPath = string(szDataPath) + "\\Accts\\MultiPlayer\\mining_stats.txt";
@@ -190,7 +197,7 @@ EXPORT void HkTimerCheckKick()
 		for (auto& i = set_mapZoneBonus.begin(); i != set_mapZoneBonus.end(); i++)
 		{
 			auto& zone = i->second;
-			zone.fCurrReserve = min(zone.fCurrReserve + zone.fRechargeRate, zone.fMaxReserve);
+			zone.fCurrReserve = min(zone.fCurrReserve + (zone.fRechargeRate * playerCount), zone.fMaxReserve);
 
 			if (file && !zone.scZone.empty() && zone.fMaxReserve > 0 && zone.fMaxReserve != zone.fCurrReserve)
 			{

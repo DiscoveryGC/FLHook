@@ -10,6 +10,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>

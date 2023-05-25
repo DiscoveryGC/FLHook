@@ -960,7 +960,7 @@ namespace MiscCmds
 			return 0;
 		}
 
-		HK_GET_CLIENTID(targetClient, charName);
+		uint targetClient = HkGetClientIdFromCharname(charName);
 
 		// check if logged in
 		if (targetClient == -1)

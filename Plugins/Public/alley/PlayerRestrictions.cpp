@@ -1064,6 +1064,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& dama
 		iDmgTo = 0;
 		iDmgMunitionID = 0;
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		//Adding 'damage entry' that will heal the main hull. 1 stands for hull internal id. Fate 0 means alive.
 		dmg->add_damage_entry(1, newHP, static_cast<DamageEntry::SubObjFate>(0));
 	}
 }

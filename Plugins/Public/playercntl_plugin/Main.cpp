@@ -1678,10 +1678,10 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		HyperJump::ForceJump(*jumpData);
 	}
 	else if (msg == CUSTOM_IN_WARP_CHECK)
-	}
-		checkData->inWarp = AntiJumpDisconnect::IsInWarp(checkData->clientId);
-		CUSTOM_IN_WARP_CHECK_STRUCT* checkData = reinterpret_cast<CUSTOM_IN_WARP_CHECK_STRUCT*>(data);
 	{
+		CUSTOM_IN_WARP_CHECK_STRUCT* checkData = reinterpret_cast<CUSTOM_IN_WARP_CHECK_STRUCT*>(data);
+		checkData->inWarp = AntiJumpDisconnect::IsInWarp(checkData->clientId);
+	}
 	return;
 }
 

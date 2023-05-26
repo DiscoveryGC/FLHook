@@ -432,26 +432,23 @@ namespace HkIServerImpl
 
 	void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 	{
-		uint clientID = HkGetClientIDByShip(createGuidedPacket.iOwner);
-		if (!clientID)
+		uint targetType;
+		pub::SpaceObj::GetType(createGuidedPacket.iOwner, targetType);
+		if (!(targetType & (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL))) //GetTarget throws an exception for non-ship entities.
 			return;
 		uint targetId;
 		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
 		if (!targetId)
 		{
+			//disable both tracking and incoming-missile alert
 			const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
 			projectile->set_target(nullptr);
 			createGuidedPacket.iTargetId = 0;
 		}
-		else
+		else if (setDumbProjectiles.count(createGuidedPacket.iMunitionId))
 		{
-			const auto& dumbProjectileMatch = setDumbProjectiles.find(createGuidedPacket.iMunitionId);
-			if (dumbProjectileMatch != setDumbProjectiles.end())
-			{
-				createGuidedPacket.iTargetId = 0; // prevents the 'incoming missile' warning client-side
-			}
+			createGuidedPacket.iTargetId = 0; // prevents the 'incoming missile' warning client-side
 		}
-
 	}
 
 	void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigned int iDockTarget, unsigned int p4, unsigned long p5, unsigned int iClientID)

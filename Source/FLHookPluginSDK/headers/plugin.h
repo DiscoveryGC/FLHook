@@ -208,6 +208,7 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_ProcessEvent_BEFORE,
 	PLUGIN_LoadSettings,
 	PLUGIN_Plugin_Communication,
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT,
 	PLUGIN_CALLBACKS_AMOUNT,
 };
 
@@ -255,7 +256,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_JUMP_CALLOUT = 49,
 	CUSTOM_MOBILE_DOCK_CHECK = 50,
 	CUSTOM_BASE_GET_NAME = 51,
-	CUSTOM_IS_IT_POB = 53
+	CUSTOM_IN_WARP_CHECK = 54
+	CUSTOM_IS_IT_POB = 53,
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -388,6 +390,12 @@ struct LAST_PLAYER_BASE_NAME_STRUCT
 	uint clientID;
 	wstring lastBaseName;
 };
+struct CUSTOM_IN_WARP_CHECK_STRUCT
+{
+	uint clientId;
+	bool inWarp = false;
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #endif

@@ -516,6 +516,18 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		}
 		else
 		{
+			//check if carrier is currently mid-transit, if so, force dock him back to proxy base and abort;
+			CUSTOM_IN_WARP_CHECK_STRUCT warpCheck;
+			warpCheck.clientId = carrierClientID;
+			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_IN_WARP_CHECK, &warpCheck);
+			if (warpCheck.inWarp)
+			{
+				pub::Player::ForceLand(client, Players[client].iLastBaseID);
+				PrintUserCmdText(client, L"ERR Can't undock while carrier is in hyperspace transit.");
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				return;
+			}
+
 			//teleport the player using same method as jumpdrives
 			CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
 			Vector pos;

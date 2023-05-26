@@ -209,6 +209,7 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_LoadSettings,
 	PLUGIN_Plugin_Communication,
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, // adding here to avoid breaking private plugins due to enum mismatch, can be moved in case of global plugin recompile
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT,
 	PLUGIN_CALLBACKS_AMOUNT,
 };
 
@@ -257,7 +258,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_MOBILE_DOCK_CHECK = 50,
 	CUSTOM_BASE_GET_NAME = 51,
 	CUSTOM_SPAWN_SOLAR = 52,
-	CUSTOM_IS_IT_POB = 53
+	CUSTOM_IS_IT_POB = 53,
+	CUSTOM_IN_WARP_CHECK = 54
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -411,6 +413,13 @@ struct SPAWN_SOLAR_STRUCT
 	uint iSystemId;
 	uint iSpaceObjId = 0;
 };
+
+struct CUSTOM_IN_WARP_CHECK_STRUCT
+{
+	uint clientId;
+	bool inWarp = false;
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #endif

@@ -54,4 +54,4 @@ void SendSetBaseInfoText2(UINT client, const wstring &message);
 static int set_iMobileDockOffset = 100;
 
 // A map of all docking requests pending approval by the carrier
-extern map<uint, uint> mapPendingDockingRequests;
+extern unordered_map<uint, uint> mapPendingDockingRequests;

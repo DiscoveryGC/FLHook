@@ -42,6 +42,18 @@ int set_plugin_debug = 0;
 /// The ship used to construct and upgrade bases
 uint set_construction_shiparch = 0;
 
+/// Mininmum distances for base deployment
+float minMiningDistance = 30000;
+float minPlanetDistance = 2500;
+float minStationDistance = 10000;
+float minLaneDistance = 5000;
+float minJumpDistance = 15000;
+float minDistanceMisc = 2500;
+
+/// Deployment command cooldown trackimg
+unordered_map<uint, uint> deploymentCooldownMap;
+uint deploymentCooldownDuration = 60;
+
 /// Map of good to quantity for items required by construction ship
 map<uint, uint> construction_items;
 
@@ -560,6 +572,34 @@ void LoadSettingsActual()
 						listCommodities[c] = stows(ini.get_value_string());
 
 					}
+					else if (ini.is_value("min_mining_distance"))
+					{
+						minMiningDistance = ini.get_value_float(0);
+					}
+					else if (ini.is_value("min_planet_distance"))
+					{
+						minPlanetDistance = ini.get_value_float(0);
+					}
+					else if (ini.is_value("min_station_distance"))
+					{
+						minStationDistance = ini.get_value_float(0);
+					}
+					else if (ini.is_value("min_trade_lane_distance"))
+					{
+						minLaneDistance = ini.get_value_float(0);
+					}
+					else if (ini.is_value("min_distance_misc"))
+					{
+						minDistanceMisc = ini.get_value_float(0);
+					}
+					else if (ini.is_value("min_jump_distance"))
+					{
+						minJumpDistance = ini.get_value_float(0);
+					}
+					else if(ini.is_value("deployment_cooldown"))
+					{
+						deploymentCooldownDuration = ini.get_value_int(0);
+					}
 				}
 			}
 		}
@@ -862,6 +902,13 @@ void HkTimerCheckKick()
 		{
 			ExportData::ToJSON();
 		}
+	}
+
+	for (auto& cooldown : deploymentCooldownMap)
+	{
+		cooldown.second--;
+		if(!cooldown.second)
+			deploymentCooldownMap.erase(cooldown.first);
 	}
 }
 

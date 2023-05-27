@@ -1882,6 +1882,142 @@ namespace PlayerCommands
 		}
 	}
 
+	bool CheckSolarDistances(uint client, uint systemID, Vector pos)
+	{
+		// Mining Zone Check
+		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemID);
+		if (csys)
+		{
+			for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
+			{
+				auto& zone = cfield->zone;
+				if (!zone->lootableZone)
+					continue;
+
+
+				// pretend zone is actually centered 0,0,0
+				// pretend zone is not rotated at all (zeroed matrix)
+				// move player position by inverse so their relative position is the same
+				Vector playerPos = pos;
+				playerPos.x -= zone->vPos.x;
+				playerPos.y -= zone->vPos.y;
+				playerPos.z -= zone->vPos.z;
+
+				Matrix InvertedZoneRot = InverseMatrix(zone->mRot);
+				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
+
+				Vector V2 = NormalizeVector(playerPos);
+				Matrix EllipseSizeMat = { {{zone->vSize.x,0,0},{0,zone->vSize.y,0},{0,0,zone->vSize.z}} };
+				V2 = VectorMatrixMultiply(V2, EllipseSizeMat);
+				V2 = VectorMatrixMultiply(V2, zone->mRot);
+				V2.x += zone->vPos.x;
+				V2.y += zone->vPos.y;
+				V2.z += zone->vPos.z;
+
+				float distance = HkDistance3D(V2, pos);
+
+				if (distance < minMiningDistance)
+				{
+					if (zone->idsName)
+					{
+						PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.\n", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
+					}
+					else
+					{
+						const GoodInfo* gi = GoodList::find_by_id(zone->lootableZone->dynamic_loot_commodity);
+						PrintUserCmdText(client, L"Distance to unnamed %ls field too close, minimum distance: %um.\n", HkGetWStringFromIDS(gi->iIDSName).c_str(), static_cast<uint>(minMiningDistance));
+					}
+					return false;
+				}
+			}
+		}
+
+		// Solars
+		bool foundSystemMatch = false;
+		for (CSolar* solar = reinterpret_cast<CSolar*>(CObject::FindFirst(CObject::CSOLAR_OBJECT)); solar;
+			solar = reinterpret_cast<CSolar*>(CObject::FindNext()))
+		{
+			//solars are iterated on per system, we can stop once we're done scanning the last solar in the system we're looking for.
+			if (solar->iSystem != systemID)
+			{
+				if (foundSystemMatch)
+					break;
+				continue;
+			}
+			else
+			{
+				foundSystemMatch = true;
+			}
+
+			float distance = HkDistance3D(solar->get_position(), pos);
+			switch (solar->iType)
+			{
+				case OBJ_PLANET:
+				case OBJ_MOON:
+				{
+					if (distance < minPlanetDistance + solar->get_radius())
+					{
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
+						return false;
+					}
+					break;
+				}
+				case OBJ_DOCKING_RING:
+				case OBJ_STATION:
+				{
+					if (distance < minStationDistance)
+					{
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
+						return false;
+					}
+					break;
+				}
+				case OBJ_TRADELANE_RING:
+				{
+					if (distance < minLaneDistance)
+					{
+						PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um\n", static_cast<uint>(minLaneDistance));
+						return false;
+					}
+					break;
+				}
+				case OBJ_JUMP_GATE:
+				case OBJ_JUMP_HOLE:
+				{
+					if (distance < minJumpDistance)
+					{
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
+						return false;
+					}
+					break;
+				}
+				case OBJ_SATELLITE:
+				case OBJ_WEAPONS_PLATFORM:
+				case OBJ_DESTROYABLE_DEPOT:
+				case OBJ_NON_TARGETABLE:
+				case OBJ_MISSION_SATELLITE:
+				{
+					if (distance < minDistanceMisc)
+					{
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
+						return false;
+					}
+					break;
+				}
+			}
+		}
+
+		return true;
+	}
+
 	void BaseDeploy(uint client, const wstring &args)
 	{
 		if (set_holiday_mode)
@@ -1940,6 +2076,17 @@ namespace PlayerCommands
 			return;
 		}
 
+
+		auto& cooldown = deploymentCooldownMap.find(client);
+		if (cooldown != deploymentCooldownMap.end()) {
+			PrintUserCmdText(client, L"Command still on cooldown, %us remaining.", cooldown->second);
+			return;
+		}
+		else
+		{
+			deploymentCooldownMap[client] = deploymentCooldownDuration;
+		}
+
 		// Check that the ship has the requires commodities.
 		int hold_size;
 		list<CARGO_INFO> cargo;
@@ -1954,7 +2101,7 @@ namespace PlayerCommands
 				if (ci->iArchID == good && ci->iCount >= (int)quantity)
 				{
 					material_available = true;
-					pub::Player::RemoveCargo(client, ci->iID, quantity);
+					break;
 				}
 			}
 			if (material_available == false)
@@ -1969,6 +2116,35 @@ namespace PlayerCommands
 					}
 				}
 				return;
+			}
+		}
+		//passed cargo check, now make the distance check
+
+		uint systemId;
+		Vector position;
+		Matrix rotation;
+		pub::Player::GetSystem(client, systemId);
+		pub::SpaceObj::GetLocation(ship, position, rotation);
+		Rotate180(rotation);
+		TranslateX(position, rotation, 1000);
+		if (!CheckSolarDistances(client, systemId, position))
+		{
+			PrintUserCmdText(client, L"ERR Deployment failed.");
+			return;
+		}
+
+		//actually remove the cargo.
+		for (map<uint, uint>::iterator i = construction_items.begin(); i != construction_items.end(); ++i)
+		{
+			uint good = i->first;
+			uint quantity = i->second;
+			for (list<CARGO_INFO>::iterator ci = cargo.begin(); ci != cargo.end(); ++ci)
+			{
+				if (ci->iArchID == good)
+				{
+					pub::Player::RemoveCargo(client, ci->iID, quantity);
+					break;
+				}
 			}
 		}
 

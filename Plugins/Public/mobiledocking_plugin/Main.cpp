@@ -580,28 +580,31 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	//if not a player dock, skip
+	if (iBaseID != UINT_MAX) {
+		return 0;
+	}
+
 	UINT client = HkGetClientIDByShip(iShip);
 	if (client)
 	{
-		// If no target then ignore the request.
-		uint iTargetShip;
-		pub::SpaceObj::GetTarget(iShip, iTargetShip);
-		if (!iTargetShip)
-			return 0;
-
+		// If target not a player in FREIGHTER class ship, ignore request
 		uint iType;
-		pub::SpaceObj::GetType(iTargetShip, iType);
+		pub::SpaceObj::GetType(iBaseID, iType);
 		if (iType != OBJ_FREIGHTER)
 			return 0;
 
+		const uint iTargetClientID = HkGetClientIDByShip(iBaseID);
+		if (!iTargetClientID)
+			return 0;
+
 		// If target is not player ship or ship is too far away then ignore the request.
-		if (HkDistance3DByShip(iShip, iTargetShip) > mobileDockingRange)
+		if (HkDistance3DByShip(iShip, iBaseID) > mobileDockingRange)
 		{
 			PrintUserCmdText(client, L"Ship is out of range");
 			return 0;
 		}
 
-		const uint iTargetClientID = HkGetClientIDByShip(iTargetShip);
 		// Check that the target ship has an empty docking module.
 		if (!iTargetClientID || mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
 		{

@@ -581,11 +581,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 	returncode = DEFAULT_RETURNCODE;
 
 	//if not a player dock, skip
-	if (iBaseID != UINT_MAX) {
-		return 0;
-	}
-
-	UINT client = HkGetClientIDByShip(iShip);
+	uint client = HkGetClientIDByShip(iShip);
 	if (client)
 	{
 		// If target not a player in FREIGHTER class ship, ignore request

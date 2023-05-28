@@ -552,6 +552,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		return;
 	uint iVictimShipId = cship->iSpaceID;
 
+	//First argument is some unknown datatype pointer, not DamageList
 	//In case of ship having died to a death fuse, [2] is equal to 1 and actual killer spaceObjId is in [5]
 	//When death fuse has a duration > 0, both events fire, in case of an instant death fuse, only the fuse death is broadcasted.
 	//As such, we need to handle all 3 scenarios (no fuse, long fuse, instant fuse) by checking for both events and avoiding paying out the bounty twice.
@@ -559,7 +560,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	if (iKillerShipId == 1)
 		iKillerShipId = reinterpret_cast<uint*>(dmg)[5];
 
-	uint iKillerClientId = HkGetClientIDByShip(iKillerShipId); // whatever the first parameter is, it's NOT a DamageList*, but third element is the killer's spaceObjId
+	uint iKillerClientId = HkGetClientIDByShip(iKillerShipId);
 
 	if (!iVictimShipId || !iKillerClientId)
 		return;

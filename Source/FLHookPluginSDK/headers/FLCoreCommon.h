@@ -1398,7 +1398,10 @@ namespace Universe
 		FactionSpawn* startFactionArray;
 		FactionSpawn* endFactionArray;
 		FactionSpawn* endFactionArray2;
-		uint iDunno5[5];
+		uint iDunno5;
+		uint idsName;
+		uint idsInfo;
+		uint iDunno6[2];
 	};
 
 	IMPORT  struct ISystem *  GetFirstSystem(void);

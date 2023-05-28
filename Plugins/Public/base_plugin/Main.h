@@ -634,6 +634,18 @@ extern map<string, ARCHTYPE_STRUCT> mapArchs;
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;
 
+/// Mininmum distances for base deployment
+extern float minMiningDistance;
+extern float minPlanetDistance;
+extern float minStationDistance;
+extern float minLaneDistance;
+extern float minJumpDistance;
+extern float minDistanceMisc;
+
+/// Deployment command cooldown trackimg
+extern unordered_map<uint, uint> deploymentCooldownMap;
+extern uint deploymentCooldownDuration;
+
 /// Map of good to quantity for items required by construction ship
 extern map<uint, uint> construction_items;
 

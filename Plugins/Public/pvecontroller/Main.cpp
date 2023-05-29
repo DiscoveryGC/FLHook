@@ -592,6 +592,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	pub::SpaceObj::GetRep(iVictimShipId, iTargetRep);
 	Reputation::Vibe::GetAffiliation(iTargetRep, uTargetAffiliation, false);
 	pub::Player::GetRep(iKillerClientId, iPlayerRep);
+	Reputation::Vibe::GetAffiliation(iPlayerRep, uKillerAffiliation, false);
 	pub::Reputation::GetGroupFeelingsTowards(iPlayerRep, uTargetAffiliation, fAttitude);
 	if (fAttitude > set_fMaximumRewardRep) {
 		if (set_bBountiesEnabled)

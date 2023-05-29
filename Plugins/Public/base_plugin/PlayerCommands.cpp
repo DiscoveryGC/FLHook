@@ -1179,7 +1179,7 @@ namespace PlayerCommands
 				for (const auto& module : base->modules)
 				{
 					BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
-					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname && factoryNicknameToCraftTypeMap.count(buildmod->active_recipe.nickname))
 					{
 						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
 						return;

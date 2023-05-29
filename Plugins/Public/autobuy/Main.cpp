@@ -562,24 +562,16 @@ void PlayerAutorepair(uint iClientID)
 		st6::vector<EquipDesc> eqVector;
 		for (auto& eq : equip)
 		{
-			if(eq.bMounted)
+			if (eq.bMounted)
 				eq.fHealth = 1.0f;
 			eqVector.push_back(eq);
 		}
 
 		HookClient->Send_FLPACKET_SERVER_SETEQUIPMENT(iClientID, eqVector);
 	}
-
-	if (Players[iClientID].fRelativeHealth != 1)
+	auto& playerCollision = Players[iClientID].collisionGroupDesc.data;
+	if (!playerCollision.empty())
 	{
-		GetClientInterface()->Send_FLPACKET_SERVER_SETHULLSTATUS(iClientID, 1);
-		Players[iClientID].fRelativeHealth = 1;
-	}
-
-	// Repair all collision groups.
-	if (!Players[iClientID].collisionGroupDesc.data.empty())
-	{
-		auto& playerCollision = Players[iClientID].collisionGroupDesc.data;
 		st6::list<XCollisionGroup> componentList;
 		for (auto& colGrp : playerCollision)
 		{
@@ -588,6 +580,12 @@ void PlayerAutorepair(uint iClientID)
 			componentList.push_back(*newColGrp);
 		}
 		HookClient->Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(iClientID, componentList);
+	}
+
+	if (Players[iClientID].fRelativeHealth < 1.0f)
+	{
+		Players[iClientID].fRelativeHealth = 1.0f;
+		HookClient->Send_FLPACKET_SERVER_SETHULLSTATUS(iClientID, 1.0f);
 	}
 
 	if (repairCost)

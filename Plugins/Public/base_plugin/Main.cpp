@@ -2060,6 +2060,17 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 		iDmgToSpaceID = 0;
 		return;
 	}
+
+	// If this is an NPC hit then suppress the call completely
+	if (!dmg->is_inflictor_a_player())
+	{
+		if (set_plugin_debug)
+			ConPrint(L"HkCb_AddDmgEntry[2] suppressed - npc\n");
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		iDmgToSpaceID = 0;
+		return;
+	}
+
 	float curr, max;
 	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
 

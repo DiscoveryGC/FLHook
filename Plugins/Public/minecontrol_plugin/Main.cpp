@@ -48,6 +48,7 @@ static string set_scStatsPath;
 static uint set_miningMunition = CreateID("mining_gun_ammo");
 static uint set_deployableContainerCommodity = CreateID("commodity_deployable_container");
 static float set_globalModifier = 1.0f;
+static float set_containerModifier = 1.05f;
 static uint set_containerJettisonCount = 5000;
 static uint set_containerLootCrateID = CreateID("lootcrate_ast_loot_metal");
 static uint set_containerSolarArchetypeID = CreateID("dsy_playerbase_01");
@@ -233,7 +234,8 @@ EXPORT void LoadSettings()
 	// Load generic settings
 	set_iPluginDebug = IniGetI(scPluginCfgFile, "MiningGeneral", "Debug", 0);
 	set_scStatsPath = IniGetS(scPluginCfgFile, "MiningGeneral", "StatsPath", "");
-	set_globalModifier = IniGetF(scPluginCfgFile, "MiningGeneral", "GlobalModifier", 1.0f);
+	set_globalModifier = IniGetF(scPluginCfgFile, "MiningGeneral", "GlobalModifier", set_globalModifier);
+	set_containerModifier = IniGetF(scPluginCfgFile, "MiningGeneral", "ContainerModifier", set_containerModifier);
 	set_containerJettisonCount = IniGetI(scPluginCfgFile, "MiningGeneral", "ContainerJettisonCount", set_containerJettisonCount);
 	set_containerSolarArchetypeID = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerSolarArchetype", "dsy_playerbase_01").c_str());
 	set_containerLoadoutArchetypeID = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerLoadoutArchetype", "dsy_playerbase_01").c_str());
@@ -395,19 +397,17 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 {
 	returncode = DEFAULT_RETURNCODE;
 	// If this is not a lootable rock, do no other processing.
-	if (ci.dwTargetShip != 0)
+	if (ci.iProjectileArchID != set_miningMunition || ci.dwTargetShip != 0)
 		return;
 
 	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-
-	if (ci.iProjectileArchID != set_miningMunition)
-		return;
 
 	CLIENT_DATA& cd = mapClients[iClientID];
 
 	if (!cd.itemCount)
 		return;
 
+	// use floats to ensure precision when applying various minor modifiers.
 	float itemCount = static_cast<float>(cd.itemCount);
 	uint lootId = cd.lootID;
 	cd.itemCount = 0;
@@ -453,12 +453,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		}
 
 		itemCount *= GetBonus(cd.equippedID, lootId) * set_globalModifier;
-
-		itemCount += cd.overminedFraction;
-
-		// use floats to ensure precision when applying various modifiers, here we truncate the remaining amount to an integer and save the rest.
-		uint itemCountInt = static_cast<uint>(itemCount);
-		cd.overminedFraction = itemCount - itemCountInt;
+		itemCount += cd.overminedFraction; // add the decimal remainder from last mining eevnt.
 
 		// If this ship is has another ship targetted then send the ore into the cargo
 		// hold of the other ship.
@@ -466,6 +461,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		const Archetype::Equipment* lootInfo = Archetype::GetEquipment(lootId);
 
 		uint iTargetObj;
+		bool foundContainer = false;
 		pub::SpaceObj::GetTarget(iShip, iTargetObj);
 		if (iTargetObj && HkDistance3DByShip(iShip, iTargetObj) < 1000.0f)
 		{
@@ -474,22 +470,25 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 			{
 				iSendToClientID = iTargetClientID;
 			}
-			else if (mapMiningContainers.count(iTargetObj))
+			else
 			{
-				auto& container = mapMiningContainers[iTargetObj];
-				if (container.lootId == lootId)
+				const auto& container = mapMiningContainers.find(iTargetObj);
+				if (container != mapMiningContainers.end() && container->second.lootId == lootId)
 				{
-					container.lootCount += itemCountInt;
+					foundContainer = true;
+					container->second.lootCount += static_cast<uint>(itemCount * set_containerModifier);
 
-					if (container.lootCount >= set_containerJettisonCount)
+					if (container->second.lootCount >= set_containerJettisonCount)
 					{
-						Server.MineAsteroid(container.systemId, container.jettisonPos, set_containerLootCrateID, container.lootId, set_containerJettisonCount, container.clientId);
-						container.lootCount -= set_containerJettisonCount;
+						Server.MineAsteroid(container->second.systemId, container->second.jettisonPos, set_containerLootCrateID, container->second.lootId, set_containerJettisonCount, container->second.clientId);
+						container->second.lootCount -= set_containerJettisonCount;
 					}
-					return;
 				}
 			}
 		}
+
+		uint itemCountInt = static_cast<uint>(itemCount);
+		cd.overminedFraction = itemCount - itemCountInt; // save the unused decimal portion for the next mining event.
 
 		if (cd.miningSampleStart < time(nullptr))
 		{
@@ -503,6 +502,11 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 
 			cd.miningSampleStart = static_cast<uint>(time(nullptr)) + 30;
 			cd.miningEvents = 0;
+		}
+
+		if (foundContainer)
+		{
+			return;
 		}
 
 		float fHoldRemaining;

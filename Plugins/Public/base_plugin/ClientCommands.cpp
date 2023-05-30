@@ -138,8 +138,22 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	base_status += L"<TEXT>Free Cargo Storage: " + Int64ToPrettyStr(base->GetRemainingCargoSpace()) + L"</TEXT><PARA/>";
 	base_status += L"<TEXT>Max Cargo Storage: " + Int64ToPrettyStr(base->GetMaxCargoSpace()) + L"</TEXT><PARA/>";
 	base_status += L"<TEXT>Money: " + Int64ToPrettyStr(base->money) + L"</TEXT><PARA/>";
-	base_status += L"<TEXT>Hit Points: " + Int64ToPrettyStr((INT64)base->base_health) + L"</TEXT><PARA/>";
-	base_status += L"<TEXT>Max Hit Points: " + Int64ToPrettyStr((INT64)base->max_base_health) + L"</TEXT><PARA/>";
+	if (!base->invulnerable)
+	{
+		base_status += L"<TEXT>Hit Points: " + Int64ToPrettyStr((INT64)base->base_health) + L"</TEXT><PARA/>";
+		if ((INT64)base->max_base_health != INT64_MIN) // prevent bases with no defined maxHP from displaying "Max Hit Points: -9quintillion"
+		{
+			base_status += L"<TEXT>Max Hit Points: " + Int64ToPrettyStr((INT64)base->max_base_health) + L"</TEXT><PARA/>";
+		}
+		else
+		{
+			base_status += L"<TEXT>Max Hit Points: Undefined</TEXT><PARA/>";
+		}
+	}
+	else
+	{
+		base_status += L"<TEXT>Hit Points: Indestructible</TEXT><PARA/>";
+	}
 	base_status += L"<TEXT>Population: " + Int64ToPrettyStr((INT64)base->HasMarketItem(set_base_crew_type)) + L"</TEXT><PARA/>";
 
 	if (base->affiliation)

@@ -850,6 +850,8 @@ void LoadSettingsActual()
 		ini.close();
 	}
 
+	PlayerCommands::PopulateHelpMenus();
+  
 	if (ini.open(cfg_fileforbiddencommodities.c_str(), false))
 	{
 		while (ini.read_header())
@@ -867,8 +869,6 @@ void LoadSettingsActual()
 		}
 		ini.close();
 	}
-
-	PlayerCommands::PopulateHelpMenus();
 
 	//Create the POB sound hashes
 	pbsounds.destruction1 = CreateID("pob_evacuate2");

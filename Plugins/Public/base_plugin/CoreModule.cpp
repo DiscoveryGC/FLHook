@@ -223,6 +223,7 @@ bool CoreModule::Timer(uint time)
 			}
 
 			// Repair damage if we have sufficient crew on the base.
+
 			if (isCrewSufficient) {
 				RepairDamage(base->max_base_health);
 				if (dont_eat) {

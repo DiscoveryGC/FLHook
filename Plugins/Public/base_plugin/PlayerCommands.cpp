@@ -1900,6 +1900,14 @@ namespace PlayerCommands
 			return;
 		}
 
+		uint systemId;
+		pub::Player::GetSystem(client, systemId);
+		if (bannedSystemList.find(systemId) != bannedSystemList.end())
+		{
+			PrintUserCmdText(client, L"ERR Deploying base in this system is not possible");
+			return;
+		}
+
 		uint ship;
 		pub::Player::GetShip(client, ship);
 		if (!ship)

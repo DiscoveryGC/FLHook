@@ -422,12 +422,24 @@ namespace HkIServerImpl
 		projectile->set_target(nullptr);
 	}
 
-	void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigned int iDockTarget, unsigned int p4, unsigned long p5, unsigned int iClientID)
+	void __stdcall RequestEvent(int iEventType, unsigned int iShip, unsigned int iDockTarget, unsigned int p4, unsigned long p5, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 		if (iClientID)
 		{
-			if (!iIsFormationRequest)
+			if (iEventType == 2) // Trade Lane dock
+			{
+				float shieldHp, shieldMax;
+				bool shieldUp;
+				pub::SpaceObj::GetShieldHealth(iDockTarget, shieldHp, shieldMax, shieldUp);
+				if (!shieldUp)
+				{
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
+					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+					return;
+				}
+			}
+			else if (!iEventType)
 			{
 				uint iTargetTypeID;
 				pub::SpaceObj::GetType(iDockTarget, iTargetTypeID);

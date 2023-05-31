@@ -45,6 +45,7 @@
 
 static int set_iPluginDebug = 0;
 static string set_scStatsPath;
+static float set_miningCheatLogThreshold = 2.0f;
 static uint set_miningMunition = CreateID("mining_gun_ammo");
 static uint set_deployableContainerCommodity = CreateID("commodity_deployable_container");
 static float set_globalModifier = 1.0f;
@@ -241,6 +242,7 @@ EXPORT void LoadSettings()
 	set_containerLoadoutArchetypeID = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerLoadoutArchetype", "dsy_playerbase_01").c_str());
 	set_deployableContainerCommodity = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerCommodity", "commodity_scrap_metal").c_str());
 	set_miningMunition = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "MiningMunition", "mining_gun_ammo").c_str());
+	set_miningCheatLogThreshold = IniGetF(scPluginCfgFile, "MiningGeneral", "MiningCheatLogThreshold", set_miningCheatLogThreshold);
 
 	if(set_iPluginDebug)
 		ConPrint(L"NOTICE: debug=%d\n", set_iPluginDebug);
@@ -493,7 +495,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		if (cd.miningSampleStart < time(nullptr))
 		{
 			float average = cd.miningEvents / 30.0f;
-			if (average > 2.0f)
+			if (average > set_miningCheatLogThreshold)
 			{
 				AddLog("NOTICE: high mining rate charname=%s rate=%0.1f/sec location=%0.0f,%0.0f,%0.0f system=%08x zone=%08x",
 					wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(),

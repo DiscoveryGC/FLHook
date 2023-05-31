@@ -1920,12 +1920,12 @@ namespace PlayerCommands
 				{
 					if (zone->idsName)
 					{
-						PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.\n", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
+						PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
 					}
 					else
 					{
 						const GoodInfo* gi = GoodList::find_by_id(zone->lootableZone->dynamic_loot_commodity);
-						PrintUserCmdText(client, L"Distance to unnamed %ls field too close, minimum distance: %um.\n", HkGetWStringFromIDS(gi->iIDSName).c_str(), static_cast<uint>(minMiningDistance));
+						PrintUserCmdText(client, L"Distance to unnamed %ls field too close, minimum distance: %um.", HkGetWStringFromIDS(gi->iIDSName).c_str(), static_cast<uint>(minMiningDistance));
 					}
 					return false;
 				}
@@ -1959,7 +1959,7 @@ namespace PlayerCommands
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
 						return false;
 					}
 					break;
@@ -1971,7 +1971,7 @@ namespace PlayerCommands
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
 						return false;
 					}
 					break;
@@ -1980,7 +1980,7 @@ namespace PlayerCommands
 				{
 					if (distance < minLaneDistance)
 					{
-						PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um\n", static_cast<uint>(minLaneDistance));
+						PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um", static_cast<uint>(minLaneDistance));
 						return false;
 					}
 					break;
@@ -1992,7 +1992,7 @@ namespace PlayerCommands
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
 						return false;
 					}
 					break;
@@ -2007,7 +2007,7 @@ namespace PlayerCommands
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
 						return false;
 					}
 					break;

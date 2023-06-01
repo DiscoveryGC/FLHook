@@ -466,7 +466,6 @@ namespace HkIServerImpl
 				if (!shieldUp)
 				{
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
-					Server.RequestCancel(iEventType, iShip, iTargetObj, 0, iClientID);
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				}
 				else if (setLaneBannedShips.find(Players[iClientID].iShipArchetype) != setLaneBannedShips.end())

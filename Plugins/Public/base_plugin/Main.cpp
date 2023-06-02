@@ -46,6 +46,7 @@ set<uint> bannedSystemList;
 uint set_construction_shiparch = 0;
 
 /// Mininmum distances for base deployment
+bool enableDistanceCheck = false;
 float minMiningDistance = 30000;
 float minPlanetDistance = 2500;
 float minStationDistance = 10000;
@@ -602,6 +603,10 @@ void LoadSettingsActual()
 					else if(ini.is_value("deployment_cooldown"))
 					{
 						deploymentCooldownDuration = ini.get_value_int(0);
+					}
+					else if (ini.is_value("enable_distance_check"))
+					{
+						enableDistanceCheck = ini.get_value_bool(0);
 					}
 					else if (ini.is_value("banned_system"))
 					{

@@ -1894,7 +1894,11 @@ namespace PlayerCommands
 				if (!zone->lootableZone)
 					continue;
 
-
+				if (minMiningDistance > 0 && cfield->near_field(pos))
+				{
+					PrintUserCmdText(client, L"You can't deploy inside a mining field!");
+					return false;
+				}
 				// pretend zone is actually centered 0,0,0
 				// pretend zone is not rotated at all (zeroed matrix)
 				// move player position by inverse so their relative position is the same
@@ -2084,17 +2088,6 @@ namespace PlayerCommands
 			return;
 		}
 
-
-		auto& cooldown = deploymentCooldownMap.find(client);
-		if (cooldown != deploymentCooldownMap.end()) {
-			PrintUserCmdText(client, L"Command still on cooldown, %us remaining.", cooldown->second);
-			return;
-		}
-		else
-		{
-			deploymentCooldownMap[client] = deploymentCooldownDuration;
-		}
-
 		// Check that the ship has the requires commodities.
 		int hold_size;
 		list<CARGO_INFO> cargo;
@@ -2135,10 +2128,24 @@ namespace PlayerCommands
 		pub::SpaceObj::GetLocation(ship, position, rotation);
 		Rotate180(rotation);
 		TranslateX(position, rotation, 1000);
-		if (!CheckSolarDistances(client, systemId, position))
+		if (enableDistanceCheck) 
 		{
-			PrintUserCmdText(client, L"ERR Deployment failed.");
-			return;
+			auto& cooldown = deploymentCooldownMap.find(client);
+			if (cooldown != deploymentCooldownMap.end())
+			{
+				PrintUserCmdText(client, L"Command still on cooldown, %us remaining.", cooldown->second);
+				return;
+			}
+			else
+			{
+				deploymentCooldownMap[client] = deploymentCooldownDuration;
+			}
+
+			if (!CheckSolarDistances(client, systemId, position))
+			{
+				PrintUserCmdText(client, L"ERR Deployment failed.");
+				return;
+			}
 		}
 
 		//actually remove the cargo.

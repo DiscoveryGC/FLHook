@@ -607,6 +607,7 @@ extern set<uint> bannedSystemList;
 extern uint set_construction_shiparch;
 
 /// Mininmum distances for base deployment
+extern bool enableDistanceCheck;
 extern float minMiningDistance;
 extern float minPlanetDistance;
 extern float minStationDistance;

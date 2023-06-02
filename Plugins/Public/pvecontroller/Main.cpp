@@ -14,6 +14,7 @@
 #include <list>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <algorithm>
 #include <random>
 
@@ -57,6 +58,8 @@ unordered_map<uint, float> mapBountyGroupScale;
 unordered_map<uint, float> mapBountyArmorScales;
 unordered_map<uint, float> mapBountySystemScales;
 multimap<uint, stWarzone> mmapBountyWarzoneScales;
+
+unordered_set<uint> setBountyAwardedShips;
 
 multimap<uint, stDropInfo> mmapDropInfo;
 unordered_map<uint, uint> mapShipClassTypes;
@@ -353,7 +356,12 @@ void NPCBountyPayout(uint iClientID) {
 	}
 
 	HkAddCash((const wchar_t*)Players.GetActiveCharacterName(iClientID), aClientData[iClientID].bounty_pool);
-	PrintUserCmdText(iClientID, L"A bounty pool worth $%s credits for %d kill%s has been deposited in your account.", ToMoneyStr(aClientData[iClientID].bounty_pool).c_str(), aClientData[iClientID].bounty_count, (aClientData[iClientID].bounty_count == 1 ? L"" : L"s"));
+	if (set_iPoolPayoutTimer) {
+		PrintUserCmdText(iClientID, L"A bounty pool worth $%s credits for %d kill%s has been deposited in your account.", ToMoneyStr(aClientData[iClientID].bounty_pool).c_str(), aClientData[iClientID].bounty_count, (aClientData[iClientID].bounty_count == 1 ? L"" : L"s"));
+	}
+	else {
+		PrintUserCmdText(iClientID, L"A bounty of $%s credits has been deposited to your account.", ToMoneyStr(aClientData[iClientID].bounty_pool).c_str());
+	}
 
 	aClientData[iClientID].bounty_count = 0;
 	aClientData[iClientID].bounty_pool = 0;
@@ -549,12 +557,23 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		return;
 	uint iVictimShipId = cship->iSpaceID;
 
-	uint iKillerClientId = HkGetClientIDByShip(reinterpret_cast<uint*>(dmg)[2]); // whatever the first parameter is, it's NOT a DamageList*, but third element is the killer's spaceObjId
+	//First argument is some unknown datatype pointer, not DamageList
+	//In case of ship having died to a death fuse, [2] is equal to 1 and actual killer spaceObjId is in [5]
+	//When death fuse has a duration > 0, both events fire, in case of an instant death fuse, only the fuse death is broadcasted.
+	//As such, we need to handle all 3 scenarios (no fuse, long fuse, instant fuse) by checking for both events and avoiding paying out the bounty twice.
+	uint iKillerShipId = reinterpret_cast<uint*>(dmg)[2];
+	if (iKillerShipId == 1)
+		iKillerShipId = reinterpret_cast<uint*>(dmg)[5];
+
+	uint iKillerClientId = HkGetClientIDByShip(iKillerShipId);
 
 	if (!iVictimShipId || !iKillerClientId)
 		return;
 
 	if (HkGetClientIDByShip(iVictimShipId))
+		return;
+
+	if (setBountyAwardedShips.count(iVictimShipId))
 		return;
 
 	uint iTargetType;
@@ -577,8 +596,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	float fAttitude = 0.0f;
 	pub::SpaceObj::GetRep(iVictimShipId, iTargetRep);
 	Reputation::Vibe::GetAffiliation(iTargetRep, uTargetAffiliation, false);
-	pub::SpaceObj::GetRep(dmg->get_inflictor_id(), iPlayerRep);
-	Reputation::Vibe::Verify(iPlayerRep);
+	pub::Player::GetRep(iKillerClientId, iPlayerRep);
 	Reputation::Vibe::GetAffiliation(iPlayerRep, uKillerAffiliation, false);
 	pub::Reputation::GetGroupFeelingsTowards(iPlayerRep, uTargetAffiliation, fAttitude);
 	if (fAttitude > set_fMaximumRewardRep) {
@@ -586,6 +604,8 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 			PrintUserCmdText(iKillerClientId, L"Can not pay bounty against ineligible combatant (reputation towards target must be %0.2f or lower).", set_fMaximumRewardRep);
 		return;
 	}
+
+	setBountyAwardedShips.insert(iVictimShipId);
 
 	// Process bounties if enabled.
 	if (set_bBountiesEnabled) {
@@ -732,6 +752,10 @@ void HkTimerCheckKick()
 					NPCBountyPayout(i);
 			}
 		}
+	}
+	if (curr_time % 1800 == 0)
+	{
+		setBountyAwardedShips.clear();
 	}
 }
 

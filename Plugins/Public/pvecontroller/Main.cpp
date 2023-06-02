@@ -357,10 +357,10 @@ void NPCBountyPayout(uint iClientID) {
 
 	HkAddCash((const wchar_t*)Players.GetActiveCharacterName(iClientID), aClientData[iClientID].bounty_pool);
 	if (set_iPoolPayoutTimer) {
-		PrintUserCmdText(iClientID, L"A bounty pool worth $%s credits for %d kill%s has been deposited in your account.", ToMoneyStr(aClientData[iClientID].bounty_pool).c_str(), aClientData[iClientID].bounty_count, (aClientData[iClientID].bounty_count == 1 ? L"" : L"s"));
+		PrintUserCmdText(iClientID, L"A bounty pool worth $%s credits for %d kill%s has been deposited into your account.", ToMoneyStr(aClientData[iClientID].bounty_pool).c_str(), aClientData[iClientID].bounty_count, (aClientData[iClientID].bounty_count == 1 ? L"" : L"s"));
 	}
 	else {
-		PrintUserCmdText(iClientID, L"A bounty of $%s credits has been deposited to your account.", ToMoneyStr(aClientData[iClientID].bounty_pool).c_str());
+		PrintUserCmdText(iClientID, L"A bounty of $%s credits has been deposited into your account.", ToMoneyStr(aClientData[iClientID].bounty_pool).c_str());
 	}
 
 	aClientData[iClientID].bounty_count = 0;

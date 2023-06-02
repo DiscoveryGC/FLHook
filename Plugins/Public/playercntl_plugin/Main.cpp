@@ -51,7 +51,9 @@ float set_iDockBroadcastRange = 9999;
 float set_fSpinProtectMass;
 float set_fSpinImpulseMultiplier;
 
-unordered_set<uint> setLaneBannedShips;
+// set of ships which cannot use TradeLane, and are blocked
+// from forming on other ships to bypass the block
+unordered_set<uint> setLaneAndFormationBannedShips;
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
 
@@ -135,7 +137,7 @@ void LoadSettings()
 				{
 					if (ini.is_value("ship"))
 					{
-						setLaneBannedShips.insert(CreateID(ini.get_value_string(0)));
+						setLaneAndFormationBannedShips.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -468,7 +470,7 @@ namespace HkIServerImpl
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				}
-				else if (setLaneBannedShips.find(Players[iClientID].iShipArchetype) != setLaneBannedShips.end())
+				else if (setLaneAndFormationBannedShips.find(Players[iClientID].iShipArchetype) != setLaneAndFormationBannedShips.end())
 				{
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_trade_lane_access_denied"));
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -482,7 +484,7 @@ namespace HkIServerImpl
 		if (iClientID)
 		{
 			if (iEventType == 1 // formation request
-				&& setLaneBannedShips.find(Players[iClientID].iShipArchetype) != setLaneBannedShips.end())
+				&& setLaneAndFormationBannedShips.find(Players[iClientID].iShipArchetype) != setLaneAndFormationBannedShips.end())
 			{
 				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_formation_request_denied"));
 				// values copied from vanilla 'leaving formation' callout

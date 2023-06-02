@@ -602,7 +602,7 @@ void LoadSettingsActual()
 					else if(ini.is_value("deployment_cooldown"))
 					{
 						deploymentCooldownDuration = ini.get_value_int(0);
-          }
+					}
 					else if (ini.is_value("banned_system"))
 					{
 						bannedSystemList.insert(CreateID(ini.get_value_string(0)));

@@ -1899,21 +1899,26 @@ namespace PlayerCommands
 					PrintUserCmdText(client, L"You can't deploy inside a mining field!");
 					return false;
 				}
-				// pretend zone is actually centered 0,0,0
-				// pretend zone is not rotated at all (zeroed matrix)
-				// move player position by inverse so their relative position is the same
+				// pretend zone is actually centered 0,0,0 and unrotated
+				// Subtract zone positon from player position so their relative position is the same
 				Vector playerPos = pos;
 				playerPos.x -= zone->vPos.x;
 				playerPos.y -= zone->vPos.y;
 				playerPos.z -= zone->vPos.z;
+				
+				//Then rotate player position by inverse of original zone position, to make the relative positions truly in sync
 
 				Matrix InvertedZoneRot = InverseMatrix(zone->mRot);
 				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
 
+				//Now, player position is effectively a vector from center of mining zone to player position.
+				//We normalize the vector, then apply original zone rotation and stretch it by zone sizes
 				Vector V2 = NormalizeVector(playerPos);
 				Matrix EllipseSizeMat = { {{zone->vSize.x,0,0},{0,zone->vSize.y,0},{0,0,zone->vSize.z}} };
 				V2 = VectorMatrixMultiply(V2, EllipseSizeMat);
 				V2 = VectorMatrixMultiply(V2, zone->mRot);
+				
+				//Now that we have our aproximated closest point to the mining zone, we move it back so comparison with player position yields proper result
 				V2.x += zone->vPos.x;
 				V2.y += zone->vPos.y;
 				V2.z += zone->vPos.z;
@@ -1959,7 +1964,7 @@ namespace PlayerCommands
 				case OBJ_PLANET:
 				case OBJ_MOON:
 				{
-					if (distance < minPlanetDistance + solar->get_radius())
+					if (distance < minPlanetDistance + solar->get_radius()) // In case of planets, we only care about distance from actual surface, since it can vary wildly
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;

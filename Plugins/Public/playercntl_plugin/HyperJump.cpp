@@ -1687,9 +1687,10 @@ namespace HyperJump
 		{
 			if (mapJumpDrives[iClientID].charging_on && mapJumpDrives[iClientID].arch.cd_disrupts_charge)
 			{
-				if (dmg->get_cause() == 6)
+				if (dmg->get_cause() == 6 || dmg->get_cause() == 0x15)
 				{
 					mapJumpDrives[iClientID].charging_on = false;
+					mapJumpDrives[iClientID].curr_charge = 0;
 					PrintUserCmdText(iClientID, L"Jump drive disrupted. Charging failed.");
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 					SetFuse(iClientID, 0);

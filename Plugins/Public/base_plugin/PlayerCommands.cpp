@@ -1970,38 +1970,47 @@ namespace PlayerCommands
 				if (!zone->lootableZone)
 					continue;
 
-
-				// pretend zone is actually centered 0,0,0
-				// pretend zone is not rotated at all (zeroed matrix)
-				// move player position by inverse so their relative position is the same
+				if (minMiningDistance > 0 && cfield->near_field(pos))
+				{
+					PrintUserCmdText(client, L"You can't deploy inside a mining field!");
+					return false;
+				}
+				// pretend zone is actually centered 0,0,0 and unrotated
+				// Subtract zone position from player position so their relative position is the same
 				Vector playerPos = pos;
 				playerPos.x -= zone->vPos.x;
 				playerPos.y -= zone->vPos.y;
 				playerPos.z -= zone->vPos.z;
+				
+				//Then rotate player position by inverse of original zone position, to make the relative positions truly in sync
 
 				Matrix InvertedZoneRot = InverseMatrix(zone->mRot);
 				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
 
-				Vector V2 = NormalizeVector(playerPos);
+				//Now, player position is effectively a vector from center of mining zone to player position.
+				//We normalize the vector, then apply original zone rotation and stretch it by zone sizes
+				Vector v2 = NormalizeVector(playerPos);
 				Matrix EllipseSizeMat = { {{zone->vSize.x,0,0},{0,zone->vSize.y,0},{0,0,zone->vSize.z}} };
-				V2 = VectorMatrixMultiply(V2, EllipseSizeMat);
-				V2 = VectorMatrixMultiply(V2, zone->mRot);
-				V2.x += zone->vPos.x;
-				V2.y += zone->vPos.y;
-				V2.z += zone->vPos.z;
+				v2 = VectorMatrixMultiply(v2, EllipseSizeMat);
+				v2 = VectorMatrixMultiply(v2, zone->mRot);
+				
+				//Now that we have our aproximated closest point to the mining zone, we move it back so comparison with player position yields proper result
+				v2.x += zone->vPos.x;
+				v2.y += zone->vPos.y;
+				v2.z += zone->vPos.z;
 
-				float distance = HkDistance3D(V2, pos);
+				float distance = HkDistance3D(v2, pos);
 
 				if (distance < minMiningDistance)
 				{
 					if (zone->idsName)
 					{
-						PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.\n", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
+						PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
 					}
 					else
 					{
 						const GoodInfo* gi = GoodList::find_by_id(zone->lootableZone->dynamic_loot_commodity);
-						PrintUserCmdText(client, L"Distance to unnamed %ls field too close, minimum distance: %um.\n", HkGetWStringFromIDS(gi->iIDSName).c_str(), static_cast<uint>(minMiningDistance));
+						PrintUserCmdText(client, L"Distance to unnamed %ls field too close, minimum distance: %um.", HkGetWStringFromIDS(gi->iIDSName).c_str(), static_cast<uint>(minMiningDistance));
 					}
 					return false;
 				}
@@ -2031,11 +2040,11 @@ namespace PlayerCommands
 				case OBJ_PLANET:
 				case OBJ_MOON:
 				{
-					if (distance < minPlanetDistance + solar->get_radius())
+					if (distance < (minPlanetDistance + solar->get_radius())) // In case of planets, we only care about distance from actual surface, since it can vary wildly
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
 						return false;
 					}
 					break;
@@ -2047,7 +2056,7 @@ namespace PlayerCommands
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
 						return false;
 					}
 					break;
@@ -2056,7 +2065,7 @@ namespace PlayerCommands
 				{
 					if (distance < minLaneDistance)
 					{
-						PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um\n", static_cast<uint>(minLaneDistance));
+						PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um", static_cast<uint>(minLaneDistance));
 						return false;
 					}
 					break;
@@ -2068,7 +2077,7 @@ namespace PlayerCommands
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
 						return false;
 					}
 					break;
@@ -2083,7 +2092,7 @@ namespace PlayerCommands
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
-						PrintUserCmdText(client, L"%ls too close, minimum distance: %um\n", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
+						PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
 						return false;
 					}
 					break;
@@ -2160,17 +2169,6 @@ namespace PlayerCommands
 			return;
 		}
 
-
-		auto& cooldown = deploymentCooldownMap.find(client);
-		if (cooldown != deploymentCooldownMap.end()) {
-			PrintUserCmdText(client, L"Command still on cooldown, %us remaining.", cooldown->second);
-			return;
-		}
-		else
-		{
-			deploymentCooldownMap[client] = deploymentCooldownDuration;
-		}
-
 		// Check that the ship has the requires commodities.
 		int hold_size;
 		list<CARGO_INFO> cargo;
@@ -2211,10 +2209,24 @@ namespace PlayerCommands
 		pub::SpaceObj::GetLocation(ship, position, rotation);
 		Rotate180(rotation);
 		TranslateX(position, rotation, 1000);
-		if (!CheckSolarDistances(client, systemId, position))
+		if (enableDistanceCheck) 
 		{
-			PrintUserCmdText(client, L"ERR Deployment failed.");
-			return;
+			auto& cooldown = deploymentCooldownMap.find(client);
+			if (cooldown != deploymentCooldownMap.end())
+			{
+				PrintUserCmdText(client, L"Command still on cooldown, %us remaining.", cooldown->second);
+				return;
+			}
+			else
+			{
+				deploymentCooldownMap[client] = deploymentCooldownDuration;
+			}
+
+			if (!CheckSolarDistances(client, systemId, position))
+			{
+				PrintUserCmdText(client, L"ERR Deployment failed.");
+				return;
+			}
 		}
 
 		//actually remove the cargo.

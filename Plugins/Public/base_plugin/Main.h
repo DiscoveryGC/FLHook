@@ -631,6 +631,9 @@ extern uint set_crew_check_frequency;
 
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
 
+/// List of banned systems
+extern set<uint> bannedSystemList;
+
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;
 

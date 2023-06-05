@@ -31,6 +31,9 @@ int ExportType = 0;
 /// The debug mode
 int set_plugin_debug = 0;
 
+/// List of banned systems
+set<uint> bannedSystemList;
+
 /// The ship used to construct and upgrade bases
 uint set_construction_shiparch = 0;
 
@@ -649,6 +652,10 @@ void LoadSettingsActual()
 					else if(ini.is_value("deployment_cooldown"))
 					{
 						deploymentCooldownDuration = ini.get_value_int(0);
+					}
+					else if (ini.is_value("banned_system"))
+					{
+						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}

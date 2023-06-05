@@ -179,7 +179,18 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 	Universe::IBase* base = Universe::get_base(targetBase);
 	if (base)
 	{
-		pub::Player::ForceLand(client, targetBase); // beam
+		pub::Player::ForceLand(client, targetBase); // beam	// if not in the same system, emulate F1 charload
+		if (base->iSystemID != system)
+		{
+			Server.BaseEnter(targetBase, client);
+			Server.BaseExit(targetBase, client);
+			wstring wscCharFileName;
+			HkGetCharFileName(ARG_CLIENTID(client), wscCharFileName);
+			wscCharFileName += L".fl";
+			CHARACTER_ID cID;
+			strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+			Server.CharacterSelect(cID, client);
+		}
 	}
 	else
 	{
@@ -195,6 +206,17 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 		}
 		PrintUserCmdText(client, L"Player base renamed/destroyed, ship redirected to a proxy base");
 		pub::Player::ForceLand(client, proxyBaseID); // beam
+		if (base->iSystemID != system)
+		{
+			Server.BaseEnter(targetBase, client);
+			Server.BaseExit(targetBase, client);
+			wstring wscCharFileName;
+			HkGetCharFileName(ARG_CLIENTID(client), wscCharFileName);
+			wscCharFileName += L".fl";
+			CHARACTER_ID cID;
+			strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+			Server.CharacterSelect(cID, client);
+		}
 	}
 
 }

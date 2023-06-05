@@ -657,6 +657,10 @@ void LoadSettingsActual()
 					{
 						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
 					}
+					else if (ini.is_value("banned_system"))
+					{
+						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
+					}
 				}
 			}
 		}

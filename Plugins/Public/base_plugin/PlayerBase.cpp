@@ -124,9 +124,10 @@ void PlayerBase::SetupDefaults()
 	infocard.clear();
 	for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 	{
-		wstring wscXML = infocard_para[i];
+		wstring& wscXML = infocard_para[i];
+
 		if (wscXML.length())
-			infocard += L"<TEXT>" + wscXML + L"</TEXT><PARA/><PARA/>";
+			infocard += L"<TEXT>" + ReplaceStr(wscXML, L"\n", L"</TEXT><PARA/><TEXT>") + L"</TEXT><PARA/><PARA/>";
 	}
 
 	// Validate the affiliation and clear it if there is no infocard
@@ -240,6 +241,12 @@ void PlayerBase::Load()
 					else if (ini.is_value("infocardpara"))
 					{
 						ini_get_wstring(ini, infocard_para[++paraindex]);
+					}
+					else if (ini.is_value("infocardpara2"))
+					{
+						wstring infopara2;
+						ini_get_wstring(ini, infopara2);
+						infocard_para[paraindex] += infopara2;
 					}
 					else if (ini.is_value("money"))
 					{
@@ -403,7 +410,9 @@ void PlayerBase::Save()
 		ini_write_wstring(file, "infoname", basename);
 		for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 		{
-			ini_write_wstring(file, "infocardpara", infocard_para[i]);
+			ini_write_wstring(file, "infocardpara", infocard_para[i].substr(0, 252));
+			if(infocard_para[i].length() >= 252)
+				ini_write_wstring(file, "infocardpara2", infocard_para[i].substr(252, 252));
 		}
 		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
 			i != market_items.end(); ++i)

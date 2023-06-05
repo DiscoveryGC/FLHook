@@ -107,7 +107,7 @@ static map<uint, CLIENTCDSTRUCT> mapClientsCD;
 static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
 
-static uint CloakAlertSound = CreateID("cloak_osiris");
+static uint cloakAlertSound = CreateID("cloak_osiris");
 static unordered_set<uint> setJumpingClients;
 
 void LoadSettings();
@@ -226,7 +226,7 @@ void LoadSettings()
 			else if (ini.is_header("General")) {
 				while (ini.read_value()) {
 					if (ini.is_value("cloak_alert_sound")) {
-						CloakAlertSound = CreateID(ini.get_value_string());
+						cloakAlertSound = CreateID(ini.get_value_string());
 					}
 				}
 			}
@@ -551,7 +551,7 @@ void HkTimerCheckKick()
 									}
 									if (isGroupMember)
 									{
-										pub::Audio::PlaySoundEffect(client2, CloakAlertSound);
+										pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
 									}
 									else
 									{
@@ -562,7 +562,7 @@ void HkTimerCheckKick()
 								}
 								else
 								{
-									pub::Audio::PlaySoundEffect(client2, CloakAlertSound);
+									pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
 								}
 							}
 

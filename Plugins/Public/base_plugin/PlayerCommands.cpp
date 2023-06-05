@@ -1900,7 +1900,7 @@ namespace PlayerCommands
 					return false;
 				}
 				// pretend zone is actually centered 0,0,0 and unrotated
-				// Subtract zone positon from player position so their relative position is the same
+				// Subtract zone position from player position so their relative position is the same
 				Vector playerPos = pos;
 				playerPos.x -= zone->vPos.x;
 				playerPos.y -= zone->vPos.y;
@@ -1913,17 +1913,17 @@ namespace PlayerCommands
 
 				//Now, player position is effectively a vector from center of mining zone to player position.
 				//We normalize the vector, then apply original zone rotation and stretch it by zone sizes
-				Vector V2 = NormalizeVector(playerPos);
+				Vector v2 = NormalizeVector(playerPos);
 				Matrix EllipseSizeMat = { {{zone->vSize.x,0,0},{0,zone->vSize.y,0},{0,0,zone->vSize.z}} };
-				V2 = VectorMatrixMultiply(V2, EllipseSizeMat);
-				V2 = VectorMatrixMultiply(V2, zone->mRot);
+				v2 = VectorMatrixMultiply(v2, EllipseSizeMat);
+				v2 = VectorMatrixMultiply(v2, zone->mRot);
 				
 				//Now that we have our aproximated closest point to the mining zone, we move it back so comparison with player position yields proper result
-				V2.x += zone->vPos.x;
-				V2.y += zone->vPos.y;
-				V2.z += zone->vPos.z;
+				v2.x += zone->vPos.x;
+				v2.y += zone->vPos.y;
+				v2.z += zone->vPos.z;
 
-				float distance = HkDistance3D(V2, pos);
+				float distance = HkDistance3D(v2, pos);
 
 				if (distance < minMiningDistance)
 				{
@@ -1964,7 +1964,7 @@ namespace PlayerCommands
 				case OBJ_PLANET:
 				case OBJ_MOON:
 				{
-					if (distance < minPlanetDistance + solar->get_radius()) // In case of planets, we only care about distance from actual surface, since it can vary wildly
+					if (distance < (minPlanetDistance + solar->get_radius())) // In case of planets, we only care about distance from actual surface, since it can vary wildly
 					{
 						uint idsName = solar->get_name();
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;

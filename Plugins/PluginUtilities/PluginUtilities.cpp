@@ -984,7 +984,9 @@ void MatrixCofactorsTable(Matrix& m)
 	{
 		for (int j = 0; j < 3; j++)
 		{
-			m.data[i][j] = m.data[i][j] * ((((i * 3) + j) % 2) == 0 ? 1 : -1);
+			if ((((i * 3) + j) % 2) != 0) {
+				m.data[i][j] *= -1;
+			}
 		}
 	}
 }

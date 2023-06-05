@@ -1908,7 +1908,7 @@ namespace PlayerCommands
 				
 				//Then rotate player position by inverse of original zone position, to make the relative positions truly in sync
 
-				Matrix InvertedZoneRot = InverseMatrix(zone->mRot);
+				Matrix InvertedZoneRot = TransposeMatrix(zone->mRot);
 				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
 
 				//Now, player position is effectively a vector from center of mining zone to player position.
@@ -2126,10 +2126,8 @@ namespace PlayerCommands
 		}
 		//passed cargo check, now make the distance check
 
-		uint systemId;
 		Vector position;
 		Matrix rotation;
-		pub::Player::GetSystem(client, systemId);
 		pub::SpaceObj::GetLocation(ship, position, rotation);
 		Rotate180(rotation);
 		TranslateX(position, rotation, 1000);

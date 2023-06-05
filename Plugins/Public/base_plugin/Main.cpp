@@ -915,13 +915,6 @@ void HkTimerCheckKick()
 			ExportData::ToJSON();
 		}
 	}
-
-	for (auto& cooldown : deploymentCooldownMap)
-	{
-		cooldown.second--;
-		if(!cooldown.second)
-			deploymentCooldownMap.erase(cooldown.first);
-	}
 }
 
 bool __stdcall HkCb_IsDockableError(uint dock_with, uint base)

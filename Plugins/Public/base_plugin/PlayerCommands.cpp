@@ -2134,14 +2134,14 @@ namespace PlayerCommands
 		if (enableDistanceCheck) 
 		{
 			auto& cooldown = deploymentCooldownMap.find(client);
-			if (cooldown != deploymentCooldownMap.end())
+			if (cooldown != deploymentCooldownMap.end() && (uint)time(0) < cooldown->second)
 			{
 				PrintUserCmdText(client, L"Command still on cooldown, %us remaining.", cooldown->second);
 				return;
 			}
 			else
 			{
-				deploymentCooldownMap[client] = deploymentCooldownDuration;
+				deploymentCooldownMap[client] = (uint)time(0) + deploymentCooldownDuration;
 			}
 
 			if (!CheckSolarDistances(client, systemId, position))

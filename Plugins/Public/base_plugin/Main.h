@@ -10,6 +10,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
@@ -559,10 +560,11 @@ namespace Log {
 
 extern map<uint, CLIENT_DATA> clients;
 
-extern map<uint, Module*> spaceobj_modules;
+extern unordered_map<uint, Module*> spaceobj_modules;
 
 // Map of ingame hash to info
 extern map<uint, class PlayerBase*> player_bases;
+extern map<uint, PlayerBase*>::iterator baseSaveIterator;
 
 struct POBSOUNDS
 {
@@ -597,6 +599,9 @@ extern map<uint, uint> set_base_crew_consumption_items;
 extern map<uint, uint> set_base_crew_food_items;
 
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
+
+/// List of banned systems
+extern set<uint> bannedSystemList;
 
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;

@@ -27,6 +27,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/lexical_cast.hpp>
+#include <unordered_map>
 
 namespace pt = boost::posix_time;
 static int set_iPluginDebug = 0;
@@ -230,8 +231,15 @@ void PMLogging(const char *szString, ...)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-map<uint, float> healingMultipliers;
-map<uint, uint> healingAdditions;
+struct HEALING_DATA
+{
+	float healingMultiplier;
+	float healingStatic;
+	float maxHeal;
+};
+unordered_map<uint, HEALING_DATA> healingMultipliers;
+
+uint repairMunitionId = CreateID("healing_gun01_ammo");
 
 void LoadSettings()
 {
@@ -261,16 +269,27 @@ void LoadSettings()
 		ini.close();
 	}
 
-	string scHealingCfgFile = string(szCurDir) + "\\..\\DATA\\EQUIPMENT\\healingrates.cfg";
+	string scHealingCfgFile = string(szCurDir) + "\\flhook_plugins\\healingrates.cfg";
 	if (ini.open(scHealingCfgFile.c_str(), false))
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("HealingRate"))
+			if (ini.is_header("General"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("repair_munition"))
+					{
+						repairMunitionId = CreateID(ini.get_value_string(0));
+					}
+				}
+			}
+			else if (ini.is_header("HealingRate"))
 			{
 				list<uint> shipclasses;
 				float multiplier = 1.0f;
-				uint addition = 0;
+				float addition = 0;
+				float max_hp = 1.0f;
 				while (ini.read_value())
 				{
 					if (ini.is_value("target_shipclass"))
@@ -279,17 +298,24 @@ void LoadSettings()
 					}
 					else if (ini.is_value("addition"))
 					{
-						addition = ini.get_value_int(0);
+						addition = ini.get_value_float(0);
 					}
 					else if (ini.is_value("multiplier"))
 					{
 						multiplier = ini.get_value_float(0);
 					}
+					else if (ini.is_value("max_heal"))
+					{
+						max_hp = ini.get_value_float(0);
+					}
 				}
 				foreach(shipclasses, uint, shipclass)
 				{
-					healingMultipliers[*shipclass] = multiplier;
-					healingAdditions[*shipclass] = addition;
+					HEALING_DATA healing;
+					healing.healingMultiplier = multiplier;
+					healing.healingStatic = addition;
+					healing.maxHeal = max_hp;
+					healingMultipliers[*shipclass] = healing;
 				}
 			}
 		}
@@ -998,62 +1024,49 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& damage, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())
+
+	if (iDmgMunitionID != repairMunitionId
+		|| !iDmgTo
+		|| !dmg->is_inflictor_a_player()
+		|| sID == 65521) //shield hit
+		return;
+
+	if (!iDmgToSpaceID)
 	{
-		uint client = HkGetClientIDByShip(iDmgToSpaceID);
-		if (client)
-		{
-			uint ShootingClient = dmg->get_inflictor_owner_player();
-			Archetype::Ship* TheShipArch = Archetype::GetShip(Players[ShootingClient].iShipArchetype);
+		pub::Player::GetShip(iDmgTo, iDmgToSpaceID);
+	}
 
-			if (TheShipArch->iShipClass == 19)
-			{
-				float curr, max;
-				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-				float expecteddmg = (float)1;
-				float projecteddamage = curr - damage;
+	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[iDmgTo].iShipArchetype);
 
-				//If a repair gun heals the ship but this doesn't show up, it's because it's hitting the shield.
-				//HkMsgU(L"DEBUG: damage by repair ship, is it healing?");					
-				//PrintUserCmdText(client, L"Projected damage: %f", projecteddamage);
+	const auto& healingData = healingMultipliers.find(TheShipArchHealed->iShipClass);
+	if (healingData == healingMultipliers.end())
+		return;
 
-				if ((projecteddamage <= 1) && (projecteddamage > 0))
-				{
-					//Handle the healing.
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	float curr, maxHP;
+	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, maxHP);
 
-					Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
-					float amounttoheal = curr;
+	const HEALING_DATA& healing = healingData->second;
 
-					if (healingMultipliers.find(TheShipArchHealed->iShipClass) == healingMultipliers.end())
-					{
-						return;
-					}
-					// no need to check healingAdditions here as it is set at the same time as healingMultipliers
-					amounttoheal = max / 100 * healingMultipliers[TheShipArchHealed->iShipClass] + healingAdditions[TheShipArchHealed->iShipClass];
+	if (curr >= healing.maxHeal * maxHP)
+		return;
 
-					float testhealth = curr + amounttoheal;
+	float healedHP = curr + healing.healingStatic + ((healing.healingMultiplier / 100) * maxHP) ;
+	float newHP = min(maxHP * healing.maxHeal, healedHP);
 
-
-					if (testhealth > max)
-					{
-						//HkMsgU(L"DEBUG: Health would be superior to max");
-						dmg->add_damage_entry(1, max, (DamageEntry::SubObjFate)0);
-						return;
-					}
-					else
-					{
-						//HkMsgU(L"DEBUG: Health less max");
-						dmg->add_damage_entry(1, testhealth, (DamageEntry::SubObjFate)0);
-						return;
-					}
-				}
-				//else do nothing, means it isn't a healing call.
-			}
-		}
+	if (sID == 1) // hull hit
+	{
+		damage = newHP;
+	}
+	else // not a hull hit, stop processing this event and add a hull-repairing one.
+	{
+		iDmgTo = 0;
+		iDmgMunitionID = 0;
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		//Adding 'damage entry' that will heal the main hull. 1 stands for hull internal id. Fate 0 means alive.
+		dmg->add_damage_entry(1, newHP, static_cast<DamageEntry::SubObjFate>(0));
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1342,7 +1355,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry_AFTER, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JettisonCargo, PLUGIN_HkIServerImpl_JettisonCargo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddTradeEquip, PLUGIN_HkIServerImpl_AddTradeEquip, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));

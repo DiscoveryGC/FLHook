@@ -89,14 +89,6 @@ bool PlayerBase::Timer(uint curr_time)
 				return true;
 		}
 	}
-
-	// Save base status every 60 seconds.
-	if (save_timer-- < 0)
-	{
-		save_timer = 60;
-		Save();
-	}
-
 	return false;
 }
 
@@ -132,9 +124,10 @@ void PlayerBase::SetupDefaults()
 	infocard.clear();
 	for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 	{
-		wstring wscXML = infocard_para[i];
+		wstring& wscXML = infocard_para[i];
+
 		if (wscXML.length())
-			infocard += L"<TEXT>" + wscXML + L"</TEXT><PARA/><PARA/>";
+			infocard += L"<TEXT>" + ReplaceStr(wscXML, L"\n", L"</TEXT><PARA/><TEXT>") + L"</TEXT><PARA/><PARA/>";
 	}
 
 	// Validate the affiliation and clear it if there is no infocard
@@ -246,6 +239,12 @@ void PlayerBase::Load()
 					else if (ini.is_value("infocardpara"))
 					{
 						ini_get_wstring(ini, infocard_para[++paraindex]);
+					}
+					else if (ini.is_value("infocardpara2"))
+					{
+						wstring infopara2;
+						ini_get_wstring(ini, infopara2);
+						infocard_para[paraindex] += infopara2;
 					}
 					else if (ini.is_value("money"))
 					{
@@ -402,7 +401,9 @@ void PlayerBase::Save()
 		ini_write_wstring(file, "infoname", basename);
 		for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 		{
-			ini_write_wstring(file, "infocardpara", infocard_para[i]);
+			ini_write_wstring(file, "infocardpara", infocard_para[i].substr(0, 252));
+			if(infocard_para[i].length() >= 252)
+				ini_write_wstring(file, "infocardpara2", infocard_para[i].substr(252, 252));
 		}
 		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
 			i != market_items.end(); ++i)
@@ -717,7 +718,7 @@ void PlayerBase::SiegeModChainReaction(uint client)
 // Return true if 
 float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
-	float incoming_damage = abs(curr_hitpoints - new_hitpoints);
+	float incoming_damage = curr_hitpoints - new_hitpoints;
 
 	// Make sure that the attacking player is hostile.
 	uint client = HkGetClientIDByShip(attacking_space_obj);
@@ -746,7 +747,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				}
 			}
 
-			if (!is_ally && (hostile_tags_damage[charname] + incoming_damage) > damage_threshold)
+			if (!is_ally && (hostile_tags_damage[charname]) > damage_threshold)
 			{
 				hostile_tags[charname] = charname;
 
@@ -760,7 +761,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			}
 		}
 
-		if (!siege_mode && (hostile_tags_damage[charname] + incoming_damage) > siege_mode_damage_trigger_level)
+		if (!siege_mode && (hostile_tags_damage[charname]) > siege_mode_damage_trigger_level)
 		{
 			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
@@ -772,7 +773,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 	// If the shield is not active but could be set a time 
 	// to request that it is activated.
-	if (!this->shield_active_time && shield_state == SHIELD_STATE_ONLINE)
+	if (!this->shield_active_time && this->shield_state == SHIELD_STATE_ONLINE)
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		ReportAttack(this->basename, charname, this->system);

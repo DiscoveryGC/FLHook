@@ -927,4 +927,113 @@ namespace MiscCmds
 		cmds->Print(L"OK\n");
 		return;
 	}
+
+	void SetPlayerHp(uint clientId, float percentage)
+	{
+		pub::SpaceObj::SetRelativeHealth(Players[clientId].iShipID, percentage);
+	}
+
+	void SetPlayerFuse(uint clientId, uint fuseId)
+	{
+		IObjInspectImpl *obj = HkGetInspect(clientId);
+		if (obj)
+		{
+			HkUnLightFuse((IObjRW*)obj, fuseId, 0.0f); // in case it's a one-time fuse, we want to pre-emptively remove the previous, lingering fuse.
+			HkLightFuse((IObjRW*)obj, fuseId, 0.0f, 0.0f, 0.0f);
+		}
+	}
+
+	void UnsetPlayerFuse(uint clientId, uint fuseId)
+	{
+		IObjInspectImpl *obj = HkGetInspect(clientId);
+		if (obj)
+		{
+			HkUnLightFuse((IObjRW*)obj, fuseId, 0.0f);
+		}
+	}
+
+	uint CheckAdminRightAndGetTargetClient(CCmds* cmds, const wstring& charName)
+	{
+		if (!(cmds->rights & RIGHT_SUPERADMIN))
+		{
+			cmds->Print(L"ERR No permission\n");
+			return 0;
+		}
+
+		uint targetClient = HkGetClientIdFromCharname(charName);
+
+		// check if logged in
+		if (targetClient == -1)
+		{
+			cmds->Print(L"ERR Incorrect shipname/target\n");
+			return 0;
+		}
+
+		uint targetShip;
+		pub::Player::GetShip(targetClient, targetShip);
+		if (!targetShip)
+		{
+			cmds->Print(L"ERR Incorrect shipname/target\n");
+			return 0;
+		}
+		return targetClient;
+	}
+
+	void AdminCmd_SetHP(CCmds * cmds, const wstring& charName, uint hpPercentage)
+	{
+		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
+		if (!targetClient)
+		{
+			return;
+		}
+
+		float percentage = static_cast<float>(hpPercentage) / 100;
+
+		SetPlayerHp(targetClient, percentage);
+		cmds->Print(L"OK\n");
+	}
+
+	void AdminCmd_SetHPFuse(CCmds * cmds, const wstring& charName, uint hpPercentage, const wstring & fuseName)
+	{
+		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
+		if (!targetClient)
+		{
+			return;
+		}
+
+		float percentage = static_cast<float>(hpPercentage) / 100;
+		uint fuseId = CreateID(wstos(fuseName).c_str());
+
+		SetPlayerHp(targetClient, percentage);
+		SetPlayerFuse(targetClient, fuseId);
+		cmds->Print(L"OK\n");
+	}
+
+	void AdminCmd_SetFuse(CCmds * cmds, const wstring& charName, const wstring & fuseName)
+	{
+		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
+		if (!targetClient)
+		{
+			return;
+		}
+
+		uint fuseId = CreateID(wstos(fuseName).c_str());
+
+		SetPlayerFuse(targetClient, fuseId);
+		cmds->Print(L"OK\n");
+	}
+
+	void AdminCmd_UnsetFuse(CCmds * cmds, const wstring& charName, const wstring & fuseName)
+	{
+		uint targetClient = CheckAdminRightAndGetTargetClient(cmds, charName);
+		if (!targetClient)
+		{
+			return;
+		}
+
+		uint fuseId = CreateID(wstos(fuseName).c_str());
+
+		UnsetPlayerFuse(targetClient, fuseId);
+		cmds->Print(L"OK\n");
+	}
 }

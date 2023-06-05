@@ -1148,7 +1148,7 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 		else
 		{
 			uint amountToJettison = static_cast<uint>(jc.iCount * noTradeGood->second);
-			PrintUserCmdText(iClientID, L"%u units of %ls jettisonned, %u units lost in the process.", jc.iCount, goodName.c_str(), jc.iCount - amountToJettison);
+			PrintUserCmdText(iClientID, L"%u units of %ls jettisoned, %u units lost in the process.", jc.iCount, goodName.c_str(), jc.iCount - amountToJettison);
 			pub::Player::RemoveCargo(iClientID, static_cast<ushort>(jc.iSlot), jc.iCount);
 			if (amountToJettison) {
 				uint shipId;

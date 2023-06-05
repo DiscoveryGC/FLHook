@@ -257,7 +257,7 @@ void LoadSettings()
 				{
 					if (ini.is_value("tr"))
 					{
-						notradelist[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+						notradelist[CreateID(ini.get_value_string(0))] = min(1.0f, max( 0.0f, ini.get_value_float(1)));
 					}
 				}
 			}
@@ -1111,7 +1111,7 @@ void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 			uint amountToJettison = static_cast<uint>(jc.iCount * noTradeGood->second);
 			PrintUserCmdText(iClientID, L"%u units of %ls jettisoned, %u units lost in the process.", jc.iCount, goodName.c_str(), jc.iCount - amountToJettison);
 			pub::Player::RemoveCargo(iClientID, static_cast<ushort>(jc.iSlot), jc.iCount);
-			if (amountToJettison) {
+			if (amountToJettison > 0) {
 				uint shipId;
 				uint sysId;
 				Vector pos;

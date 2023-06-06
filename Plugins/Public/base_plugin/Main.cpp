@@ -1315,7 +1315,7 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 }
 
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -1353,8 +1353,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					if (foundid == false)
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with this ID.");
-						pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+						iCancel = -1;
+						response = ACCESS_DENIED;
 						return 0;
 					}
 				}
@@ -1382,8 +1382,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					if (foundclass == false)
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
-						pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+						iCancel = -1;
+						response = ACCESS_DENIED;
 						return 0;
 					}
 				}
@@ -1400,9 +1400,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 				const Universe::ISystem *iSys = Universe::get_system(pbase->destsystem);
 				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
 
-				//PrintUserCmdText(client, L"Jump to system=%s x=%0.0f y=%0.0f z=%0.0f\n", wscSysName.c_str(), pos.x, pos.y, pos.z);
 				AP::SwitchSystem(client, pbase->destsystem, pos, ornt);
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = DOCK;
 				return 1;
 			}
 
@@ -1410,16 +1410,16 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 			if (pbase->shield_active_time)
 			{
 				PrintUserCmdText(client, L"Docking failed because base shield is active");
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 
 			if (!IsDockingAllowed(pbase, client))
 			{
 				PrintUserCmdText(client, L"Docking at this base is restricted");
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 

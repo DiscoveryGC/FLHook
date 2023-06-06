@@ -55,11 +55,9 @@ float set_fSpinImpulseMultiplier;
 // set of ships which cannot use TradeLane, and are blocked
 // from forming on other ships to bypass the block
 unordered_set<uint> setLaneAndFormationBannedShips;
+
 unordered_set<uint> setDumbProjectiles;
 
-// set of ships which cannot use TradeLane, and are blocked
-// from forming on other ships to bypass the block
-unordered_set<uint> setLaneAndFormationBannedShips;
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
 

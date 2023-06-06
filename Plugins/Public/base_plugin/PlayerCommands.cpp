@@ -2202,10 +2202,8 @@ namespace PlayerCommands
 		}
 		//passed cargo check, now make the distance check
 
-		uint systemId;
 		Vector position;
 		Matrix rotation;
-		pub::Player::GetSystem(client, systemId);
 		pub::SpaceObj::GetLocation(ship, position, rotation);
 		Rotate180(rotation);
 		TranslateX(position, rotation, 1000);

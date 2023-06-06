@@ -140,9 +140,9 @@ void LoadSettings()
 					if (ini.is_value("DumbProjectile"))
 					{
 						setDumbProjectiles.insert(CreateID(ini.get_value_string(0)));
-          }
-        }
-      }
+					}
+				}
+			}
 			else if (ini.is_header("TradeLaneBan"))
 			{
 				while (ini.read_value())
@@ -156,7 +156,6 @@ void LoadSettings()
 		}
 		ini.close();
 	}
-
 	//JDDisruptAmmo = CreateID("dsy_torpedo_jd_ammo");
 
 	ZoneUtilities::ReadUniverse();

@@ -111,7 +111,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
       <AssemblerOutput>AssemblyCode</AssemblerOutput>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>A:\FLHookAingar\Dependencies;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Dependencies;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>

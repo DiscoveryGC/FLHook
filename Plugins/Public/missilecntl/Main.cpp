@@ -1,4 +1,5 @@
-// MissileControl Plugin - Handle tracking/alert notifications for missile projectiles
+// MunitionControl Plugin - Handle tracking/alert notifications for missile projectiles
+// and mine behaviour on expiration
 // By Aingar
 //
 // This is free software; you can redistribute it and/or modify it as
@@ -22,8 +23,11 @@ map<string, uint> factions;
 PLUGIN_RETURNCODE returncode;
 
 unordered_set<uint> setNoTrackingAlertProjectiles;
+unordered_set<uint> setNoFuseOnExpiryMines;
 
 unordered_map<uint, uint> mapTrackingByShiptypeBlacklistBitmap;
+
+bool enableMineExpiryFuse = false;
 
 enum TRACKING_STATE {
 	TRACK_ALERT,
@@ -80,9 +84,29 @@ void LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					if (ini.is_value("NoTrackingAlertProjectile"))
+					if (ini.is_value("EnableMineExpiryFuse"))
+					{
+						enableMineExpiryFuse = ini.get_value_bool(0);
+					}
+				}
+			}
+			else if (ini.is_header("NoTrackingAlertProjectile"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("MissileArch"))
 					{
 						setNoTrackingAlertProjectiles.insert(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+			else if (ini.is_header("SetNoFuseOnExpiryMines"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("MineArch"))
+					{
+						setNoFuseOnExpiryMines.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -128,6 +152,8 @@ void LoadSettings()
 
 void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	uint ownerType;
 	pub::SpaceObj::GetType(createGuidedPacket.iOwner, ownerType);
 	if (!(ownerType & (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL))) //GetTarget throws an exception for non-ship entities.
@@ -170,6 +196,36 @@ void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedP
 	}
 }
 
+bool __stdcall DestroyObject(uint iClientID, FLPACKET_DESTROYOBJECT& pDestroy)
+{
+	//This hook looks for packets informing players of a mine that is about to expire: Type = OBJ_MINE and DestroyType = VANISH
+	//If caught, we supress that packet from being sent and trigger the explosion via Destroy method with FUSE destroy type.
+	returncode = DEFAULT_RETURNCODE;
+
+	if (!enableMineExpiryFuse || pDestroy.iDestroyType == FUSE)
+	{
+		return true;
+	}
+
+	uint type;
+	pub::SpaceObj::GetType(pDestroy.iSpaceID, type);
+	if (type == OBJ_MINE)
+	{
+		if (!setNoFuseOnExpiryMines.empty())
+		{
+			uint mineArch;
+			pub::SpaceObj::GetSolarArchetypeID(pDestroy.iSpaceID, mineArch);
+			if (setNoFuseOnExpiryMines.count(mineArch))
+			{
+				return true;
+			}
+		}
+		pub::SpaceObj::Destroy(pDestroy.iSpaceID, FUSE);
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
+
+	return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Functions to hook
@@ -186,6 +242,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DestroyObject, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_DESTROYOBJECT, 0));
 
 	return p_PI;
 }

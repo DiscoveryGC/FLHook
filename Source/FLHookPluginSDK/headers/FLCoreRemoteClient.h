@@ -84,7 +84,7 @@ struct FLPACKET_BURNFUSE
 struct FLPACKET_DESTROYOBJECT
 {
 	uint iSpaceID;
-	uint iDestroyType;
+	DestroyType iDestroyType;
 };
 
 struct FLPACKET_CREATESHIP

@@ -14,9 +14,6 @@
 #include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
-#include <PluginUtilities.h>
-
-#include "../hookext_plugin/hookext_exports.h"
 
 map<string, uint> factions;
 /// A return code to indicate to FLHook if we want the hook processing to continue.

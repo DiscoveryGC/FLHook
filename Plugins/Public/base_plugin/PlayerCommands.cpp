@@ -1724,7 +1724,7 @@ namespace PlayerCommands
 				wchar_t buf[1000];
 				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max (%s)</TEXT><PARA/>",
 					globalItem, i->second.quantity, HtmlEncode(name).c_str(),
-					i->second.price, i->second.min_stock, i->second.max_stock, i->second.is_exporting ? L"Public" : L"Private");
+					i->second.price, i->second.min_stock, i->second.max_stock, i->second.is_public ? L"Public" : L"Private");
 				status += buf;
 				item++;
 			}
@@ -1832,9 +1832,9 @@ namespace PlayerCommands
 			map<UINT, MARKET_ITEM>::iterator i = std::next(base->market_items.begin(), item - 1);
 
 			if (cmd == L"public")
-				i->second.is_exporting = true;
+				i->second.is_public = true;
 			else 
-				i->second.is_exporting = false;
+				i->second.is_public = false;
 			base->Save();
 
 			int page = ((item + 39) / 40);

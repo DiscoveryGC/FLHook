@@ -165,7 +165,7 @@ void ExportData::ToJSON()
 				shop.write("price", i->second.price);
 				shop.write("min_stock", i->second.min_stock);
 				shop.write("max_stock", i->second.max_stock);
-				shop.write("exporting", i->second.is_exporting);
+				shop.write("is_public", i->second.is_public);
 				
 				const GoodInfo* gi = GoodList::find_by_id(i->first);
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);

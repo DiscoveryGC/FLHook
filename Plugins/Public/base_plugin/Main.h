@@ -10,6 +10,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
@@ -130,10 +131,6 @@ public:
 
 	// If true, do not take damage
 	bool dont_rust;
-
-	float shield_strength_multiplier;
-	float base_shield_reinforcement_threshold;
-	float damage_taken_since_last_threshold;
 
 	// The list of goods and usage of goods per minute for the autosys effect
 	map<uint, uint> mapAutosysGood;
@@ -312,7 +309,6 @@ public:
 	void SyncReputationForBaseObject(uint space_obj);
 
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
-	void ResetShieldStrength();
 
 	// The base nickname
 	string nickname;
@@ -370,7 +366,7 @@ public:
 	uint base;
 
 	map<wstring, uint> last_login_attempt_time;
-	map<wstring, int> unsuccessful_logins_in_a_row;
+	map<wstring, uint> unsuccessful_logins_in_a_row;
 
 	// The list of administration passwords
 	list<BasePassword> passwords;
@@ -382,6 +378,11 @@ public:
 
 	//changes how defense mod act depending on the amount of damage made to base in the last hours
 	bool siege_mode;
+
+	//shield strength parameters
+	float shield_strength_multiplier;
+	float base_shield_reinforcement_threshold;
+	float damage_taken_since_last_threshold;
 
 	// List of allied ship tags.
 	list<wstring> ally_tags;
@@ -559,10 +560,11 @@ namespace Log {
 
 extern map<uint, CLIENT_DATA> clients;
 
-extern map<uint, Module*> spaceobj_modules;
+extern unordered_map<uint, Module*> spaceobj_modules;
 
 // Map of ingame hash to info
 extern map<uint, class PlayerBase*> player_bases;
+extern map<uint, PlayerBase*>::iterator baseSaveIterator;
 
 struct POBSOUNDS
 {
@@ -597,6 +599,9 @@ extern map<uint, uint> set_base_crew_consumption_items;
 extern map<uint, uint> set_base_crew_food_items;
 
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
+
+/// List of banned systems
+extern set<uint> bannedSystemList;
 
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;

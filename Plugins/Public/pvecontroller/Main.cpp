@@ -392,7 +392,7 @@ bool UserCmd_Value(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 {
 	float fShipValue = 0;
 	HKGetShipValue((const wchar_t*)Players.GetActiveCharacterName(iClientID), fShipValue);
-	PrintUserCmdText(iClientID, L"Ship value: $%s credits.", ToMoneyStr(fShipValue).c_str());
+	PrintUserCmdText(iClientID, L"Ship value: $%s credits.", ToMoneyStr(static_cast<int>(fShipValue)).c_str());
 
 	return true;
 }
@@ -557,13 +557,23 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		return;
 	uint iVictimShipId = cship->iSpaceID;
 
+	//unknown and mutating(??) datatype. Casted to FLPACKET_UNKNOWN for ease of access to individual elements
+	FLPACKET_UNKNOWN* data = reinterpret_cast<FLPACKET_UNKNOWN*>(dmg);
+
 	//First argument is some unknown datatype pointer, not DamageList
 	//In case of ship having died to a death fuse, [2] is equal to 1 and actual killer spaceObjId is in [5]
 	//When death fuse has a duration > 0, both events fire, in case of an instant death fuse, only the fuse death is broadcasted.
 	//As such, we need to handle all 3 scenarios (no fuse, long fuse, instant fuse) by checking for both events and avoiding paying out the bounty twice.
-	uint iKillerShipId = reinterpret_cast<uint*>(dmg)[2];
-	if (iKillerShipId == 1)
-		iKillerShipId = reinterpret_cast<uint*>(dmg)[5];
+	
+	uint iKillerShipId;
+	if (data->iDunno[4]) // Represents death's damage cause in case of fuse death
+	{
+		iKillerShipId = data->iDunno[5]; // in case of fuse death, killerId is held here
+	}
+	else
+	{
+		iKillerShipId = data->iDunno[2]; // in case of fuse death equals an indetermined non-zero value, otherwise it is killerId.
+	}
 
 	uint iKillerClientId = HkGetClientIDByShip(iKillerShipId);
 

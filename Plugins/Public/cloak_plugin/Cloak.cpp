@@ -107,7 +107,7 @@ static map<uint, CLIENTCDSTRUCT> mapClientsCD;
 static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
 
-static uint CloakAlertSound = CreateID("cloak_osiris");
+static uint cloakAlertSound = CreateID("cloak_osiris");
 static unordered_set<uint> setJumpingClients;
 
 void LoadSettings();
@@ -226,7 +226,7 @@ void LoadSettings()
 			else if (ini.is_header("General")) {
 				while (ini.read_value()) {
 					if (ini.is_value("cloak_alert_sound")) {
-						CloakAlertSound = CreateID(ini.get_value_string());
+						cloakAlertSound = CreateID(ini.get_value_string());
 					}
 				}
 			}
@@ -551,7 +551,7 @@ void HkTimerCheckKick()
 									}
 									if (isGroupMember)
 									{
-										pub::Audio::PlaySoundEffect(client2, CloakAlertSound);
+										pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
 									}
 									else
 									{
@@ -562,7 +562,7 @@ void HkTimerCheckKick()
 								}
 								else
 								{
-									pub::Audio::PlaySoundEffect(client2, CloakAlertSound);
+									pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
 								}
 							}
 
@@ -927,15 +927,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 	uint client = HkGetClientIDByShip(iShip);
 	if (client)
 	{
-		if ((response == PROCEED_DOCK || response == DOCK) && iCancel == -1)
-		{
-			uint iTypeID;
-			pub::SpaceObj::GetType(iDockTarget, iTypeID);
-			if (iTypeID == OBJ_JUMP_GATE || iTypeID == OBJ_JUMP_HOLE)
-			{
-				setJumpingClients.erase(client);
-			}
-		}
 		if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
 		{
 			// If the last jump happened within 60 seconds then prohibit the docking
@@ -944,7 +935,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);
 			if (iTypeID == OBJ_JUMP_GATE || iTypeID == OBJ_JUMP_HOLE)
 			{
-				setJumpingClients.insert(client);
 				if (client && mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
 				{
 					SetState(client, iShip, STATE_CLOAK_OFF);
@@ -960,6 +950,14 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 	}
 
 	return 0;
+}
+
+void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
+{
+	// in case of SERVER_PACKET hooks, first argument is junk data before it gets processed by the server.
+	uint packetClient = HkGetClientIDByShip(switchOutPacket.shipId);
+	if (packetClient)
+		setJumpingClients.insert(packetClient);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -979,6 +977,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOut, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));

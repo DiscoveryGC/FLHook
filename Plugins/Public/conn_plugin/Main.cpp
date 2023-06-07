@@ -214,7 +214,7 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 		}
 		PrintUserCmdText(client, L"Player base renamed/destroyed, ship redirected to a proxy base");
 		pub::Player::ForceLand(client, proxyBaseID); // beam
-		if (base->iSystemID != system)
+		if (returnSys != system)
 		{
 			SimulateF1(client, proxyBaseID);
 		}

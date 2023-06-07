@@ -261,7 +261,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 	pub::SpaceObj::GetType(iDmgToSpaceID, iTargetType);
 
 	// Deduce: if not fighter nor freighter, then it's obviously solar object.
-	if (iTargetType != OBJ_FIGHTER && iTargetType != OBJ_FREIGHTER)
+	if (!(iTargetType & (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
 	{
 		setHealth = curr - (curr - setHealth) * dmgInfo.solarMultiplier;
 	}

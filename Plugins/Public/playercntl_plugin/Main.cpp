@@ -445,27 +445,6 @@ namespace HkIServerImpl
 		}
 	}
 
-	void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
-	{
-		uint targetType;
-		pub::SpaceObj::GetType(createGuidedPacket.iOwner, targetType);
-		if (!(targetType & (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL))) //GetTarget throws an exception for non-ship entities.
-			return;
-		uint targetId;
-		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
-		if (!targetId)
-		{
-			//disable both tracking and incoming-missile alert
-			const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
-			projectile->set_target(nullptr);
-			createGuidedPacket.iTargetId = 0;
-		}
-		else if (setDumbProjectiles.count(createGuidedPacket.iMunitionId))
-		{
-			createGuidedPacket.iTargetId = 0; // prevents the 'incoming missile' warning client-side
-		}
-	}
-
 	void __stdcall RequestEvent(int iEventType, unsigned int iShip, unsigned int iTargetObj, unsigned int p4, unsigned long p5, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
@@ -1779,7 +1758,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::StopTradelane, PLUGIN_HkIServerImpl_StopTradelane, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateNewCharacter, PLUGIN_HkIServerImpl_CreateNewCharacter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::DestroyCharacter, PLUGIN_HkIServerImpl_DestroyCharacter, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIEngine::Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_SendChat, PLUGIN_HkCb_SendChat, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));

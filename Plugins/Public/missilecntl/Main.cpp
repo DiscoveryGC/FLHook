@@ -96,9 +96,9 @@ void LoadSettings()
 					{
 						missileArch = CreateID(ini.get_value_string(0));
 					}
-					else if (ini.is_value("ShipType"))
+					else if (ini.is_value("DontTrackShipType"))
 					{
-						string typeStr = ini.get_value_string(0);
+						string typeStr = ToLower(ini.get_value_string(0));
 						if (typeStr == "fighter")
 							blacklistedShipTypesBitmap |= OBJ_FIGHTER;
 						else if (typeStr == "freighter")

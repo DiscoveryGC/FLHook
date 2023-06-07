@@ -326,7 +326,7 @@ string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
 
 namespace HkIEngine
 {
-	int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
+	int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -340,8 +340,8 @@ namespace HkIEngine
 		else
 		{
 			if (Players[iClientID].fRelativeHealth == 0.0f && (iCancel != -1)) {
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("dock_disallowed"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 			uint iTypeID;
@@ -351,8 +351,9 @@ namespace HkIEngine
 				if (!IsDockingAllowed(iShip, iDockTarget, iClientID))
 				{
 					//AddLog("INFO: Docking suppressed docktarget=%u charname=%s", iDockTarget, wstos(Players.GetActiveCharacterName(iClientID)).c_str());
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-					return 0;
+					iCancel = -1;
+					response = ACCESS_DENIED;
+					return 1;
 				}
 
 				if (response == PROCEED_DOCK)

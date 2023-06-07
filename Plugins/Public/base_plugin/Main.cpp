@@ -628,27 +628,27 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("min_mining_distance"))
 					{
-						minMiningDistance = ini.get_value_float(0);
+						minMiningDistance = max(0.0f, ini.get_value_float(0));
 					}
 					else if (ini.is_value("min_planet_distance"))
 					{
-						minPlanetDistance = ini.get_value_float(0);
+						minPlanetDistance = max(0.0f, ini.get_value_float(0));
 					}
 					else if (ini.is_value("min_station_distance"))
 					{
-						minStationDistance = ini.get_value_float(0);
+						minStationDistance = max(0.0f, ini.get_value_float(0));
 					}
 					else if (ini.is_value("min_trade_lane_distance"))
 					{
-						minLaneDistance = ini.get_value_float(0);
+						minLaneDistance = max(0.0f, ini.get_value_float(0));
 					}
 					else if (ini.is_value("min_distance_misc"))
 					{
-						minDistanceMisc = ini.get_value_float(0);
+						minDistanceMisc = max(0.0f, ini.get_value_float(0));
 					}
 					else if (ini.is_value("min_jump_distance"))
 					{
-						minJumpDistance = ini.get_value_float(0);
+						minJumpDistance = max(0.0f, ini.get_value_float(0));
 					}
 					else if(ini.is_value("deployment_cooldown"))
 					{
@@ -1032,13 +1032,6 @@ void HkTimerCheckKick()
 		if (--jumpBan.second == 0) {
 			mapJumpLockout.erase(jumpBan.first);
 		}
-	}
-
-	for (auto& cooldown : deploymentCooldownMap)
-	{
-		cooldown.second--;
-		if(!cooldown.second)
-			deploymentCooldownMap.erase(cooldown.first);
 	}
 }
 

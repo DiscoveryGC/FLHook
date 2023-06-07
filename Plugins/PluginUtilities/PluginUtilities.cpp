@@ -954,7 +954,7 @@ Matrix TransposeMatrix(Matrix& m)
 		{m.data[0][2], m.data[1][2], m.data[2][2]}} };
 }
 
-float MatrixDeterminant(Matrix& m, uint row, uint col)
+float MatrixSubDeterminant(Matrix& m, uint row, uint col)
 {
 	float minorMatrix[4];
 	uint counter = 0;
@@ -970,7 +970,7 @@ float MatrixDeterminant(Matrix& m, uint row, uint col)
 			counter++;
 		}
 	}
-	return minorMatrix[0] * minorMatrix[3] - minorMatrix[1] * minorMatrix[2];
+	return m.data[row][col] * ( minorMatrix[0] * minorMatrix[3] - minorMatrix[1] * minorMatrix[2] );
 }
 
 Matrix MatrixDeterminateTable(Matrix& m)
@@ -980,7 +980,7 @@ Matrix MatrixDeterminateTable(Matrix& m)
 	{
 		for (int j = 0; j < 3; j++)
 		{
-			determinantTable.data[i][j] = MatrixDeterminant(m, i, j);
+			determinantTable.data[i][j] = MatrixSubDeterminant(m, i, j);
 		}
 	}
 	return determinantTable;
@@ -1012,12 +1012,12 @@ void MultiplyMatrix(Matrix& m, float num)
 
 Matrix InverseMatrix(Matrix& m1)
 {
-	float determinant = MatrixDeterminant(m1, 0, 0) + MatrixDeterminant(m1, 0, 1) + MatrixDeterminant(m1, 0, 2);
-	float inverseDeterminant = 1 / determinant;
+	float adjoint = MatrixSubDeterminant(m1, 0, 0) + MatrixSubDeterminant(m1, 0, 1) + MatrixSubDeterminant(m1, 0, 2);
+	float inverseAdjoint = 1 / adjoint;
 	Matrix transp = TransposeMatrix(m1);
 	Matrix determinantTable = MatrixDeterminateTable(transp);
 	MatrixCofactorsTable(determinantTable);
-	MultiplyMatrix(determinantTable, inverseDeterminant);
+	MultiplyMatrix(determinantTable, inverseAdjoint);
 
 	return determinantTable;
 }

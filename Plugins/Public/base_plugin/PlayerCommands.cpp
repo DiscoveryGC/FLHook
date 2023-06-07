@@ -1984,7 +1984,7 @@ namespace PlayerCommands
 				
 				//Then rotate player position by inverse of original zone position, to make the relative positions truly in sync
 
-				Matrix InvertedZoneRot = InverseMatrix(zone->mRot);
+				Matrix InvertedZoneRot = TransposeMatrix(zone->mRot);
 				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
 
 				//Now, player position is effectively a vector from center of mining zone to player position.
@@ -2210,14 +2210,14 @@ namespace PlayerCommands
 		if (enableDistanceCheck) 
 		{
 			auto& cooldown = deploymentCooldownMap.find(client);
-			if (cooldown != deploymentCooldownMap.end())
+			if (cooldown != deploymentCooldownMap.end() && (uint)time(0) < cooldown->second)
 			{
 				PrintUserCmdText(client, L"Command still on cooldown, %us remaining.", cooldown->second);
 				return;
 			}
 			else
 			{
-				deploymentCooldownMap[client] = deploymentCooldownDuration;
+				deploymentCooldownMap[client] = (uint)time(0) + deploymentCooldownDuration;
 			}
 
 			if (!CheckSolarDistances(client, systemId, position))

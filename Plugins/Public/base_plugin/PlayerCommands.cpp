@@ -122,7 +122,7 @@ namespace PlayerCommands
 		_snwprintf(titleBuf, sizeof(titleBuf), L"Base Help : Page %d/%d", page + 1, numPages);
 
 		wchar_t buf[4000];
-		_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%s<POP/></RDL>", pagetext);
+		_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%ls<POP/></RDL>", pagetext.c_str());
 
 		HkChangeIDSString(client, 500000, titleBuf);
 		HkChangeIDSString(client, 500001, buf);
@@ -963,9 +963,9 @@ namespace PlayerCommands
 			base->infocard.clear();
 			for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 			{
-				wstring wscXML = base->infocard_para[i];
+				wstring& wscXML = base->infocard_para[i];
 				if (wscXML.length())
-					base->infocard += L"<TEXT>" + wscXML + L"</TEXT><PARA/><PARA/>";
+					base->infocard += L"<TEXT>" + ReplaceStr(wscXML, L"\n", L"</TEXT><PARA/><TEXT>") + L"</TEXT><PARA/><PARA/>";
 			}
 
 			base->Save();
@@ -979,9 +979,9 @@ namespace PlayerCommands
 			base->infocard.clear();
 			for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 			{
-				wstring wscXML = base->infocard_para[i];
+				wstring& wscXML = base->infocard_para[i];
 				if (wscXML.length())
-					base->infocard += L"<TEXT>" + wscXML + L"</TEXT><PARA/><PARA/>";
+					base->infocard += L"<TEXT>" + ReplaceStr(wscXML, L"\n", L"</TEXT><PARA/><TEXT>") + L"</TEXT><PARA/><PARA/>";
 			}
 
 			base->Save();
@@ -1897,6 +1897,14 @@ namespace PlayerCommands
 		if (set_construction_shiparch != 0 && shiparch != set_construction_shiparch)
 		{
 			PrintUserCmdText(client, L"ERR Need construction ship");
+			return;
+		}
+
+		uint systemId;
+		pub::Player::GetSystem(client, systemId);
+		if (bannedSystemList.find(systemId) != bannedSystemList.end())
+		{
+			PrintUserCmdText(client, L"ERR Deploying base in this system is not possible");
 			return;
 		}
 

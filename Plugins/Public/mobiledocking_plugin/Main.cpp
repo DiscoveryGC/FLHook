@@ -587,7 +587,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		// If target not a player in FREIGHTER class ship, ignore request
 		uint iType;
 		pub::SpaceObj::GetType(iBaseID, iType);
-		if (iType != OBJ_FREIGHTER)
+		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
 			return 0;
 
 		const uint iTargetClientID = HkGetClientIDByShip(iBaseID);

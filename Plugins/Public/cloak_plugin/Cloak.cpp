@@ -21,6 +21,8 @@
 #include <PluginUtilities.h>
 #include "Cloak.h"
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 static int set_iPluginDebug = 0;
 
@@ -35,15 +37,23 @@ enum INFO_STATE
 	STATE_CLOAK_ON = 3,
 };
 
+struct CLOAK_FUEL_USAGE
+{
+	float usageStatic = 0;
+	float usageLinear = 0;
+	float usageSquare = 0;
+};
+
 struct CLOAK_ARCH
 {
 	string scNickName;
 	int iWarmupTime;
 	int iCooldownTime;
 	int iHoldSizeLimit;
-	map<uint, uint> mapFuelToUsage;
-	bool singleUseCloak = false;
+	map<uint, CLOAK_FUEL_USAGE> mapFuelToUsage;
 	bool bDropShieldsOnUncloak;
+	bool bBreakOnProximity;
+	float fRange;
 };
 
 struct CLOAK_INFO
@@ -51,11 +61,11 @@ struct CLOAK_INFO
 	CLOAK_INFO()
 	{
 
-		uint iCloakSlot = 0;
+		iCloakSlot = 0;
 		bCanCloak = false;
-		mstime tmCloakTime = 0;
-		uint iState = STATE_CLOAK_INVALID;
-		uint bAdmin = false;
+		tmCloakTime = 0;
+		iState = STATE_CLOAK_INVALID;
+		bAdmin = false;
 
 		arch.iWarmupTime = 0;
 		arch.iCooldownTime = 0;
@@ -64,13 +74,12 @@ struct CLOAK_INFO
 		arch.bDropShieldsOnUncloak = false;
 	}
 
-	uint iCloakSlot;
+	ushort iCloakSlot;
 	bool bCanCloak;
 	mstime tmCloakTime;
 	uint iState;
 	bool bAdmin;
 	int DisruptTime;
-	bool singleCloakConsumed = false;
 
 	CLOAK_ARCH arch;
 };
@@ -92,13 +101,14 @@ struct CLIENTCDSTRUCT
 	CDSTRUCT cd;
 };
 
-static map<uint, CLOAK_INFO> mapClientsCloak;
+static unordered_map<uint, CLOAK_INFO> mapClientsCloak;
 static map<uint, CLIENTCDSTRUCT> mapClientsCD;
 
 static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
 
-static set<uint> setJumpingClients;
+static uint cloakAlertSound = CreateID("cloak_osiris");
+static unordered_set<uint> setJumpingClients;
 
 void LoadSettings();
 
@@ -129,7 +139,6 @@ void LoadSettings()
 
 	int cloakamt = 0;
 	int cdamt = 0;
-	int limitedamt = 0;
 	INI_Reader ini;
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
@@ -159,18 +168,23 @@ void LoadSettings()
 					}
 					else if (ini.is_value("fuel"))
 					{
+						CLOAK_FUEL_USAGE fuelUsage;
 						string scNickName = ini.get_value_string(0);
-						uint usage = ini.get_value_int(1);
-						bool limitedCloak = ini.get_value_bool(2);
-						if (limitedCloak) {
-							limitedamt++;
-						}
-						device.singleUseCloak = limitedCloak;
-						device.mapFuelToUsage[CreateID(scNickName.c_str())] = usage;
+						fuelUsage.usageStatic = ini.get_value_float(1);
+						fuelUsage.usageLinear = ini.get_value_float(2);
+						fuelUsage.usageSquare = ini.get_value_float(3);
+						device.mapFuelToUsage[CreateID(scNickName.c_str())] = fuelUsage;
 					}
 					else if (ini.is_value("drop_shields_on_uncloak"))
 					{
 						device.bDropShieldsOnUncloak = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("break_cloak_on_proximity"))
+					{
+						device.bBreakOnProximity = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("detection_range")) {
+						device.fRange = ini.get_value_float(0);
 					}
 				}
 				mapCloakingDevices[CreateID(device.scNickName.c_str())] = device;
@@ -209,13 +223,19 @@ void LoadSettings()
 				mapCloakDisruptors[CreateID(disruptor.nickname.c_str())] = disruptor;
 				++cdamt;
 			}
+			else if (ini.is_header("General")) {
+				while (ini.read_value()) {
+					if (ini.is_value("cloak_alert_sound")) {
+						cloakAlertSound = CreateID(ini.get_value_string());
+					}
+				}
+			}
 		}
 		ini.close();
 	}
 
 	ConPrint(L"CLOAK: Loaded %u cloaking devices \n", cloakamt);
 	ConPrint(L"CLOAK: Loaded %u cloak disruptors \n", cdamt);
-	ConPrint(L"CLOAK: Loaded %u limited cloak setups \n", limitedamt);
 
 	struct PlayerData *pd = 0;
 	while (pd = Players.traverse_active(pd))
@@ -289,51 +309,40 @@ void SetState(uint iClientID, uint iShipID, int iNewState)
 	}
 }
 
-bool removeSingleFuel(uint iClientID, CLOAK_INFO &info)
-{
-	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
-	{
-		uint fuel_usage = info.arch.mapFuelToUsage[item->iArchID];
-		if (item->iCount >= fuel_usage)
-		{
-			pub::Player::RemoveCargo(iClientID, item->sID, fuel_usage);
-			info.singleCloakConsumed = true;
-			return true;
-		}
-	}
-
-	return false;
-
-}
-
 // Returns false if the ship has no fuel to operate its cloaking device.
-static bool ProcessFuel(uint iClientID, CLOAK_INFO &info)
+static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 {
 	if (info.bAdmin)
 		return true;
 
-	if (!info.singleCloakConsumed && info.arch.singleUseCloak) {
-		return removeSingleFuel(iClientID, info);
-	}
-
-	else if (info.singleCloakConsumed)
-	{
+	if(setJumpingClients.find(iClientID) != setJumpingClients.end())
 		return true;
-	}
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (info.arch.mapFuelToUsage.find(item->iArchID) != info.arch.mapFuelToUsage.end())
 		{
-			uint fuel_usage = info.arch.mapFuelToUsage[item->iArchID];
-			if (item->iCount >= fuel_usage)
+			const auto& fuelUsage = info.arch.mapFuelToUsage[item->iArchID];
+			float currFuelUsage = fuelUsage.usageStatic;
+			if (fuelUsage.usageLinear != 0.0f || fuelUsage.usageSquare != 0.0f) {
+				Vector dir1;
+				Vector dir2;
+				pub::SpaceObj::GetMotion(iShipID, dir1, dir2);
+				float vecLength = sqrtf(dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z);
+				
+				currFuelUsage += fuelUsage.usageLinear * vecLength;
+				currFuelUsage += fuelUsage.usageSquare * vecLength * vecLength;
+			}
+			uint totalFuelUsage = static_cast<uint>(max(currFuelUsage, 0.0f));
+			if (item->iCount >= totalFuelUsage)
 			{
-				pub::Player::RemoveCargo(iClientID, item->sID, fuel_usage);
+				pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);
 				return true;
 			}
+			if(info.arch.mapFuelToUsage.size() == 1)
+				break;
 		}
 	}
-
 	return false;
 }
 
@@ -423,7 +432,7 @@ void HkTimerCheckKick()
 	uint curr_time = (uint)time(0);
 
 
-	for (map<uint, CLOAK_INFO>::iterator ci = mapClientsCloak.begin(); ci != mapClientsCloak.end(); ++ci)
+	for (auto& ci = mapClientsCloak.begin(); ci != mapClientsCloak.end(); ++ci)
 	{
 		uint iClientID = ci->first;
 		uint iShipID = Players[iClientID].iShipID;
@@ -459,7 +468,7 @@ void HkTimerCheckKick()
 				break;
 
 			case STATE_CLOAK_CHARGING:
-				if (!ProcessFuel(iClientID, info))
+				if (!ProcessFuel(iClientID, info, iShipID))
 				{
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");
 					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
@@ -483,7 +492,7 @@ void HkTimerCheckKick()
 				break;
 
 			case STATE_CLOAK_ON:
-				if (!ProcessFuel(iClientID, info))
+				if (!ProcessFuel(iClientID, info, iShipID))
 				{
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");
 					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
@@ -491,7 +500,6 @@ void HkTimerCheckKick()
 				else if (info.arch.bDropShieldsOnUncloak && !info.bAdmin)
 				{
 					pub::SpaceObj::DrainShields(iShipID);
-
 
 					if ((curr_time % 5) == 0)
 					{
@@ -505,13 +513,17 @@ void HkTimerCheckKick()
 						uint iSystem;
 						pub::Player::GetSystem(iClientID, iSystem);
 
-						uint MusictoID = CreateID("dsy_jumpdrive_survey");
 						//pub::Audio::PlaySoundEffect(iClientID, MusictoID);
+
+						list<GROUP_MEMBER> lstGrpMembers;
+						HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
 
 						// For all players in system...
 						struct PlayerData *pPD = 0;
 						while (pPD = Players.traverse_active(pPD))
 						{
+							if (pPD->iOnlineID == iClientID)
+								continue;
 							// Get the this player's current system and location in the system.
 							uint client2 = HkGetClientIdFromPD(pPD);
 							uint iSystem2 = 0;
@@ -527,10 +539,33 @@ void HkTimerCheckKick()
 							pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
 
 							// Is player within the specified range of the sending char.
-							if (HkDistance3D(pos, pos2) > 4000)
-								continue;
+							if (HkDistance3D(pos, pos2) < info.arch.fRange) {
+								if (info.arch.bBreakOnProximity)
+								{
+									bool isGroupMember = false;
+									for (auto& member : lstGrpMembers) {
+										if (member.iClientID == pPD->iOnlineID) {
+											isGroupMember = true;
+											break;
+										}
+									}
+									if (isGroupMember)
+									{
+										pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
+									}
+									else
+									{
+										PrintUserCmdText(iClientID, L"Cloak broken by proximity to another vessel!");
+										SetState(iClientID, iShipID, STATE_CLOAK_OFF);
+										break;
+									}
+								}
+								else
+								{
+									pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
+								}
+							}
 
-							pub::Audio::PlaySoundEffect(client2, MusictoID);
 						}
 					}
 				}
@@ -845,26 +880,24 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id())
+	if (!iDmgToSpaceID || !dmg->get_inflictor_id())
+		return;
+
+	if (dmg->get_cause() != 0x06 && dmg->get_cause() != 0x15)
+		return;
+	
+	uint client = HkGetClientIDByShip(iDmgToSpaceID);
+	if (!client)
+		return;
+
+	if (mapClientsCloak[client].bCanCloak
+		&& !mapClientsCloak[client].bAdmin
+		&& mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
 	{
-		if (dmg->get_cause() == 0x06)
-		{
-			float curr, max;
-			pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-			uint client = HkGetClientIDByShip(iDmgToSpaceID);
-			if (client)
-			{
-				if (mapClientsCloak[client].bCanCloak
-					&& !mapClientsCloak[client].bAdmin
-					&& mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
-				{
-					SetState(client, iDmgToSpaceID, STATE_CLOAK_OFF);
-				}
-			}
-		}
+		SetState(client, iDmgToSpaceID, STATE_CLOAK_OFF);
 	}
 }
 
@@ -894,15 +927,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 	uint client = HkGetClientIDByShip(iShip);
 	if (client)
 	{
-		if ((response == PROCEED_DOCK || response == DOCK) && iCancel == -1)
-		{
-			uint iTypeID;
-			pub::SpaceObj::GetType(iDockTarget, iTypeID);
-			if (iTypeID == OBJ_JUMP_GATE || iTypeID == OBJ_JUMP_HOLE)
-			{
-				setJumpingClients.erase(client);
-			}
-		}
 		if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
 		{
 			// If the last jump happened within 60 seconds then prohibit the docking
@@ -911,7 +935,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);
 			if (iTypeID == OBJ_JUMP_GATE || iTypeID == OBJ_JUMP_HOLE)
 			{
-				setJumpingClients.insert(client);
 				if (client && mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
 				{
 					SetState(client, iShip, STATE_CLOAK_OFF);
@@ -927,6 +950,14 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 	}
 
 	return 0;
+}
+
+void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
+{
+	// in case of SERVER_PACKET hooks, first argument is junk data before it gets processed by the server.
+	uint packetClient = HkGetClientIDByShip(switchOutPacket.shipId);
+	if (packetClient)
+		setJumpingClients.insert(packetClient);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -946,6 +977,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOut, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));

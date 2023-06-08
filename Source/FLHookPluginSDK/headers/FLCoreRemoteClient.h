@@ -41,6 +41,24 @@ struct FLPACKET_UNKNOWN
 	uint iDunno[20];
 };
 
+struct FLPACKET_SYSTEM_SWITCH_OUT
+{
+	uint shipId;
+	uint jumpObjectId;
+};
+
+struct FLPACKET_CREATEGUIDED
+{
+	uint iProjectileId;
+	Vector vPos;
+	Quaternion qOri;
+	uint iTargetId;
+	uint iDunno;
+	uint iMunitionId;
+	uint iDunno2; // zero (initial speed?)
+	uint iOwner;
+};
+
 struct FLPACKET_SETREPUTATION
 {
 	uint iSpaceID;
@@ -145,8 +163,8 @@ public:
 	virtual double CDPClientProxy__GetLinkSaturation(uint iClientID);
 	virtual bool Send_FLPACKET_SERVER_SETSHIPARCH(uint iClientID, uint iShipArch);
 	virtual bool Send_FLPACKET_SERVER_SETHULLSTATUS(uint iClientID, float fStatus);
-	virtual bool Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(uint iClientID, FLPACKET_UNKNOWN& pDunno);
-	virtual bool Send_FLPACKET_SERVER_SETEQUIPMENT(uint iClientID, FLPACKET_UNKNOWN& pDunno);
+	virtual bool Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(uint iClientID, st6::list<XCollisionGroup>& collisionGrpList);
+	virtual bool Send_FLPACKET_SERVER_SETEQUIPMENT(uint iClientID, st6::vector<EquipDesc>& equipVec);
 	virtual void unknown_26(uint iClientID, uint iDunno);
 	virtual bool Send_FLPACKET_SERVER_SETADDITEM(uint iClientID, FLPACKET_UNKNOWN& pDunno, FLPACKET_UNKNOWN& pDunno2);
 	virtual void unknown_28(uint iClientID, uint iDunno, uint iDunno2, uint iDunno3);
@@ -172,14 +190,14 @@ public:
 	virtual bool Send_FLPACKET_SERVER_CREATESHIP(uint iClientID, FLPACKET_CREATESHIP& pShip);
 	virtual bool Send_FLPACKET_SERVER_CREATELOOT(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual bool Send_FLPACKET_SERVER_CREATEMINE(uint iClientID, FLPACKET_UNKNOWN& pDunno);
-	virtual bool Send_FLPACKET_SERVER_CREATEGUIDED(uint iClientID, FLPACKET_UNKNOWN& pDunno);
+	virtual bool Send_FLPACKET_SERVER_CREATEGUIDED(uint iClientID, FLPACKET_CREATEGUIDED& pDunno);
 	virtual bool Send_FLPACKET_SERVER_CREATECOUNTER(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual void unknown_53(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual void unknown_54(uint iClientID, uint iDunno, uint iDunno2, uint iDunno3);
 	virtual bool Send_FLPACKET_COMMON_UPDATEOBJECT(uint iClientID, SSPObjUpdateInfo& pUpdate);
 	virtual bool Send_FLPACKET_SERVER_DESTROYOBJECT(uint iClientID, FLPACKET_DESTROYOBJECT& pDestroy);
 	virtual bool Send_FLPACKET_SERVER_ACTIVATEOBJECT(uint iClientID, XActivateEquip& aq);
-	virtual bool Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_UNKNOWN& pDunno);
+	virtual bool Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& pSwitchOut);
 	virtual bool Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual bool Send_FLPACKET_SERVER_LAND(uint iClientID, FLPACKET_LAND& pLand);
 	EXPORT virtual bool Send_FLPACKET_SERVER_LAUNCH(uint iClientID, FLPACKET_LAUNCH& pLaunch);

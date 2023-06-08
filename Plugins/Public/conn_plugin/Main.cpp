@@ -15,6 +15,8 @@ Connecticut Plugin by MadHunter
 #include <FLHook.h>
 #include <plugin.h>
 #include <hookext_exports.h>
+#include <PluginUtilities.h>
+#include <unordered_set>
 #include <math.h>
 
 #define CLIENT_STATE_NONE		0
@@ -38,6 +40,8 @@ uint set_iTargetSystemID = 0;
 
 // Base to use if player is trapped in the conn system.
 uint set_iDefaultBaseID = 0;
+
+unordered_set<uint> setForbiddenEquipment;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -83,6 +87,10 @@ void LoadSettings()
 						if (set_iPluginDebug)
 							ConPrint(L"NOTICE: Adding conn restricted system %s\n", stows(blockedSystem).c_str());
 					}
+					else if (ini.is_value("ForbiddenEquipment"))
+					{
+						setForbiddenEquipment.insert(CreateID(ini.get_value_string(0)));
+					}
 				}
 			}
 		}
@@ -102,6 +110,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		if (set_scCfgFile.length() > 0)
 			LoadSettings();
+		HkLoadStringDLLs();
+	}
+	else if (fdwReason == DLL_PROCESS_DETACH)
+	{
+		HkUnloadStringDLLs();
 	}
 	return true;
 }
@@ -133,7 +146,16 @@ bool ValidateCargo(unsigned int client)
 
 		// Some commodity present.
 		if (flag)
+		{
+			PrintUserCmdText(client, STR_INFO2);
 			return false;
+		}
+		else if (setForbiddenEquipment.count(item.iArchID))
+		{
+			const GoodInfo* gi = GoodList::find_by_id(item.iArchID);
+			PrintUserCmdText(client, L"Can't enter arena while holding %ls", HkGetWStringFromIDS(gi->iIDSName).c_str());
+			return false;
+		}
 	}
 
 	return true;
@@ -257,7 +279,6 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 
 		if (!ValidateCargo(client))
 		{
-			PrintUserCmdText(client, STR_INFO2);
 			return true;
 		}
 

@@ -41,6 +41,12 @@ struct FLPACKET_UNKNOWN
 	uint iDunno[20];
 };
 
+struct FLPACKET_SYSTEM_SWITCH_OUT
+{
+	uint shipId;
+	uint jumpObjectId;
+};
+
 struct FLPACKET_CREATEGUIDED
 {
 	uint iProjectileId;
@@ -191,7 +197,7 @@ public:
 	virtual bool Send_FLPACKET_COMMON_UPDATEOBJECT(uint iClientID, SSPObjUpdateInfo& pUpdate);
 	virtual bool Send_FLPACKET_SERVER_DESTROYOBJECT(uint iClientID, FLPACKET_DESTROYOBJECT& pDestroy);
 	virtual bool Send_FLPACKET_SERVER_ACTIVATEOBJECT(uint iClientID, XActivateEquip& aq);
-	virtual bool Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_UNKNOWN& pDunno);
+	virtual bool Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& pSwitchOut);
 	virtual bool Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(uint iClientID, FLPACKET_UNKNOWN& pDunno);
 	virtual bool Send_FLPACKET_SERVER_LAND(uint iClientID, FLPACKET_LAND& pLand);
 	EXPORT virtual bool Send_FLPACKET_SERVER_LAUNCH(uint iClientID, FLPACKET_LAUNCH& pLaunch);

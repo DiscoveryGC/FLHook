@@ -590,8 +590,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
 			return 0;
 
-		const uint iTargetClientID = HkGetClientIDByShip(iBaseID);
-		if (!iTargetClientID)
+		uint iType;
+		pub::SpaceObj::GetType(iTargetShip, iType);
+		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
 			return 0;
 
 		// If target is not player ship or ship is too far away then ignore the request.

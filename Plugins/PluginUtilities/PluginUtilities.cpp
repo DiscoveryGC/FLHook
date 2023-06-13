@@ -110,7 +110,7 @@ CAccount* HkGetAccountByClientID(uint iClientID)
 float HkDistance3D(Vector v1, Vector v2)
 {
 	float sq1 = v1.x - v2.x, sq2 = v1.y - v2.y, sq3 = v1.z - v2.z;
-	return sqrt(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
+	return sqrtf(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
 }
 
 // Calculate the distance between the two vectors
@@ -123,7 +123,7 @@ float HkDistance3DByShip(uint iShip1, uint iShip2)
 	Matrix m2;
 	pub::SpaceObj::GetLocation(iShip2, v2, m2);
 	float sq1 = v1.x - v2.x, sq2 = v1.y - v2.y, sq3 = v1.z - v2.z;
-	return sqrt(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
+	return sqrtf(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
 }
 
 bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
@@ -936,10 +936,10 @@ Vector MatrixToEuler(const Matrix& mat)
 Quaternion HkMatrixToQuaternion(Matrix m)
 {
 	Quaternion quaternion;
-	quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
-	quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
+	quaternion.w = sqrtf(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
+	quaternion.x = sqrtf(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
+	quaternion.y = sqrtf(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
+	quaternion.z = sqrtf(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
 	quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
 	quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
 	quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);

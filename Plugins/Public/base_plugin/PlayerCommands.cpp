@@ -185,7 +185,7 @@ namespace PlayerCommands
 		_snwprintf(titleBuf, sizeof(titleBuf), L"Base Help : Page %d/%d", page + 1, numPages);
 
 		wchar_t buf[4000];
-		_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%s<POP/></RDL>", pagetext);
+		_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%ls<POP/></RDL>", pagetext.c_str());
 
 		HkChangeIDSString(client, 500000, titleBuf);
 		HkChangeIDSString(client, 500001, buf);

@@ -445,6 +445,42 @@ namespace HkIServerImpl
 		projectile->set_target(nullptr);
 	}
 
+	void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)
+	{
+		const static uint NANOBOT_ARCH_ID = CreateID("ge_s_repair_01");
+		const static float NANOBOT_HEAL_AMOUNT = Archetype::GetEquipment(NANOBOT_ARCH_ID)->fHitPoints;
+
+		returncode = DEFAULT_RETURNCODE;
+
+		float currHitPts, maxHitPts;
+		pub::SpaceObj::GetHealth(p1.iUserShip, currHitPts, maxHitPts);
+		if (currHitPts > 0)
+		{
+			return;
+		}
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		for (auto& eq : Players[iClientID].equipDescList.equip)
+		{
+			if (eq.sID == p1.sItemId)
+			{
+				if (eq.iArchID == NANOBOT_ARCH_ID)
+				{
+					uint amountToUse = static_cast<uint>(ceil((maxHitPts * 1.5) / NANOBOT_HEAL_AMOUNT));
+					if (amountToUse < p1.sAmountUsed)
+					{
+						pub::Player::RemoveCargo(iClientID, p1.sItemId, amountToUse);
+						pub::SpaceObj::SetRelativeHealth(p1.iUserShip, 1.0f);
+					}
+					else
+					{
+						pub::Audio::PlaySoundEffect(iClientID, CreateID("ui_select_reject"));
+					}
+				}
+				break;
+			}
+		}
+	}
+
 	void __stdcall RequestEvent(int iEventType, unsigned int iShip, unsigned int iTargetObj, unsigned int p4, unsigned long p5, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
@@ -1759,6 +1795,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateNewCharacter, PLUGIN_HkIServerImpl_CreateNewCharacter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::DestroyCharacter, PLUGIN_HkIServerImpl_DestroyCharacter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::UseItemRequest, PLUGIN_HkIServerImpl_SPRequestUseItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIEngine::Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_SendChat, PLUGIN_HkCb_SendChat, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));

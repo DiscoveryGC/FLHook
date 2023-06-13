@@ -36,13 +36,14 @@ static std::array<std::array<float, MAX_CLIENT_ID + 1>, MAX_CLIENT_ID + 1> damag
 IMPORT uint iDmgTo;
 IMPORT float g_LastHitPts;
 
-bool showPercentage = true;
-
 //! Message broadcasted systemwide upon ship's death
 //! {0} is replaced with victim's name, {1} with player who dealt the most damage to them,
 //! {2} with percentage of hull damage taken byt that player.
-std::wstring deathDamageTemplate = L"{0} took most hull damage from {1}";
-std::wstring deathPercentageDone = L", {2}%";
+std::wstring deathDamageTemplate = L"Death: %victim died to ";
+
+uint numberOfKillers = 3;
+float deathBroadcastRange = 15000;
+uint minimumAssistPercentage = 5;
 
 // Load Settings
 void __stdcall LoadSettings()
@@ -65,9 +66,13 @@ void __stdcall LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					if (ini.is_value("ShowPercentage"))
+					if (ini.is_value("DeathBroadcastRange"))
 					{
-						showPercentage = ini.get_value_bool(0);
+						deathBroadcastRange = ini.get_value_float(0);
+					}
+					else if (ini.is_value("NumberOfKillers"))
+					{
+						numberOfKillers = ini.get_value_int(0);
 					}
 				}
 			}
@@ -97,22 +102,8 @@ void UserCmd_Kills(uint client, const std::wstring& wscParam)
 		clientId = client;
 	}
 	int kills;
-	int rank;
 	pub::Player::GetNumKills(clientId, kills);
-	pub::Player::GetRank(clientId, rank);
 	PrintUserCmdText(client, L"PvP kills: %u", kills);
-	PrintUserCmdText(client, L"Level: %u", rank);
-}
-
-uint GetClientIdByShip(uint shipId)
-{
-	PlayerData* pd = nullptr;
-	while (pd = Players.traverse_active(pd))
-	{
-		if (pd->iShipID == shipId)
-			return pd->iOnlineID;
-	}
-	return 0;
 }
 
 /** @ingroup KillTracker
@@ -128,7 +119,7 @@ void __stdcall ShipDestroyed(DamageList* dmg, DWORD* ecx, uint kill)
 		if (uint client = cShip->GetOwnerPlayer())
 		{
 			uint lastInflictorId = dmg->get_cause() == 0 ? ClientInfo[client].dmgLast.get_inflictor_id() : dmg->get_inflictor_id();
-			uint killerId = GetClientIdByShip(lastInflictorId);
+			uint killerId = HkGetClientIDByShip(lastInflictorId);
 
 			if (killerId && killerId != client)
 			{
@@ -144,20 +135,19 @@ void __stdcall ShipDestroyed(DamageList* dmg, DWORD* ecx, uint kill)
 void __stdcall AddDamageEntry(DamageList* damageList, ushort subObjId, float& newHitPoints, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgTo && subObjId == 1)
+	if (iDmgTo && subObjId == 1 && g_LastHitPts > newHitPoints) //ignore negative hp events such as repair ship
 	{
 		const auto& inflictor = damageList->iInflictorPlayerID;
 		if (inflictor && iDmgTo && inflictor != iDmgTo)
 		{
-			damageArray[inflictor][iDmgTo] += g_LastHitPts;
+			damageArray[inflictor][iDmgTo] += g_LastHitPts - newHitPoints;
 		}
 	}
 }
 
 void clearDamageTaken(uint victim)
 {
-	for (auto& damageEntry : damageArray[victim])
-		damageEntry = 0.0f;
+	damageArray[victim].fill(0.0f);
 }
 
 void clearDamageDone(uint inflictor)
@@ -169,50 +159,133 @@ void clearDamageDone(uint inflictor)
 void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint clientVictim, uint clientKiller)
 {
 	returncode = DEFAULT_RETURNCODE;
-
-	if (clientVictim && clientKiller)
+	if (!clientVictim || !clientKiller)
 	{
-		uint greatestInflictorId = 0;
-		float greatestDamageDealt = 0.0f;
-		float totalDamageTaken = 0.0f;
-		for (uint inflictorIndex = 1; inflictorIndex < damageArray[0].size(); inflictorIndex++)
+		return;
+	}
+
+	map<float, uint> damageToInflictorMap; // damage is the key instead of value because keys are sorted, used to render top contributors in order
+
+	float totalDamageTaken = 0.0f;
+	for (uint inflictorIndex = 1; inflictorIndex < damageArray[0].size(); inflictorIndex++)
+	{
+		float damageDone = damageArray[inflictorIndex][clientVictim];
+		if (damageDone == 0){
+			continue;
+		}
+
+		damageToInflictorMap[damageDone] = inflictorIndex;
+		totalDamageTaken += damageDone;
+	}
+	if (totalDamageTaken == 0.0f)
+	{
+		clearDamageTaken(clientVictim);
+		return;
+	}
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+	std::wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(clientVictim);
+
+	std::wstring deathMessage = deathDamageTemplate;
+	deathMessage = ReplaceStr(deathMessage, L"%victim", victimName);
+
+	uint killerCounter = 0;
+
+	for (auto& i = damageToInflictorMap.rbegin(); i != damageToInflictorMap.rend(); i++) // top values at the end
+	{
+		if (i == damageToInflictorMap.rend() || killerCounter >= numberOfKillers)
 		{
-			float damageDealt = damageArray[inflictorIndex][clientVictim];
-			totalDamageTaken += damageDealt;
-			if (damageDealt > greatestDamageDealt)
+			break;
+		}
+		if (i != damageToInflictorMap.rbegin())
+		{
+			deathMessage += L", ";
+		}
+		uint contributionPercentage = static_cast<uint>(round((i->first / totalDamageTaken) * 100));
+		if (contributionPercentage < minimumAssistPercentage)
+		{
+			break;
+		}
+		std::wstring inflictorName = (const wchar_t*)Players.GetActiveCharacterName(i->second);
+		deathMessage += inflictorName + L' ' + stows(itos(contributionPercentage)) + L'%';
+		killerCounter++;
+	}
+
+	ushort cFormat = 0;
+	wchar_t wszFormatBuf[8];
+	swprintf(wszFormatBuf, _countof(wszFormatBuf), L"%02X", (long)cFormat);
+	wstring wscTRADataFormat = wszFormatBuf;
+
+	deathMessage = L"<TRA data=\"0x0000CC" + wscTRADataFormat +
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
+
+	uint victimGroup = 0;
+	uint killerGroup = 0;
+	if (Players[clientVictim].PlayerGroup != nullptr)
+	{
+		victimGroup = Players[clientVictim].PlayerGroup->GetID();
+	}
+	if (Players[clientKiller].PlayerGroup != nullptr)
+	{
+		killerGroup = Players[clientKiller].PlayerGroup->GetID();
+	}
+
+	uint systemId;
+	pub::Player::GetSystem(clientVictim, systemId);
+	Vector victimPos;
+	Matrix victimOri;
+	pub::SpaceObj::GetLocation(Players[clientVictim].iShipID, victimPos, victimOri);
+
+	PlayerData* pd = nullptr;
+	while (pd = Players.traverse_active(pd))
+	{
+		uint playerId = pd->iOnlineID;
+		if (damageArray[playerId][clientVictim] > 0)
+		{
+			HkFMsg(playerId, deathMessage);
+			continue;
+		}
+		if (
+		(pd->PlayerGroup &&
+			((victimGroup && victimGroup == pd->PlayerGroup->GetID())
+			|| ( killerGroup && killerGroup == pd->PlayerGroup->GetID())))
+		|| playerId == clientVictim
+		|| playerId == clientKiller)
+		{
+			HkFMsg(playerId, deathMessage);
+			continue;
+		}
+		if (pd->iSystemID == systemId && Players[playerId].iShipID)
+		{
+			Vector pos;
+			Matrix ori;
+			pub::SpaceObj::GetLocation(Players[playerId].iShipID, pos, ori);
+			if (HkDistance3D(victimPos, pos) <= deathBroadcastRange)
 			{
-				greatestDamageDealt = damageDealt;
-				greatestInflictorId = inflictorIndex;
+				HkFMsg(playerId, deathMessage);
 			}
 		}
-		clearDamageTaken(clientVictim);
-		if (totalDamageTaken == 0.0f || greatestInflictorId == 0)
-			return;
-
-		std::wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(clientVictim);
-		std::wstring greatestInflictorName = (const wchar_t*)Players.GetActiveCharacterName(greatestInflictorId);
-
-		std::wstring greatestDamageMessage = deathDamageTemplate;
-		greatestDamageMessage = ReplaceStr(greatestDamageMessage, L"{0}", victimName);
-		greatestDamageMessage = ReplaceStr(greatestDamageMessage, L"{1}", greatestInflictorName);
-		if(showPercentage)
-			greatestDamageMessage += ReplaceStr(deathPercentageDone, L"{2}", stows(itos(static_cast<uint>(ceil((greatestDamageDealt / totalDamageTaken) * 100)))));
-
-		ushort cFormat = 0;
-		wchar_t wszFormatBuf[8];
-		swprintf(wszFormatBuf, _countof(wszFormatBuf), L"%02X", (long)cFormat);
-		wstring wscTRADataFormat = wszFormatBuf;
-
-		greatestDamageMessage = L"<TRA data=\"0xFF8C00" + wscTRADataFormat +
-			L"\" mask=\"-1\"/><TEXT>" + XMLText(greatestDamageMessage) + L"</TEXT>";
-		
-		HkFMsgS(stows(itos(system)), greatestDamageMessage);
 	}
+
+	clearDamageTaken(clientVictim);
 }
 
 void __stdcall Disconnect(uint client, enum EFLConnection conn)
 {
 	returncode = DEFAULT_RETURNCODE;
+	uint shipId;
+	pub::Player::GetShip(client, shipId);
+	if (shipId)//FIXDIS
+	{
+		for (uint inflictorIndex = 1; inflictorIndex < damageArray[0].size(); inflictorIndex++)
+		{
+			if (damageArray[inflictorIndex][client] != 0)
+			{
+				static wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(client);
+				PrintUserCmdText(inflictorIndex, L"%ls : Player %ls is attempting to disconnect in space", GetTimeString(false).c_str(), victimName.c_str());
+			}
+		}
+	}
 	clearDamageTaken(client);
 	clearDamageDone(client);
 }
@@ -258,7 +331,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddDamageEntry, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 1));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Disconnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));

@@ -588,8 +588,18 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 
 		// If spin protection is off, do nothing.
-		if (set_fSpinProtectMass == -1.0f)
+		if (!ci.dwTargetShip || set_fSpinProtectMass == -1.0f)
 			return;
+
+		uint type;
+		pub::SpaceObj::GetType(ci.dwTargetShip, type);
+
+		if (type == OBJ_LOOT)
+		{
+			pub::SpaceObj::Destroy(ci.dwTargetShip, DestroyType::FUSE);
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			return;
+		}
 
 		// If the target is not a player, do nothing.
 		//uint iClientIDTarget = HkGetClientIDByShip(ci.dwTargetShip);

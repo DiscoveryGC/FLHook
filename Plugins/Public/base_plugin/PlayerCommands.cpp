@@ -83,7 +83,7 @@ L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>
 L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
 			
 L"<TRA bold=\"true\"/><TEXT>/base supplies</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>";
+L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>"
 
 L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"

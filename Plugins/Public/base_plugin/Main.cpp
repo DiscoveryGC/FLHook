@@ -2314,7 +2314,7 @@ void BaseDestroyed(uint space_obj, uint client)
 	customSolarList.erase(space_obj);
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate& fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (!iDmgToSpaceID || !dmg->get_inflictor_id())

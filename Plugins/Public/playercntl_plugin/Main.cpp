@@ -650,8 +650,27 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 
 		// If spin protection is off, do nothing.
-		if (set_fSpinProtectMass == -1.0f)
+		if (!ci.dwTargetShip || set_fSpinProtectMass == -1.0f)
 			return;
+
+		uint type;
+		pub::SpaceObj::GetType(ci.dwTargetShip, type);
+
+		uint client_ship;
+		pub::Player::GetShip(iClientID, client_ship);
+
+		if (type == OBJ_LOOT)
+		{
+			Vector V1, V2;
+			pub::SpaceObj::GetMotion(client_ship, V1, V2);
+			float playerSpeed = sqrtf(V1.x * V1.x + V1.y * V1.y + V1.z * V1.z);
+			if (playerSpeed > 35)
+			{
+				pub::SpaceObj::Destroy(ci.dwTargetShip, DestroyType::FUSE);
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			}
+			return;
+		}
 
 		// If the target is not a player, do nothing.
 		//uint iClientIDTarget = HkGetClientIDByShip(ci.dwTargetShip);
@@ -660,9 +679,6 @@ namespace HkIServerImpl
 
 		float target_mass;
 		pub::SpaceObj::GetMass(ci.dwTargetShip, target_mass);
-
-		uint client_ship;
-		pub::Player::GetShip(iClientID, client_ship);
 
 		float client_mass;
 		pub::SpaceObj::GetMass(client_ship, client_mass);

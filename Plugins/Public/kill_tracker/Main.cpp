@@ -234,7 +234,7 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 		killerCounter++;
 	}
 
-	deathMessage = L"<TRA data=\"0x0000CC01"
+	deathMessage = L"<TRA data=\"0xCC000001"
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
 
 	uint victimGroup = 0;

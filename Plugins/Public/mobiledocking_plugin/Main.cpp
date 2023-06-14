@@ -36,6 +36,8 @@ float maxDockingDistanceTolerance = 8.0f;
 string defaultReturnSystem = "ew04"; //freeport 9, Omicron Theta
 string defaultReturnBase = "ew04_01_base";
 
+void MoveOfflineShipToLastDockedSolar(const wstring& charName);
+
 // Load the configuration
 void LoadSettings()
 {

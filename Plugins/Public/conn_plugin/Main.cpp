@@ -15,6 +15,8 @@ Connecticut Plugin by MadHunter
 #include <FLHook.h>
 #include <plugin.h>
 #include <hookext_exports.h>
+#include <PluginUtilities.h>
+#include <unordered_set>
 #include <math.h>
 
 #define CLIENT_STATE_NONE		0
@@ -38,6 +40,8 @@ uint set_iTargetSystemID = 0;
 
 // Base to use if player is trapped in the conn system.
 uint set_iDefaultBaseID = 0;
+
+unordered_set<uint> setForbiddenEquipment;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -83,6 +87,10 @@ void LoadSettings()
 						if (set_iPluginDebug)
 							ConPrint(L"NOTICE: Adding conn restricted system %s\n", stows(blockedSystem).c_str());
 					}
+					else if (ini.is_value("ForbiddenEquipment"))
+					{
+						setForbiddenEquipment.insert(CreateID(ini.get_value_string(0)));
+					}
 				}
 			}
 		}
@@ -102,6 +110,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		if (set_scCfgFile.length() > 0)
 			LoadSettings();
+		HkLoadStringDLLs();
+	}
+	else if (fdwReason == DLL_PROCESS_DETACH)
+	{
+		HkUnloadStringDLLs();
 	}
 	return true;
 }
@@ -133,7 +146,16 @@ bool ValidateCargo(unsigned int client)
 
 		// Some commodity present.
 		if (flag)
+		{
+			PrintUserCmdText(client, STR_INFO2);
 			return false;
+		}
+		else if (setForbiddenEquipment.count(item.iArchID))
+		{
+			const GoodInfo* gi = GoodList::find_by_id(item.iArchID);
+			PrintUserCmdText(client, L"Can't enter arena while holding %ls", HkGetWStringFromIDS(gi->iIDSName).c_str());
+			return false;
+		}
 	}
 
 	return true;
@@ -164,6 +186,18 @@ unsigned int ReadReturnPointForClient(unsigned int client)
 	return HookExt::IniGetI(client, "conn.retbase");
 }
 
+void SimulateF1(uint client, uint baseId)
+{
+	Server.BaseEnter(baseId, client);
+	Server.BaseExit(baseId, client);
+	wstring wscCharFileName;
+	HkGetCharFileName(ARG_CLIENTID(client), wscCharFileName);
+	wscCharFileName += L".fl";
+	CHARACTER_ID cID;
+	strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+	Server.CharacterSelect(cID, client);
+}
+
 void MoveClient(unsigned int client, unsigned int targetBase)
 {
 	// Ask that another plugin handle the beam.
@@ -185,14 +219,7 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 		pub::Player::ForceLand(client, targetBase); // beam	// if not in the same system, emulate F1 charload
 		if (base->iSystemID != system)
 		{
-			Server.BaseEnter(targetBase, client);
-			Server.BaseExit(targetBase, client);
-			wstring wscCharFileName;
-			HkGetCharFileName(ARG_CLIENTID(client), wscCharFileName);
-			wscCharFileName += L".fl";
-			CHARACTER_ID cID;
-			strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-			Server.CharacterSelect(cID, client);
+			SimulateF1(client, targetBase);
 		}
 	}
 	else
@@ -209,16 +236,9 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 		}
 		PrintUserCmdText(client, L"Player base renamed/destroyed, ship redirected to a proxy base");
 		pub::Player::ForceLand(client, proxyBaseID); // beam
-		if (base->iSystemID != system)
+		if (returnSys != system)
 		{
-			Server.BaseEnter(targetBase, client);
-			Server.BaseExit(targetBase, client);
-			wstring wscCharFileName;
-			HkGetCharFileName(ARG_CLIENTID(client), wscCharFileName);
-			wscCharFileName += L".fl";
-			CHARACTER_ID cID;
-			strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-			Server.CharacterSelect(cID, client);
+			SimulateF1(client, proxyBaseID);
 		}
 	}
 
@@ -259,7 +279,6 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 
 		if (!ValidateCargo(client))
 		{
-			PrintUserCmdText(client, STR_INFO2);
 			return true;
 		}
 

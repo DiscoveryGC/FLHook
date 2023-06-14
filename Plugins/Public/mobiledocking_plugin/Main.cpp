@@ -33,6 +33,9 @@ float mobileDockingRange = 500.0f;
 
 float maxDockingDistanceTolerance = 8.0f;
 
+string defaultReturnSystem = "ew04"; //freeport 9, Omicron Theta
+string defaultReturnBase = "ew04_01_base";
+
 // Load the configuration
 void LoadSettings()
 {
@@ -94,6 +97,14 @@ void LoadSettings()
 					{
 						maxDockingDistanceTolerance = ini.get_value_float(0);
 					}
+					else if (ini.is_value("default_return_system"))
+					{
+						defaultReturnSystem = ini.get_value_string(0);
+					}
+					else if (ini.is_value("default_return_base"))
+					{
+						defaultReturnBase = ini.get_value_string(0);
+					}
 				}
 			}
 		}
@@ -151,6 +162,13 @@ void LoadSettings()
 				if (doLoad) {
 					nameToCarrierInfoMap[carrierName] = ci;
 					carrierCount++;
+				}
+				else
+				{
+					for (const auto& dockedShipName : ci.dockedShipList)
+					{
+						MoveOfflineShipToLastDockedSolar(dockedShipName);
+					}
 				}
 			}
 		}
@@ -313,6 +331,33 @@ wstring GetLastBaseName(uint client)
 	return baseName + L", " + sysName;
 }
 
+void MoveOfflineShipToLastDockedSolar(const wstring& charName)
+{
+	//player offline, edit their character file to put them on last docked solar
+	CAccount* acc = HkGetAccountByCharname(charName);
+	if (acc)
+	{
+		wstring dirName;
+		wstring charFilename;
+		HkGetAccountDirName(charName, dirName);
+		HkGetCharFileName(charName, charFilename);
+		string charpath = scAcctPath + wstos(dirName) + "\\" + wstos(charFilename) + ".fl";
+		const auto& dockedInfo = nameToDockedInfoMap[charName];
+		const auto& baseInfo = Universe::get_base(dockedInfo.lastDockedSolar);
+		const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
+		if (baseInfo && sysInfo)
+		{
+			WritePrivateProfileString("Player", "system", sysInfo->nickname, charpath.c_str());
+			WritePrivateProfileString("Player", "base", baseInfo->cNickname, charpath.c_str());
+		}
+		else
+		{
+			WritePrivateProfileString("Player", "system", defaultReturnSystem.c_str(), charpath.c_str());
+			WritePrivateProfileString("Player", "base", defaultReturnBase.c_str(), charpath.c_str());
+		}
+	}
+}
+
 bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 {
 	if (!nameToDockedInfoMap.count(dockedShipName)) {
@@ -336,16 +381,7 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 		CAccount *acc = HkGetAccountByCharname(dockedShipName);
 		if (acc)
 		{
-			wstring dirName;
-			wstring charFilename;
-			HkGetAccountDirName(dockedShipName, dirName);
-			HkGetCharFileName(dockedShipName, charFilename);
-			string charpath = scAcctPath + wstos(dirName) + "\\" + wstos(charFilename) + ".fl";
-			const auto& dockedInfo = nameToDockedInfoMap[dockedShipName];
-			const auto& baseInfo = Universe::get_base(dockedInfo.lastDockedSolar);
-			const auto& sysInfo = Universe::get_system(baseInfo->iSystemID);
-			WritePrivateProfileString("Player", "system", reinterpret_cast<const char*>(sysInfo->nickname), charpath.c_str());
-			WritePrivateProfileString("Player", "base", baseInfo->cNickname, charpath.c_str());
+			MoveOfflineShipToLastDockedSolar(dockedShipName);
 		}
 	}
 

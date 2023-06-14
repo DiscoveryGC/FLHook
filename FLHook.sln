@@ -309,6 +309,5 @@ Global
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{e7008ba7-4f75-4af7-b25c-3a9a3287a88f}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{e7dfb061-5e6a-47dc-94c5-ccb169ea410a}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{e7eb5672-90cc-4b88-a8a0-55bb6bbae7f7}*SharedItemsImports = 4
-		Plugins\PluginUtilities\PluginUtilities.vcxitems*{f1ec36fb-0262-4edd-b582-fe77872d3820}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

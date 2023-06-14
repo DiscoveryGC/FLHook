@@ -43,6 +43,7 @@ bool set_bEnableRenameMe = false;
 bool set_bEnableMoveChar = false;
 bool set_bEnableRestart = false;
 bool set_bEnableGiveCash = false;
+bool set_bEnableDeathMsg = false;
 bool set_bLocalTime = false;
 
 /// Local chat range
@@ -121,6 +122,7 @@ void LoadSettings()
 	set_bEnablePimpShip = IniGetB(scPluginCfgFile, "General", "EnablePimpShip", false);
 	set_bEnableRestart = IniGetB(scPluginCfgFile, "General", "EnableRestart", false);
 	set_bEnableGiveCash = IniGetB(scPluginCfgFile, "General", "EnableGiveCash", false);
+	set_bEnableDeathMsg = IniGetB(scPluginCfgFile, "General", "EnableDeathMsg", false);
 
 	set_fSpinProtectMass = IniGetF(scPluginCfgFile, "General", "SpinProtectionMass", 180.0f);
 	set_fSpinImpulseMultiplier = IniGetF(scPluginCfgFile, "General", "SpinProtectionMultiplier", -1.0f);

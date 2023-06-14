@@ -156,11 +156,34 @@ void clearDamageDone(uint inflictor)
 		damageArray[i][inflictor] = 0.0f;
 }
 
+void ProcessNonPvPDeath(const std::wstring& message, uint system)
+{
+	wstring deathMessage = L"<TRA data=\"0x0000CC01"
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(message) + L"</TEXT>";
+
+	PlayerData* pd = nullptr;
+	while (pd = Players.traverse_active(pd))
+	{
+		if (pd->iSystemID == system)
+		{
+			HkFMsg(pd->iOnlineID, deathMessage);
+		}
+	}
+}
+
 void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint clientVictim, uint clientKiller)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (!clientVictim || !clientKiller)
+	if (!clientVictim)
 	{
+		return;
+	}
+
+	returncode = NOFUNCTIONCALL;
+	if (!clientKiller)
+	{
+		ProcessNonPvPDeath(message, system);
+		clearDamageTaken(clientVictim);
 		return;
 	}
 
@@ -180,9 +203,9 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 	if (totalDamageTaken == 0.0f)
 	{
 		clearDamageTaken(clientVictim);
+		ProcessNonPvPDeath(message, system);
 		return;
 	}
-	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 	std::wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(clientVictim);
 
@@ -211,12 +234,7 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 		killerCounter++;
 	}
 
-	ushort cFormat = 0;
-	wchar_t wszFormatBuf[8];
-	swprintf(wszFormatBuf, _countof(wszFormatBuf), L"%02X", (long)cFormat);
-	wstring wscTRADataFormat = wszFormatBuf;
-
-	deathMessage = L"<TRA data=\"0x0000CC" + wscTRADataFormat +
+	deathMessage = L"<TRA data=\"0x0000CC01"
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
 
 	uint victimGroup = 0;
@@ -331,7 +349,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddDamageEntry, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 1));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Disconnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));

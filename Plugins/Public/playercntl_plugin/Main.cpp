@@ -357,15 +357,6 @@ namespace HkIEngine
 					response = ACCESS_DENIED;
 					return 1;
 				}
-
-				if (response == PROCEED_DOCK)
-				{
-					// Print out a message when a player ship docks.
-					wstring wscMsg = L"%time Traffic control alert: %player has requested to dock";
-					wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
-					wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
-					PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
-				}
 			}
 
 			SystemSensor::Dock_Call(iShip, iDockTarget, iCancel, response);
@@ -570,6 +561,19 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 	}
 
+	bool __stdcall Base_Land(uint iClientID, FLPACKET_LAND& pLand)
+	{
+		uint clientId = HkGetClientIDByShip(pLand.iShip);
+		if (clientId)
+		{
+			// Print out a message when a player ship docks.
+			wstring wscMsg = L"%time Traffic control alert: %player has docked";
+			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
+			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
+			PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
+		}
+		return true;
+	}
 	void __stdcall BaseEnter(unsigned int iBaseID, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
@@ -1797,6 +1801,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::RequestEvent_AFTER, PLUGIN_HkIServerImpl_RequestEvent_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Base_Land, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	// check causes lag: p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::LocationEnter, PLUGIN_HkIServerImpl_LocationEnter, 0));

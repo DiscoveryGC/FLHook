@@ -210,6 +210,7 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_Plugin_Communication,
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, // adding here to avoid breaking private plugins due to enum mismatch, can be moved in case of global plugin recompile
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT,
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND,
 	PLUGIN_CALLBACKS_AMOUNT,
 };
 

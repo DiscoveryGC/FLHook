@@ -49,6 +49,7 @@ struct DOCKEDCRAFTINFO
 
 void SendResetMarketOverride(uint client);
 void SendSetBaseInfoText2(UINT client, const wstring &message);
+void ForceLaunch(uint client);
 
 // The distance to undock from the carrier
 static int set_iMobileDockOffset = 100;

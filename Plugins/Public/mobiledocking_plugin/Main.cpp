@@ -13,7 +13,6 @@ unordered_map<uint, uint> mapPendingDockingRequests;
 vector<DELAYEDDOCK> dockingInProgress;
 vector<uint> dockingModuleEquipmentIds;
 unordered_map<uint, CLIENT_DATA> mobiledockClients;
-unordered_map<uint, uint> jettisonRedirectMap;
 
 unordered_map<wstring, CARRIERINFO> nameToCarrierInfoMap;
 unordered_map<wstring, DOCKEDCRAFTINFO> nameToDockedInfoMap;
@@ -385,9 +384,8 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 	{
 		if (isForced)
 		{
-			wstring& lastBaseName = GetLastBaseName(dockedClientID);
-			PrintUserCmdText(dockedClientID, L"Carrier has jettisonned your ship. Returning to %ls", lastBaseName.c_str());
-			jettisonRedirectMap[dockedClientID] = idToDockedInfoMap[dockedClientID]->lastDockedSolar;
+			ForceLaunch(dockedClientID);
+			return true;
 		}
 		idToDockedInfoMap.erase(dockedClientID);
 	}
@@ -523,14 +521,6 @@ void __stdcall BaseExit(uint iBaseID, uint iClientID)
 void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
-
-	// If has pending dock redirect, dock there
-	if (jettisonRedirectMap.count(client))
-	{
-		pub::Player::ForceLand(client, jettisonRedirectMap[client]);
-		jettisonRedirectMap.erase(client);
-		return;
-	}
 
 	// If not docked on another ship, skip processing.
 	if (!idToDockedInfoMap.count(client))
@@ -877,7 +867,6 @@ void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 	mapPendingDockingRequests.erase(iClientID);
 	idToCarrierInfoMap.erase(iClientID);
 	idToDockedInfoMap.erase(iClientID);
-	jettisonRedirectMap.erase(iClientID);
 }
 
 void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
@@ -889,7 +878,6 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	mapPendingDockingRequests.erase(iClientID);
 	idToCarrierInfoMap.erase(iClientID);
 	idToDockedInfoMap.erase(iClientID);
-	jettisonRedirectMap.erase(iClientID);
 
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);

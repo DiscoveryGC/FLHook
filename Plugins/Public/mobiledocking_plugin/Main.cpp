@@ -36,6 +36,8 @@ float maxDockingDistanceTolerance = 8.0f;
 string defaultReturnSystem = "ew04"; //freeport 9, Omicron Theta
 string defaultReturnBase = "ew04_01_base";
 
+uint targetMobileDockingBase = 0;
+
 void MoveOfflineShipToLastDockedSolar(const wstring& charName);
 
 // Load the configuration
@@ -106,6 +108,10 @@ void LoadSettings()
 					else if (ini.is_value("default_return_base"))
 					{
 						defaultReturnBase = ini.get_value_string(0);
+					}
+					else if (ini.is_value("target_mobile_docking_base"))
+					{
+						targetMobileDockingBase = CreateID(ini.get_value_string(0));
 					}
 				}
 			}
@@ -211,7 +217,7 @@ void SaveData()
 	}
 }
 
-void dockShipOnCarrier(uint dockingID, uint carrierID)
+void DockShipOnCarrier(uint dockingID, uint carrierID)
 {
 
 	// The client is free to dock, erase from the pending list and handle
@@ -223,11 +229,19 @@ void dockShipOnCarrier(uint dockingID, uint carrierID)
 		return;
 	}
 
-	string scProxyBase = HkGetPlayerSystemS(carrierID) + "_proxy_base";
 	uint iBaseID;
-	if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
+	if (targetMobileDockingBase)
 	{
-		PrintUserCmdText(carrierID, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
+		iBaseID = targetMobileDockingBase;
+	}
+	else
+	{
+		string scProxyBase = HkGetPlayerSystemS(carrierID) + "_proxy_base";
+		if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
+		{
+			PrintUserCmdText(carrierID, L"No proxy base in system detected. Contact a developer about this please. Required base: %ls", stows(scProxyBase).c_str());
+			return;
+		}
 	}
 
 	// Save the carrier info
@@ -296,7 +310,7 @@ void HkTimerCheckKick()
 				dd = dockingInProgress.erase(dd);
 				continue;
 			}
-			dockShipOnCarrier(dd->dockingID, dd->carrierID);
+			DockShipOnCarrier(dd->dockingID, dd->carrierID);
 			dd = dockingInProgress.erase(dd);
 			continue;
 		}
@@ -305,7 +319,7 @@ void HkTimerCheckKick()
 		dd++;
 	}
 
-	if (time(0) % saveFrequency == 0)
+	if ((time(0) + 60) % saveFrequency == 0) // 60 second offset so it happens before daily restart at full hour
 	{
 		SaveData();
 	}
@@ -445,7 +459,7 @@ void StartDockingProcedure(uint dockingID, uint carrierID) {
 	}
 	else
 	{
-		dockShipOnCarrier(dockingID, carrierID);
+		DockShipOnCarrier(dockingID, carrierID);
 	}
 }
 

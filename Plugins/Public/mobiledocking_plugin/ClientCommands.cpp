@@ -16,3 +16,15 @@ void SendResetMarketOverride(UINT client)
 	SendCommand(client, L" ResetMarketOverride");
 	SendCommand(client, L" SetMarketOverride 0 0 0 0");
 }
+
+void ForceLaunch(uint client, uint systemId)
+{
+	uint ship;
+	pub::Player::GetShip(client, ship);
+	if (ship)
+		return;
+
+	wchar_t buf[200];
+	_snwprintf(buf, sizeof(buf), L" ChangeSys %u", system);
+	SendCommand(client, buf);
+}

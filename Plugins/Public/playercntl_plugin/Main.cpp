@@ -509,13 +509,13 @@ namespace HkIServerImpl
 
 	bool __stdcall Base_Land(uint iClientID, FLPACKET_LAND& pLand)
 	{
-		uint clientId = HkGetClientIDByShip(pLand.iShip);
-		if (clientId)
+		uint landingClientId = HkGetClientIDByShip(pLand.iShip);
+		if (landingClientId && landingClientId == iClientID)
 		{
 			// Print out a message when a player ship docks.
 			wstring wscMsg = L"%time Traffic control alert: %player has docked";
 			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
-			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
+			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(landingClientId));
 			PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
 		}
 		return true;

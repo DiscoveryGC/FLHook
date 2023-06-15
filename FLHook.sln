@@ -62,12 +62,21 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Laz", "Laz", "{63F35E63-664C-46D5-8897-D0EB32610F96}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Help", "Plugins\Public\help_expanded\Help.vcxproj", "{8CBF9EF0-324A-4699-8A26-C2999B99B225}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Rep", "Plugins\Public\getrep\Rep.vcxproj", "{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Balance Magic Plugin", "Plugins\Public\balancemagic\Balance Magic Plugin.vc14.vcxproj", "{2853796F-8AAF-4E93-A210-08EA11C63D6B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiscellaneousCommands", "Plugins\Public\MiscellaneousCommands\MiscellaneousCommands.vcxproj", "{C26DA99F-10F7-421B-AC31-EED1623E7B04}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvE Controller", "Plugins\Public\pvecontroller\pvecontroller.vcxproj", "{22D02598-F2D3-495F-BBA9-72DC156DA723}"
 EndProject

@@ -79,6 +79,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiscellaneousCommands", "Pl
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvE Controller", "Plugins\Public\pvecontroller\pvecontroller.vcxproj", "{22D02598-F2D3-495F-BBA9-72DC156DA723}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

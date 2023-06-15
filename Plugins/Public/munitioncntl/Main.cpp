@@ -14,9 +14,6 @@
 #include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
-#include <PluginUtilities.h>
-
-#include "../hookext_plugin/hookext_exports.h"
 
 map<string, uint> factions;
 /// A return code to indicate to FLHook if we want the hook processing to continue.
@@ -26,6 +23,7 @@ unordered_set<uint> setNoTrackingAlertProjectiles;
 unordered_set<uint> setNoFuseOnExpiryMines;
 
 unordered_map<uint, uint> mapTrackingByShiptypeBlacklistBitmap;
+unordered_map<uint, boolean> mapProcessedGuided;
 
 bool enableMineExpiryFuse = false;
 
@@ -82,13 +80,6 @@ void LoadSettings()
 		{
 			if (ini.is_header("General"))
 			{
-				while (ini.read_value())
-				{
-					if (ini.is_value("EnableMineExpiryFuse"))
-					{
-						enableMineExpiryFuse = ini.get_value_bool(0);
-					}
-				}
 			}
 			else if (ini.is_header("NoTrackingAlertProjectile"))
 			{
@@ -97,16 +88,6 @@ void LoadSettings()
 					if (ini.is_value("MissileArch"))
 					{
 						setNoTrackingAlertProjectiles.insert(CreateID(ini.get_value_string(0)));
-					}
-				}
-			}
-			else if (ini.is_header("SetNoFuseOnExpiryMines"))
-			{
-				while (ini.read_value())
-				{
-					if (ini.is_value("MineArch"))
-					{
-						setNoFuseOnExpiryMines.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -150,10 +131,8 @@ void LoadSettings()
 //Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
+void ProcessGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
-	returncode = DEFAULT_RETURNCODE;
-
 	uint ownerType;
 	pub::SpaceObj::GetType(createGuidedPacket.iOwner, ownerType);
 	if (!(ownerType & (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL))) //GetTarget throws an exception for non-ship entities.
@@ -176,7 +155,7 @@ void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedP
 		uint targetType;
 		pub::SpaceObj::GetType(createGuidedPacket.iTargetId, targetType);
 		const auto& blacklistedShipTypeTargets = mapTrackingByShiptypeBlacklistBitmap.at(createGuidedPacket.iMunitionId);
-		if(blacklistedShipTypeTargets & targetType)
+		if (blacklistedShipTypeTargets & targetType)
 		{
 			tracking = NOTRACK_NOALERT;
 		}
@@ -194,37 +173,26 @@ void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedP
 			createGuidedPacket.iTargetId = 0; // prevents the 'incoming missile' warning client-side
 		}
 	}
+
+	mapProcessedGuided[createGuidedPacket.iProjectileId] = createGuidedPacket.iTargetId ? true : false;
 }
 
-bool __stdcall DestroyObject(uint iClientID, FLPACKET_DESTROYOBJECT& pDestroy)
+void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
-	//This hook looks for packets informing players of a mine that is about to expire: Type = OBJ_MINE and DestroyType = VANISH
-	//If caught, we supress that packet from being sent and trigger the explosion via Destroy method with FUSE destroy type.
 	returncode = DEFAULT_RETURNCODE;
 
-	if (!enableMineExpiryFuse || pDestroy.iDestroyType == FUSE)
+	// if projectile was already processed, only check if its alert is to be disabled.
+	const auto& processed = mapProcessedGuided.find(createGuidedPacket.iProjectileId);
+	if (processed != mapProcessedGuided.end() && !processed->second) 
 	{
-		return true;
+		createGuidedPacket.iTargetId = 0;
+	}
+	else
+	{
+		// only process a given projectile once instead of for every player receiving the packet individually.
+		ProcessGuided(iClientID, createGuidedPacket); 
 	}
 
-	uint type;
-	pub::SpaceObj::GetType(pDestroy.iSpaceID, type);
-	if (type == OBJ_MINE)
-	{
-		if (!setNoFuseOnExpiryMines.empty())
-		{
-			uint mineArch;
-			pub::SpaceObj::GetSolarArchetypeID(pDestroy.iSpaceID, mineArch);
-			if (setNoFuseOnExpiryMines.count(mineArch))
-			{
-				return true;
-			}
-		}
-		pub::SpaceObj::Destroy(pDestroy.iSpaceID, FUSE);
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-	}
-
-	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,7 +210,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DestroyObject, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_DESTROYOBJECT, 0));
 
 	return p_PI;
 }

@@ -113,6 +113,7 @@ struct CONTAINER_DATA
 	uint systemId = 0;
 	Vector jettisonPos;
 	uint clientId = 0;
+	uint lootCrateId = 0;
 };
 unordered_map<uint, CLIENT_DATA> mapClients;
 unordered_map<uint, CONTAINER_DATA> mapMiningContainers;
@@ -165,7 +166,7 @@ void DestroyContainer(uint clientID)
 		{
 			const auto& cd = mapMiningContainers[iter->second.deployedContainerId];
 			if(cd.lootCount)
-				Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
+				Server.MineAsteroid(cd.systemId, cd.jettisonPos, cd.lootCrateId, cd.lootId, cd.lootCount, cd.clientId);
 			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
 			pub::SpaceObj::Destroy(iter->second.deployedContainerId, DestroyType::FUSE);
 			mapMiningContainers.erase(iter->second.deployedContainerId);
@@ -243,6 +244,8 @@ EXPORT void LoadSettings()
 	set_deployableContainerCommodity = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerCommodity", "commodity_scrap_metal").c_str());
 	set_miningMunition = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "MiningMunition", "mining_gun_ammo").c_str());
 	set_miningCheatLogThreshold = IniGetF(scPluginCfgFile, "MiningGeneral", "MiningCheatLogThreshold", set_miningCheatLogThreshold);
+
+	set_containerLootCrateID = Archetype::GetEquipment(set_deployableContainerCommodity)->get_loot_appearance()->iArchID;
 
 	if(set_iPluginDebug)
 		ConPrint(L"NOTICE: debug=%d\n", set_iPluginDebug);
@@ -641,6 +644,7 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 			cd.nameIDS = data.solar_ids;
 			cd.solarName = data.initialName;
 			cd.clientId = iClientID;
+			cd.lootCrateId = Archetype::GetEquipment(lootId)->get_loot_appearance()->iArchID;
 			mapMiningContainers[data.iSpaceObjId] = cd;
 			mapClients[iClientID].deployedContainerId = data.iSpaceObjId;
 			pub::Player::RemoveCargo(iClientID, item->sID, 1);

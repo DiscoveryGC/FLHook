@@ -27,11 +27,12 @@
 #include <plugin.h>
 #include <PluginUtilities.h>
 #include <array>
+#include <unordered_map>
 
 
 PLUGIN_RETURNCODE returncode;
 
-static std::array<std::array<float, MAX_CLIENT_ID + 1>, MAX_CLIENT_ID + 1> damageArray;
+static array<array<float, MAX_CLIENT_ID + 1>, MAX_CLIENT_ID + 1> damageArray;
 
 IMPORT uint iDmgTo;
 IMPORT float g_LastHitPts;
@@ -39,7 +40,9 @@ IMPORT float g_LastHitPts;
 //! Message broadcasted systemwide upon ship's death
 //! {0} is replaced with victim's name, {1} with player who dealt the most damage to them,
 //! {2} with percentage of hull damage taken byt that player.
-std::wstring deathDamageTemplate = L"Death: %victim died to ";
+wstring defaultDeathDamageTemplate = L"%victim died to %killer";
+wstring killMsgStyle = L"0xCC303001";
+unordered_map<uint, vector<wstring>> shipClassToDeathMsgListMap;
 
 uint numberOfKillers = 3;
 float deathBroadcastRange = 15000;
@@ -74,7 +77,43 @@ void __stdcall LoadSettings()
 					{
 						numberOfKillers = ini.get_value_int(0);
 					}
+					else if (ini.is_value("KillMsgStyle"))
+					{
+						killMsgStyle = stows(ini.get_value_string());
+					}
 				}
+			}
+			else if (ini.is_header("KillMessage"))
+			{
+				vector<wstring> deathMsgList;
+				uint shipClass;
+				while (ini.read_value())
+				{
+					if (ini.is_value("ShipType"))
+					{
+						string typeStr = ToLower(ini.get_value_string(0));
+						if (typeStr == "fighter")
+							shipClass = OBJ_FIGHTER;
+						else if (typeStr == "freighter")
+							shipClass = OBJ_FREIGHTER;
+						else if (typeStr == "transport")
+							shipClass = OBJ_TRANSPORT;
+						else if (typeStr == "gunboat")
+							shipClass = OBJ_GUNBOAT;
+						else if (typeStr == "cruiser")
+							shipClass = OBJ_CRUISER;
+						else if (typeStr == "capital")
+							shipClass = OBJ_CAPITAL;
+						else
+							ConPrint(L"KillTracker: Error reading config for Death Messages, value %ls not recognized\n", stows(typeStr).c_str());
+					}
+					else if (ini.is_value("DeathMsg"))
+					{
+						deathMsgList.push_back(stows(ini.get_value_string()));
+					}
+				}
+
+				shipClassToDeathMsgListMap[shipClass] = deathMsgList;
 			}
 		}
 	}
@@ -83,9 +122,9 @@ void __stdcall LoadSettings()
 /** @ingroup KillTracker
  * @brief Called when a player types "/kills".
  */
-void UserCmd_Kills(uint client, const std::wstring& wscParam)
+void UserCmd_Kills(uint client, const wstring& wscParam)
 {
-	std::wstring targetCharName = GetParam(wscParam, ' ', 1);
+	wstring targetCharName = GetParam(wscParam, ' ', 1);
 	uint clientId;
 
 	if (!targetCharName.empty())
@@ -156,7 +195,7 @@ void clearDamageDone(uint inflictor)
 		damageArray[i][inflictor] = 0.0f;
 }
 
-void ProcessNonPvPDeath(const std::wstring& message, uint system)
+void ProcessNonPvPDeath(const wstring& message, uint system)
 {
 	wstring deathMessage = L"<TRA data=\"0x0000CC01"
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(message) + L"</TEXT>";
@@ -171,7 +210,21 @@ void ProcessNonPvPDeath(const std::wstring& message, uint system)
 	}
 }
 
-void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint clientVictim, uint clientKiller)
+wstring RandomizeDeathTemplate(uint iClientID)
+{
+	uint shipType = Archetype::GetShip(Players[iClientID].iShipArchetype)->iArchType;
+	const auto& deathMsgList = shipClassToDeathMsgListMap[shipType];
+	if (deathMsgList.empty())
+	{
+		return defaultDeathDamageTemplate;
+	}
+	else
+	{
+		return deathMsgList.at(rand() % deathMsgList.size());
+	}
+}
+
+void __stdcall SendDeathMessage(const wstring& message, uint system, uint clientVictim, uint clientKiller)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (!clientVictim)
@@ -207,10 +260,11 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 		return;
 	}
 
-	std::wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(clientVictim);
+	wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(clientVictim);
 
-	std::wstring deathMessage = deathDamageTemplate;
+	wstring deathMessage = RandomizeDeathTemplate(clientVictim);
 	deathMessage = ReplaceStr(deathMessage, L"%victim", victimName);
+	wstring assistMessage = L"";
 
 	uint killerCounter = 0;
 
@@ -220,22 +274,36 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 		{
 			break;
 		}
-		if (i != damageToInflictorMap.rbegin())
-		{
-			deathMessage += L", ";
-		}
 		uint contributionPercentage = static_cast<uint>(round((i->first / totalDamageTaken) * 100));
 		if (contributionPercentage < minimumAssistPercentage)
 		{
 			break;
 		}
-		std::wstring inflictorName = (const wchar_t*)Players.GetActiveCharacterName(i->second);
-		deathMessage += inflictorName + L' ' + stows(itos(contributionPercentage)) + L'%';
+
+		wstring inflictorName = (const wchar_t*)Players.GetActiveCharacterName(i->second);
+		if (killerCounter == 0)
+		{
+			deathMessage = ReplaceStr(deathMessage, L"%killer", inflictorName);
+			deathMessage += L" (" + stows(itos(contributionPercentage)) + L"%)";
+		}
+		else if (killerCounter == 1)
+		{
+			assistMessage += L"Assisted by: " + inflictorName + L" (" + stows(itos(contributionPercentage)) + L"%)";
+		}
+		else
+		{
+			assistMessage = L", " + inflictorName + L" (" + stows(itos(contributionPercentage)) + L"%)";
+		}
 		killerCounter++;
 	}
 
-	deathMessage = L"<TRA data=\"0xCC000001"
+	deathMessage = L"<TRA data=\"" + killMsgStyle +
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
+	if (!assistMessage.empty())
+	{
+		assistMessage = L"<TRA data=\"" + killMsgStyle +
+			L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
+	}
 
 	uint victimGroup = 0;
 	uint killerGroup = 0;
@@ -261,6 +329,8 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 		if (damageArray[playerId][clientVictim] > 0)
 		{
 			HkFMsg(playerId, deathMessage);
+			if(!assistMessage.empty())
+				HkFMsg(playerId, assistMessage);
 			continue;
 		}
 		if (
@@ -271,6 +341,8 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 		|| playerId == clientKiller)
 		{
 			HkFMsg(playerId, deathMessage);
+			if (!assistMessage.empty())
+				HkFMsg(playerId, assistMessage);
 			continue;
 		}
 		if (pd->iSystemID == systemId && Players[playerId].iShipID)
@@ -281,6 +353,8 @@ void __stdcall SendDeathMessage(const std::wstring& message, uint system, uint c
 			if (HkDistance3D(victimPos, pos) <= deathBroadcastRange)
 			{
 				HkFMsg(playerId, deathMessage);
+				if (!assistMessage.empty())
+					HkFMsg(playerId, assistMessage);
 			}
 		}
 	}
@@ -313,7 +387,6 @@ void __stdcall PlayerLaunch(uint shipId, uint client)
 	returncode = DEFAULT_RETURNCODE;
 	clearDamageTaken(client);
 	clearDamageDone(client);
-	float maxHp = Archetype::GetShip(Players[client].iShipArchetype)->fHitPoints;
 }
 
 void __stdcall CharacterSelect(CHARACTER_ID const& cid, uint client)

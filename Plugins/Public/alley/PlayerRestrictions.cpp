@@ -29,7 +29,8 @@
 #include <boost/lexical_cast.hpp>
 #include <unordered_map>
 
-const static uint MAX_JETTISON_COUNT = 25;
+static uint maxJettisonCount = 25;
+static uint lootCleanupFrequency = 420;
 
 namespace pt = boost::posix_time;
 static int set_iPluginDebug = 0;
@@ -268,6 +269,20 @@ void LoadSettings()
 					if (ini.is_value("tr"))
 					{
 						notradelist[CreateID(ini.get_value_string(0))] = min(1.0f, max( 0.0f, ini.get_value_float(1)));
+					}
+				}
+			}
+			else if (ini.is_header("general"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("MaxJettisonCount"))
+					{
+						maxJettisonCount = ini.get_value_int(0);
+					}
+					else if (ini.is_value("LootCleanupFrequency"))
+					{
+						lootCleanupFrequency = ini.get_value_int(0);
 					}
 				}
 			}
@@ -691,10 +706,10 @@ void RemoveSurplusJettisonItems()
 	}
 	for (const auto& jettisonData : jettisonedItemsMap)
 	{
-		if (jettisonData.second.size() <= MAX_JETTISON_COUNT)
+		if (jettisonData.second.size() <= maxJettisonCount)
 			continue;
 		//iterate from the beginning until the 25th last element
-		for (uint i = 0; i < jettisonData.second.size() - MAX_JETTISON_COUNT; i++)
+		for (uint i = 0; i < jettisonData.second.size() - maxJettisonCount; i++)
 		{
 			pub::SpaceObj::Destroy(jettisonData.second[i], DestroyType::VANISH);
 		}
@@ -1402,7 +1417,7 @@ void HkTimerCheckKick()
 		MarkUsageTimer.clear();
 	}
 	// every 7 minutes, sweep and clean up CLoot entries
-	if ((curr_time % 420) == 0)
+	if ((curr_time % lootCleanupFrequency) == 0)
 	{
 		RemoveSurplusJettisonItems();
 	}

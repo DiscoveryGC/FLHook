@@ -561,6 +561,7 @@ namespace PlayerCommands
 	void Shop(uint client, const wstring &args);
 	void GetNecessitiesStatus(uint client, const wstring &args);
 	void BaseSwapModule(uint client, const wstring &args);
+	bool CheckSolarDistances(uint client, uint systemID, Vector pos);
 
 	void BaseDeploy(uint client, const wstring &args);
 

@@ -2005,7 +2005,15 @@ namespace PlayerCommands
 					}
 					else
 					{
-						ConPrint(L"Base is within the mining zone");
+						if (zone->idsName)
+						{
+							ConPrint(L"Base is within the %ls mining zone", HkGetWStringFromIDS(zone->idsName).c_str());
+						}
+						else
+						{
+							const GoodInfo* gi = GoodList::find_by_id(zone->lootableZone->dynamic_loot_commodity);
+							ConPrint(L"Base is within the unnamed %ls mining zone", HkGetWStringFromIDS(gi->iIDSName).c_str());
+						}
 					}
 					return false;
 				}
@@ -2098,7 +2106,7 @@ namespace PlayerCommands
 						}
 						else
 						{
-							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance - solar->get_radius()));
 						}
 						return false;
 					}

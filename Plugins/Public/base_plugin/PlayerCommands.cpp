@@ -1966,7 +1966,10 @@ namespace PlayerCommands
 			if (base.second->basetype != "legacy" 
 				|| base.second->invulnerable 
 				|| !base.second->logic
-				|| base.second->system != systemID)
+				|| base.second->system != systemID
+				|| (base.second->position.x == pos.x
+					&& base.second->position.y == pos.y
+					&& base.second->position.z == pos.z))
 				continue;
 
 			float distance = HkDistance3D(pos, base.second->position);

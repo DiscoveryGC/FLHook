@@ -45,6 +45,7 @@ float minStationDistance = 10000;
 float minLaneDistance = 5000;
 float minJumpDistance = 15000;
 float minDistanceMisc = 2500;
+float minOtherPOBDistance = 5000;
 
 /// Deployment command cooldown trackimg
 unordered_map<uint, uint> deploymentCooldownMap;
@@ -645,6 +646,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("min_distance_misc"))
 					{
 						minDistanceMisc = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_pob_distance"))
+					{
+						minOtherPOBDistance = max(0.0f, ini.get_value_float(0));
 					}
 					else if (ini.is_value("min_jump_distance"))
 					{
@@ -2989,11 +2994,14 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		for (const auto& base : player_bases)
 		{
+			if (base.second->basetype != "legacy" || base.second->invulnerable || !base.second->logic)
+				continue;
+
 			Vector& pos = base.second->position;
 			uint system = base.second->system;
 			if (!PlayerCommands::CheckSolarDistances(0, system, pos))
 			{
-				ConPrint(L" %ls\n", base.second->basename.c_str());
+				ConPrint(L" - %ls\n", base.second->basename.c_str());
 			}
 		}
 	}

@@ -646,6 +646,7 @@ extern float minStationDistance;
 extern float minLaneDistance;
 extern float minJumpDistance;
 extern float minDistanceMisc;
+extern float minOtherPOBDistance;
 
 /// Deployment command cooldown trackimg
 extern unordered_map<uint, uint> deploymentCooldownMap;

@@ -53,6 +53,7 @@ float minStationDistance = 10000;
 float minLaneDistance = 5000;
 float minJumpDistance = 15000;
 float minDistanceMisc = 2500;
+float minOtherPOBDistance = 5000;
 
 /// Deployment command cooldown trackimg
 unordered_map<uint, uint> deploymentCooldownMap;
@@ -595,6 +596,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("min_distance_misc"))
 					{
 						minDistanceMisc = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_pob_distance"))
+					{
+						minOtherPOBDistance = max(0.0f, ini.get_value_float(0));
 					}
 					else if (ini.is_value("min_jump_distance"))
 					{

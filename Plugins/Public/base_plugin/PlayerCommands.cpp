@@ -1884,6 +1884,30 @@ namespace PlayerCommands
 
 	bool CheckSolarDistances(uint client, uint systemID, Vector pos)
 	{
+		// Other POB Check
+		for (const auto& base : player_bases)
+		{
+			if (base.second->basetype != "legacy" 
+				|| base.second->invulnerable 
+				|| !base.second->logic
+				|| base.second->system != systemID)
+				continue;
+
+			float distance = HkDistance3D(pos, base.second->position);
+			if (distance < minOtherPOBDistance)
+			{
+				if (client)
+				{
+					PrintUserCmdText(client, L"Player base %ls is too close! Minimum distance: %um", base.second->basename.c_str(), static_cast<uint>(minOtherPOBDistance));
+				}
+				else
+				{
+					ConPrint(L"Base is too close to another Player Base");
+				}
+				return false;
+			}
+		}
+
 		// Mining Zone Check
 		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemID);
 		if (csys)

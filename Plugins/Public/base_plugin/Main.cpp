@@ -2764,6 +2764,22 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		cmd->Print(L"OK base debug is off.\n");
 		return true;
 	}
+	else if (args.find(L"checkbasedistances") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		for (const auto& base : player_bases)
+		{
+			Vector& pos = base.second->position;
+			uint system = base.second->system;
+			if (!PlayerCommands::CheckSolarDistances(0, system, pos))
+			{
+				ConPrint(L" %ls\n", base.second->basename.c_str());
+			}
+		}
+	}
 
 	return false;
 }

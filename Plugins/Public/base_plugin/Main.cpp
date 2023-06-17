@@ -2772,11 +2772,14 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		for (const auto& base : player_bases)
 		{
+			if (base.second->basetype != "legacy" || base.second->invulnerable || !base.second->logic)
+				continue;
+
 			Vector& pos = base.second->position;
 			uint system = base.second->system;
 			if (!PlayerCommands::CheckSolarDistances(0, system, pos))
 			{
-				ConPrint(L" %ls\n", base.second->basename.c_str());
+				ConPrint(L" - %ls\n", base.second->basename.c_str());
 			}
 		}
 	}

@@ -156,21 +156,22 @@ void ExportData::ToJSON()
 		}
 		pwds.close();
 
-		minijson::object_writer shop = pw.nested_object("shop");
+		minijson::array_writer shop = pw.nested_array("shop_items");
 		int curr_item = 1;
 		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
 		{
 			try {
-				shop.write("quantity", i->second.quantity);
-				shop.write("price", i->second.price);
-				shop.write("min_stock", i->second.min_stock);
-				shop.write("max_stock", i->second.max_stock);
-				shop.write("is_public", i->second.is_public);
+				minijson::object_writer item = shop.nested_object();
+				item.write("quantity", i->second.quantity);
+				item.write("price", i->second.price);
+				item.write("min_stock", i->second.min_stock);
+				item.write("max_stock", i->second.max_stock);
+				item.write("is_public", i->second.is_public);
 				
 				const GoodInfo* gi = GoodList::find_by_id(i->first);
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);
-				shop.write("item", wstos(HtmlEncode(name)).c_str());
-
+				item.write("item", wstos(HtmlEncode(name)).c_str());
+				item.close();
 				
 			} catch (exception e) {
 				ConPrint(L"WARN: failed to output to json object with id %u\n", i->first);

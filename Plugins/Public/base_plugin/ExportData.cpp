@@ -171,7 +171,7 @@ void ExportData::ToJSON()
 				const GoodInfo* gi = GoodList::find_by_id(i->first);
 				
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);
-				item.write("name", wstos(HtmlEncode(name)).c_str());
+				item.write("name", wstos(name).c_str());
 				item.write("name_id", gi->iIDSName);
 				item.write("id", i->first);
 				item.write("nickname", EquipmentUtilities::FindNickname(i->first));

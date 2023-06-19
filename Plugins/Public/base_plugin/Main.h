@@ -664,4 +664,11 @@ extern float damage_threshold;
 extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
+
+// From EquipmentUtilities.cpp
+namespace EquipmentUtilities
+{
+	void ReadIniNicknames();
+	const char* FindNickname(unsigned int hash);
+}
 #endif

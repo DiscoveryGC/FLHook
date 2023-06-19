@@ -169,8 +169,12 @@ void ExportData::ToJSON()
 				item.write("is_public", i->second.is_public);
 				
 				const GoodInfo* gi = GoodList::find_by_id(i->first);
+				
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);
-				item.write("item", wstos(HtmlEncode(name)).c_str());
+				item.write("name", wstos(HtmlEncode(name)).c_str());
+				item.write("name_id", gi->iIDSName);
+				item.write("id", i->first);
+				item.write("nickname", EquipmentUtilities::FindNickname(i->first));
 				item.close();
 				
 			} catch (exception e) {

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -132,7 +132,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ClCompile Include="AntiJumpDisconnect.cpp" />
     <ClCompile Include="CargoDrop.cpp" />
     <ClCompile Include="CrashCatcher.cpp" />
-    <ClCompile Include="EquipmentUtilities.cpp" />
     <ClCompile Include="Givecash.cpp" />
     <ClCompile Include="HyperJump.cpp" />
     <ClCompile Include="IPBan.cpp" />

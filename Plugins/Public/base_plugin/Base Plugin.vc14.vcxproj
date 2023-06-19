@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -138,6 +138,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ClCompile Include="ClientCommands.cpp" />
     <ClCompile Include="CoreModule.cpp" />
     <ClCompile Include="DefenseModule.cpp" />
+    <ClCompile Include="EquipmentUtilities.cpp" />
     <ClCompile Include="ExportData.cpp" />
     <ClCompile Include="FactoryModule.cpp" />
     <ClCompile Include="Jumper.cpp" />

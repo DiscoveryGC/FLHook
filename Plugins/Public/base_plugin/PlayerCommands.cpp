@@ -1722,9 +1722,9 @@ namespace PlayerCommands
 					continue;
 				}
 				wchar_t buf[1000];
-				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max</TEXT><PARA/>",
+				_snwprintf(buf, sizeof(buf), L"<TEXT>  %02u:  %ux %s %0.0f credits stock: %u min %u max (%s)</TEXT><PARA/>",
 					globalItem, i->second.quantity, HtmlEncode(name).c_str(),
-					i->second.price, i->second.min_stock, i->second.max_stock);
+					i->second.price, i->second.min_stock, i->second.max_stock, i->second.is_public ? L"Public" : L"Private");
 				status += buf;
 				item++;
 			}
@@ -1756,7 +1756,7 @@ namespace PlayerCommands
 		}
 
 		const wstring &cmd = GetParam(args, ' ', 1);
-		if (!clients[client].admin && (!clients[client].viewshop || (cmd == L"price" || cmd == L"remove")))
+		if (!clients[client].admin && (!clients[client].viewshop || (cmd == L"price" || cmd == L"remove" || cmd == L"public" || cmd == L"private")))
 		{
 			PrintUserCmdText(client, L"ERROR: Access denied");
 			return;
@@ -1818,6 +1818,29 @@ namespace PlayerCommands
 				}
 			}
 			PrintUserCmdText(client, L"ERR Commodity does not exist");
+		}
+		else if (cmd == L"public" || cmd == L"private")
+		{
+			int item = ToInt(GetParam(args, ' ', 2));
+
+			if (item < 1 || item > base->market_items.size())
+			{
+				PrintUserCmdText(client, L"ERR Commodity does not exist");
+				return;
+			}
+
+			map<UINT, MARKET_ITEM>::iterator i = std::next(base->market_items.begin(), item - 1);
+
+			if (cmd == L"public")
+				i->second.is_public = true;
+			else 
+				i->second.is_public = false;
+			base->Save();
+
+			int page = ((item + 39) / 40);
+			ShowShopStatus(client, base, L"", page);
+			PrintUserCmdText(client, L"OK");
+			
 		}
 		else if (cmd == L"filter")
 		{

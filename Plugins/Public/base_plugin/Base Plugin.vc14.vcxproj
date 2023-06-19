@@ -138,6 +138,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ClCompile Include="ClientCommands.cpp" />
     <ClCompile Include="CoreModule.cpp" />
     <ClCompile Include="DefenseModule.cpp" />
+    <ClCompile Include="EquipmentUtilities.cpp" />
     <ClCompile Include="ExportData.cpp" />
     <ClCompile Include="FactoryModule.cpp" />
     <ClCompile Include="Jumper.cpp" />

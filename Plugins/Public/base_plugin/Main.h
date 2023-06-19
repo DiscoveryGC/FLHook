@@ -61,7 +61,7 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000) {}
+	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000), is_public(false) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
@@ -74,6 +74,9 @@ struct MARKET_ITEM
 
 	// Stop buying if the base holds more than this number of items
 	uint max_stock;
+
+	// Making public to all players without restrictions
+	bool is_public;
 };
 
 struct NEWS_ITEM
@@ -661,4 +664,11 @@ extern float damage_threshold;
 extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
+
+// From EquipmentUtilities.cpp
+namespace EquipmentUtilities
+{
+	void ReadIniNicknames();
+	const char* FindNickname(unsigned int hash);
+}
 #endif

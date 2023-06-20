@@ -73,7 +73,7 @@ void LoadSettings()
 
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\missilecntl.cfg";
+	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\munitionecntl.cfg";
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
 		while (ini.read_header())
@@ -91,7 +91,7 @@ void LoadSettings()
 					}
 				}
 			}
-			else if (ini.is_header("TrackingBlacklistByShipType"))
+			else if (ini.is_header("TrackingBlacklist"))
 			{
 				uint missileArch = 0;
 				uint blacklistedShipTypesBitmap = 0;
@@ -101,7 +101,7 @@ void LoadSettings()
 					{
 						missileArch = CreateID(ini.get_value_string(0));
 					}
-					else if (ini.is_value("DontTrackShipType"))
+					else if (ini.is_value("ShipType"))
 					{
 						string typeStr = ToLower(ini.get_value_string(0));
 						if (typeStr == "fighter")

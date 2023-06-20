@@ -78,10 +78,7 @@ void LoadSettings()
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("General"))
-			{
-			}
-			else if (ini.is_header("NoTrackingAlertProjectile"))
+			if (ini.is_header("NoTrackingAlert"))
 			{
 				while (ini.read_value())
 				{

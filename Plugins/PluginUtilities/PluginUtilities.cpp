@@ -938,6 +938,102 @@ Quaternion HkMatrixToQuaternion(Matrix m)
 	return quaternion;
 }
 
+Matrix TransposeMatrix(Matrix& m)
+{
+	return { {
+		{m.data[0][0], m.data[1][0], m.data[2][0]},
+		{m.data[0][1], m.data[1][1], m.data[2][1]},
+		{m.data[0][2], m.data[1][2], m.data[2][2]}} };
+}
+
+float MatrixSubDeterminant(Matrix& m, uint row, uint col)
+{
+	float minorMatrix[4];
+	uint counter = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (i == row)
+			continue;
+		for (int j = 0; j < 3; j++)
+		{
+			if (j == col)
+				continue;
+			minorMatrix[counter] = m.data[i][j];
+			counter++;
+		}
+	}
+	return m.data[row][col] * ( minorMatrix[0] * minorMatrix[3] - minorMatrix[1] * minorMatrix[2] );
+}
+
+Matrix MatrixDeterminateTable(Matrix& m)
+{
+	Matrix determinantTable;
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			determinantTable.data[i][j] = MatrixSubDeterminant(m, i, j);
+		}
+	}
+	return determinantTable;
+}
+
+void MatrixCofactorsTable(Matrix& m)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			if ((((i * 3) + j) % 2) != 0) {
+				m.data[i][j] *= -1;
+			}
+		}
+	}
+}
+
+void MultiplyMatrix(Matrix& m, float num)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			m.data[i][j] *= num;
+		}
+	}
+}
+
+Matrix InverseMatrix(Matrix& m1)
+{
+	float adjoint = MatrixSubDeterminant(m1, 0, 0) + MatrixSubDeterminant(m1, 0, 1) + MatrixSubDeterminant(m1, 0, 2);
+	float inverseAdjoint = 1 / adjoint;
+	Matrix transp = TransposeMatrix(m1);
+	Matrix determinantTable = MatrixDeterminateTable(transp);
+	MatrixCofactorsTable(determinantTable);
+	MultiplyMatrix(determinantTable, inverseAdjoint);
+
+	return determinantTable;
+}
+
+Vector VectorMatrixMultiply(Vector& v1, Matrix& m1)
+{
+	Vector ret;
+	ret.x = v1.x * m1.data[0][0] + v1.y * m1.data[0][1] + v1.z * m1.data[0][2];
+	ret.y = v1.x * m1.data[1][0] + v1.y * m1.data[1][1] + v1.z * m1.data[1][2];
+	ret.z = v1.x * m1.data[2][0] + v1.y * m1.data[2][1] + v1.z * m1.data[2][2];
+	return ret;
+}
+
+Vector NormalizeVector(Vector& v)
+{
+	float inverseMagnitude = 1 / sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+
+	Vector ret;
+	ret.x = v.x * inverseMagnitude;
+	ret.y = v.y * inverseMagnitude;
+	ret.z = v.z * inverseMagnitude;
+	return ret;
+}
+
 // Format a chat string in accordance with the receiver's preferences and send it. Will
 // check that the receiver accepts messages from wscSender and refuses to send if necessary.
 void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &wscText,

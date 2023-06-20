@@ -550,6 +550,7 @@ namespace PlayerCommands
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
 	void GetNecessitiesStatus(uint client, const wstring &args);
+	bool CheckSolarDistances(uint client, uint systemID, Vector pos);
 
 	void BaseDeploy(uint client, const wstring &args);
 
@@ -608,6 +609,20 @@ extern set<uint> bannedSystemList;
 
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;
+
+/// Mininmum distances for base deployment
+extern bool enableDistanceCheck;
+extern float minMiningDistance;
+extern float minPlanetDistance;
+extern float minStationDistance;
+extern float minLaneDistance;
+extern float minJumpDistance;
+extern float minDistanceMisc;
+extern float minOtherPOBDistance;
+
+/// Deployment command cooldown trackimg
+extern unordered_map<uint, uint> deploymentCooldownMap;
+extern uint deploymentCooldownDuration;
 
 /// Map of good to quantity for items required by construction ship
 extern map<uint, uint> construction_items;

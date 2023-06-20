@@ -411,7 +411,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 }
 
 // If this is a docking request at a player ship then process it.
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -434,6 +434,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (!iTargetClientID || HkDistance3DByShip(iShip, iTargetShip) > 1000.0f)
 		{
 			PrintUserCmdText(client, L"Ship is out of range");
+			iCancel = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 
@@ -441,6 +443,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
 		{
 			PrintUserCmdText(client, L"Target ship has no free docking capacity");
+			iCancel = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 
@@ -449,6 +453,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (cship->shiparch()->fHoldSize > cargoCapacityLimit)
 		{
 			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
+			iCancel = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 

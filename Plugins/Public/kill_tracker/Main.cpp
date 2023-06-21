@@ -302,7 +302,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	if (!assistMessage.empty())
 	{
 		assistMessage = L"<TRA data=\"" + killMsgStyle +
-			L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
+			L"\" mask=\"-1\"/><TEXT>" + XMLText(assistMessage) + L"</TEXT>";
 	}
 
 	uint victimGroup = 0;

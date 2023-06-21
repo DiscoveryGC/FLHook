@@ -258,6 +258,7 @@ void PlayerBase::Load()
 						mi.price = ini.get_value_float(2);
 						mi.min_stock = ini.get_value_int(3);
 						mi.max_stock = ini.get_value_int(4);
+						mi.is_public = bool(ini.get_value_int(5));
 						market_items[good] = mi;
 					}
 					else if (ini.is_value("health"))
@@ -408,8 +409,8 @@ void PlayerBase::Save()
 		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
 			i != market_items.end(); ++i)
 		{
-			fprintf(file, "commodity = %u, %u, %f, %u, %u\n",
-				i->first, i->second.quantity, i->second.price, i->second.min_stock, i->second.max_stock);
+			fprintf(file, "commodity = %u, %u, %f, %u, %u, %u\n",
+				i->first, i->second.quantity, i->second.price, i->second.min_stock, i->second.max_stock, int(i->second.is_public));
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);

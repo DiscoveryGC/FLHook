@@ -920,7 +920,7 @@ void __stdcall JumpInComplete_AFTER(unsigned int iSystem, unsigned int iShip)
 	}
 }
 
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 

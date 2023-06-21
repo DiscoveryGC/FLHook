@@ -61,7 +61,7 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000) {}
+	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000), is_public(false) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
@@ -74,6 +74,9 @@ struct MARKET_ITEM
 
 	// Stop buying if the base holds more than this number of items
 	uint max_stock;
+
+	// Making public to all players without restrictions
+	bool is_public;
 };
 
 struct NEWS_ITEM
@@ -547,6 +550,7 @@ namespace PlayerCommands
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
 	void GetNecessitiesStatus(uint client, const wstring &args);
+	bool CheckSolarDistances(uint client, uint systemID, Vector pos);
 
 	void BaseDeploy(uint client, const wstring &args);
 
@@ -606,6 +610,20 @@ extern set<uint> bannedSystemList;
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;
 
+/// Mininmum distances for base deployment
+extern bool enableDistanceCheck;
+extern float minMiningDistance;
+extern float minPlanetDistance;
+extern float minStationDistance;
+extern float minLaneDistance;
+extern float minJumpDistance;
+extern float minDistanceMisc;
+extern float minOtherPOBDistance;
+
+/// Deployment command cooldown trackimg
+extern unordered_map<uint, uint> deploymentCooldownMap;
+extern uint deploymentCooldownDuration;
+
 /// Map of good to quantity for items required by construction ship
 extern map<uint, uint> construction_items;
 
@@ -661,4 +679,11 @@ extern float damage_threshold;
 extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
+
+// From EquipmentUtilities.cpp
+namespace EquipmentUtilities
+{
+	void ReadIniNicknames();
+	const char* FindNickname(unsigned int hash);
+}
 #endif

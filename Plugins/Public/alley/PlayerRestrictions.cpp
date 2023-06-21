@@ -698,6 +698,7 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 	list<CARGO_INFO> lstCargo;
 	int iRemainingHoldSize = 0;
 	uint items = 0;
+	bool isFirstJettisonItem = true;
 	if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize) == HKE_OK)
 	{
 		foreach(lstCargo, CARGO_INFO, item)
@@ -718,8 +719,23 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 				if (skipItem) {
 					continue;
 				}
-				HkRemoveCargo(wscCharname, item->iID, item->iCount);
-				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
+
+				if (isFirstJettisonItem)
+				{
+					isFirstJettisonItem = false;
+					XJettisonCargo jettisonCargo;
+					jettisonCargo.iShip = iShip;
+					jettisonCargo.iCount = item->iCount;
+					jettisonCargo.iSlot = item->iID;
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("cargo_jettisoned"));
+					Server.JettisonCargo(iClientID, jettisonCargo);
+				}
+				else
+				{
+					HkRemoveCargo(wscCharname, item->iID, item->iCount); 
+					uint lootCrateId = Archetype::GetEquipment(item->iArchID)->get_loot_appearance()->iArchID;
+					Server.MineAsteroid(iSystem, vLoc, lootCrateId, item->iArchID, item->iCount, iClientID);
+				}
 				items++;
 			}
 		}
@@ -1203,7 +1219,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int client)
 	SCI::UpdatePlayerID(client);
 }
 
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -1213,12 +1229,14 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 	{
 		if (!ADOCK::IsDockAllowed(iShip, iDockTarget, iClientID))
 		{
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			iCancel = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 		if (!SCI::CanDock(iDockTarget, iClientID))
 		{
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			iCancel = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 	}

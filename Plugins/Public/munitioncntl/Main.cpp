@@ -101,17 +101,17 @@ void LoadSettings()
 					else if (ini.is_value("ShipType"))
 					{
 						string typeStr = ToLower(ini.get_value_string(0));
-						if (typeStr == "fighter")
+						if (typeStr.find("fighter") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_FIGHTER;
-						else if (typeStr == "freighter")
+						if (typeStr.find("freighter") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_FREIGHTER;
-						else if (typeStr == "transport")
+						if (typeStr.find("transport") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_TRANSPORT;
-						else if (typeStr == "gunboat")
+						if (typeStr.find("gunboat") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_GUNBOAT;
-						else if (typeStr == "cruiser")
+						if (typeStr.find("cruiser") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_CRUISER;
-						else if (typeStr == "capital")
+						if (typeStr.find("capital") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_CAPITAL;
 						else
 							ConPrint(L"MissileCntl: Error reading config for Blacklisted munitions, value %ls not recognized\n", stows(typeStr).c_str());

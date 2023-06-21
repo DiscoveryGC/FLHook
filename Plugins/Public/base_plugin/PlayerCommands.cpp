@@ -2004,7 +2004,7 @@ namespace PlayerCommands
 				}
 				else
 				{
-					ConPrint(L"Base is too close to another Player Base");
+					ConPrint(L"Base is too close to another Player Base, distance %um, name %ls", static_cast<uint>(distance), base.second->basename.c_str());
 				}
 				return false;
 			}

@@ -1,5 +1,4 @@
 // MunitionControl Plugin - Handle tracking/alert notifications for missile projectiles
-// and mine behaviour on expiration
 // By Aingar
 //
 // This is free software; you can redistribute it and/or modify it as
@@ -20,12 +19,9 @@ map<string, uint> factions;
 PLUGIN_RETURNCODE returncode;
 
 unordered_set<uint> setNoTrackingAlertProjectiles;
-unordered_set<uint> setNoFuseOnExpiryMines;
 
 unordered_map<uint, uint> mapTrackingByShiptypeBlacklistBitmap;
 uint lastProcessedProjectile = 0;
-
-bool enableMineExpiryFuse = false;
 
 enum TRACKING_STATE {
 	TRACK_ALERT,

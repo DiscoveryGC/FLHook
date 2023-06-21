@@ -23,7 +23,7 @@ unordered_set<uint> setNoTrackingAlertProjectiles;
 unordered_set<uint> setNoFuseOnExpiryMines;
 
 unordered_map<uint, uint> mapTrackingByShiptypeBlacklistBitmap;
-unordered_map<uint, boolean> mapProcessedGuided;
+uint lastProcessedProjectile = 0;
 
 bool enableMineExpiryFuse = false;
 
@@ -128,7 +128,7 @@ void LoadSettings()
 //Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void ProcessGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
+void ProcessGuided(FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
 	uint ownerType;
 	pub::SpaceObj::GetType(createGuidedPacket.iOwner, ownerType);
@@ -171,34 +171,20 @@ void ProcessGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 		}
 	}
 
-	mapProcessedGuided[createGuidedPacket.iProjectileId] = createGuidedPacket.iTargetId ? true : false;
 }
 
-void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
+void __stdcall CreateGuided(uint& iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// if projectile was already processed, only check if its alert is to be disabled.
-	const auto& processed = mapProcessedGuided.find(createGuidedPacket.iProjectileId);
-	if (processed != mapProcessedGuided.end() && !processed->second) 
+	//Packet hooks are executed once for every player in range, but we only need to process the missile once, since it's passed by reference.
+	if (lastProcessedProjectile == createGuidedPacket.iProjectileId)
 	{
-		createGuidedPacket.iTargetId = 0;
-	}
-	else
-	{
-		// only process a given projectile once instead of for every player receiving the packet individually.
-		ProcessGuided(iClientID, createGuidedPacket); 
+		return;
 	}
 
-}
-
-void Timer()
-{
-	uint currTime = time(0);
-	if (currTime % 600 == 0)
-	{
-		mapProcessedGuided.clear();
-	}
+	lastProcessedProjectile = createGuidedPacket.iProjectileId;
+	ProcessGuided(createGuidedPacket); 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,14 +194,13 @@ void Timer()
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
 	PLUGIN_INFO* p_PI = new PLUGIN_INFO();
-	p_PI->sName = "Missile Controller";
-	p_PI->sShortName = "missilecntl";
+	p_PI->sName = "Munition Controller";
+	p_PI->sShortName = "munitioncntl";
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Timer, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
 
 	return p_PI;

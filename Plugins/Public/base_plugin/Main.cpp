@@ -436,6 +436,8 @@ void LoadSettingsActual()
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	EquipmentUtilities::ReadIniNicknames();
+
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);

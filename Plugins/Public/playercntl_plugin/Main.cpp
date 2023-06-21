@@ -164,7 +164,6 @@ void LoadSettings()
 	//JDDisruptAmmo = CreateID("dsy_torpedo_jd_ammo");
 
 	ZoneUtilities::ReadUniverse();
-	EquipmentUtilities::ReadIniNicknames();
 	Rename::LoadSettings(scPluginCfgFile);
 	GiveCash::LoadSettings(scPluginCfgFile);
 	MiscCmds::LoadSettings(scPluginCfgFile);

@@ -1,5 +1,4 @@
 // MunitionControl Plugin - Handle tracking/alert notifications for missile projectiles
-// and mine behaviour on expiration
 // By Aingar
 //
 // This is free software; you can redistribute it and/or modify it as
@@ -20,12 +19,9 @@ map<string, uint> factions;
 PLUGIN_RETURNCODE returncode;
 
 unordered_set<uint> setNoTrackingAlertProjectiles;
-unordered_set<uint> setNoFuseOnExpiryMines;
 
 unordered_map<uint, uint> mapTrackingByShiptypeBlacklistBitmap;
-unordered_map<uint, boolean> mapProcessedGuided;
-
-bool enableMineExpiryFuse = false;
+uint lastProcessedProjectile = 0;
 
 enum TRACKING_STATE {
 	TRACK_ALERT,
@@ -73,15 +69,12 @@ void LoadSettings()
 
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\missilecntl.cfg";
+	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\munitionecntl.cfg";
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("General"))
-			{
-			}
-			else if (ini.is_header("NoTrackingAlertProjectile"))
+			if (ini.is_header("NoTrackingAlert"))
 			{
 				while (ini.read_value())
 				{
@@ -91,7 +84,7 @@ void LoadSettings()
 					}
 				}
 			}
-			else if (ini.is_header("TrackingBlacklistByShipType"))
+			else if (ini.is_header("TrackingBlacklist"))
 			{
 				uint missileArch = 0;
 				uint blacklistedShipTypesBitmap = 0;
@@ -101,20 +94,20 @@ void LoadSettings()
 					{
 						missileArch = CreateID(ini.get_value_string(0));
 					}
-					else if (ini.is_value("DontTrackShipType"))
+					else if (ini.is_value("ShipType"))
 					{
 						string typeStr = ToLower(ini.get_value_string(0));
-						if (typeStr == "fighter")
+						if (typeStr.find("fighter") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_FIGHTER;
-						else if (typeStr == "freighter")
+						if (typeStr.find("freighter") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_FREIGHTER;
-						else if (typeStr == "transport")
+						if (typeStr.find("transport") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_TRANSPORT;
-						else if (typeStr == "gunboat")
+						if (typeStr.find("gunboat") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_GUNBOAT;
-						else if (typeStr == "cruiser")
+						if (typeStr.find("cruiser") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_CRUISER;
-						else if (typeStr == "capital")
+						if (typeStr.find("capital") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_CAPITAL;
 						else
 							ConPrint(L"MissileCntl: Error reading config for Blacklisted munitions, value %ls not recognized\n", stows(typeStr).c_str());
@@ -131,7 +124,7 @@ void LoadSettings()
 //Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void ProcessGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
+void ProcessGuided(FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
 	uint ownerType;
 	pub::SpaceObj::GetType(createGuidedPacket.iOwner, ownerType);
@@ -174,34 +167,20 @@ void ProcessGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 		}
 	}
 
-	mapProcessedGuided[createGuidedPacket.iProjectileId] = createGuidedPacket.iTargetId ? true : false;
 }
 
-void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
+void __stdcall CreateGuided(uint& iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// if projectile was already processed, only check if its alert is to be disabled.
-	const auto& processed = mapProcessedGuided.find(createGuidedPacket.iProjectileId);
-	if (processed != mapProcessedGuided.end() && !processed->second) 
+	//Packet hooks are executed once for every player in range, but we only need to process the missile once, since it's passed by reference.
+	if (lastProcessedProjectile == createGuidedPacket.iProjectileId)
 	{
-		createGuidedPacket.iTargetId = 0;
-	}
-	else
-	{
-		// only process a given projectile once instead of for every player receiving the packet individually.
-		ProcessGuided(iClientID, createGuidedPacket); 
+		return;
 	}
 
-}
-
-void Timer()
-{
-	uint currTime = time(0);
-	if (currTime % 600 == 0)
-	{
-		mapProcessedGuided.clear();
-	}
+	lastProcessedProjectile = createGuidedPacket.iProjectileId;
+	ProcessGuided(createGuidedPacket); 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,14 +190,13 @@ void Timer()
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
 	PLUGIN_INFO* p_PI = new PLUGIN_INFO();
-	p_PI->sName = "Missile Controller";
-	p_PI->sShortName = "missilecntl";
+	p_PI->sName = "Munition Controller";
+	p_PI->sShortName = "munitioncntl";
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Timer, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
 
 	return p_PI;

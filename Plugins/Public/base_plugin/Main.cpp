@@ -1612,14 +1612,15 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
 						iCancel = -1;
-						response = ACCESS_DENIED;
+						response = DOCK_DENIED;
 						return 0;
 					}
 				}
 
 				if (mapJumpLockout.count(client)) {
 					PrintUserCmdText(client, L"Jump systems recharging. Charging complete in %u seconds.", mapJumpLockout[client]);
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+					iCancel = -1;
+					response = DOCK_DENIED;
 					return 1;
 				}
 				else if (jump_lockout_duration)

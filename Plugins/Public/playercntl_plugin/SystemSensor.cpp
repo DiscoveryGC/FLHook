@@ -340,7 +340,7 @@ namespace SystemSensor
 	void Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
 	{
 		uint iClientID = HkGetClientIDByShip(iShip);
-		if (iClientID && (response == PROCEED_DOCK || response == DOCK) && !iCancel)
+		if (iClientID)
 		{
 			uint iTypeID;
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);

@@ -624,7 +624,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 
 	//if not a player dock, skip
 	uint client = HkGetClientIDByShip(iShip);
-	if (client)
+	if (client && response == DOCK && iCancel == -1)
 	{
 		// If target not a player in FREIGHTER class ship, ignore request
 		uint iType;
@@ -661,8 +661,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 			response = DOCK_DENIED;
 			return 0;
 		}
-
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 		// Create a docking request and send a notification to the target ship.
 		AddClientToDockQueue(client, iTargetClientID);

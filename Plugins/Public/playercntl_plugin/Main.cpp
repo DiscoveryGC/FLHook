@@ -338,9 +338,9 @@ namespace HkIEngine
 			// NPC call, let the game handle it
 			return 0;
 		}
-		else
+		else if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
 		{
-			if (Players[iClientID].fRelativeHealth == 0.0f && (iCancel != -1)) {
+			if (Players[iClientID].fRelativeHealth == 0.0f) {
 				iCancel = -1;
 				response = ACCESS_DENIED;
 				return 0;
@@ -361,6 +361,7 @@ namespace HkIEngine
 			SystemSensor::Dock_Call(iShip, iDockTarget, iCancel, response);
 			return 0;
 		}
+		return 0;
 	}
 }
 

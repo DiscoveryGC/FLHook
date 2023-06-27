@@ -711,6 +711,7 @@ namespace HkIEngine
 	extern FARPROC fpOldInitCShip;
 	extern FARPROC fpOldDestroyCShip;
 	extern FARPROC fpOldLoadRepCharFile;
+	extern bool bAbortEventRequest;
 }
 
 // HkTimers

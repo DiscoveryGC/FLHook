@@ -30,6 +30,7 @@
 #include <set>
 
 static int set_iPluginDebug = 0;
+map <uint, wstring> shipclassnames;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -65,6 +66,8 @@ struct TRADE_EVENT {
 	string sEventName;
 	string sURL;
 	int iBonusCash;
+	bool isClassRestricted = false;
+	wstring allowedShipClass;
 	uint uStartBase;
 	uint uEndBase;
 	bool bFLHookBase = false;
@@ -191,6 +194,16 @@ void LoadSettings()
 	{
 		while (ini.read_header())
 		{
+			if (ini.is_header("shipclasses"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("class"))
+					{
+						shipclassnames[ini.get_value_int(0)] = stows(ini.get_value_string(1));
+					}
+				}
+			}
 			//Trade events
 			if (ini.is_header("TradeEvent"))
 			{
@@ -223,6 +236,14 @@ void LoadSettings()
 					else if (ini.is_value("bonus"))
 					{
 						te.iBonusCash = ini.get_value_int(0);
+					}
+					else if (ini.is_value("ShipClassRestricted"))
+					{
+						te.isClassRestricted = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("shipClass"))
+					{
+						te.allowedShipClass = stows(ini.get_value_string(0));
 					}
 					else if (ini.is_value("objectivemax"))
 					{
@@ -563,9 +584,9 @@ void LoadSettings()
 //Functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-FILE *Logfile = fopen("./flhook_logs/event_log.log", "at");
+FILE* Logfile = fopen("./flhook_logs/event_log.log", "at");
 
-void Logging(const char *szString, ...)
+void Logging(const char* szString, ...)
 {
 	char szBufString[1024];
 	va_list marker;
@@ -574,7 +595,7 @@ void Logging(const char *szString, ...)
 
 	char szBuf[64];
 	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
+	struct tm* t = localtime(&tNow);
 	strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
 	fprintf(Logfile, "%s %s\n", szBuf, szBufString);
 	fflush(Logfile);
@@ -633,7 +654,7 @@ void Notify_CombatEvent_PlayerKill(uint iClientIDKiller, uint iClientIDVictim, s
 	Logging("%s", scText.c_str());
 }
 
-void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
+void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const& cId, unsigned int iClientID)
 {
 	if (HookExt::IniGetB(iClientID, "event.enabled"))
 	{
@@ -658,7 +679,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	}
 }
 
-void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const &gbi, unsigned int iClientID)
+void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iClientID)
 {
 	for (map<string, TRADE_EVENT>::iterator i = mapTradeEvents.begin(); i != mapTradeEvents.end(); ++i)
 	{
@@ -703,6 +724,26 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const &gbi, unsigned int iC
 					}
 				}
 
+				// Is the event limited by Ship class?
+				if (i->second.isClassRestricted)
+				{
+					PrintUserCmdText(iClientID, L"Checking ship class requirements....");
+					Archetype::Ship* TheShipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
+					PrintUserCmdText(iClientID, L"DEBUG: iShipClass is: %u", TheShipArch->iShipClass);
+					wstring classname = shipclassnames.find(TheShipArch->iShipClass)->second;
+					PrintUserCmdText(iClientID, L"DEBUG: This ship class is known as %s", classname.c_str());
+
+					if (classname == i->second.allowedShipClass)
+					{
+						PrintUserCmdText(iClientID, L"You have the correct ship class for this event.[%s]", i->second.allowedShipClass.c_str());
+					}
+					else
+					{
+						PrintUserCmdText(iClientID, L"Invalid ship class, this Evnet is for %s's", i->second.allowedShipClass.c_str());
+						return;
+					}
+				}
+
 				HookExt::IniSetB(iClientID, "event.enabled", true);
 				HookExt::IniSetWS(iClientID, "event.eventid", stows(i->first));
 
@@ -729,7 +770,7 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const &gbi, unsigned int iC
 	}
 }
 
-void TradeEvent_Sale(struct SGFGoodSellInfo const &gsi, unsigned int iClientID)
+void TradeEvent_Sale(struct SGFGoodSellInfo const& gsi, unsigned int iClientID)
 {
 	if (HookExt::IniGetB(iClientID, "event.enabled"))
 	{
@@ -835,14 +876,14 @@ void TradeEvent_Sale(struct SGFGoodSellInfo const &gsi, unsigned int iClientID)
 	}
 }
 
-void __stdcall GFGoodSell_AFTER(struct SGFGoodSellInfo const &gsi, unsigned int iClientID)
+void __stdcall GFGoodSell_AFTER(struct SGFGoodSellInfo const& gsi, unsigned int iClientID)
 {
 	TradeEvent_Sale(gsi, iClientID);
 	//MiningEvent_Sale(gsi, iClientID);
 }
 
 map<uint, uint> last_time_of_notice;
-void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID)
+void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const& ci, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -954,7 +995,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 //Actual Code
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void __stdcall PlayerLaunch_AFTER(struct CHARACTER_ID const & cId, unsigned int iClientID)
+void __stdcall PlayerLaunch_AFTER(struct CHARACTER_ID const& cId, unsigned int iClientID)
 {
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
@@ -1193,7 +1234,7 @@ void ProcessEventData()
 	writer.close();
 
 	//dump to a file
-	FILE *filejson = fopen("c:/stats/event_status.json", "w");
+	FILE* filejson = fopen("c:/stats/event_status.json", "w");
 	if (filejson)
 	{
 		fprintf(filejson, stream.str().c_str());
@@ -1208,7 +1249,7 @@ void ProcessEventData()
 	///////////////////////////////////////////////////////////////////////////////////////
 
 	//dump to a file
-	FILE *fileini = fopen("..\\exe\\flhook_plugins\\events_status.cfg", "w");
+	FILE* fileini = fopen("..\\exe\\flhook_plugins\\events_status.cfg", "w");
 	if (fileini)
 	{
 		fprintf(fileini, siegedump.c_str());
@@ -1284,7 +1325,7 @@ void ProcessEventPlayerInfo()
 	writer.close();
 
 	//dump to a file
-	FILE *filejson = fopen("c:/stats/event_tracker.json", "w");
+	FILE* filejson = fopen("c:/stats/event_tracker.json", "w");
 	if (filejson)
 	{
 		fprintf(filejson, stream.str().c_str());
@@ -1299,7 +1340,7 @@ void ProcessEventPlayerInfo()
 	///////////////////////////////////////////////////////////////////////////////////////
 
 	//dump to a file
-	FILE *fileini = fopen("..\\exe\\flhook_plugins\\events_tracker.cfg", "w");
+	FILE* fileini = fopen("..\\exe\\flhook_plugins\\events_tracker.cfg", "w");
 	if (fileini)
 	{
 		fprintf(fileini, siegedump.c_str());
@@ -1334,12 +1375,12 @@ void HkTimerCheckKick()
 
 
 /// Hook for ship distruction. It's easier to hook this than the PlayerDeath one.
-void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller)
+void SendDeathMsg(const wstring& wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	const wchar_t *victim = (const wchar_t*)Players.GetActiveCharacterName(iClientIDVictim);
-	const wchar_t *killer = (const wchar_t*)Players.GetActiveCharacterName(iClientIDKiller);
+	const wchar_t* victim = (const wchar_t*)Players.GetActiveCharacterName(iClientIDVictim);
+	const wchar_t* killer = (const wchar_t*)Players.GetActiveCharacterName(iClientIDKiller);
 
 	string sIDVictimEvent;
 	if (victim)

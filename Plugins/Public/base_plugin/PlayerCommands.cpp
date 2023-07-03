@@ -1885,35 +1885,38 @@ namespace PlayerCommands
 	bool CheckSolarDistances(uint client, uint systemID, Vector pos)
 	{
 		// Other POB Check
-		for (const auto& base : player_bases)
+		if (minOtherPOBDistance > 0)
 		{
-			if (base.second->basetype != "legacy" 
-				|| base.second->invulnerable 
-				|| !base.second->logic
-				|| base.second->system != systemID
-				|| (base.second->position.x == pos.x
-					&& base.second->position.y == pos.y
-					&& base.second->position.z == pos.z))
-				continue;
-
-			float distance = HkDistance3D(pos, base.second->position);
-			if (distance < minOtherPOBDistance)
+			for (const auto& base : player_bases)
 			{
-				if (client)
+				if (base.second->basetype != "legacy"
+					|| base.second->invulnerable
+					|| !base.second->logic
+					|| base.second->system != systemID
+					|| (base.second->position.x == pos.x
+						&& base.second->position.y == pos.y
+						&& base.second->position.z == pos.z))
+					continue;
+
+				float distance = HkDistance3D(pos, base.second->position);
+				if (distance < minOtherPOBDistance)
 				{
-					PrintUserCmdText(client, L"Player base %ls is too close! Minimum distance: %um", base.second->basename.c_str(), static_cast<uint>(minOtherPOBDistance));
+					if (client)
+					{
+						PrintUserCmdText(client, L"Player base %ls is too close! Minimum distance: %um", base.second->basename.c_str(), static_cast<uint>(minOtherPOBDistance));
+					}
+					else
+					{
+						ConPrint(L"Base is too close to another Player Base, distance %um, name %ls", static_cast<uint>(distance), base.second->basename.c_str());
+					}
+					return false;
 				}
-				else
-				{
-					ConPrint(L"Base is too close to another Player Base, distance %um, name %ls", static_cast<uint>(distance), base.second->basename.c_str());
-				}
-				return false;
 			}
 		}
 
 		// Mining Zone Check
 		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemID);
-		if (csys)
+		if (csys && minMiningDistance > 0)
 		{
 			for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
 			{
@@ -1921,7 +1924,9 @@ namespace PlayerCommands
 				if (!zone->lootableZone)
 					continue;
 
-				if (minMiningDistance > 0 && cfield->near_field(pos))
+				float distance = pub::Zone::GetDistance(zone->iZoneID, pos); // returns distance from the nearest point at the edge of the zone, value is negative if you're within the zone.
+
+				if (distance <= 0)
 				{
 					if (client)
 					{
@@ -1941,33 +1946,7 @@ namespace PlayerCommands
 					}
 					return false;
 				}
-				// pretend zone is actually centered 0,0,0 and unrotated
-				// Subtract zone position from player position so their relative position is the same
-				Vector playerPos = pos;
-				playerPos.x -= zone->vPos.x;
-				playerPos.y -= zone->vPos.y;
-				playerPos.z -= zone->vPos.z;
-				
-				//Then rotate player position by inverse of original zone position, to make the relative positions truly in sync
-
-				Matrix InvertedZoneRot = TransposeMatrix(zone->mRot);
-				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
-
-				//Now, player position is effectively a vector from center of mining zone to player position.
-				//We normalize the vector, then apply original zone rotation and stretch it by zone sizes
-				Vector v2 = NormalizeVector(playerPos);
-				Matrix EllipseSizeMat = { {{zone->vSize.x,0,0},{0,zone->vSize.y,0},{0,0,zone->vSize.z}} };
-				v2 = VectorMatrixMultiply(v2, EllipseSizeMat);
-				v2 = VectorMatrixMultiply(v2, zone->mRot);
-				
-				//Now that we have our aproximated closest point to the mining zone, we move it back so comparison with player position yields proper result
-				v2.x += zone->vPos.x;
-				v2.y += zone->vPos.y;
-				v2.z += zone->vPos.z;
-
-				float distance = HkDistance3D(v2, pos);
-
-				if (distance < minMiningDistance)
+				else if (distance < minMiningDistance)
 				{
 					if (zone->idsName)
 					{
@@ -1999,8 +1978,8 @@ namespace PlayerCommands
 
 		// Solars
 		bool foundSystemMatch = false;
-		for (CSolar* solar = reinterpret_cast<CSolar*>(CObject::FindFirst(CObject::CSOLAR_OBJECT)); solar;
-			solar = reinterpret_cast<CSolar*>(CObject::FindNext()))
+		for (CSolar* solar = dynamic_cast<CSolar*>(CObject::FindFirst(CObject::CSOLAR_OBJECT)); solar;
+			solar = dynamic_cast<CSolar*>(CObject::FindNext()))
 		{
 			//solars are iterated on per system, we can stop once we're done scanning the last solar in the system we're looking for.
 			if (solar->iSystem != systemID)

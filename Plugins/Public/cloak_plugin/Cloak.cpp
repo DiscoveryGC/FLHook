@@ -346,6 +346,13 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 	return false;
 }
 
+void InitCloakInfo(uint client, uint distance)
+{
+	wchar_t buf[50];
+	_snwprintf(buf, sizeof(buf), L" InitCloakInfo %u", distance);
+	HkFMsg(client, L"<TEXT>" + XMLText(buf) + L"</TEXT>");
+}
+
 void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 {
 	mapClientsCloak[iClientID].bCanCloak = false;
@@ -388,29 +395,34 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 		{
 			if (CECloakingDevice::cast(equip))
 			{
-				mapClientsCloak[iClientID].iCloakSlot = equip->GetID();
+				auto& cloakInfo = mapClientsCloak[iClientID];
+				cloakInfo.iCloakSlot = equip->GetID();
 
 				if (mapCloakingDevices.find(equip->EquipArch()->iArchID) != mapCloakingDevices.end())
 				{
 					// Otherwise set the fuel usage and warm up time
-					mapClientsCloak[iClientID].arch = mapCloakingDevices[equip->EquipArch()->iArchID];
+					cloakInfo.arch = mapCloakingDevices[equip->EquipArch()->iArchID];
 				}
 				// If this cloaking device does not appear in the cloaking device list
 				// then warming up and fuel usage is zero and it may be used by any
 				// ship.
 				else
 				{
-					mapClientsCloak[iClientID].arch.bDropShieldsOnUncloak = false;
-					mapClientsCloak[iClientID].arch.iCooldownTime = 0;
-					mapClientsCloak[iClientID].arch.iHoldSizeLimit = 0;
-					mapClientsCloak[iClientID].arch.iWarmupTime = 0;
-					mapClientsCloak[iClientID].arch.mapFuelToUsage.clear();
+					cloakInfo.arch.bDropShieldsOnUncloak = false;
+					cloakInfo.arch.iCooldownTime = 0;
+					cloakInfo.arch.iHoldSizeLimit = 0;
+					cloakInfo.arch.iWarmupTime = 0;
+					cloakInfo.arch.mapFuelToUsage.clear();
 				}
 
-				mapClientsCloak[iClientID].DisruptTime = 0;
-				mapClientsCloak[iClientID].bCanCloak = true;
-				mapClientsCloak[iClientID].iState = STATE_CLOAK_INVALID;
+				cloakInfo.DisruptTime = 0;
+				cloakInfo.bCanCloak = true;
+				cloakInfo.iState = STATE_CLOAK_INVALID;
 				SetState(iClientID, iShip, STATE_CLOAK_OFF);
+				if (cloakInfo.arch.bBreakOnProximity)
+				{
+					InitCloakInfo(iClientID, (uint)mapClientsCloak[iClientID].arch.fRange);
+				}
 				return;
 			}
 
@@ -518,6 +530,11 @@ void HkTimerCheckKick()
 						list<GROUP_MEMBER> lstGrpMembers;
 						HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
 
+						if (lstGrpMembers.size() <= 1)
+						{
+							continue;
+						}
+
 						// For all players in system...
 						struct PlayerData *pPD = 0;
 						while (pPD = Players.traverse_active(pPD))
@@ -545,19 +562,9 @@ void HkTimerCheckKick()
 									bool isGroupMember = false;
 									for (auto& member : lstGrpMembers) {
 										if (member.iClientID == pPD->iOnlineID) {
-											isGroupMember = true;
+											pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
 											break;
 										}
-									}
-									if (isGroupMember)
-									{
-										pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
-									}
-									else
-									{
-										PrintUserCmdText(iClientID, L"Cloak broken by proximity to another vessel!");
-										SetState(iClientID, iShipID, STATE_CLOAK_OFF);
-										break;
 									}
 								}
 								else
@@ -565,7 +572,6 @@ void HkTimerCheckKick()
 									pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
 								}
 							}
-
 						}
 					}
 				}

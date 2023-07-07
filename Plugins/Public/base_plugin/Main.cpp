@@ -45,6 +45,20 @@ set<uint> bannedSystemList;
 /// The ship used to construct and upgrade bases
 uint set_construction_shiparch = 0;
 
+/// Mininmum distances for base deployment
+bool enableDistanceCheck = false;
+float minMiningDistance = 30000;
+float minPlanetDistance = 2500;
+float minStationDistance = 10000;
+float minLaneDistance = 5000;
+float minJumpDistance = 15000;
+float minDistanceMisc = 2500;
+float minOtherPOBDistance = 5000;
+
+/// Deployment command cooldown trackimg
+unordered_map<uint, uint> deploymentCooldownMap;
+uint deploymentCooldownDuration = 60;
+
 /// Map of good to quantity for items required by construction ship
 map<uint, uint> construction_items;
 
@@ -398,6 +412,8 @@ void LoadSettingsActual()
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	EquipmentUtilities::ReadIniNicknames();
+
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
@@ -562,6 +578,42 @@ void LoadSettingsActual()
 						uint c = CreateID(ini.get_value_string());
 						listCommodities[c] = stows(ini.get_value_string());
 
+					}
+					else if (ini.is_value("min_mining_distance"))
+					{
+						minMiningDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_planet_distance"))
+					{
+						minPlanetDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_station_distance"))
+					{
+						minStationDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_trade_lane_distance"))
+					{
+						minLaneDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_distance_misc"))
+					{
+						minDistanceMisc = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_pob_distance"))
+					{
+						minOtherPOBDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_jump_distance"))
+					{
+						minJumpDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if(ini.is_value("deployment_cooldown"))
+					{
+						deploymentCooldownDuration = ini.get_value_int(0);
+					}
+					else if (ini.is_value("enable_distance_check"))
+					{
+						enableDistanceCheck = ini.get_value_bool(0);
 					}
 					else if (ini.is_value("banned_system"))
 					{
@@ -1315,7 +1367,7 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 }
 
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -1353,8 +1405,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					if (foundid == false)
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with this ID.");
-						pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+						iCancel = -1;
+						response = ACCESS_DENIED;
 						return 0;
 					}
 				}
@@ -1382,8 +1434,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					if (foundclass == false)
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
-						pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+						iCancel = -1;
+						response = ACCESS_DENIED;
 						return 0;
 					}
 				}
@@ -1400,9 +1452,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 				const Universe::ISystem *iSys = Universe::get_system(pbase->destsystem);
 				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
 
-				//PrintUserCmdText(client, L"Jump to system=%s x=%0.0f y=%0.0f z=%0.0f\n", wscSysName.c_str(), pos.x, pos.y, pos.z);
 				AP::SwitchSystem(client, pbase->destsystem, pos, ornt);
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = DOCK;
 				return 1;
 			}
 
@@ -1410,16 +1462,16 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 			if (pbase->shield_active_time)
 			{
 				PrintUserCmdText(client, L"Docking failed because base shield is active");
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 
 			if (!IsDockingAllowed(pbase, client))
 			{
 				PrintUserCmdText(client, L"Docking at this base is restricted");
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 
@@ -2718,6 +2770,25 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		set_plugin_debug = 0;
 		cmd->Print(L"OK base debug is off.\n");
 		return true;
+	}
+	else if (args.find(L"checkbasedistances") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		for (const auto& base : player_bases)
+		{
+			if (base.second->basetype != "legacy" || base.second->invulnerable || !base.second->logic)
+				continue;
+
+			Vector& pos = base.second->position;
+			uint system = base.second->system;
+			if (!PlayerCommands::CheckSolarDistances(0, system, pos))
+			{
+				ConPrint(L" - %ls\n", base.second->basename.c_str());
+			}
+		}
 	}
 
 	return false;

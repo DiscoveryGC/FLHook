@@ -871,7 +871,7 @@ void __stdcall JumpInComplete_AFTER(unsigned int iSystem, unsigned int iShip)
 	}
 }
 
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -913,7 +913,6 @@ void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switc
 		setJumpingClients.insert(packetClient);
 }
 
-
 void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -924,7 +923,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	}
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Functions to hook */

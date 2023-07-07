@@ -39,13 +39,6 @@ namespace pub
 	}
 }
 
-// From EquipmentUtilities.cpp
-namespace EquipmentUtilities
-{
-	void ReadIniNicknames();
-	const char *FindNickname(unsigned int hash);
-}
-
 // From PurchaseRestrictions
 namespace PurchaseRestrictions
 {

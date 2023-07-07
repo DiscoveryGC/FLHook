@@ -50,6 +50,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
+		
 	}
 	return true;
 }
@@ -65,6 +66,7 @@ struct TRADE_EVENT {
 	uint uHashID;
 	string sEventName;
 	string sURL;
+	string eventDescription;
 	int iBonusCash;
 	bool isClassRestricted = false;
 	wstring allowedShipClass;
@@ -224,6 +226,10 @@ void LoadSettings()
 					else if (ini.is_value("url"))
 					{
 						te.sURL = ini.get_value_string(0);
+					}
+					else if (ini.is_value("description"))
+					{
+						te.eventDescription = ini.get_value_string(0);
 					}
 					else if (ini.is_value("startbase"))
 					{
@@ -577,7 +583,7 @@ void LoadSettings()
 	ConPrint(L"EVENT DEBUG: Loaded %u event player data\n", iLoaded3);
 
 	LoadIDs();
-
+	HkLoadStringDLLs();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -679,6 +685,48 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const& cId, unsigned in
 	}
 }
 
+void TradeEventNotice(uint iClientID, map<string, TRADE_EVENT>::iterator iter)
+{
+	Universe::IBase* base = Universe::get_base(iter->second.uEndBase);
+	const Universe::ISystem* sys = Universe::get_system(base->iSystemID);
+	const GoodInfo* gi = GoodList::find_by_id(iter->second.uCommodityID);
+	
+
+	wstring pagetext =
+		L"<TRA bold=\"true\"/><TEXT>You've entered the " + stows(iter->second.sEventName) + L" Event</TEXT><TRA bold = \"false\"/><PARA /><PARA />"
+
+		L"<TRA bold=\"true\"/><TEXT>Mission Objective:</TEXT><TRA bold=\"false\"/><PARA/>"
+		L"<TEXT>Transport " + HkGetWStringFromIDS(gi->iIDSName) + L" to " + HkGetWStringFromIDS(base->iBaseIDS) + L" in the " + HkGetWStringFromIDS(sys->strid_name) + " system to complete this mission.</TEXT><PARA /><PARA />"
+
+		L"<TRA bold=\"true\"/><TEXT>Reward Bonus:</TEXT><TRA bold=\"false\"/><PARA/>"
+		L"<TEXT>$" + stows(to_string(iter->second.iBonusCash)) + " per unit</TEXT><PARA /><PARA />"
+
+		L"<TRA bold=\"true\"/><TEXT>Ship Class:</TEXT><TRA bold=\"false\"/><PARA/>"
+		L"<TEXT>Restricted to: " + iter->second.allowedShipClass.c_str() + "</TEXT><PARA /><PARA />"
+
+		L"<TRA bold=\"true\"/><TEXT>Description:</TEXT><TRA bold=\"false\"/><PARA/>"
+		L"<TEXT>" + stows(iter->second.eventDescription) + L"</TEXT><PARA /><PARA />";
+
+	wchar_t titleBuf[4000];
+	_snwprintf(titleBuf, sizeof(titleBuf), L"Trade Event Information");
+
+	wchar_t buf[4000];
+	_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%ls<POP/></RDL>", pagetext.c_str());
+
+	HkChangeIDSString(iClientID, 500000, titleBuf);
+	HkChangeIDSString(iClientID, 500001, buf);
+
+	FmtStr caption(0, 0);
+	caption.begin_mad_lib(500000);
+	caption.end_mad_lib();
+
+	FmtStr message(0, 0);
+	message.begin_mad_lib(500001);
+	message.end_mad_lib();
+
+	pub::Player::PopUpDialog(iClientID, caption, message, POPUPDIALOG_BUTTONS_CENTER_OK);
+}
+
 void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iClientID)
 {
 	for (map<string, TRADE_EVENT>::iterator i = mapTradeEvents.begin(); i != mapTradeEvents.end(); ++i)
@@ -727,19 +775,14 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 				// Is the event limited by Ship class?
 				if (i->second.isClassRestricted)
 				{
-					PrintUserCmdText(iClientID, L"Checking ship class requirements....");
+					int NTInfoID;
+					//PrintUserCmdText(iClientID, L"Checking ship class requirements....");
 					Archetype::Ship* TheShipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
-					PrintUserCmdText(iClientID, L"DEBUG: iShipClass is: %u", TheShipArch->iShipClass);
 					wstring classname = shipclassnames.find(TheShipArch->iShipClass)->second;
-					PrintUserCmdText(iClientID, L"DEBUG: This ship class is known as %s", classname.c_str());
-
-					if (classname == i->second.allowedShipClass)
+					
+					if (classname != i->second.allowedShipClass)
 					{
-						PrintUserCmdText(iClientID, L"You have the correct ship class for this event.[%s]", i->second.allowedShipClass.c_str());
-					}
-					else
-					{
-						PrintUserCmdText(iClientID, L"Invalid ship class, this Evnet is for %s's", i->second.allowedShipClass.c_str());
+						PrintUserCmdText(iClientID, L"DEBUG: Invalid ship class[%s], this Evnet is for [%s]'s", classname.c_str(), i->second.allowedShipClass.c_str());
 						return;
 					}
 				}
@@ -762,6 +805,7 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 
 				pub::Audio::PlaySoundEffect(iClientID, CreateID("ui_gain_level"));
 				PrintUserCmdText(iClientID, L"You have entered the event: %s", stows(i->second.sEventName).c_str());
+				TradeEventNotice(iClientID, i);
 				Notify_TradeEvent_Start(iClientID, i->second.sEventName);
 
 				return;

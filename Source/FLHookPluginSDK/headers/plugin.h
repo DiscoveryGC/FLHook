@@ -260,7 +260,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_BASE_GET_NAME = 51,
 	CUSTOM_SPAWN_SOLAR = 52,
 	CUSTOM_IS_IT_POB = 53,
-	CUSTOM_IN_WARP_CHECK = 54
+	CUSTOM_IN_WARP_CHECK = 54,
+	CUSTOM_CLOAK_ALERT = 60
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -419,6 +420,11 @@ struct CUSTOM_IN_WARP_CHECK_STRUCT
 {
 	uint clientId;
 	bool inWarp = false;
+};
+
+struct CUSTOM_CLOAK_ALERT_STRUCT
+{
+	vector<uint> alertedGroupMembers;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

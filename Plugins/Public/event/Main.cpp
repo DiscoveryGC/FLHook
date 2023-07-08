@@ -690,7 +690,8 @@ void TradeEventNotice(uint iClientID, map<string, TRADE_EVENT>::iterator iter)
 	Universe::IBase* base = Universe::get_base(iter->second.uEndBase);
 	const Universe::ISystem* sys = Universe::get_system(base->iSystemID);
 	const GoodInfo* gi = GoodList::find_by_id(iter->second.uCommodityID);
-	
+	if (iter->second.eventDescription.empty())
+		iter->second.eventDescription = "None";
 
 	wstring pagetext =
 		L"<TRA bold=\"true\"/><TEXT>You've entered the " + stows(iter->second.sEventName) + L" Event</TEXT><TRA bold = \"false\"/><PARA /><PARA />"
@@ -775,7 +776,6 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 				// Is the event limited by Ship class?
 				if (i->second.isClassRestricted)
 				{
-					int NTInfoID;
 					//PrintUserCmdText(iClientID, L"Checking ship class requirements....");
 					Archetype::Ship* TheShipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
 					wstring classname = shipclassnames.find(TheShipArch->iShipClass)->second;
@@ -785,6 +785,9 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 						PrintUserCmdText(iClientID, L"DEBUG: Invalid ship class[%s], this Evnet is for [%s]'s", classname.c_str(), i->second.allowedShipClass.c_str());
 						return;
 					}
+				}
+				else {
+					i->second.allowedShipClass = stows("No Restrictions").c_str();
 				}
 
 				HookExt::IniSetB(iClientID, "event.enabled", true);

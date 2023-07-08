@@ -913,7 +913,6 @@ void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switc
 		setJumpingClients.insert(packetClient);
 }
 
-
 void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -924,7 +923,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	}
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Functions to hook */

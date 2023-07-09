@@ -28,10 +28,9 @@
 #include <hookext_exports.h>
 #include "minijson_writer.hpp"
 #include <set>
-#include <unordered_map>
 
 static int set_iPluginDebug = 0;
-unordered_map <uint, wstring> shipclassnames;
+map <uint, wstring> shipclassnames;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -48,11 +47,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		if (set_scCfgFile.length() > 0)
 			LoadSettings();
-		HkLoadStringDLLs();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
-		HkUnloadStringDLLs();
+		
 	}
 	return true;
 }
@@ -68,7 +66,7 @@ struct TRADE_EVENT {
 	uint uHashID;
 	string sEventName;
 	string sURL;
-	wstring eventDescription;
+	string eventDescription;
 	int iBonusCash;
 	bool isClassRestricted = false;
 	wstring allowedShipClass;
@@ -231,7 +229,7 @@ void LoadSettings()
 					}
 					else if (ini.is_value("description"))
 					{
-						te.eventDescription = stows((ini.get_value_string(0));
+						te.eventDescription = ini.get_value_string(0);
 					}
 					else if (ini.is_value("startbase"))
 					{
@@ -585,6 +583,7 @@ void LoadSettings()
 	ConPrint(L"EVENT DEBUG: Loaded %u event player data\n", iLoaded3);
 
 	LoadIDs();
+	HkLoadStringDLLs();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -692,7 +691,7 @@ void TradeEventNotice(uint iClientID, map<string, TRADE_EVENT>::iterator iter)
 	const Universe::ISystem* sys = Universe::get_system(base->iSystemID);
 	const GoodInfo* gi = GoodList::find_by_id(iter->second.uCommodityID);
 	if (iter->second.eventDescription.empty())
-		iter->second.eventDescription = L"None";
+		iter->second.eventDescription = "None";
 
 	wstring pagetext =
 		L"<TRA bold=\"true\"/><TEXT>You've entered the " + stows(iter->second.sEventName) + L" Event</TEXT><TRA bold = \"false\"/><PARA /><PARA />"
@@ -701,13 +700,13 @@ void TradeEventNotice(uint iClientID, map<string, TRADE_EVENT>::iterator iter)
 		L"<TEXT>Transport " + HkGetWStringFromIDS(gi->iIDSName) + L" to " + HkGetWStringFromIDS(base->iBaseIDS) + L" in the " + HkGetWStringFromIDS(sys->strid_name) + " system to complete this mission.</TEXT><PARA /><PARA />"
 
 		L"<TRA bold=\"true\"/><TEXT>Reward Bonus:</TEXT><TRA bold=\"false\"/><PARA/>"
-		L"<TEXT>$" + to_wstring(iter->second.iBonusCash) + " per unit</TEXT><PARA /><PARA />"
+		L"<TEXT>$" + stows(to_string(iter->second.iBonusCash)) + " per unit</TEXT><PARA /><PARA />"
 
 		L"<TRA bold=\"true\"/><TEXT>Ship Class:</TEXT><TRA bold=\"false\"/><PARA/>"
-		L"<TEXT>Restricted to: " + iter->second.allowedShipClass + "</TEXT><PARA /><PARA />"
+		L"<TEXT>Restricted to: " + iter->second.allowedShipClass.c_str() + "</TEXT><PARA /><PARA />"
 
 		L"<TRA bold=\"true\"/><TEXT>Description:</TEXT><TRA bold=\"false\"/><PARA/>"
-		L"<TEXT>" + iter->second.eventDescription + L"</TEXT><PARA /><PARA />";
+		L"<TEXT>" + stows(iter->second.eventDescription) + L"</TEXT><PARA /><PARA />";
 
 	wchar_t titleBuf[4000];
 	_snwprintf(titleBuf, sizeof(titleBuf), L"Trade Event Information");
@@ -715,8 +714,8 @@ void TradeEventNotice(uint iClientID, map<string, TRADE_EVENT>::iterator iter)
 	wchar_t buf[4000];
 	_snwprintf(buf, sizeof(buf), L"<RDL><PUSH/>%ls<POP/></RDL>", pagetext.c_str());
 
-	HkChangeIDSString(iClientID, 267144, titleBuf);
-	HkChangeIDSString(iClientID, 267145, buf);
+	HkChangeIDSString(iClientID, 500000, titleBuf);
+	HkChangeIDSString(iClientID, 500001, buf);
 
 	FmtStr caption(0, 0);
 	caption.begin_mad_lib(500000);
@@ -779,7 +778,7 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 				{
 					//PrintUserCmdText(iClientID, L"Checking ship class requirements....");
 					Archetype::Ship* TheShipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
-					wstring& classname = shipclassnames.find(TheShipArch->iShipClass)->second;
+					wstring classname = shipclassnames.find(TheShipArch->iShipClass)->second;
 					
 					if (classname != i->second.allowedShipClass)
 					{
@@ -788,7 +787,7 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 					}
 				}
 				else {
-					i->second.allowedShipClass = L"No Restrictions";
+					i->second.allowedShipClass = stows("No Restrictions").c_str();
 				}
 
 				HookExt::IniSetB(iClientID, "event.enabled", true);

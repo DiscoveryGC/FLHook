@@ -109,8 +109,6 @@ void LoadSettings()
 							blacklistedShipTypesBitmap |= OBJ_CRUISER;
 						if (typeStr.find("capital") != string::npos)
 							blacklistedShipTypesBitmap |= OBJ_CAPITAL;
-						else
-							ConPrint(L"MissileCntl: Error reading config for Blacklisted munitions, value %ls not recognized\n", stows(typeStr).c_str());
 					}
 				}
 				mapTrackingByShiptypeBlacklistBitmap[missileArch] = blacklistedShipTypesBitmap;

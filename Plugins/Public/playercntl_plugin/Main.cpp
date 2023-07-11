@@ -351,6 +351,12 @@ namespace HkIEngine
 				}
 			}
 
+			if (!HyperJump::Dock_Call(iShip, iDockTarget))
+			{
+				iCancel = -1;
+				response = DOCK_DENIED;
+				return 0;
+			}
 			SystemSensor::Dock_Call(iShip, iDockTarget, iCancel, response);
 			return 0;
 		}
@@ -444,38 +450,50 @@ namespace HkIServerImpl
 		projectile->set_target(nullptr);
 	}
 
+	void __stdcall RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4, unsigned int iClientID)
+	{
+		returncode = DEFAULT_RETURNCODE;
+
+		if (!iClientID)
+			return;
+
+		HyperJump::RequestCancel(iType, iShip, p3, p4);
+	}
+
 	void __stdcall RequestEvent(int iEventType, unsigned int iShip, unsigned int iTargetObj, unsigned int p4, unsigned long p5, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
-		if (iClientID)
+		if (!iClientID)
 		{
-			if (iEventType == 0) // station dock
+			return;
+		}
+
+		if (iEventType == 0) // station dock
+		{
+			uint iTargetTypeID;
+			pub::SpaceObj::GetType(iTargetObj, iTargetTypeID);
+			if (iTargetTypeID & (OBJ_DOCKING_RING | OBJ_STATION))
 			{
-				uint iTargetTypeID;
-				pub::SpaceObj::GetType(iTargetObj, iTargetTypeID);
-				if (iTargetTypeID == OBJ_DOCKING_RING || iTargetTypeID == OBJ_STATION)
+				if (!IsDockingAllowed(iShip, iTargetObj, iClientID))
 				{
-					if (!IsDockingAllowed(iShip, iTargetObj, iClientID))
-					{
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-					}
+					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				}
 			}
-			else if (iEventType == 2) // trade lane dock
+		}
+		else if (iEventType == 2) // trade lane dock
+		{
+			float shieldHp, shieldMax;
+			bool shieldUp;
+			pub::SpaceObj::GetShieldHealth(iTargetObj, shieldHp, shieldMax, shieldUp);
+			if (!shieldUp)
 			{
-				float shieldHp, shieldMax;
-				bool shieldUp;
-				pub::SpaceObj::GetShieldHealth(iTargetObj, shieldHp, shieldMax, shieldUp);
-				if (!shieldUp)
-				{
-					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				}
-				else if (setLaneAndFormationBannedShips.find(Players[iClientID].iShipArchetype) != setLaneAndFormationBannedShips.end())
-				{
-					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_trade_lane_access_denied"));
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				}
+				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			}
+			else if (setLaneAndFormationBannedShips.find(Players[iClientID].iShipArchetype) != setLaneAndFormationBannedShips.end())
+			{
+				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_trade_lane_access_denied"));
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			}
 		}
 	}
@@ -571,7 +589,7 @@ namespace HkIServerImpl
 		{
 			AntiJumpDisconnect::JumpInComplete(iSystem, iShip, iClientID);
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
-			HyperJump::FinishSwitchSystem(iClientID);
+			HyperJump::JumpInComplete(iShip);
 			HyperJump::SetJumpInFuse(iClientID);
 			HyperJump::SetJumpInInvulnerability(iClientID);
 		}
@@ -583,8 +601,12 @@ namespace HkIServerImpl
 		// Make player invincible to fix JHs/JGs near mine fields sometimes
 		// exploding player while jumping (in jump tunnel)
 		pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-		AntiJumpDisconnect::SystemSwitchOutComplete(iShip, iClientID);
 		HyperJump::SystemSwitchOutComplete(iShip, iClientID);
+	}
+
+	void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
+	{
+		AntiJumpDisconnect::SystemSwitchOut(iClientID);
 	}
 
 	void __stdcall SPObjCollision(struct SSPObjCollisionInfo const &ci, unsigned int iClientID)
@@ -1712,6 +1734,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Startup, PLUGIN_HkIServerImpl_Startup, 10));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Startup_AFTER, PLUGIN_HkIServerImpl_Startup_AFTER, 10));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Login, PLUGIN_HkIServerImpl_Login, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::RequestCancel, PLUGIN_HkIServerImpl_RequestCancel, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::RequestEvent, PLUGIN_HkIServerImpl_RequestEvent, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::RequestEvent_AFTER, PLUGIN_HkIServerImpl_RequestEvent_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));

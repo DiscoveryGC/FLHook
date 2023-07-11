@@ -154,13 +154,9 @@ void PlayerBase::Load()
 			{
 				int newsindex = 0;
 				int paraindex = 0;
-				destposition.x = 0;
-				destposition.y = 0;
-				destposition.z = 0;
 				invulnerable = 0;
 				logic = 1;
 				string defaultsystem = "iw09";
-				destsystem = CreateID(defaultsystem.c_str());
 
 				while (ini.read_value())
 				{
@@ -206,9 +202,10 @@ void PlayerBase::Load()
 						erot.z = ini.get_value_float(2);
 						rotation = EulerMatrix(erot);
 					}
-					else if (ini.is_value("destsystem"))
+					else if (ini.is_value("destobject"))
 					{
-						destsystem = ini.get_value_int(0);
+						destObjectName = ini.get_value_string(0);
+						destObject = CreateID(destObjectName.c_str());
 					}
 					else if (ini.is_value("logic"))
 					{
@@ -225,14 +222,6 @@ void PlayerBase::Load()
 					else if (ini.is_value("shielddmgtaken"))
 					{
 						damage_taken_since_last_threshold = ini.get_value_float(0);
-					}
-					else if (ini.is_value("destposition"))
-					{
-						destposition = { ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) };
-					}
-					else if (ini.is_value("destorientation"))
-					{
-						destorientation = EulerMatrix({ ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) });
 					}
 					else if (ini.is_value("infoname"))
 					{
@@ -395,13 +384,16 @@ void PlayerBase::Save()
 		fprintf(file, "system = %u\n", system);
 		fprintf(file, "pos = %0.0f, %0.0f, %0.0f\n", position.x, position.y, position.z);
 
-		fprintf(file, "destsystem = %u\n", destsystem);
-		fprintf(file, "destposition = %0.0f, %0.0f, %0.0f\n", destposition.x, destposition.y, destposition.z);
-		const Vector& orient = MatrixToEuler(destorientation);
-		fprintf(file, "destorientation = %0.0f, %0.0f, %0.0f\n", orient.x, orient.y, orient.z);
-
 		Vector vRot = MatrixToEuler(rotation);
 		fprintf(file, "rot = %0.0f, %0.0f, %0.0f\n", vRot.x, vRot.y, vRot.z);
+		if (destObject && pub::SpaceObj::ExistsAndAlive(destObject) == 0)
+		{
+			uint systemId;
+			pub::SpaceObj::GetSystem(destObject, systemId);
+			const auto& systemInfo = Universe::get_system(systemId);
+			fprintf(file, "destsystem = %s\n", systemInfo->nickname);
+			fprintf(file, "destobject = %s\n", destObjectName.c_str());
+		}
 
 		ini_write_wstring(file, "infoname", basename);
 		for (int i = 1; i <= MAX_PARAGRAPHS; i++)

@@ -139,7 +139,7 @@ bool set_holiday_mode = false;
 POBSOUNDS pbsounds;
 
 //archtype structure
-map<string, ARCHTYPE_STRUCT> mapArchs;
+unordered_map<string, ARCHTYPE_STRUCT> mapArchs;
 
 //commodities to watch for logging
 map<uint, wstring> listCommodities;
@@ -152,8 +152,6 @@ float siege_mode_damage_trigger_level = 8000000;
 
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
-
-map<uint, uint> mapJumpLockout;
 
 uint jump_lockout_duration = 30;
 uint jump_innacurracy_min = 300;
@@ -438,7 +436,7 @@ void LoadSettingsActual()
 	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
 	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
 	string cfg_fileforbiddencommodities = string(szCurDir) + "\\flhook_plugins\\base_forbidden_cargo.cfg";
-	int bmapLoadHyperspaceHubConfig = 0;
+	uint bmapLoadHyperspaceHubConfig = 0;
 
 	map<uint, PlayerBase*>::iterator base = player_bases.begin();
 	for (; base != player_bases.end(); base++)
@@ -863,15 +861,16 @@ void LoadSettingsActual()
 
 	// loadHyperspaceHubConfig is weekday where 0 = sunday, 6 = saturday
 	// if it's today, randomize appropriate 'jump hole' POBs
-	// TOOD: Figure out to only do it only during the first boot for a given day
 	if (bmapLoadHyperspaceHubConfig) {
 		time_t tNow = time(0);
 		struct tm *t = localtime(&tNow);
 		uint currWeekday = (t->tm_wday + 6)%7; // conversion from sunday-week-start to monday-start
-		if (bmapLoadHyperspaceHubConfig & (uint)pow(2u, currWeekday)) {
+		if (bmapLoadHyperspaceHubConfig & (1 << currWeekday)) {
 			HyperJump::LoadHyperspaceHubConfig(string(szCurDir));
 		}
 	}
+
+	HyperJump::InitJumpHoleConfig();
 
 	// Load and sync player state
 	struct PlayerData *pd = 0;
@@ -950,6 +949,15 @@ void HkTimerCheckKick()
 		}
 	}
 
+	//fix custom jump solars not being dockable
+	for (uint customSolar : customSolarList)
+	{
+		uint type;
+		pub::SpaceObj::GetType(customSolar, type);
+		if(type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+			pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+	}
+
 	if (ExportType == 0 || ExportType == 2)
 	{
 		// Write status to an html formatted page every 60 seconds
@@ -967,17 +975,11 @@ void HkTimerCheckKick()
 			ExportData::ToJSON();
 		}
 	}
-
-	for (auto& jumpBan : mapJumpLockout) {
-		if (--jumpBan.second == 0) {
-			mapJumpLockout.erase(jumpBan.first);
-		}
-	}
 }
 
 bool __stdcall HkCb_IsDockableError(uint dock_with, uint base)
 {
-	if (GetPlayerBase(base))
+	if (GetPlayerBase(base) || customSolarList.count(base))
 		return false;
 	ConPrint(L"ERROR: Base not found dock_with=%08x base=%08x\n", dock_with, base);
 	return true;
@@ -1143,6 +1145,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			delete base->second;
 		}
+
+		for (uint customSolar : customSolarList)
+		{
+			int isAlive = pub::SpaceObj::ExistsAndAlive(customSolar);
+			if(isAlive == 0)
+				pub::SpaceObj::Destroy(customSolar, DestroyType::VANISH);
+		}
+		customSolarList.clear();
 
 		HkUnloadStringDLLs();
 	}
@@ -1495,29 +1505,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					}
 				}
 
-				if (mapJumpLockout.count(client)) {
-					PrintUserCmdText(client, L"Jump systems recharging. Charging complete in %u seconds.", mapJumpLockout[client]);
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-					return 1;
-				}
-				else if (jump_lockout_duration)
-					mapJumpLockout[client] = jump_lockout_duration;
+				SendJumpObjOverride(client, base, pbase->destSystem);
 
-
-				Vector destPos = pbase->destposition;
-				RandomizeCoords(destPos);
-
-				CUSTOM_JUMP_CALLOUT_STRUCT jumpData;
-				jumpData.iClientID = client;
-				jumpData.iSystemID = pbase->destsystem;
-				jumpData.pos = destPos;
-				jumpData.ori = pbase->destorientation;
-				jumpData.jumpType = JUMPHOLE_JUMPTYPE;
-
-				Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_JUMP_CALLOUT, &jumpData);
-
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				return 1;
+				return 0;
 			}
 
 			// Shield is up, docking is not possible.
@@ -2561,16 +2551,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->baseloadout = "legacy";
 		newbase->defense_mode = 1;
 
-		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
-		{
-
-			ARCHTYPE_STRUCT &thearch = iter->second;
-			if (iter->first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-			}
-		}
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
 
 		newbase->Spawn();
 		newbase->Save();
@@ -2587,7 +2569,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		RIGHT_CHECK(RIGHT_BASES)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
-		PlayerBase *base = GetPlayerBaseForClient(client);
 
 		uint ship;
 		pub::Player::GetShip(client, ship);
@@ -2596,6 +2577,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			PrintUserCmdText(client, L"ERR Not in space");
 			return true;
 		}
+
+		wstring usage = L"Usage: .jumpcreate <archtype> <loadout> <type> <dest object> <affiliation> <name>";
 
 		// If the ship is moving, abort the processing.
 		Vector dir1;
@@ -2611,50 +2594,45 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		if (!archtype.length())
 		{
 			PrintUserCmdText(client, L"ERR No archtype");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 		wstring loadout = cmd->ArgStr(2);
 		if (!loadout.length())
 		{
 			PrintUserCmdText(client, L"ERR No loadout");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 		wstring type = cmd->ArgStr(3);
 		if (!type.length())
 		{
 			PrintUserCmdText(client, L"ERR No type");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 		wstring destsystem = cmd->ArgStr(4);
 		if (!destsystem.length())
 		{
-			PrintUserCmdText(client, L"ERR No destination system");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, L"ERR No destination object");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 
-		Vector destpos;
-		destpos.x = cmd->ArgFloat(5);
-		destpos.y = cmd->ArgFloat(6);
-		destpos.z = cmd->ArgFloat(7);
-
-		wstring theaffiliation = cmd->ArgStr(8);
+		wstring theaffiliation = cmd->ArgStr(5);
 		if (!theaffiliation.length())
 		{
 			PrintUserCmdText(client, L"ERR No affiliation");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 
 
-		wstring basename = cmd->ArgStrToEnd(9);
+		wstring basename = cmd->ArgStrToEnd(6);
 		if (!basename.length())
 		{
 			PrintUserCmdText(client, L"ERR No name entered");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 
@@ -2684,23 +2662,16 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->defense_mode = 4;
 		newbase->base_health = 10000000000;
 
-		newbase->destsystem = CreateID(wstos(destsystem).c_str());
-		newbase->destposition = destpos;
+		newbase->destObject = CreateID(wstos(destsystem).c_str());
 
-		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
-		{
-
-			ARCHTYPE_STRUCT &thearch = iter->second;
-			if (iter->first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-				newbase->radius = thearch.radius;
-			}
-		}
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
+		newbase->radius = mapArchs[newbase->basetype].radius;
 
 		newbase->Spawn();
 		newbase->Save();
+
+		HyperJump::InitJumpHoleConfig();
 
 		PrintUserCmdText(client, L"OK: Solar deployed");
 		//PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
@@ -2795,16 +2766,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->defense_mode = 2;
 		newbase->base_health = 10000000000;
 
-		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
-		{
-
-			ARCHTYPE_STRUCT &thearch = iter->second;
-			if (iter->first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-			}
-		}
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
 
 		newbase->Spawn();
 		newbase->Save();
@@ -2928,6 +2891,39 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			base->ChangeMoney(price);
 			base->Save();
 		}
+	}
+	else if (msg == CUSTOM_BASE_GET_NAME)
+	{
+		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
+		if (clients.count(info->clientID))
+		{
+			uint lastBaseID = clients[info->clientID].last_player_base;
+			if (player_bases.count(lastBaseID))
+			{
+				info->lastBaseName = player_bases[lastBaseID]->basename;
+			}
+			else
+			{
+				info->lastBaseName = L"Destroyed Player Base";
+			}
+		}
+		else
+		{
+			info->lastBaseName = L"Object Unknown";
+		}
+		returncode = SKIPPLUGINS;
+	}
+	else if (msg == CUSTOM_SPAWN_SOLAR)
+	{
+		SPAWN_SOLAR_STRUCT* info = reinterpret_cast<SPAWN_SOLAR_STRUCT*>(data);
+		CreateSolar::CreateSolarCallout(info);
+		returncode = SKIPPLUGINS;
+	}
+	else if (msg == CUSTOM_DESPAWN_SOLAR)
+	{
+		DESPAWN_SOLAR_STRUCT* info = reinterpret_cast<DESPAWN_SOLAR_STRUCT*>(data);
+		CreateSolar::DespawnSolarCallout(info);
+		returncode = SKIPPLUGINS;
 	}
 	return;
 }

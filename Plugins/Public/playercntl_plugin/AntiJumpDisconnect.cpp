@@ -72,7 +72,7 @@ namespace AntiJumpDisconnect
 		mapInfo[iClientID].bInWrapGate = false;
 	}
 
-	void AntiJumpDisconnect::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
+	void AntiJumpDisconnect::SystemSwitchOut(uint iClientID)
 	{
 		mapInfo[iClientID].bInWrapGate = true;
 	}

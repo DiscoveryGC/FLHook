@@ -253,9 +253,14 @@ enum PLUGIN_MESSAGE
 	CLIENT_CLOAK_INFO = 44,
 	COMBAT_DAMAGE_OVERRIDE = 45,
 	CUSTOM_JUMP = 47,
-	CUSTOM_IS_IT_POB = 50,
 	CUSTOM_REVERSE_TRANSACTION = 48,
-	CUSTOM_JUMP_CALLOUT = 49
+	CUSTOM_JUMP_CALLOUT = 49,
+	CUSTOM_MOBILE_DOCK_CHECK = 50,
+	CUSTOM_BASE_GET_NAME = 51,
+	CUSTOM_SPAWN_SOLAR = 52,
+	CUSTOM_IS_IT_POB = 53,
+	CUSTOM_IN_WARP_CHECK = 54,
+	CUSTOM_DESPAWN_SOLAR = 55
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -383,6 +388,46 @@ struct CUSTOM_JUMP_CALLOUT_STRUCT
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 {
 	uint iClientID;
+};
+
+struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
+{
+	uint iClientID;
+	bool isMobileDocked = false;
+};
+
+struct LAST_PLAYER_BASE_NAME_STRUCT
+{
+	uint clientID;
+	wstring lastBaseName;
+};
+
+struct SPAWN_SOLAR_STRUCT
+{
+	uint solarArchetypeId;
+	uint loadoutArchetypeId;
+	string nickname;
+	uint solar_ids;
+	wstring overwrittenName;
+	Vector pos;
+	Matrix ori;
+	uint iSystemId;
+	uint iSpaceObjId = 0;
+	uint destSystem = 0;
+	uint destObj = 0;
+	uint creatorSystem = 0;
+};
+
+struct CUSTOM_IN_WARP_CHECK_STRUCT
+{
+	uint clientId;
+	bool inWarp = false;
+};
+
+struct DESPAWN_SOLAR_STRUCT
+{
+	uint spaceObjId;
+	DestroyType destroyType;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

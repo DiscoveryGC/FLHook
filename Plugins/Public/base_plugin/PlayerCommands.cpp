@@ -1821,7 +1821,7 @@ namespace PlayerCommands
 		}
 		else if (cmd == L"public" || cmd == L"private")
 		{
-			int item = ToInt(GetParam(args, ' ', 2));
+			uint item = ToUInt(GetParam(args, ' ', 2));
 
 			if (item < 1 || item > base->market_items.size())
 			{
@@ -2294,16 +2294,9 @@ namespace PlayerCommands
 		newbase->baseloadout = "legacy";
 		newbase->defense_mode = 1;
 
-		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
-		{
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
 
-			ARCHTYPE_STRUCT &thearch = iter->second;
-			if (iter->first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-			}
-		}
 		newbase->Spawn();
 		newbase->Save();
 

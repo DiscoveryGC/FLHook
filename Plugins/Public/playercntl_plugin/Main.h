@@ -39,13 +39,6 @@ namespace pub
 	}
 }
 
-// From EquipmentUtilities.cpp
-namespace EquipmentUtilities
-{
-	void ReadIniNicknames();
-	const char *FindNickname(unsigned int hash);
-}
-
 // From PurchaseRestrictions
 namespace PurchaseRestrictions
 {
@@ -105,6 +98,10 @@ namespace MiscCmds
 	void AdminCmd_PlaySound(CCmds* cmds, const wstring &wscSoundname);
 	void AdminCmd_PlayNNM(CCmds* cmds, const wstring &wscSoundname);
 
+	void AdminCmd_SetHP(CCmds* cmds, const wstring& charName, uint hpPercentage);
+	void AdminCmd_SetHPFuse(CCmds* cmds, const wstring& charName, uint hpPercentage, const wstring& fuseName);
+	void AdminCmd_SetFuse(CCmds* cmds, const wstring& charName, const wstring& fuseName);
+	void AdminCmd_UnsetFuse(CCmds* cmds, const wstring& charName, const wstring& fuseName);
 }
 
 namespace IPBans

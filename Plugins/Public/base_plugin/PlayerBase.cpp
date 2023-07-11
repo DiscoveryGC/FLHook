@@ -4,7 +4,8 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE)
+	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
 	base = CreateID(nickname.c_str());
@@ -37,8 +38,9 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
-	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE)
+	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
+	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules
 	Load();
@@ -87,14 +89,6 @@ bool PlayerBase::Timer(uint curr_time)
 				return true;
 		}
 	}
-
-	// Save base status every 60 seconds.
-	if (save_timer-- < 0)
-	{
-		save_timer = 60;
-		Save();
-	}
-
 	return false;
 }
 
@@ -130,9 +124,10 @@ void PlayerBase::SetupDefaults()
 	infocard.clear();
 	for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 	{
-		wstring wscXML = infocard_para[i];
+		wstring& wscXML = infocard_para[i];
+
 		if (wscXML.length())
-			infocard += L"<TEXT>" + wscXML + L"</TEXT><PARA/><PARA/>";
+			infocard += L"<TEXT>" + ReplaceStr(wscXML, L"\n", L"</TEXT><PARA/><TEXT>") + L"</TEXT><PARA/><PARA/>";
 	}
 
 	// Validate the affiliation and clear it if there is no infocard
@@ -223,6 +218,14 @@ void PlayerBase::Load()
 					{
 						invulnerable = ini.get_value_int(0);
 					}
+					else if (ini.is_value("shieldstrength"))
+					{
+						shield_strength_multiplier = ini.get_value_float(0);
+					}
+					else if (ini.is_value("shielddmgtaken"))
+					{
+						damage_taken_since_last_threshold = ini.get_value_float(0);
+					}
 					else if (ini.is_value("destposition"))
 					{
 						destposition = { ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) };
@@ -239,6 +242,12 @@ void PlayerBase::Load()
 					{
 						ini_get_wstring(ini, infocard_para[++paraindex]);
 					}
+					else if (ini.is_value("infocardpara2"))
+					{
+						wstring infopara2;
+						ini_get_wstring(ini, infopara2);
+						infocard_para[paraindex] += infopara2;
+					}
 					else if (ini.is_value("money"))
 					{
 						sscanf(ini.get_value_string(), "%I64d", &money);
@@ -251,6 +260,7 @@ void PlayerBase::Load()
 						mi.price = ini.get_value_float(2);
 						mi.min_stock = ini.get_value_int(3);
 						mi.max_stock = ini.get_value_int(4);
+						mi.is_public = bool(ini.get_value_int(5));
 						market_items[good] = mi;
 					}
 					else if (ini.is_value("health"))
@@ -378,6 +388,8 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
+		fprintf(file, "shieldstrength = %f\n", shield_strength_multiplier);
+		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 
 		fprintf(file, "money = %I64d\n", money);
 		fprintf(file, "system = %u\n", system);
@@ -394,13 +406,15 @@ void PlayerBase::Save()
 		ini_write_wstring(file, "infoname", basename);
 		for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 		{
-			ini_write_wstring(file, "infocardpara", infocard_para[i]);
+			ini_write_wstring(file, "infocardpara", infocard_para[i].substr(0, 252));
+			if(infocard_para[i].length() >= 252)
+				ini_write_wstring(file, "infocardpara2", infocard_para[i].substr(252, 252));
 		}
 		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
 			i != market_items.end(); ++i)
 		{
-			fprintf(file, "commodity = %u, %u, %f, %u, %u\n",
-				i->first, i->second.quantity, i->second.price, i->second.min_stock, i->second.max_stock);
+			fprintf(file, "commodity = %u, %u, %f, %u, %u, %u\n",
+				i->first, i->second.quantity, i->second.price, i->second.min_stock, i->second.max_stock, int(i->second.is_public));
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);
@@ -588,8 +602,11 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 			pub::Player::GetRep(client, rep);
 			pub::Reputation::GetGroupFeelingsTowards(rep, affiliation, attitude);
 
-			if (attitude > 0 || siege_mode || emulated_siege_mode)
+			// if in siege mode, return true affiliation, otherwise clamp to minimum neutralNoDock rep
+			if (siege_mode || emulated_siege_mode)
 				return attitude;
+			else
+				return max(-0.59f, attitude);
 		}
 	}
 
@@ -706,7 +723,7 @@ void PlayerBase::SiegeModChainReaction(uint client)
 // Return true if 
 float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
-	float incoming_damage = abs(curr_hitpoints - new_hitpoints);
+	float incoming_damage = curr_hitpoints - new_hitpoints;
 
 	// Make sure that the attacking player is hostile.
 	uint client = HkGetClientIDByShip(attacking_space_obj);
@@ -735,7 +752,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				}
 			}
 
-			if (!is_ally && (hostile_tags_damage[charname] + incoming_damage) > damage_threshold)
+			if (!is_ally && (hostile_tags_damage[charname]) > damage_threshold)
 			{
 				hostile_tags[charname] = charname;
 
@@ -749,7 +766,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			}
 		}
 
-		if (!siege_mode && (hostile_tags_damage[charname] + incoming_damage) > siege_mode_damage_trigger_level)
+		if (!siege_mode && (hostile_tags_damage[charname]) > siege_mode_damage_trigger_level)
 		{
 			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
@@ -761,7 +778,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 	// If the shield is not active but could be set a time 
 	// to request that it is activated.
-	if (!this->shield_active_time && shield_state == SHIELD_STATE_ONLINE)
+	if (!this->shield_active_time && this->shield_state == SHIELD_STATE_ONLINE)
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		ReportAttack(this->basename, charname, this->system);
@@ -771,16 +788,4 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	}
 
 	return 0.0f;
-}
-
-// Reset shield to default strength
-void PlayerBase::ResetShieldStrength() {
-	for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i) {
-		CoreModule* mod = dynamic_cast<CoreModule*>(*i);
-		if (mod) {
-			mod->shield_strength_multiplier = base_shield_strength;
-			mod->damage_taken_since_last_threshold = 0;
-			return;
-		}
-	}
 }

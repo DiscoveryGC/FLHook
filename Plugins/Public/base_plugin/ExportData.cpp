@@ -156,12 +156,40 @@ void ExportData::ToJSON()
 		}
 		pwds.close();
 
+		minijson::array_writer shop = pw.nested_array("shop_items");
+		int curr_item = 1;
+		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
+		{
+			try {
+				minijson::object_writer item = shop.nested_object();
+				item.write("quantity", i->second.quantity);
+				item.write("price", i->second.price);
+				item.write("min_stock", i->second.min_stock);
+				item.write("max_stock", i->second.max_stock);
+				item.write("is_public", i->second.is_public);
+				
+				const GoodInfo* gi = GoodList::find_by_id(i->first);
+				
+				wstring name = HkGetWStringFromIDS(gi->iIDSName);
+				item.write("name", wstos(name).c_str());
+				item.write("name_id", gi->iIDSName);
+				item.write("id", i->first);
+				item.write("nickname", EquipmentUtilities::FindNickname(i->first));
+				item.close();
+				
+			} catch (exception e) {
+				ConPrint(L"WARN: failed to output to json object with id %u\n", i->first);
+			}
+		}
+		shop.close();
+
 		//add basic elements
 		pw.write("affiliation", wstos(HtmlEncode(theaffiliation)).c_str());
 		pw.write("type", base->basetype.c_str());
 		pw.write("solar", base->basesolar.c_str());
 		pw.write("loadout", base->baseloadout.c_str());
 		pw.write("level", base->base_level);
+		pw.write("money", base->money);
 		pw.write("health", 100 * (base->base_health / base->max_base_health));
 		pw.write("defensemode", base->defense_mode);
 		pw.write("shieldstate", base->shield_state);

@@ -52,6 +52,7 @@ void DeleteBase(PlayerBase *base)
 	}
 
 	player_bases.erase(base->base);
+	baseSaveIterator = player_bases.begin();
 	delete base;
 }
 

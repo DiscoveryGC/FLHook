@@ -637,8 +637,6 @@ extern map<uint, uint> set_base_crew_food_items;
 
 extern uint set_crew_check_frequency;
 
-extern map<string, ARCHTYPE_STRUCT> mapArchs;
-
 extern unordered_map<string, ARCHTYPE_STRUCT> mapArchs;
 
 /// List of banned systems

@@ -261,6 +261,7 @@ enum PLUGIN_MESSAGE
 	CUSTOM_SPAWN_SOLAR = 52,
 	CUSTOM_IS_IT_POB = 53,
 	CUSTOM_IN_WARP_CHECK = 54,
+	CUSTOM_DESPAWN_SOLAR = 55,
 	CUSTOM_CLOAK_ALERT = 60
 };
 
@@ -409,17 +410,26 @@ struct SPAWN_SOLAR_STRUCT
 	uint loadoutArchetypeId;
 	string nickname;
 	uint solar_ids;
-	wstring initialName;
+	wstring overwrittenName;
 	Vector pos;
 	Matrix ori;
 	uint iSystemId;
 	uint iSpaceObjId = 0;
+	uint destSystem = 0;
+	uint destObj = 0;
+	uint creatorSystem = 0;
 };
 
 struct CUSTOM_IN_WARP_CHECK_STRUCT
 {
 	uint clientId;
 	bool inWarp = false;
+};
+
+struct DESPAWN_SOLAR_STRUCT
+{
+	uint spaceObjId;
+	DestroyType destroyType;
 };
 
 struct CUSTOM_CLOAK_ALERT_STRUCT

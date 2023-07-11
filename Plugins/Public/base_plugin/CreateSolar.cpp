@@ -1,17 +1,36 @@
 #include "Main.h"
 
+void CreateSolar::DespawnSolarCallout(DESPAWN_SOLAR_STRUCT* info)
+{
+	if (!customSolarList.count(info->spaceObjId))
+	{
+		return;
+	}
+
+	if (pub::SpaceObj::ExistsAndAlive(info->spaceObjId) == 0)
+	{
+		pub::SpaceObj::Destroy(info->spaceObjId, info->destroyType);
+	}
+	customSolarList.erase(info->spaceObjId);
+}
 
 void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 {
-	uint spaceObjId;
-
+	ConPrint(L"CreateSolar:\nsystem: %u\nnickname: %ls\npos: %u %u %u\ndestsystem: %u\ndestobj: %u\n, loadout: %u\narch: %u\nids: %u\nname: %ls\n",
+		info->iSystemId, stows(info->nickname).c_str(), (uint)info->pos.x, (uint)info->pos.y, (uint)info->pos.z,
+		info->destSystem, info->destObj, info->loadoutArchetypeId, info->solarArchetypeId, info->solar_ids, info->overwrittenName.c_str());
+	if (customSolarList.count(CreateID(info->nickname.c_str())))
+	{
+		ConPrint(L"Aborting due to object %ls already existing\n", stows(info->nickname).c_str());
+		return;
+	}
 	pub::SpaceObj::SolarInfo si;
 	memset(&si, 0, sizeof(si));
 	si.iFlag = 4;
 	si.iArchID = info->solarArchetypeId;
 	si.iLoadoutID = info->loadoutArchetypeId;
 
-	si.iHitPointsLeft = -1;
+	si.iHitPointsLeft = 1;
 	si.iSystemID = info->iSystemId;
 	si.mOrientation = info->ori;
 	si.vPos = info->pos;
@@ -23,13 +42,15 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 	si.iVoiceID = CreateID("atc_leg_m01");
 	strncpy_s(si.cNickName, sizeof(si.cNickName), info->nickname.c_str(), info->nickname.size());
 
-	struct PlayerData* pd = nullptr;
-	while (pd = Players.traverse_active(pd))
+	if (info->solar_ids && !info->overwrittenName.empty())
 	{
-		if(pd->iSystemID == info->iSystemId)
-			HkChangeIDSString(pd->iOnlineID, info->solar_ids, info->initialName);
+		struct PlayerData* pd = nullptr;
+		while (pd = Players.traverse_active(pd))
+		{
+			if (pd->iSystemID == info->iSystemId || pd->iSystemID == info->creatorSystem)
+				HkChangeIDSString(pd->iOnlineID, info->solar_ids, info->overwrittenName);
+		}
 	}
-
 	// Set the base name
 	FmtStr infoname(info->solar_ids, 0);
 	infoname.begin_mad_lib(info->solar_ids); // scanner name
@@ -41,6 +62,11 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 
 	pub::Reputation::Alloc(si.iRep, infoname, infocard);
 
+	ConPrint(L"AddingCustom Solar: %ls", stows(si.cNickName).c_str());
+	customSolarList.insert(CreateID(si.cNickName));
+
+	uint spaceObjId;
+
 	SpawnSolar(spaceObjId, si);
 
 	pub::AI::SetPersonalityParams pers = MakePersonality();
@@ -48,7 +74,17 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 
 	info->iSpaceObjId = spaceObjId;
 
-	customSolarList.insert(spaceObjId);
+	ConPrint(L"setting up JH: %u %u %u\n", info->destSystem, info->destObj, spaceObjId);
+	if (!info->destObj || !info->destSystem)
+	{
+		return;
+	}
+	uint type;
+	pub::SpaceObj::GetType(spaceObjId, type);
+	if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+	{
+		HyperJump::InitJumpHole(spaceObjId, info->destSystem, info->destObj);
+	}
 }
 
 void CreateSolar::SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo)

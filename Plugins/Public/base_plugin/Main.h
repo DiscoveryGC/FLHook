@@ -450,11 +450,11 @@ public:
 	float radius;
 
 	//the destination system, once again for jumps
-	uint destsystem;
+	uint destSystem;
 
 	//the destination vector
-	Vector destposition;
-	Matrix destorientation;
+	uint destObject;
+	string destObjectName;
 
 	/////////////////////////////////////////
 };
@@ -480,6 +480,7 @@ void SendMarketGoodSync(PlayerBase *base, uint client);
 void SendBaseStatus(uint client, PlayerBase *base);
 void SendBaseStatus(PlayerBase *base);
 void ForceLaunch(uint client);
+void SendJumpObjOverride(uint client, uint jumpObjId, uint newTargetSystem);
 
 struct CLIENT_DATA
 {
@@ -526,7 +527,9 @@ namespace Siege
 
 namespace HyperJump
 {
+	void InitJumpHole(uint baseId, uint destSystem, uint destObject);
 	void LoadHyperspaceHubConfig(const string& configPath);
+	void InitJumpHoleConfig();
 }
 
 namespace PlayerCommands
@@ -580,6 +583,7 @@ namespace CreateSolar {
 	pub::AI::SetPersonalityParams MakePersonality();
 	void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo);
 	void CreateSolarCallout(SPAWN_SOLAR_STRUCT* info);
+	void DespawnSolarCallout(DESPAWN_SOLAR_STRUCT* info);
 }
 
 extern map<uint, CLIENT_DATA> clients;
@@ -634,6 +638,8 @@ extern map<uint, uint> set_base_crew_food_items;
 extern uint set_crew_check_frequency;
 
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
+
+extern unordered_map<string, ARCHTYPE_STRUCT> mapArchs;
 
 /// List of banned systems
 extern set<uint> bannedSystemList;

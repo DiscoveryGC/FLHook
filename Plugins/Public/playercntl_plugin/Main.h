@@ -145,8 +145,11 @@ namespace HyperJump
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
 	void SetJumpInFuse(uint iClientID);
 	void ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData);
-	void FinishSwitchSystem(uint iClientID);
 	void SetJumpInInvulnerability(uint iClientID);
+	bool Dock_Call(uint const& iShip, uint const& iDockTarget);
+	void JumpInComplete(uint ship);
+	void DisConnect(uint iClientID);
+	void RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4);
 
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);

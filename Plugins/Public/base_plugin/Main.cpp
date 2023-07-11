@@ -157,6 +157,8 @@ uint jump_lockout_duration = 30;
 uint jump_innacurracy_min = 300;
 uint jump_innacurracy_max = 500;
 
+set<uint> customSolarList;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;
@@ -1412,26 +1414,6 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	}
 
 	return false;
-}
-
-void RandomizeCoords(Vector& vec) {
-	vec.x += static_cast<float>(((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min)) * (rand() %2 == 0 ? -1 : 1);
-	vec.y += static_cast<float>(((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min)) * (rand() %2 == 0 ? -1 : 1);
-	vec.z += static_cast<float>(((rand() % (jump_innacurracy_max - jump_innacurracy_min)) + jump_innacurracy_min)) * (rand() %2 == 0 ? -1 : 1);
-}
-
-// If this is a docking request at a player controlled based then send
-// an update to set the base arrival text, base economy and change the
-// infocards.
-
-void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
-{
-	returncode = DEFAULT_RETURNCODE;
-	// Make player invincible to fix JHs/JGs near mine fields sometimes
-	// exploding player while jumping (in jump tunnel)
-	pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-	if (AP::SystemSwitchOutComplete(iShip, iClientID))
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 }
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& iCancel, enum DOCK_HOST_RESPONSE& response)

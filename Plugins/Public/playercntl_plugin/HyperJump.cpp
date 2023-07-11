@@ -598,6 +598,7 @@ namespace HyperJump
 	void CreateJumpHolePair(uint iClientID)
 	{
 		auto& jd = mapJumpDrives[iClientID];
+		time_t timestamp = time(0);
 
 		Vector pos;
 		Matrix ori;
@@ -619,21 +620,10 @@ namespace HyperJump
 		exitSolar.solar_ids = set_IDSNamespaceStart;
 		exitSolar.overwrittenName = L"Collapsing Hyperspace Breach";
 		exitSolar.creatorSystem = Players[iClientID].iSystemID;
+		exitSolar.nickname = "custom_jump_hole_exit_" + to_string(jd.targetClient) + "_" + to_string(timestamp);
 
-		time_t timestamp = time(0);
 
-		if (jd.iCoordinateIndex) // dosen't work, indexing starts at 0
-		{
-			//aimed/blind jump
-			entrySolar.nickname = "custom_jump_hole_entry_" + to_string(iClientID) + "_" + to_string(timestamp);
-			exitSolar.nickname = "custom_jump_hole_exit_" + (string)systemInfo->nickname + "_" + to_string(jd.iCoordinateIndex) + "_" + to_string(timestamp);
-		}
-		else
-		{
-			//beacon jump
-			entrySolar.nickname = "custom_jump_hole_entry_beacon_" + to_string(iClientID) + "_" + to_string(timestamp);
-			exitSolar.nickname = "custom_jump_hole_exit_beacon_" + to_string(jd.targetClient) + "_" + to_string(timestamp);
-		}
+		//beacon jump
 
 		Plugin_Communication(CUSTOM_SPAWN_SOLAR, &exitSolar);
 
@@ -646,6 +636,7 @@ namespace HyperJump
 		entrySolar.destObj = exitSolar.iSpaceObjId;
 		entrySolar.overwrittenName = L"Collapsing " + HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
 		entrySolar.solar_ids = set_IDSNamespaceStart + iClientID;
+		entrySolar.nickname = "custom_jump_hole_entry_" + to_string(iClientID) + "_" + to_string(timestamp);
 
 		Plugin_Communication(CUSTOM_SPAWN_SOLAR, &entrySolar);
 

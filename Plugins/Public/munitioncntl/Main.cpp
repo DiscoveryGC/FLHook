@@ -20,7 +20,7 @@ PLUGIN_RETURNCODE returncode;
 
 unordered_set<uint> setNoTrackingAlertProjectiles;
 
-unordered_map<uint, uint> mapTrackingByShiptypeBlacklistBitmap;
+unordered_map<uint, uint> mapTrackingByObjTypeBlacklistBitmap;
 uint lastProcessedProjectile = 0;
 
 enum TRACKING_STATE {
@@ -87,31 +87,35 @@ void LoadSettings()
 			else if (ini.is_header("TrackingBlacklist"))
 			{
 				uint missileArch = 0;
-				uint blacklistedShipTypesBitmap = 0;
+				uint blacklistedTrackingTypesBitmap = 0;
 				while (ini.read_value())
 				{
 					if (ini.is_value("MissileArch"))
 					{
 						missileArch = CreateID(ini.get_value_string(0));
 					}
-					else if (ini.is_value("ShipType"))
+					else if (ini.is_value("Type"))
 					{
 						string typeStr = ToLower(ini.get_value_string(0));
 						if (typeStr.find("fighter") != string::npos)
-							blacklistedShipTypesBitmap |= OBJ_FIGHTER;
+							blacklistedTrackingTypesBitmap |= OBJ_FIGHTER;
 						if (typeStr.find("freighter") != string::npos)
-							blacklistedShipTypesBitmap |= OBJ_FREIGHTER;
+							blacklistedTrackingTypesBitmap |= OBJ_FREIGHTER;
 						if (typeStr.find("transport") != string::npos)
-							blacklistedShipTypesBitmap |= OBJ_TRANSPORT;
+							blacklistedTrackingTypesBitmap |= OBJ_TRANSPORT;
 						if (typeStr.find("gunboat") != string::npos)
-							blacklistedShipTypesBitmap |= OBJ_GUNBOAT;
+							blacklistedTrackingTypesBitmap |= OBJ_GUNBOAT;
 						if (typeStr.find("cruiser") != string::npos)
-							blacklistedShipTypesBitmap |= OBJ_CRUISER;
+							blacklistedTrackingTypesBitmap |= OBJ_CRUISER;
 						if (typeStr.find("capital") != string::npos)
-							blacklistedShipTypesBitmap |= OBJ_CAPITAL;
+							blacklistedTrackingTypesBitmap |= OBJ_CAPITAL;
+						if (typeStr.find("guided") != string::npos)
+							blacklistedTrackingTypesBitmap |= OBJ_GUIDED;
+						if (typeStr.find("mine") != string::npos)
+							blacklistedTrackingTypesBitmap |= OBJ_MINE;
 					}
 				}
-				mapTrackingByShiptypeBlacklistBitmap[missileArch] = blacklistedShipTypesBitmap;
+				mapTrackingByObjTypeBlacklistBitmap[missileArch] = blacklistedTrackingTypesBitmap;
 			}
 		}
 		ini.close();
@@ -141,11 +145,11 @@ void ProcessGuided(FLPACKET_CREATEGUIDED& createGuidedPacket)
 	{
 		tracking = TRACK_NOALERT;
 	}
-	else if (mapTrackingByShiptypeBlacklistBitmap.count(createGuidedPacket.iMunitionId)) // disable tracking for selected ship types
+	else if (mapTrackingByObjTypeBlacklistBitmap.count(createGuidedPacket.iMunitionId)) // disable tracking for selected ship types
 	{
 		uint targetType;
 		pub::SpaceObj::GetType(createGuidedPacket.iTargetId, targetType);
-		const auto& blacklistedShipTypeTargets = mapTrackingByShiptypeBlacklistBitmap.at(createGuidedPacket.iMunitionId);
+		const auto& blacklistedShipTypeTargets = mapTrackingByObjTypeBlacklistBitmap.at(createGuidedPacket.iMunitionId);
 		if (blacklistedShipTypeTargets & targetType)
 		{
 			tracking = NOTRACK_NOALERT;
@@ -171,7 +175,7 @@ void __stdcall CreateGuided(uint& iClientID, FLPACKET_CREATEGUIDED& createGuided
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	//Packet hooks are executed once for every player in range, but we only need to process the missile once, since it's passed by reference.
+	//Packet hooks are executed once for every player in range, but we only need to process the missile packet once, since it's passed by reference.
 	if (lastProcessedProjectile == createGuidedPacket.iProjectileId)
 	{
 		return;

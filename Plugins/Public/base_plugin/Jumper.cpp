@@ -73,7 +73,8 @@ void HyperJump::InitJumpHoleConfig()
 		}
 		if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == -2) // method returns 0 for alive, -2 otherwise
 		{
-			ConPrint(L"ERROR: Jump Base %ls's jump target does not exist, despawning it to prevent issues\n", pbase->basename.c_str());
+			wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\')+1));
+			ConPrint(L"ERROR: Jump Base %ls's jump target does not exist, despawning it to prevent issues\nfilename: %ls\n", pbase->basename.c_str(), fileName.c_str());
 			pbase->base_health = 0;
 			CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
 

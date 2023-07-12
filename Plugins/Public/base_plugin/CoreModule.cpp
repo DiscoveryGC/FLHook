@@ -591,10 +591,14 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	if (!siegeWeaponryMap.empty())
 	{
 		const auto& siegeDamageIter = siegeWeaponryMap.find(iDmgMunitionID);
-		if(siegeDamageIter == siegeWeaponryMap.end())
+		if (siegeDamageIter == siegeWeaponryMap.end())
+		{
+			//Siege gun(s) defined, but this is not one of them, no damage dealt
 			return curr_hitpoints;
+		}
 		else
 		{
+			//Even with siege gun damage override, it still takes shield strength into the account
 			damageTaken = siegeDamageIter->second * (1 - base->shield_strength_multiplier);
 		}
 	}

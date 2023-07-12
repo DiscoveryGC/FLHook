@@ -698,10 +698,10 @@ void TradeEventNotice(uint iClientID, map<string, TRADE_EVENT>::iterator iter)
 		L"<TRA bold=\"true\"/><TEXT>You've entered the " + stows(iter->second.sEventName) + L" Event</TEXT><TRA bold = \"false\"/><PARA /><PARA />"
 
 		L"<TRA bold=\"true\"/><TEXT>Mission Objective:</TEXT><TRA bold=\"false\"/><PARA/>"
-		L"<TEXT>Transport " + HkGetWStringFromIDS(gi->iIDSName) + L" to " + HkGetWStringFromIDS(base->iBaseIDS) + L" in the " + HkGetWStringFromIDS(sys->strid_name) + " system to complete this mission.</TEXT><PARA /><PARA />"
+		L"<TEXT>Transport " + HkGetWStringFromIDS(gi->iIDSName) + L" to " + HkGetWStringFromIDS(base->iBaseIDS) + L" in the " + HkGetWStringFromIDS(sys->strid_name) + L" system to complete this mission.</TEXT><PARA /><PARA />"
 
 		L"<TRA bold=\"true\"/><TEXT>Reward Bonus:</TEXT><TRA bold=\"false\"/><PARA/>"
-		L"<TEXT>$" + to_wstring((iter->second.iBonusCash)) + " per unit</TEXT><PARA /><PARA />"
+		L"<TEXT>$" + to_wstring(iter->second.iBonusCash) + " per unit</TEXT><PARA /><PARA />"
 
 		L"<TRA bold=\"true\"/><TEXT>Ship Class:</TEXT><TRA bold=\"false\"/><PARA/>"
 		L"<TEXT>Restricted to: " + iter->second.allowedShipClass + "</TEXT><PARA /><PARA />"
@@ -783,7 +783,7 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 					
 					if (classname != i->second.allowedShipClass)
 					{
-						PrintUserCmdText(iClientID, L"DEBUG: Invalid ship class[%s], this Evnet is for [%s]'s", classname.c_str(), i->second.allowedShipClass.c_str());
+						PrintUserCmdText(iClientID, L"DEBUG: Invalid ship class[%s], this Evnet is for [%s]'s", classname, i->second.allowedShipClass);
 						return;
 					}
 				}

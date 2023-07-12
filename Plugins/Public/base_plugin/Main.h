@@ -715,6 +715,8 @@ extern float siege_mode_chain_reaction_trigger_distance;
 
 extern set<uint> customSolarList;
 
+extern unordered_map<uint, float> siegeWeaponryMap;
+
 // From EquipmentUtilities.cpp
 namespace EquipmentUtilities
 {

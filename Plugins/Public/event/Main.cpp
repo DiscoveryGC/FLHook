@@ -783,7 +783,7 @@ void __stdcall GFGoodBuy_AFTER(struct SGFGoodBuyInfo const& gbi, unsigned int iC
 					
 					if (classname != i->second.allowedShipClass)
 					{
-						PrintUserCmdText(iClientID, L"DEBUG: Invalid ship class[%s], this Evnet is for [%s]'s", classname, i->second.allowedShipClass);
+						PrintUserCmdText(iClientID, L"DEBUG: Invalid ship class[%s], this Event is for [%s]'s", classname.c_str(), i->second.allowedShipClass.c_str());
 						return;
 					}
 				}

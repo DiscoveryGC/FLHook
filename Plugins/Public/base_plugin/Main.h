@@ -680,6 +680,8 @@ extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
 
+extern unordered_map<uint, float> siegeWeaponryMap;
+
 // From EquipmentUtilities.cpp
 namespace EquipmentUtilities
 {

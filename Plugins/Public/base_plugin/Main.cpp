@@ -159,10 +159,6 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
-uint jump_lockout_duration = 30;
-uint jump_innacurracy_min = 300;
-uint jump_innacurracy_max = 500;
-
 set<uint> customSolarList;
 
 //siege weaponry definitions

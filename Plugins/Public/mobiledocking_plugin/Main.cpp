@@ -10,7 +10,7 @@
 
 PLUGIN_RETURNCODE returncode;
 unordered_map<uint, uint> mapPendingDockingRequests;
-vector<DELAYEDDOCK> dockingInProgress;
+unordered_map<uint, DELAYEDDOCK> dockingInProgress;
 vector<uint> dockingModuleEquipmentIds;
 unordered_map<uint, CLIENT_DATA> mobiledockClients;
 
@@ -34,6 +34,10 @@ float maxDockingDistanceTolerance = 8.0f;
 
 string defaultReturnSystem = "ew04"; //freeport 9, Omicron Theta
 string defaultReturnBase = "ew04_01_base";
+
+uint targetMobileDockingBase = 0;
+bool disableShieldsOnDockAttempt = true;
+bool disableRegensOnDockAttempt = true;
 
 void MoveOfflineShipToLastDockedSolar(const wstring& charName);
 
@@ -86,7 +90,7 @@ void LoadSettings()
 					{
 						forgetCarrierDataInSeconds = ini.get_value_int(0);
 					}
-					else if (ini.is_value("mobileDockingRange"))
+					else if (ini.is_value("mobile_dock_range"))
 					{
 						mobileDockingRange = ini.get_value_float(0);
 					}
@@ -105,6 +109,18 @@ void LoadSettings()
 					else if (ini.is_value("default_return_base"))
 					{
 						defaultReturnBase = ini.get_value_string(0);
+					}
+					else if (ini.is_value("target_mobile_docking_base"))
+					{
+						targetMobileDockingBase = CreateID(ini.get_value_string(0));
+					}
+					else if(ini.is_value("disable_docking_repairs"))
+					{
+						disableRegensOnDockAttempt = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("docking_shield_drain"))
+					{
+						disableShieldsOnDockAttempt = ini.get_value_bool(0);
 					}
 				}
 			}
@@ -224,9 +240,26 @@ void dockShipOnCarrier(uint dockingID, uint carrierID)
 
 	string scProxyBase = HkGetPlayerSystemS(carrierID) + "_proxy_base";
 	uint iBaseID;
-	if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
+	Universe::IBase* baseInfo;
+	if (targetMobileDockingBase)
 	{
-		PrintUserCmdText(carrierID, L"No proxy base in system detected. Contact a developer about this please. Required base: %s", scProxyBase);
+		baseInfo = Universe::get_base(targetMobileDockingBase);
+		if (baseInfo == nullptr)
+		{
+			PrintUserCmdText(carrierID, L"Mobile Docking base not found, contact staff");
+			return;
+		}
+		iBaseID = targetMobileDockingBase;
+	}
+	else
+	{
+		string scProxyBase = HkGetPlayerSystemS(carrierID) + "_proxy_base";
+		if (pub::GetBaseID(iBaseID, scProxyBase.c_str()) == -4)
+		{
+			PrintUserCmdText(carrierID, L"No proxy base in system detected, contact staff. Required base: %ls", stows(scProxyBase).c_str());
+			return;
+		}
+		baseInfo = Universe::get_base(iBaseID);
 	}
 
 	// Save the carrier info
@@ -242,8 +275,21 @@ void dockShipOnCarrier(uint dockingID, uint carrierID)
 
 	mobiledockClients[carrierID].iDockingModulesAvailable--;
 
-	// Land the ship on the proxy base
+	uint playerSystem = Players[dockingID].iSystemID;
+
+	// Land the ship on the designated base
 	pub::Player::ForceLand(dockingID, iBaseID);
+	if (playerSystem != baseInfo->iSystemID)
+	{
+		Server.BaseEnter(baseInfo->iBaseID, dockingID);
+		Server.BaseExit(baseInfo->iBaseID, dockingID);
+		wstring wscCharFileName;
+		HkGetCharFileName(dockedName, wscCharFileName);
+		wscCharFileName += L".fl";
+		CHARACTER_ID cID;
+		strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+		Server.CharacterSelect(cID, dockingID);
+	}
 	PrintUserCmdText(carrierID, L"Ship docked");
 }
 
@@ -252,56 +298,57 @@ void HkTimerCheckKick()
 	returncode = DEFAULT_RETURNCODE;
 
 	// DELAYEDDOCK vector iteration
-	for (auto& dd = dockingInProgress.begin() ; dd != dockingInProgress.end();)
+	for (auto& dockdata = dockingInProgress.begin() ; dockdata != dockingInProgress.end();)
 	{
-		const auto& dockingShipID = Players[dd->dockingID].iShipID;
+		auto& dd = dockdata->second;
+		const auto& dockingShipID = Players[dd.dockingID].iShipID;
 		if (dockingShipID == 0)
 		{
-			dd = dockingInProgress.erase(dd);
+			dockdata = dockingInProgress.erase(dockdata);
 			continue;
 		}
 		Vector V1mov, V1rot;
 		pub::SpaceObj::GetMotion(dockingShipID, V1mov, V1rot);
 		if (V1mov.x > 5 || V1mov.y > 5 || V1mov.z > 5)
 		{
-			PrintUserCmdText(dd->dockingID, L"Docking aborted due to craft movement");
-			PrintUserCmdText(dd->carrierID, L"Docking aborted due to craft movement");
-			dd = dockingInProgress.erase(dd);
+			PrintUserCmdText(dd.dockingID, L"Docking aborted due to craft movement");
+			PrintUserCmdText(dd.carrierID, L"Docking aborted due to craft movement");
+			dockdata = dockingInProgress.erase(dockdata);
 			continue;
 		}
 
 		Vector V2mov, V2rot;
-		const auto& carrierShipID = Players[dd->carrierID].iShipID;
+		const auto& carrierShipID = Players[dd.carrierID].iShipID;
 		pub::SpaceObj::GetMotion(carrierShipID, V2mov, V2rot);
 		if (V2mov.x > 5 || V2mov.y > 5 || V2mov.z > 5)
 		{
-			PrintUserCmdText(dd->dockingID, L"Docking aborted due to carrier movement");
-			PrintUserCmdText(dd->carrierID, L"Docking aborted due to carrier movement");
-			dd = dockingInProgress.erase(dd);
+			PrintUserCmdText(dd.dockingID, L"Docking aborted due to carrier movement");
+			PrintUserCmdText(dd.carrierID, L"Docking aborted due to carrier movement");
+			dockdata = dockingInProgress.erase(dockdata);
 			continue;
 		}
 
-		dd->timeLeft--;
-		if (!dd->timeLeft)
+		dd.timeLeft--;
+		if (!dd.timeLeft)
 		{
 			Vector pos;
 			Matrix _;
 			pub::SpaceObj::GetLocation(dockingShipID, pos, _);
-			float distance = HkDistance3D(pos, dd->startPosition);
+			float distance = HkDistance3D(pos, dd.startPosition);
 			if (distance > maxDockingDistanceTolerance)
 			{
-				PrintUserCmdText(dd->dockingID, L"Docking aborted due to craft movement");
-				PrintUserCmdText(dd->carrierID, L"Docking aborted due to craft movement");
-				dd = dockingInProgress.erase(dd);
+				PrintUserCmdText(dd.dockingID, L"Docking aborted due to craft movement");
+				PrintUserCmdText(dd.carrierID, L"Docking aborted due to craft movement");
+				dockdata = dockingInProgress.erase(dockdata);
 				continue;
 			}
-			dockShipOnCarrier(dd->dockingID, dd->carrierID);
-			dd = dockingInProgress.erase(dd);
+			DockShipOnCarrier(dd.dockingID, dd.carrierID);
+			dockdata = dockingInProgress.erase(dockdata);
 			continue;
 		}
 
-		PrintUserCmdText(dd->dockingID, L"Docking in %us", dd->timeLeft);
-		dd++;
+		PrintUserCmdText(dd.dockingID, L"Docking in %us", dd.timeLeft);
+		dockdata++;
 	}
 
 	if (time(0) % saveFrequency == 0)
@@ -428,16 +475,22 @@ void StartDockingProcedure(uint dockingID, uint carrierID) {
 
 	if (dockingPeriod)
 	{
+		uint shipId = Players[dockingID].iShipID;
+		if (disableShieldsOnDockAttempt)
+		{
+			pub::SpaceObj::DrainShields(shipId);
+		}
+
 		Vector pos;
 		Matrix _;
-		pub::SpaceObj::GetLocation(Players[dockingID].iShipID, pos, _);
+		pub::SpaceObj::GetLocation(shipId, pos, _);
 
 		DELAYEDDOCK dd;
 		dd.carrierID = carrierID;
 		dd.dockingID = dockingID;
 		dd.timeLeft = dockingPeriod;
 		dd.startPosition = pos;
-		dockingInProgress.push_back(dd);
+		dockingInProgress[dockingID] = dd;
 		PrintUserCmdText(carrierID, L"Docking procedure in progress", dockingPeriod);
 		PrintUserCmdText(dockingID, L"Dock request accepted, stand still for %u second(s)", dockingPeriod);
 	}
@@ -618,7 +671,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (iType != OBJ_FREIGHTER)
 			return 0;
 
-		const uint iTargetClientID = HkGetClientIDByShip(iBaseID);
+		returncode = SKIPPLUGINS;
+
+		uint iTargetClientID = HkGetClientIDByShip(iBaseID);
 		if (!iTargetClientID)
 			return 0;
 
@@ -648,7 +703,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 
 		// Create a docking request and send a notification to the target ship.
 		AddClientToDockQueue(client, iTargetClientID);
-		return -1;
+		// Purposefully freeze the ship in space by stopping the function call
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	}
 	return 0;
 }
@@ -659,8 +715,6 @@ void __stdcall BaseEnter(uint iBaseID, uint client)
 	if (idToDockedInfoMap.count(client))
 	{
 		uint CarrierID = HkGetClientIdFromCharname(idToDockedInfoMap[client]->carrierName);
-		// Clear the market. We don't support transfers in this version.
-		SendResetMarketOverride(client);
 
 		// Set the base name
 		wstring status = L"<RDL><PUSH/>";
@@ -919,6 +973,17 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	}
 }
 
+void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (disableRegensOnDockAttempt && !dockingInProgress.count(iClientID))
+	{
+		return;
+	}
+	static uint rejectSound = CreateID("ui_select_reject");
+	pub::Audio::PlaySoundEffect(iClientID, rejectSound);
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+}
 
 void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 {
@@ -975,6 +1040,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UseItemRequest, PLUGIN_HkIServerImpl_SPRequestUseItem, 0));
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 3));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));

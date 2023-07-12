@@ -67,7 +67,6 @@ void HyperJump::InitJumpHoleConfig()
 	for (auto& base : player_bases)
 	{
 		PlayerBase* pbase = base.second;
-		ConPrint(L"Processing %ls\n", stows(pbase->nickname).c_str());
 		if (!mapArchs[pbase->basetype].isjump)
 		{
 			continue;

@@ -73,7 +73,7 @@ namespace HyperJump
 	static boolean set_canJumpWithCommodities = true;
 	static uint set_jumpInInvulnerabilityPeriod = 5000;
 	static uint set_exitJumpHoleLoadout = CreateID("wormhole_unstable");
-	static uint set_exitJumpHoleArchetype = CreateID("flhook_jumphole");
+	static uint set_exitJumpHoleArchetype = CreateID("jumphole_noentry");
 	static uint set_entryJumpHoleLoadout = CreateID("wormhole_unstable");
 	static uint set_entryJumpHoleArchetype = CreateID("flhook_jumphole");
 	static uint set_iJumpHoleDuration = 30;
@@ -680,6 +680,12 @@ namespace HyperJump
 
 		auto& jumpObj = jumpObjMap.at(iDockTarget);
 
+		if (!jumpObj.isEntrance)
+		{
+			pub::Player::SendNNMessage(client, pub::GetNicknameId("anomaly_detected"));
+			return false;
+		}
+
 		time_t now = time(0);
 		if (now - 1 > jumpObj.timeout)
 		{
@@ -694,7 +700,6 @@ namespace HyperJump
 
 		jumpObj.dockingQueue.insert(iShip);
 		shipToJumpObjMap[iShip] = iDockTarget;
-		ConPrint(L"\nOverride sent\n");
 		SendJumpObjOverride(client, jumpObj);
 		return true;
 	}
@@ -1339,7 +1344,7 @@ namespace HyperJump
 					wscCharFileName += L".fl";
 					CHARACTER_ID cID;
 					strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-					Server.CharacterSelect(cID, info.iClientID); \
+					Server.CharacterSelect(cID, info.iClientID);
 				}
 				return true;
 			}

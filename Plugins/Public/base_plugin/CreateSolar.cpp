@@ -16,9 +16,6 @@ void CreateSolar::DespawnSolarCallout(DESPAWN_SOLAR_STRUCT* info)
 
 void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 {
-	ConPrint(L"CreateSolar:\nsystem: %u\nnickname: %ls\npos: %u %u %u\ndestsystem: %u\ndestobj: %u\n, loadout: %u\narch: %u\nids: %u\nname: %ls\n",
-		info->iSystemId, stows(info->nickname).c_str(), (uint)info->pos.x, (uint)info->pos.y, (uint)info->pos.z,
-		info->destSystem, info->destObj, info->loadoutArchetypeId, info->solarArchetypeId, info->solar_ids, info->overwrittenName.c_str());
 	if (customSolarList.count(CreateID(info->nickname.c_str())))
 	{
 		ConPrint(L"Aborting due to object %ls already existing\n", stows(info->nickname).c_str());
@@ -62,7 +59,6 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 
 	pub::Reputation::Alloc(si.iRep, infoname, infocard);
 
-	ConPrint(L"AddingCustom Solar: %ls", stows(si.cNickName).c_str());
 	customSolarList.insert(CreateID(si.cNickName));
 
 	uint spaceObjId;
@@ -74,7 +70,6 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 
 	info->iSpaceObjId = spaceObjId;
 
-	ConPrint(L"setting up JH: %u %u %u\n", info->destSystem, info->destObj, spaceObjId);
 	if (!info->destObj || !info->destSystem)
 	{
 		return;

@@ -3,7 +3,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-void DeleteBase(PlayerBase *base)
+void DeleteBase(PlayerBase *base, bool moveFile)
 {
 	// If there are players online and in the base then force them to launch to space
 	struct PlayerData *pd = 0;
@@ -31,24 +31,26 @@ void DeleteBase(PlayerBase *base)
 	// Remove the base.
 	//_unlink(base->path.c_str());
 
-	//Edit by Alley: Don't remove the base, instead move it to an archive folder
-	char datapath[MAX_PATH];
-	GetUserDataPath(datapath);
-	// Create base save  dir if it doesn't exist
-	string basesvdir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\destroyed\\";
-	CreateDirectoryA(basesvdir.c_str(), 0);
+	if (moveFile) {
+		//Edit by Alley: Don't remove the base, instead move it to an archive folder
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+		// Create base save  dir if it doesn't exist
+		string basesvdir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\destroyed\\";
+		CreateDirectoryA(basesvdir.c_str(), 0);
 
-	string timestamp = boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
+		string timestamp = boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());
 
-	char namehash[16];
-	sprintf(namehash, "%08x", base->base);
+		char namehash[16];
+		sprintf(namehash, "%08x", base->base);
 
-	string fullpath = basesvdir + "base_" + namehash + "." + timestamp + ".ini";
-	if (!MoveFile(base->path.c_str(), fullpath.c_str())) {
-		AddLog(
-			"ERROR: Base destruction MoveFile FAILED! Error code: %s",
-			boost::lexical_cast<std::string>(GetLastError()).c_str()
-		);
+		string fullpath = basesvdir + "base_" + namehash + "." + timestamp + ".ini";
+		if (!MoveFile(base->path.c_str(), fullpath.c_str())) {
+			AddLog(
+				"ERROR: Base destruction MoveFile FAILED! Error code: %s",
+				boost::lexical_cast<std::string>(GetLastError()).c_str()
+			);
+		}
 	}
 
 	player_bases.erase(base->base);

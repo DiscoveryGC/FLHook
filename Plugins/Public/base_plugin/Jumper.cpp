@@ -67,15 +67,16 @@ void HyperJump::InitJumpHoleConfig()
 	for (auto& base : player_bases)
 	{
 		PlayerBase* pbase = base.second;
+		ConPrint(L"Processing %ls\n", stows(pbase->nickname).c_str());
 		if (!mapArchs[pbase->basetype].isjump)
 		{
 			continue;
 		}
 		if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == -2) // method returns 0 for alive, -2 otherwise
 		{
-			ConPrint(L"ERROR: Jump Base %ls's jump target does not exist, destroying it to prevent issues", pbase->basename.c_str());
+			ConPrint(L"ERROR: Jump Base %ls's jump target does not exist, despawning it to prevent issues\n", pbase->basename.c_str());
 			pbase->base_health = 0;
-			CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj);
+			CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
 
 			continue;
 		}

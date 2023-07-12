@@ -153,7 +153,7 @@ public:
 
 	bool Timer(uint time);
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
-	bool SpaceObjDestroyed(uint space_obj);
+	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true);
 	void SetReputation(int player_rep, float attitude);
 	float FindWearNTearModifier(float currHpPercentage);
 
@@ -465,7 +465,7 @@ PlayerBase *GetPlayerBaseForClient(uint client);
 void BaseLogging(const char *szString, ...);
 
 void RespawnBase(PlayerBase* base);
-void DeleteBase(PlayerBase *base);
+void DeleteBase(PlayerBase *base, bool moveFile);
 void LoadDockState(uint client);
 void SaveDockState(uint client);
 void DeleteDockState(uint client);

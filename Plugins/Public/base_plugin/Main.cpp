@@ -614,18 +614,6 @@ void LoadSettingsActual()
 					{
 						bmapLoadHyperspaceHubConfig = ini.get_value_int(0);
 					}
-					else if (ini.is_value("jump_innacurracy_min"))
-					{
-						jump_innacurracy_min = ini.get_value_int(0);
-					}
-					else if (ini.is_value("jump_innacurracy_max"))
-					{
-						jump_innacurracy_max = ini.get_value_int(0);
-					}
-					else if (ini.is_value("jump_lockout_duration"))
-					{
-						jump_lockout_duration = ini.get_value_int(0);
-					}
 					else if (ini.is_value("min_mining_distance"))
 					{
 						minMiningDistance = max(0.0f, ini.get_value_float(0));

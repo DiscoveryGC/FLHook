@@ -275,6 +275,7 @@ namespace PlayerCommands
 			SendMarketGoodSync(base, client);
 			PrintUserCmdText(client, L"OK Access granted");
 			PrintUserCmdText(client, L"Welcome administrator, all base command and control functions are available.");
+			BaseLogging("Base %s: player %s logged in as an admin", wstos(base->basename).c_str(), wstos(charname).c_str());
 		}
 		if (foundBp.viewshop) {
 			clients[client].viewshop = true;
@@ -1832,6 +1833,9 @@ namespace PlayerCommands
 					int page = ((curr_item + 39) / 40);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
+
+					wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+					BaseLogging("Base %s: player %s changed price of %u to %f", wstos(base->basename).c_str(), wstos(charname).c_str(), i->first, money);
 					return;
 				}
 			}
@@ -1856,6 +1860,9 @@ namespace PlayerCommands
 					int page = ((curr_item + 39) / 40);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
+					
+					wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+					BaseLogging("Base %s: player %s changed price of %u to %f", wstos(base->basename).c_str(), wstos(charname).c_str(), i->first, money);
 					return;
 				}
 			}

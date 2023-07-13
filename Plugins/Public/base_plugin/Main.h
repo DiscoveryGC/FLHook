@@ -54,6 +54,7 @@ struct ARCHTYPE_STRUCT
 	int shipclassrestriction;
 	list<uint> allowedshipclasses;
 	int isjump;
+	bool ishubreturn;
 	bool display;
 	bool mining;
 	string miningevent;
@@ -443,6 +444,10 @@ public:
 	//the destination vector
 	uint destObject;
 	string destObjectName;
+
+	//return hub JHs only, destination data
+	Vector destPos;
+	Matrix destOri;
 
 	/////////////////////////////////////////
 };

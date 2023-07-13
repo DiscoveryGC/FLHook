@@ -207,6 +207,15 @@ void PlayerBase::Load()
 						destObjectName = ini.get_value_string(0);
 						destObject = CreateID(destObjectName.c_str());
 					}
+					else if (ini.is_value("destpos"))
+					{
+						destPos = { ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) };
+					}
+					else if (ini.is_value("destori"))
+					{
+						Vector ori = { ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) };
+						destOri = EulerMatrix(ori);
+					}
 					else if (ini.is_value("logic"))
 					{
 						logic = ini.get_value_int(0);
@@ -393,6 +402,13 @@ void PlayerBase::Save()
 			const auto& systemInfo = Universe::get_system(systemId);
 			fprintf(file, "destsystem = %s\n", systemInfo->nickname);
 			fprintf(file, "destobject = %s\n", destObjectName.c_str());
+			if (mapArchs[basetype].ishubreturn)
+			{
+				fprintf(file, "destpos = %0.0f, %0.0f, %0.0f\n", destPos.x, destPos.y, destPos.z);
+
+				Vector destRot = MatrixToEuler(destOri);
+				fprintf(file, "destori = %0.0f, %0.0f, %0.0f\n", destRot.x, destRot.y, destRot.z);
+			}
 		}
 
 		ini_write_wstring(file, "infoname", basename);

@@ -823,6 +823,10 @@ void LoadSettingsActual()
 					{
 						archstruct.isjump = ini.get_value_int(0);
 					}
+					else if (ini.is_value("ishubreturn"))
+					{
+						archstruct.ishubreturn = ini.get_value_int(0);
+					}
 					else if (ini.is_value("shipclassrestriction"))
 					{
 						archstruct.shipclassrestriction = ini.get_value_int(0);

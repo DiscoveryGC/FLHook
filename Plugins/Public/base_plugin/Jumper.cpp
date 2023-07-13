@@ -62,39 +62,12 @@ void HyperJump::InitJumpHole(uint baseId, uint destSystem, uint destObject)
 	memcpy((char*)solar + (0x6e * 4), &destObject, 4);
 }
 
-void HyperJump::InitJumpHoleConfig()
+void SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
 {
-	for (auto& base : player_bases)
-	{
-		PlayerBase* pbase = base.second;
-		if (!mapArchs[pbase->basetype].isjump)
-		{
-			continue;
-		}
-		if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == -2) // method returns 0 for alive, -2 otherwise
-		{
-			wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\')+1));
-			ConPrint(L"ERROR: Jump Base %ls's jump target does not exist, despawning it to prevent issues\nfilename: %ls\n", pbase->basename.c_str(), fileName.c_str());
-			pbase->base_health = 0;
-			CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
-
-			continue;
-		}
-
-		uint systemId;
-		pub::SpaceObj::GetSystem(pbase->destObject, systemId);
-		pbase->destSystem = systemId;
-
-		pbase->Save();
-
-		InitJumpHole(base.first, pbase->destSystem, pbase->destObject);
-	}
-}
-
-void SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint coordsindex, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
-{
+	static uint counter = 0;
 	auto systemInfo = Universe::get_system(coords.system);
-	string baseNickName = "custom_jump_hole_exit_" + (string)systemInfo->nickname + "_" + to_string(coordsindex);
+	string baseNickName = "custom_return_hole_exit_" + (string)systemInfo->nickname;
+	counter++;
 
 	if (pub::SpaceObj::ExistsAndAlive(CreateID(baseNickName.c_str())) == 0)
 	{
@@ -126,6 +99,49 @@ void SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint coordsind
 	memcpy((char*)solar + (0x6e * 4), &pb->destObject, 4);
 
 	customSolarList.insert(info.iSpaceObjId);
+}
+
+void HyperJump::InitJumpHoleConfig()
+{
+	char szCurDir[MAX_PATH];
+	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
+	string cfg_filehyperspaceHub = (string)szCurDir + "\\flhook_plugins\\base_hyperspacehub.cfg";
+	uint exitJumpHoleArchetype = CreateID("flhook_jumphole");
+	uint exitJumpHoleLoadout = CreateID("wormhole_unstable");
+	exitJumpHoleArchetype = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleArchetype", "flhook_jumphole").c_str());
+	exitJumpHoleLoadout = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleLoadout", "wormhole_unstable").c_str());
+
+	for (auto& base : player_bases)
+	{
+		PlayerBase* pbase = base.second;
+		if (!mapArchs[pbase->basetype].isjump)
+		{
+			continue;
+		}
+
+		if (mapArchs[pbase->basetype].ishubreturn)
+		{
+			SYSTEMJUMPCOORDS coords = { pbase->destSystem, pbase->destPos, pbase->destOri };
+			SetupCustomExitHole(pbase, coords, exitJumpHoleLoadout, exitJumpHoleArchetype);
+		}
+		else if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == -2) // method returns 0 for alive, -2 otherwise
+		{
+			wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\') + 1));
+			ConPrint(L"ERROR: Jump Base %ls's jump target does not exist, despawning it to prevent issues\nfilename: %ls\n", pbase->basename.c_str(), fileName.c_str());
+			pbase->base_health = 0;
+			CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
+
+			continue;
+		}
+
+		uint systemId;
+		pub::SpaceObj::GetSystem(pbase->destObject, systemId);
+		pbase->destSystem = systemId;
+
+		pbase->Save();
+
+		InitJumpHole(base.first, pbase->destSystem, pbase->destObject);
+	}
 }
 
 void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
@@ -300,10 +316,9 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 			continue;
 		}
 		const auto& coordsList = mapSystemJumps[legalReturnSystems.at(index)];
-		uint coordsIndex = rand() % coordsList.size();
 		const auto& coords = coordsList.at(rand() % coordsList.size());
 
-		SetupCustomExitHole(pb, coords, coordsIndex+1, exitJumpHoleLoadout, exitJumpHoleArchetype);
+		SetupCustomExitHole(pb, coords, exitJumpHoleLoadout, exitJumpHoleArchetype);
 
 		const auto& systemInfo = Universe::get_system(coords.system);
 		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";

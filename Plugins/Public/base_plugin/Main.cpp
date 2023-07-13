@@ -796,7 +796,6 @@ void LoadSettingsActual()
 			{
 				ARCHTYPE_STRUCT archstruct;
 				string nickname = "default";
-				int radius = 0;
 				while (ini.read_value())
 				{
 					if (ini.is_value("nickname"))
@@ -810,10 +809,6 @@ void LoadSettingsActual()
 					else if (ini.is_value("logic"))
 					{
 						archstruct.logic = ini.get_value_int(0);
-					}
-					else if (ini.is_value("radius"))
-					{
-						archstruct.radius = ini.get_value_float(0);
 					}
 					else if (ini.is_value("idrestriction"))
 					{
@@ -2781,7 +2776,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
 		newbase->logic = mapArchs[newbase->basetype].logic;
-		newbase->radius = mapArchs[newbase->basetype].radius;
 
 		newbase->Spawn();
 		newbase->Save();

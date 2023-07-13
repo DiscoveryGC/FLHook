@@ -53,7 +53,6 @@ struct ARCHTYPE_STRUCT
 {
 	int logic;
 	int invulnerable;
-	float radius;
 	list<string> modules;
 	int idrestriction;
 	list<uint> allowedids;
@@ -447,8 +446,6 @@ public:
 	wstring last_attacker;
 
 	////////////Unique to Solars/////////////
-	//the radius (for jumps)
-	float radius;
 
 	//the destination system, once again for jumps
 	uint destSystem;

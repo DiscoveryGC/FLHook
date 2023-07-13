@@ -1791,7 +1791,8 @@ namespace PlayerCommands
 					PrintUserCmdText(client, L"OK");
 
 					wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-					BaseLogging("Base %s: player %s changed price of %u to %f", wstos(base->basename).c_str(), wstos(charname).c_str(), i->first, money);
+					const GoodInfo* gi = GoodList::find_by_id(i->first);
+					BaseLogging("Base %s: player %s changed price of %s to %f", wstos(base->basename).c_str(), wstos(charname).c_str(), wstos(HkGetWStringFromIDS(gi->iIDSName)).c_str(), money);
 					return;
 				}
 			}
@@ -1800,8 +1801,8 @@ namespace PlayerCommands
 		if (cmd == L"stock")
 		{
 			int item = ToInt(GetParam(args, ' ', 2));
-			int min_stock = ToInt(GetParam(args, ' ', 3));
-			int max_stock = ToInt(GetParam(args, ' ', 4));
+			uint min_stock = ToUInt(GetParam(args, ' ', 3));
+			uint max_stock = ToUInt(GetParam(args, ' ', 4));
 
 			int curr_item = 1;
 			for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
@@ -1818,7 +1819,8 @@ namespace PlayerCommands
 					PrintUserCmdText(client, L"OK");
 					
 					wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-					BaseLogging("Base %s: player %s changed price of %u to %f", wstos(base->basename).c_str(), wstos(charname).c_str(), i->first, money);
+					const GoodInfo* gi = GoodList::find_by_id(i->first);
+					BaseLogging("Base %s: player %s changed stock of %s to min:%u max:%u", wstos(base->basename).c_str(), wstos(charname).c_str(), wstos(HkGetWStringFromIDS(gi->iIDSName)).c_str(), min_stock, max_stock);
 					return;
 				}
 			}

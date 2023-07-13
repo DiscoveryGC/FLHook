@@ -46,12 +46,15 @@ L"<TEXT>Set or clear the faction that this base is affiliated with. When setting
 L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
 
-L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Set the [price] of [item]. If the current stock is less than [min stock]"
-L" then the item cannot be bought by docked ships. If the current stock is more or equal"
-L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
-L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
-L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
+L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price]</TEXT><TRA bold=\"false\"/><PARA/>" 
+L"<TEXT>Set the [price] of [item].</TEXT><PARA/><PARA/>" 
+
+L"<TRA bold=\"true\"/><TEXT>/shop stock [item] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>" 
+L"<TEXT>Set the [min stock] and [max stock] of [item]. If the current stock is less than [min stock]" 
+L" then the item cannot be bought by docked ships. If the current stock is more or equal" 
+L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>" 
+L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0." 
+L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>" 
 
 L"<TRA bold=\"true\"/><TEXT>/shop remove [item]</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"

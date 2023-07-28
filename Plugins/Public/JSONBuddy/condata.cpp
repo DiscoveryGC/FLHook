@@ -451,6 +451,16 @@ bool Condata::UserCmd_Ping(uint iClientID, const wstring &wscCmd, const wstring 
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+wstring ObfuscatePing(uint averagePing)
+{
+	if (averagePing <= 80)
+		return L"0-80ms ";
+	if (averagePing <= 160)
+		return L"80-160ms ";
+
+	return L">160ms ";
+}
+
 bool Condata::UserCmd_PingTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
 	if (!set_bPingCmd) {
@@ -493,7 +503,7 @@ bool Condata::UserCmd_PingTarget(uint iClientID, const wstring &wscCmd, const ws
 	if (ConData[iClientIDTarget].lstPing.size() < set_iPingKickFrame)
 		Response += L"n/a Fluct: n/a ";
 	else {
-		Response += L"[redacted] ";
+		Response += ObfuscatePing(ConData[iClientIDTarget].iAveragePing).c_str();
 		if (set_iPingKick > 0) {
 			Response += L"(Max: ";
 			Response += stows(itos(set_iPingKick)).c_str();

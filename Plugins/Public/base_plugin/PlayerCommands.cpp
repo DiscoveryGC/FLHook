@@ -2208,7 +2208,18 @@ namespace PlayerCommands
 			return;
 		}
 
-		// Check that the ship has the requires commodities.
+		// Check that the ship has the requires commodities and credits.
+		if (construction_credit_cost)
+		{
+			int cash;
+			pub::Player::InspectCash(client, cash);
+			if (cash < construction_credit_cost)
+			{
+				PrintUserCmdText(client, L"ERR Insufficient money, %u needed", construction_credit_cost);
+				return;
+			}
+		}
+
 		int hold_size;
 		list<CARGO_INFO> cargo;
 		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(client), cargo, hold_size);
@@ -2266,7 +2277,7 @@ namespace PlayerCommands
 			}
 		}
 
-		//actually remove the cargo.
+		//actually remove the cargo and credits.
 		for (map<uint, uint>::iterator i = construction_items.begin(); i != construction_items.end(); ++i)
 		{
 			uint good = i->first;
@@ -2280,6 +2291,8 @@ namespace PlayerCommands
 				}
 			}
 		}
+
+		pub::Player::AdjustCash(client, -construction_credit_cost);
 
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		AddLog("NOTICE: Base created %s by %s (%s)",

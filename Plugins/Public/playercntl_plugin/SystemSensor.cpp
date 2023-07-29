@@ -337,21 +337,15 @@ namespace SystemSensor
 	}
 
 	// Record jump type.
-	void Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
+	void Dock_Call(uint const &typeID, uint clientId)
 	{
-		uint iClientID = HkGetClientIDByShip(iShip);
-		if (iClientID)
+		if (typeID == OBJ_JUMP_GATE)
 		{
-			uint iTypeID;
-			pub::SpaceObj::GetType(iDockTarget, iTypeID);
-			if (iTypeID == OBJ_JUMP_GATE)
-			{
-				mapInfo[iClientID].bInJumpGate = true;
-			}
-			else
-			{
-				mapInfo[iClientID].bInJumpGate = false;
-			}
+			mapInfo[clientId].bInJumpGate = true;
+		}
+		else
+		{
+			mapInfo[clientId].bInJumpGate = false;
 		}
 	}
 

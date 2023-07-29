@@ -233,12 +233,6 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	}
 
 	returncode = NOFUNCTIONCALL;
-	if (!clientKiller)
-	{
-		ProcessNonPvPDeath(message, system);
-		clearDamageTaken(clientVictim);
-		return;
-	}
 
 	map<float, uint> damageToInflictorMap; // damage is the key instead of value because keys are sorted, used to render top contributors in order
 

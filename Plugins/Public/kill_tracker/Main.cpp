@@ -292,7 +292,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		}
 		else
 		{
-			assistMessage = L", " + inflictorName + L" (" + stows(itos(contributionPercentage)) + L"%)";
+			assistMessage += L", " + inflictorName + L" (" + stows(itos(contributionPercentage)) + L"%)";
 		}
 		killerCounter++;
 	}

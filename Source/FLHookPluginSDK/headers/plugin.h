@@ -418,6 +418,7 @@ struct SPAWN_SOLAR_STRUCT
 	uint destSystem = 0;
 	uint destObj = 0;
 	uint creatorSystem = 0;
+	float percentageHp = 1.0f;
 };
 
 struct CUSTOM_IN_WARP_CHECK_STRUCT

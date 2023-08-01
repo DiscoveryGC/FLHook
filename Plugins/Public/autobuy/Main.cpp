@@ -929,6 +929,7 @@ struct USERCMD
 
 USERCMD UserCmds[] =
 {
+	{ L"/ab", UserCmd_AutoBuy, L"Usage: /ab" },
 	{ L"/autobuy", UserCmd_AutoBuy, L"Usage: /autobuy" },
 	{ L"/autobuy*", UserCmd_AutoBuy, L"Usage: /autobuy" },
 };

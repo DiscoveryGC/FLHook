@@ -290,7 +290,7 @@ namespace SystemSensor
 	void JumpInComplete(unsigned int iSystem, unsigned int iShip, unsigned int iClientID);
 	void GoTradelane(unsigned int iClientID, struct XGoTradelane const &xgt);
 	void StopTradelane(unsigned int iClientID, unsigned int p1, unsigned int p2, unsigned int p3);
-	void Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response);
+	void Dock_Call(uint const& typeID, uint clientId);
 }
 
 #endif

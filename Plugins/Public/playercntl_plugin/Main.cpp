@@ -327,7 +327,7 @@ string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
 
 namespace HkIEngine
 {
-	int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& iCancel, enum DOCK_HOST_RESPONSE& response)
+	int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& dockPort, enum DOCK_HOST_RESPONSE& response)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -338,10 +338,10 @@ namespace HkIEngine
 			// NPC call, let the game handle it
 			return 0;
 		}
-		else if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
+		else if ((response == PROCEED_DOCK || response == DOCK) && dockPort != -1)
 		{
 			if (Players[iClientID].fRelativeHealth == 0.0f) {
-				iCancel = -1;
+				dockPort = -1;
 				response = ACCESS_DENIED;
 				return 0;
 			}
@@ -352,7 +352,7 @@ namespace HkIEngine
 				if (!IsDockingAllowed(iShip, iDockTarget, iClientID))
 				{
 					//AddLog("INFO: Docking suppressed docktarget=%u charname=%s", iDockTarget, wstos(Players.GetActiveCharacterName(iClientID)).c_str());
-					iCancel = -1;
+					dockPort = -1;
 					response = ACCESS_DENIED;
 					return 1;
 				}
@@ -364,7 +364,8 @@ namespace HkIEngine
 				response = DOCK_DENIED;
 				return 0;
 			}
-			SystemSensor::Dock_Call(iShip, iDockTarget, iCancel, response);
+
+			SystemSensor::Dock_Call(iTypeID, iClientID);
 			return 0;
 		}
 		return 0;

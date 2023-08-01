@@ -28,6 +28,7 @@
 #include <PluginUtilities.h>
 #include <array>
 #include <unordered_map>
+#include <set>
 
 
 PLUGIN_RETURNCODE returncode;
@@ -191,7 +192,7 @@ void clearDamageTaken(uint victim)
 
 void clearDamageDone(uint inflictor)
 {
-	for (int i = 1; i < MAX_CLIENT_ID + 1; i++)
+	for (int i = 1; i <= MAX_CLIENT_ID; i++)
 		damageArray[i][inflictor] = 0.0f;
 }
 
@@ -235,16 +236,18 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	returncode = NOFUNCTIONCALL;
 
 	map<float, uint> damageToInflictorMap; // damage is the key instead of value because keys are sorted, used to render top contributors in order
+	set<CPlayerGroup*> killerGroups;
 
 	float totalDamageTaken = 0.0f;
-	for (uint inflictorIndex = 1; inflictorIndex < damageArray[0].size(); inflictorIndex++)
+	PlayerData* pd = nullptr;
+	while (pd = Players.traverse_active(pd))
 	{
-		float damageDone = damageArray[inflictorIndex][clientVictim];
+		float damageDone = damageArray[pd->iOnlineID][clientVictim];
 		if (damageDone == 0){
 			continue;
 		}
-
-		damageToInflictorMap[damageDone] = inflictorIndex;
+		damageToInflictorMap[damageDone] = pd->iOnlineID;
+		killerGroups.insert(pd->PlayerGroup);
 		totalDamageTaken += damageDone;
 	}
 	if (totalDamageTaken == 0.0f)
@@ -282,7 +285,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		}
 		else if (killerCounter == 1)
 		{
-			assistMessage += L"Assisted by: " + inflictorName + L" (" + stows(itos(contributionPercentage)) + L"%)";
+			assistMessage = L"Assisted by: " + inflictorName + L" (" + stows(itos(contributionPercentage)) + L"%)";
 		}
 		else
 		{
@@ -299,16 +302,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 			L"\" mask=\"-1\"/><TEXT>" + XMLText(assistMessage) + L"</TEXT>";
 	}
 
-	uint victimGroup = 0;
-	uint killerGroup = 0;
-	if (Players[clientVictim].PlayerGroup != nullptr)
-	{
-		victimGroup = Players[clientVictim].PlayerGroup->GetID();
-	}
-	if (Players[clientKiller].PlayerGroup != nullptr)
-	{
-		killerGroup = Players[clientKiller].PlayerGroup->GetID();
-	}
+	CPlayerGroup* victimGroup = victimGroup = Players[clientVictim].PlayerGroup;
 
 	uint systemId;
 	pub::Player::GetSystem(clientVictim, systemId);
@@ -316,7 +310,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	Matrix victimOri;
 	pub::SpaceObj::GetLocation(Players[clientVictim].iShipID, victimPos, victimOri);
 
-	PlayerData* pd = nullptr;
+	pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
 		uint playerId = pd->iOnlineID;
@@ -329,10 +323,9 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		}
 		if (
 		(pd->PlayerGroup &&
-			((victimGroup && victimGroup == pd->PlayerGroup->GetID())
-			|| ( killerGroup && killerGroup == pd->PlayerGroup->GetID())))
-		|| playerId == clientVictim
-		|| playerId == clientKiller)
+		  ((victimGroup && victimGroup == pd->PlayerGroup)
+		    || ( pd->PlayerGroup && killerGroups.count(pd->PlayerGroup))))
+		|| playerId == clientVictim)
 		{
 			HkFMsg(playerId, deathMessage);
 			if (!assistMessage.empty())
@@ -361,14 +354,15 @@ void __stdcall Disconnect(uint client, enum EFLConnection conn)
 	returncode = DEFAULT_RETURNCODE;
 	uint shipId;
 	pub::Player::GetShip(client, shipId);
-	if (shipId)//FIXDIS
+	if (shipId)
 	{
-		for (uint inflictorIndex = 1; inflictorIndex < damageArray[0].size(); inflictorIndex++)
+		PlayerData* pd = nullptr;
+		while (pd = Players.traverse_active(pd))
 		{
-			if (damageArray[inflictorIndex][client] != 0)
+			if (damageArray[pd->iOnlineID][client] != 0)
 			{
 				static wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(client);
-				PrintUserCmdText(inflictorIndex, L"%ls : Player %ls is attempting to disconnect in space", GetTimeString(false).c_str(), victimName.c_str());
+				PrintUserCmdText(pd->iOnlineID, L"%ls : Damaged player %ls has disconnected in space", GetTimeString(false).c_str(), victimName.c_str());
 			}
 		}
 	}

@@ -72,6 +72,7 @@ void Condata::UserCmd_Help(uint iClientID, const wstring &wscParam)
 	if (set_bPingCmd) {
 		PrintUserCmdText(iClientID, L"/ping");
 		PrintUserCmdText(iClientID, L"/pingtarget");
+		PrintUserCmdText(iClientID, L"/pt");
 	}
 
 }

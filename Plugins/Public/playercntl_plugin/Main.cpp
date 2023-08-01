@@ -360,7 +360,7 @@ namespace HkIEngine
 
 			if (!HyperJump::Dock_Call(iShip, iDockTarget))
 			{
-				iCancel = -1;
+				dockPort = -1;
 				response = DOCK_DENIED;
 				return 0;
 			}

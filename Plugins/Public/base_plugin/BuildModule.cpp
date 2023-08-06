@@ -23,7 +23,7 @@ wstring BuildModule::GetInfo(bool xml)
 
 		info = L"<TEXT>Constructing " + Status + active_recipe.infotext + L". Waiting for:</TEXT>";
 
-		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+		for (auto& i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
 		{
 			uint good = i->first;
@@ -52,7 +52,7 @@ wstring BuildModule::GetInfo(bool xml)
 	{
 		info = L"Constructing " + Status + active_recipe.infotext + L". Waiting for: ";
 
-		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+		for (auto& i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
 		{
 			uint good = i->first;
@@ -107,7 +107,7 @@ bool BuildModule::Timer(uint time)
 	}
 
 	// Consume goods at the cooking rate.
-	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
 		uint good = i->first;
@@ -198,7 +198,7 @@ void BuildModule::LoadState(INI_Reader &ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			active_recipe.consumed_items[ini.get_value_int(0)] = ini.get_value_int(1);
+			active_recipe.consumed_items.push_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
 		}
 		else if (ini.is_value("credit_cost"))
 		{
@@ -212,7 +212,7 @@ void BuildModule::SaveState(FILE *file)
 	fprintf(file, "[BuildModule]\n");
 	fprintf(file, "build_type = %u\n", active_recipe.shortcut_number);
 	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
-	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
 		fprintf(file, "consumed = %u, %u\n", i->first, i->second);

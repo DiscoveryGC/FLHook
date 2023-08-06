@@ -717,7 +717,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
-						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
+						recipe.consumed_items.push_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("reqlevel"))
 					{
@@ -778,7 +778,11 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
-						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
+						recipe.consumed_items.push_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
+					}
+					else if (ini.is_value("catalyst"))
+					{
+						recipe.catalyst_items.push_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("reqlevel"))
 					{
@@ -2424,7 +2428,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		const wchar_t* recipe_name = cmd->ArgStr(1).c_str();
 
 		RECIPE recipe = moduleNameRecipeMap[recipe_name];
-		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
+		for (auto& i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
 		{
 			base->market_items[i->first].quantity += i->second;
 			SendMarketGoodUpdated(base, i->first, base->market_items[i->first]);
@@ -2452,7 +2456,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		const wchar_t* recipe_name = cmd->ArgStr(2).c_str();
 
 		RECIPE recipe = recipeCraftTypeNameMap[craft_type][recipe_name];
-		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
+		for (auto& i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
 		{
 			base->market_items[i->first].quantity += i->second;
 			SendMarketGoodUpdated(base, i->first, base->market_items[i->first]);

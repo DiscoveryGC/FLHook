@@ -32,7 +32,8 @@ struct RECIPE
 	wstring infotext;
 	wstring craft_type;
 	uint cooking_rate;
-	map<uint, uint> consumed_items;
+	vector<pair<uint, uint>> consumed_items;
+	vector<pair<uint, uint>> catalyst_items;
 	uint credit_cost;
 	uint reqlevel;
 	unordered_map<uint, float> affiliationBonus;

@@ -33,7 +33,7 @@ wstring FactoryModule::GetInfo(bool xml)
 		{
 			info += L"<PARA/><TEXT>      Crafting " + Status + active_recipe.infotext + (active_recipe.produced_amount ? L" x%u" + active_recipe.produced_amount : L"") + L". Waiting for:</TEXT>";
 
-			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+			for (auto& i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
 			{
 				uint good = i->first;
@@ -57,6 +57,25 @@ wstring FactoryModule::GetInfo(bool xml)
 				}
 				info += L"</TEXT>";
 			}
+			if (!active_recipe.catalyst_items.empty())
+			{
+				info += L"<PARA/><TEXT>      Needed catalysts:</TEXT>";
+				for (const auto& catalyst : active_recipe.catalyst_items)
+				{
+					uint good = catalyst.first;
+					uint quantity = catalyst.second;
+
+					const GoodInfo* gi = GoodList::find_by_id(good);
+					if (gi)
+					{
+						info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+						uint presentAmount = base->HasMarketItem(good);
+						if (presentAmount < quantity)
+							info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
+						info += L"</TEXT>";
+					}
+				}
+			}
 		}
 	}
 	else
@@ -65,7 +84,7 @@ wstring FactoryModule::GetInfo(bool xml)
 		{
 			info += L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
 
-			for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+			for (auto& i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
 			{
 				uint good = i->first;
@@ -84,6 +103,24 @@ wstring FactoryModule::GetInfo(bool xml)
 					if (base->money < active_recipe.credit_cost)
 					{
 						info += L" [Insufficient cash]";
+					}
+				}
+				if (!active_recipe.catalyst_items.empty())
+				{
+					info += L"Needed catalysts:";
+					for (const auto& catalyst : active_recipe.catalyst_items)
+					{
+						uint good = catalyst.first;
+						uint quantity = catalyst.second;
+
+						const GoodInfo* gi = GoodList::find_by_id(good);
+						if (gi)
+						{
+							info += L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+							uint presentAmount = base->HasMarketItem(good);
+							if (presentAmount < quantity)
+								info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
+						}
 					}
 				}
 			}
@@ -119,6 +156,20 @@ bool FactoryModule::Timer(uint time)
 	// Consume goods at the cooking rate.
 	bool cooked = true;
 
+	for (const auto& catalyst : active_recipe.catalyst_items)
+	{
+		uint good = catalyst.first;
+		uint quantity = catalyst.second;
+
+		const GoodInfo* gi = GoodList::find_by_id(good);
+		if (gi)
+		{
+			uint presentAmount = base->HasMarketItem(good);
+			if (presentAmount < quantity)
+				return false;
+		}
+	}
+
 	if(active_recipe.credit_cost)
 	{
 		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
@@ -132,7 +183,7 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
 		uint good = i->first;
@@ -206,7 +257,7 @@ void FactoryModule::LoadState(INI_Reader &ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			active_recipe.consumed_items[ini.get_value_int(0)] = ini.get_value_int(1);
+			active_recipe.consumed_items.push_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
 		}
 		else if (ini.is_value("credit_cost"))
 		{
@@ -228,7 +279,7 @@ void FactoryModule::SaveState(FILE *file)
 	if (active_recipe.nickname) {
 		if (active_recipe.credit_cost)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
-		for (map<uint, uint>::iterator i = active_recipe.consumed_items.begin();
+		for (auto& i = active_recipe.consumed_items.begin();
 			i != active_recipe.consumed_items.end(); ++i)
 		{
 			fprintf(file, "consumed = %u, %u\n", i->first, i->second);

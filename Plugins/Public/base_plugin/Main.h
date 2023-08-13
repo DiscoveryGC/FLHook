@@ -640,6 +640,9 @@ extern uint deploymentCooldownDuration;
 /// Map of good to quantity for items required by construction ship
 extern map<uint, uint> construction_items;
 
+/// Construction cost in credits
+extern int construction_credit_cost;
+
 /// Map of item nickname hash to recipes to operate shield.
 extern map<uint, uint> shield_power_items;
 

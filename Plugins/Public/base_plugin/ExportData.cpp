@@ -110,7 +110,7 @@ void ExportData::ToHTML()
 		}
 
 
-		fprintf(file, "</table>\n\n</body><html>\n");
+		fprintf(file, "</table>\n\n</body></html>\n");
 		fclose(file);
 	}
 }
@@ -177,7 +177,7 @@ void ExportData::ToJSON()
 				item.write("nickname", EquipmentUtilities::FindNickname(i->first));
 				item.close();
 				
-			} catch (exception e) {
+			} catch (...) {
 				ConPrint(L"WARN: failed to output to json object with id %u\n", i->first);
 			}
 		}
@@ -204,7 +204,7 @@ void ExportData::ToJSON()
 	writer.close();
 
 	//dump to a file
-	FILE *file = fopen("c:/stats/base_status.json", "w");
+	FILE *file = fopen(set_status_path_json.c_str(), "w");
 	if (file)
 	{
 		fprintf(file, stream.str().c_str());

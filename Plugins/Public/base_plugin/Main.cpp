@@ -62,6 +62,9 @@ uint deploymentCooldownDuration = 60;
 /// Map of good to quantity for items required by construction ship
 map<uint, uint> construction_items;
 
+/// Construction cost in credits
+int construction_credit_cost = 0;
+
 /// list of items and quantity used to repair 10000 units of damage
 list<REPAIR_ITEM> set_base_repair_items;
 
@@ -544,6 +547,10 @@ void LoadSettingsActual()
 						uint good = CreateID(ini.get_value_string(0));
 						uint quantity = ini.get_value_int(1);
 						construction_items[good] = quantity;
+					}
+					else if (ini.is_value("construction_credit_cost"))
+					{
+						construction_credit_cost = ini.get_value_int(0);
 					}
 					else if (ini.is_value("base_crew_item"))
 					{

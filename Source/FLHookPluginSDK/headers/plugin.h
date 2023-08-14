@@ -255,7 +255,8 @@ enum PLUGIN_MESSAGE
 	COMBAT_DAMAGE_OVERRIDE = 45,
 	CUSTOM_JUMP = 47,
 	CUSTOM_IS_IT_POB = 50,
-	CUSTOM_REVERSE_TRANSACTION = 48
+	CUSTOM_REVERSE_TRANSACTION = 48,
+	CUSTOM_CLOAK_ALERT = 60
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -367,6 +368,11 @@ struct CUSTOM_JUMP_STRUCT
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 {
 	uint iClientID;
+};
+
+struct CUSTOM_CLOAK_ALERT_STRUCT
+{
+	vector<uint> alertedGroupMembers;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

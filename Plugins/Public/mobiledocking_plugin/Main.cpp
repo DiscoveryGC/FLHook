@@ -234,7 +234,7 @@ void SaveData()
 	}
 }
 
-void dockShipOnCarrier(uint dockingID, uint carrierID)
+void DockShipOnCarrier(uint dockingID, uint carrierID)
 {
 
 	// The client is free to dock, erase from the pending list and handle
@@ -508,7 +508,7 @@ void StartDockingProcedure(uint dockingID, uint carrierID)
 	}
 	else
 	{
-		dockShipOnCarrier(dockingID, carrierID);
+		DockShipOnCarrier(dockingID, carrierID);
 	}
 }
 
@@ -672,7 +672,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 }
 
 // If this is a docking request at a player ship then process it.
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int& dockPort, enum DOCK_HOST_RESPONSE& response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, int& dockPort, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -681,28 +681,25 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 	if (client && response == DOCK && dockPort == -1)
 	{
 		// If target not a player in FREIGHTER class ship, ignore request
-		uint iType;
-		pub::SpaceObj::GetType(iBaseID, iType);
-		if (!(iType & (OBJ_CRUISER | OBJ_CAPITAL)))
-		{
-			return 0;
-		}
 		returncode = SKIPPLUGINS;
 
 		uint iType;
-		pub::SpaceObj::GetType(iTargetShip, iType);
+		pub::SpaceObj::GetType(iTargetID, iType);
 		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
+		{
 			return 0;
 		}
 
 		// If target is not player ship or ship is too far away then ignore the request.
-		if (HkDistance3DByShip(iShip, iBaseID) > mobileDockingRange)
+		if (HkDistance3DByShip(iShip, iTargetID) > mobileDockingRange)
 		{
 			PrintUserCmdText(client, L"Ship is out of range");
 			dockPort = -1;
 			response = DOCK_DENIED;
 			return 0;
 		}
+
+		uint iTargetClientID = HkGetClientIDByShip(iTargetID);
 
 		// Check that the target ship has an empty docking module.
 		if (!iTargetClientID || mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)

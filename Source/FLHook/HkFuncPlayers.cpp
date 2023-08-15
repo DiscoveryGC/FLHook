@@ -258,17 +258,17 @@ HK_ERROR HkBeamByIds(const uint clientId, const uint baseId)
 	pub::Player::ForceLand(clientId, baseId);
 	if (Players[clientId].iSystemID != baseInfo->iSystemID)
 	{
-		auto charName = Players.GetActiveCharacterName(clientId);
-		wstring newString(charName);
+		auto charName = (const wchar_t*)Players.GetActiveCharacterName(clientId);
 		Server.BaseEnter(baseInfo->iBaseID, clientId);
 		Server.BaseExit(baseInfo->iBaseID, clientId);
 		wstring wscCharFileName;
-		HkGetCharFileName(newString, wscCharFileName);
+		HkGetCharFileName(charName, wscCharFileName);
 		wscCharFileName += L".fl";
 		CHARACTER_ID cID;
 		strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
 		Server.CharacterSelect(cID, clientId);
 	}
+	return HKE_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

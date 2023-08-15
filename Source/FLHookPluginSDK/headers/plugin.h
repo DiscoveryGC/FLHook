@@ -258,8 +258,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_JUMP_CALLOUT = 49,
 	CUSTOM_MOBILE_DOCK_CHECK = 50,
 	CUSTOM_BASE_GET_NAME = 51,
-	CUSTOM_IN_WARP_CHECK = 54
 	CUSTOM_IS_IT_POB = 53,
+	CUSTOM_IN_WARP_CHECK = 54
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

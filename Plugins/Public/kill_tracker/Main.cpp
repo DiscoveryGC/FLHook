@@ -33,7 +33,13 @@
 
 PLUGIN_RETURNCODE returncode;
 
-static array<array<float, MAX_CLIENT_ID + 1>, MAX_CLIENT_ID + 1> damageArray;
+struct DamageDoneStruct
+{
+	float currDamage = 0.0f;
+	float lastUndockDamage = 0.0f;
+};
+
+static array<array<DamageDoneStruct, MAX_CLIENT_ID + 1>, MAX_CLIENT_ID + 1> damageArray;
 
 IMPORT uint iDmgTo;
 IMPORT float g_LastHitPts;
@@ -42,7 +48,7 @@ IMPORT float g_LastHitPts;
 //! {0} is replaced with victim's name, {1} with player who dealt the most damage to them,
 //! {2} with percentage of hull damage taken byt that player.
 wstring defaultDeathDamageTemplate = L"%victim died to %killer";
-wstring killMsgStyle = L"0xCC303001";
+wstring killMsgStyle = L"0xCC303001"; // default: blue, bold
 unordered_map<uint, vector<wstring>> shipClassToDeathMsgListMap;
 
 uint numberOfKillers = 3;
@@ -53,13 +59,17 @@ uint minimumAssistPercentage = 5;
 void __stdcall LoadSettings()
 {
 	returncode = DEFAULT_RETURNCODE;
-	for (auto& subArray : damageArray)
-		subArray.fill(0.0f);
 
+	srand(time(nullptr));
+
+	for (auto& subArray : damageArray)
+	{
+		subArray.fill({ 0.0f, 0.0f });
+	}
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\kill_tracker.cfg";
+	string scPluginCfgFile = string(szCurDir) + R"(\flhook_plugins\kill_tracker.cfg)";
 
 	INI_Reader ini;
 	if (ini.open(scPluginCfgFile.c_str(), false))
@@ -123,7 +133,7 @@ void __stdcall LoadSettings()
 /** @ingroup KillTracker
  * @brief Called when a player types "/kills".
  */
-void UserCmd_Kills(uint client, const wstring& wscParam)
+void UserCmd_Kills(const uint client, const wstring& wscParam)
 {
 	wstring targetCharName = GetParam(wscParam, ' ', 1);
 	uint clientId;
@@ -165,8 +175,7 @@ void __stdcall ShipDestroyed(DamageList* dmg, DWORD* ecx, uint kill)
 			{
 				int kills;
 				pub::Player::GetNumKills(killerId, kills);
-				kills++;
-				pub::Player::SetNumKills(killerId, kills);
+				pub::Player::SetNumKills(killerId, ++kills);
 			}
 		}
 	}
@@ -178,27 +187,38 @@ void __stdcall AddDamageEntry(DamageList* damageList, ushort subObjId, float& ne
 	if (iDmgTo && subObjId == 1 && g_LastHitPts > newHitPoints) //ignore negative hp events such as repair ship
 	{
 		const auto& inflictor = damageList->iInflictorPlayerID;
-		if (inflictor && iDmgTo && inflictor != iDmgTo)
+		if (inflictor && inflictor != iDmgTo)
 		{
-			damageArray[inflictor][iDmgTo] += g_LastHitPts - newHitPoints;
+			damageArray[inflictor][iDmgTo].currDamage += g_LastHitPts - newHitPoints;
 		}
 	}
 }
 
-void clearDamageTaken(uint victim)
+void ClearDamageTaken(const uint victim)
 {
-	damageArray[victim].fill(0.0f);
+	damageArray[victim].fill({ 0.0f, 0.0f });
 }
 
-void clearDamageDone(uint inflictor)
+void ClearDamageDone(const uint inflictor, const bool isFullReset)
 {
 	for (int i = 1; i <= MAX_CLIENT_ID; i++)
-		damageArray[i][inflictor] = 0.0f;
+	{
+		auto& damageData = damageArray[i][inflictor];
+		if (isFullReset)
+		{
+			damageData.lastUndockDamage = 0.0f;
+		}
+		else
+		{
+			damageData.lastUndockDamage = damageData.currDamage;
+		}
+		damageData.currDamage = 0.0f;
+	}
 }
 
-void ProcessNonPvPDeath(const wstring& message, uint system)
+void ProcessNonPvPDeath(const wstring& message, const uint system)
 {
-	wstring deathMessage = L"<TRA data=\"0x0000CC01"
+	wstring deathMessage = L"<TRA data=\"0x0000CC01" // Red, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(message) + L"</TEXT>";
 
 	PlayerData* pd = nullptr;
@@ -211,7 +231,7 @@ void ProcessNonPvPDeath(const wstring& message, uint system)
 	}
 }
 
-wstring RandomizeDeathTemplate(uint iClientID)
+wstring SelectRandomDeathMessage(const uint iClientID)
 {
 	uint shipType = Archetype::GetShip(Players[iClientID].iShipArchetype)->iArchType;
 	const auto& deathMsgList = shipClassToDeathMsgListMap[shipType];
@@ -223,6 +243,19 @@ wstring RandomizeDeathTemplate(uint iClientID)
 	{
 		return deathMsgList.at(rand() % deathMsgList.size());
 	}
+}
+
+inline float GetDamageDone(const DamageDoneStruct& damageDone)
+{
+	if (damageDone.currDamage != 0.0f)
+	{
+		return damageDone.currDamage;
+	}
+	if(damageDone.lastUndockDamage != 0.0f)
+	{
+		return damageDone.lastUndockDamage;
+	}
+	return 0.0f;
 }
 
 void __stdcall SendDeathMessage(const wstring& message, uint system, uint clientVictim, uint clientKiller)
@@ -242,24 +275,28 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
-		float damageDone = damageArray[pd->iOnlineID][clientVictim];
-		if (damageDone == 0){
+		auto& damageData = damageArray[pd->iOnlineID][clientVictim];
+		float damageToAdd = GetDamageDone(damageData);
+		
+		if (damageToAdd == 0.0f)
+		{
 			continue;
 		}
-		damageToInflictorMap[damageDone] = pd->iOnlineID;
+
+		damageToInflictorMap[damageToAdd] = pd->iOnlineID;
 		killerGroups.insert(pd->PlayerGroup);
-		totalDamageTaken += damageDone;
+		totalDamageTaken += damageToAdd;
 	}
 	if (totalDamageTaken == 0.0f)
 	{
-		clearDamageTaken(clientVictim);
+		ClearDamageTaken(clientVictim);
 		ProcessNonPvPDeath(message, system);
 		return;
 	}
 
-	wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(clientVictim);
+	wstring victimName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(clientVictim));
 
-	wstring deathMessage = RandomizeDeathTemplate(clientVictim);
+	wstring deathMessage = SelectRandomDeathMessage(clientVictim);
 	deathMessage = ReplaceStr(deathMessage, L"%victim", victimName);
 	wstring assistMessage = L"";
 
@@ -277,7 +314,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 			break;
 		}
 
-		wstring inflictorName = (const wchar_t*)Players.GetActiveCharacterName(i->second);
+		wstring inflictorName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(i->second));
 		if (killerCounter == 0)
 		{
 			deathMessage = ReplaceStr(deathMessage, L"%killer", inflictorName);
@@ -314,12 +351,14 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	while (pd = Players.traverse_active(pd))
 	{
 		uint playerId = pd->iOnlineID;
-		if (damageArray[playerId][clientVictim] > 0)
+		if (GetDamageDone(damageArray[playerId][clientVictim]) != 0.0f)
 		{
 			HkFMsg(playerId, deathMessage);
-			if(!assistMessage.empty())
+			if (!assistMessage.empty())
+			{
 				HkFMsg(playerId, assistMessage);
-			continue;
+				continue;
+			}
 		}
 		if (
 		(pd->PlayerGroup &&
@@ -329,7 +368,9 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		{
 			HkFMsg(playerId, deathMessage);
 			if (!assistMessage.empty())
+			{
 				HkFMsg(playerId, assistMessage);
+			}
 			continue;
 		}
 		if (pd->iSystemID == systemId && Players[playerId].iShipID)
@@ -341,12 +382,14 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 			{
 				HkFMsg(playerId, deathMessage);
 				if (!assistMessage.empty())
+				{
 					HkFMsg(playerId, assistMessage);
+				}
 			}
 		}
 	}
 
-	clearDamageTaken(clientVictim);
+	ClearDamageTaken(clientVictim);
 }
 
 void __stdcall Disconnect(uint client, enum EFLConnection conn)
@@ -357,31 +400,31 @@ void __stdcall Disconnect(uint client, enum EFLConnection conn)
 	if (shipId)
 	{
 		PlayerData* pd = nullptr;
+		wstring victimName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(client));
 		while (pd = Players.traverse_active(pd))
 		{
-			if (damageArray[pd->iOnlineID][client] != 0)
+			if (GetDamageDone(damageArray[pd->iOnlineID][client]) != 0.0f)
 			{
-				static wstring victimName = (const wchar_t*)Players.GetActiveCharacterName(client);
 				PrintUserCmdText(pd->iOnlineID, L"%ls : Damaged player %ls has disconnected in space", GetTimeString(false).c_str(), victimName.c_str());
 			}
 		}
 	}
-	clearDamageTaken(client);
-	clearDamageDone(client);
+	ClearDamageTaken(client);
+	ClearDamageDone(client, true);
 }
 
 void __stdcall PlayerLaunch(uint shipId, uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	clearDamageTaken(client);
-	clearDamageDone(client);
+	ClearDamageTaken(client);
+	ClearDamageDone(client, false);
 }
 
 void __stdcall CharacterSelect(CHARACTER_ID const& cid, uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	clearDamageTaken(client);
-	clearDamageDone(client);
+	ClearDamageTaken(client);
+	ClearDamageDone(client, true);
 }
 
 

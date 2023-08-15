@@ -1912,25 +1912,25 @@ namespace PlayerCommands
 		{
 			for (const auto& base : player_bases)
 			{
-				if (base.second->basetype != "legacy"
-					|| base.second->invulnerable
-					|| !base.second->logic
-					|| base.second->system != systemID
+				// do not check POBs in a different system
+				if ( base.second->system != systemID
 					|| (base.second->position.x == pos.x
 						&& base.second->position.y == pos.y
 						&& base.second->position.z == pos.z))
+				{
 					continue;
+				}
 
 				float distance = HkDistance3D(pos, base.second->position);
 				if (distance < minOtherPOBDistance)
 				{
 					if (client)
 					{
-						PrintUserCmdText(client, L"Player base %ls is too close! Minimum distance: %um", base.second->basename.c_str(), static_cast<uint>(minOtherPOBDistance));
+						PrintUserCmdText(client, L"%ls is too close! Current: %um, Minimum: %um", base.second->basename.c_str(), static_cast<uint>(distance), static_cast<uint>(minOtherPOBDistance));
 					}
 					else
 					{
-						ConPrint(L"Base is too close to another Player Base, distance %um, name %ls", static_cast<uint>(distance), base.second->basename.c_str());
+						ConPrint(L"Base is too close to another Player Base, distance %um, min %um, name %ls", static_cast<uint>(distance), static_cast<uint>(minOtherPOBDistance), base.second->basename.c_str());
 					}
 					return false;
 				}
@@ -1938,14 +1938,16 @@ namespace PlayerCommands
 		}
 
 		// Mining Zone Check
-		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemID);
-		if (csys && minMiningDistance > 0)
+		CmnAsteroid::CAsteroidSystem* asteroidSystem = CmnAsteroid::Find(systemID);
+		if (asteroidSystem && minMiningDistance > 0)
 		{
-			for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
+			for (CmnAsteroid::CAsteroidField* cfield = asteroidSystem->FindFirst(); cfield; cfield = asteroidSystem->FindNext())
 			{
 				auto& zone = cfield->zone;
 				if (!zone->lootableZone)
+				{
 					continue;
+				}
 
 				float distance = pub::Zone::GetDistance(zone->iZoneID, pos); // returns distance from the nearest point at the edge of the zone, value is negative if you're within the zone.
 
@@ -1975,7 +1977,7 @@ namespace PlayerCommands
 					{
 						if (client)
 						{
-							PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
+							PrintUserCmdText(client, L"Distance to %ls too close, Current: %um, Minimum: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minMiningDistance));
 						}
 						else
 						{
@@ -2028,7 +2030,7 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minPlanetDistance));
 						}
 						else
 						{
@@ -2047,11 +2049,11 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if(client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minStationDistance));
 						}
 						else
 						{
-							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+							ConPrint(L"Base too close to %ls, Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
 						}
 						return false;
 					}
@@ -2063,7 +2065,7 @@ namespace PlayerCommands
 					{
 						if (client)
 						{
-							PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um", static_cast<uint>(minLaneDistance));
+							PrintUserCmdText(client, L"Trade Lane Ring is too close. Current: %um, Minimum distance: %um", static_cast<uint>(distance), static_cast<uint>(minLaneDistance));
 						}
 						else
 						{
@@ -2083,7 +2085,7 @@ namespace PlayerCommands
 
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minJumpDistance));
 						}
 						else
 						{
@@ -2105,7 +2107,7 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minDistanceMisc));
 						}
 						else
 						{

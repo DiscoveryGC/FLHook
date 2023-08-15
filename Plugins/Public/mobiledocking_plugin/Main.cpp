@@ -285,19 +285,7 @@ void DockShipOnCarrier(uint dockingID, uint carrierID)
 	uint playerSystem = Players[dockingID].iSystemID;
 
 	// Land the ship on the designated base
-	
-	pub::Player::ForceLand(dockingID, iBaseID);
-	if (playerSystem != baseInfo->iSystemID)
-	{
-		Server.BaseEnter(baseInfo->iBaseID, dockingID);
-		Server.BaseExit(baseInfo->iBaseID, dockingID);
-		wstring wscCharFileName;
-		HkGetCharFileName(dockedName, wscCharFileName);
-		wscCharFileName += L".fl";
-		CHARACTER_ID cID;
-		strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-		Server.CharacterSelect(cID, dockingID);
-	}
+	HkBeamById(dockingID, iBaseID);
 	PrintUserCmdText(carrierID, L"Ship docked");
 }
 

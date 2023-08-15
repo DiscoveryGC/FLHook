@@ -478,6 +478,7 @@ IMPORT HK_ERROR HkKick(const wstring &wscCharname);
 IMPORT HK_ERROR HkKickReason(const wstring &wscCharname, const wstring &wscReason);
 IMPORT HK_ERROR HkBan(const wstring &wscCharname, bool bBan);
 IMPORT HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename);
+IMPORT HK_ERROR HkBeamById(const uint clientId, const uint baseId);
 IMPORT HK_ERROR HkSaveChar(const wstring &wscCharname);
 IMPORT HK_ERROR HkEnumCargo(const wstring &wscCharname, list<CARGO_INFO> &lstCargo, int &iRemainingHoldSize);
 IMPORT HK_ERROR HkRemoveCargo(const wstring &wscCharname, uint iID, int iCount);

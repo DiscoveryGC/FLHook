@@ -252,7 +252,8 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 
 	return HKE_OK;
 }
-HK_ERROR HkBeamByIds(const uint clientId, const uint baseId)
+
+HK_ERROR HkBeamById(const uint clientId, const uint baseId)
 {
 	auto baseInfo = Universe::get_base(baseId);
 	pub::Player::ForceLand(clientId, baseId);

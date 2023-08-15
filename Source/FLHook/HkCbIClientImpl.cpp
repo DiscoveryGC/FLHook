@@ -652,6 +652,8 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_LAND(uint iClientID, FLPACKET_LAND& pLa
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
 
+	CALL_PLUGINS(PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND, bool, __stdcall, (uint, FLPACKET_LAND&), (iClientID, pLand));
+
 	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_LAND(iClientID, pLand));
 	return reinterpret_cast<bool>(vRet);
 }

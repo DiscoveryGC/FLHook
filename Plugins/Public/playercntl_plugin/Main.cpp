@@ -18,6 +18,7 @@
 #include <math.h>
 #include <list>
 #include <set>
+#include <unordered_set>
 
 
 #include <PluginUtilities.h>
@@ -51,6 +52,9 @@ float set_iDockBroadcastRange = 9999;
 float set_fSpinProtectMass;
 float set_fSpinImpulseMultiplier;
 
+// set of ships which cannot use TradeLane, and are blocked
+// from forming on other ships to bypass the block
+unordered_set<uint> setLaneAndFormationBannedShips;
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
 
@@ -123,10 +127,27 @@ void LoadSettings()
 
 	set_bLocalTime = IniGetB(scPluginCfgFile, "General", "LocalTime", false);
 
+	INI_Reader ini;
+	if (ini.open(scPluginCfgFile.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("TradeLaneBan"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("ship"))
+					{
+						setLaneAndFormationBannedShips.insert(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+		}
+		ini.close();
+	}
 	//JDDisruptAmmo = CreateID("dsy_torpedo_jd_ammo");
 
 	ZoneUtilities::ReadUniverse();
-	EquipmentUtilities::ReadIniNicknames();
 	Rename::LoadSettings(scPluginCfgFile);
 	GiveCash::LoadSettings(scPluginCfgFile);
 	MiscCmds::LoadSettings(scPluginCfgFile);
@@ -290,7 +311,7 @@ string GetUserFilePath(const wstring &wscCharname, const string &scExtension)
 
 namespace HkIEngine
 {
-	int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
+	int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& dockPort, enum DOCK_HOST_RESPONSE& response)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -301,11 +322,11 @@ namespace HkIEngine
 			// NPC call, let the game handle it
 			return 0;
 		}
-		else
+		else if ((response == PROCEED_DOCK || response == DOCK) && dockPort != -1)
 		{
-			if (Players[iClientID].fRelativeHealth == 0.0f && (iCancel != -1)) {
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("dock_disallowed"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			if (Players[iClientID].fRelativeHealth == 0.0f) {
+				dockPort = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 			uint iTypeID;
@@ -315,23 +336,16 @@ namespace HkIEngine
 				if (!IsDockingAllowed(iShip, iDockTarget, iClientID))
 				{
 					//AddLog("INFO: Docking suppressed docktarget=%u charname=%s", iDockTarget, wstos(Players.GetActiveCharacterName(iClientID)).c_str());
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-					return 0;
-				}
-
-				if (response == PROCEED_DOCK)
-				{
-					// Print out a message when a player ship docks.
-					wstring wscMsg = L"%time Traffic control alert: %player has requested to dock";
-					wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
-					wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
-					PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
+					dockPort = -1;
+					response = ACCESS_DENIED;
+					return 1;
 				}
 			}
 
-			SystemSensor::Dock_Call(iShip, iDockTarget, iCancel, response);
+			SystemSensor::Dock_Call(iTypeID, iClientID);
 			return 0;
 		}
+		return 0;
 	}
 }
 
@@ -408,26 +422,106 @@ namespace HkIServerImpl
 		}
 	}
 
-	void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigned int iDockTarget, unsigned int p4, unsigned long p5, unsigned int iClientID)
+	void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
+	{
+		uint clientID = HkGetClientIDByShip(createGuidedPacket.iOwner);
+		if (!clientID)
+			return;
+		uint targetId;
+		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
+		if (targetId)
+			return;
+
+		const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
+		projectile->set_target(nullptr);
+	}
+
+	void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)
+	{
+		const static uint NANOBOT_ARCH_ID = CreateID("ge_s_repair_01");
+		const static float NANOBOT_HEAL_AMOUNT = Archetype::GetEquipment(NANOBOT_ARCH_ID)->fHitPoints;
+
+		returncode = DEFAULT_RETURNCODE;
+
+		float currHitPts, maxHitPts;
+		pub::SpaceObj::GetHealth(p1.iUserShip, currHitPts, maxHitPts);
+		if (currHitPts > 0)
+		{
+			return;
+		}
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		for (auto& eq : Players[iClientID].equipDescList.equip)
+		{
+			if (eq.sID == p1.sItemId)
+			{
+				if (eq.iArchID == NANOBOT_ARCH_ID)
+				{
+					uint amountToUse = static_cast<uint>(ceil((maxHitPts * 1.5) / NANOBOT_HEAL_AMOUNT));
+					if (amountToUse < p1.sAmountUsed)
+					{
+						pub::Player::RemoveCargo(iClientID, p1.sItemId, amountToUse);
+						pub::SpaceObj::SetRelativeHealth(p1.iUserShip, 1.0f);
+					}
+					else
+					{
+						pub::Audio::PlaySoundEffect(iClientID, CreateID("ui_select_reject"));
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	void __stdcall RequestEvent(int iEventType, unsigned int iShip, unsigned int iTargetObj, unsigned int p4, unsigned long p5, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 		if (iClientID)
 		{
-			if (!iIsFormationRequest)
+			if (iEventType == 0) // station dock
 			{
 				uint iTargetTypeID;
-				pub::SpaceObj::GetType(iDockTarget, iTargetTypeID);
+				pub::SpaceObj::GetType(iTargetObj, iTargetTypeID);
 				if (iTargetTypeID == OBJ_DOCKING_RING || iTargetTypeID == OBJ_STATION)
 				{
-					if (!IsDockingAllowed(iShip, iDockTarget, iClientID))
+					if (!IsDockingAllowed(iShip, iTargetObj, iClientID))
 					{
-						//AddLog("INFO: Docking suppressed docktarget=%u charname=%s", iDockTarget, wstos(Players.GetActiveCharacterName(iClientID)).c_str());
 						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-						return;
 					}
 				}
 			}
+			else if (iEventType == 2) // trade lane dock
+			{
+				float shieldHp, shieldMax;
+				bool shieldUp;
+				pub::SpaceObj::GetShieldHealth(iTargetObj, shieldHp, shieldMax, shieldUp);
+				if (!shieldUp)
+				{
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
+					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				}
+				else if (setLaneAndFormationBannedShips.find(Players[iClientID].iShipArchetype) != setLaneAndFormationBannedShips.end())
+				{
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_trade_lane_access_denied"));
+					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				}
+			}
 		}
+	}
+
+	void __stdcall RequestEvent_AFTER(int iEventType, unsigned int iShip, unsigned int iTargetObj, unsigned int p4, unsigned long p5, unsigned int iClientID)
+	{
+		if (iClientID)
+		{
+			if (iEventType == 1 // formation request
+				&& setLaneAndFormationBannedShips.find(Players[iClientID].iShipArchetype) != setLaneAndFormationBannedShips.end())
+			{
+				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_formation_request_denied"));
+				// values copied from vanilla 'leaving formation' callout
+				// Params are: eventType, fromSpaceObjId, toSpaceObjId, dunno, senderClientId;
+				Server.RequestCancel(iEventType, iShip, iShip, UINT_MAX, iClientID);
+			}
+		}
+		
 	}
 
 	void __stdcall PlayerLaunch(unsigned int iShip, unsigned int iClientID)
@@ -450,6 +544,19 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 	}
 
+	bool __stdcall Base_Land(uint iClientID, FLPACKET_LAND& pLand)
+	{
+		uint landingClientId = HkGetClientIDByShip(pLand.iShip);
+		if (landingClientId && landingClientId == iClientID)
+		{
+			// Print out a message when a player ship docks.
+			wstring wscMsg = L"%time Traffic control alert: %player has docked";
+			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
+			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(landingClientId));
+			PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
+		}
+		return true;
+	}
 	void __stdcall BaseEnter(unsigned int iBaseID, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
@@ -1458,7 +1565,7 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		HyperJump::AdminCmd_Pull(cmds, cmds->ArgCharname(1));
 		return true;
 	}
-	if (IS_CMD("move"))
+	else if (IS_CMD("move"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		HyperJump::AdminCmd_Move(cmds, cmds->ArgFloat(1), cmds->ArgFloat(2), cmds->ArgFloat(3));
@@ -1558,6 +1665,30 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		Rename::ReloadLockedShips();
 		return true;
 	}
+	else if (IS_CMD("sethp"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_SetHP(cmds, cmds->ArgCharname(1), cmds->ArgUInt(2));
+		return true;
+	}
+	else if (IS_CMD("setfuse"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_SetFuse(cmds, cmds->ArgCharname(1), cmds->ArgStr(2));
+		return true;
+	}
+	else if (IS_CMD("sethpfuse"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_SetHPFuse(cmds, cmds->ArgCharname(1), cmds->ArgUInt(2), cmds->ArgStr(3));
+		return true;
+	}
+	else if (IS_CMD("unsetfuse"))
+		{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		MiscCmds::AdminCmd_UnsetFuse(cmds, cmds->ArgCharname(1), cmds->ArgStr(2));
+		return true;
+	}
 	return false;
 }
 
@@ -1652,8 +1783,10 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Startup_AFTER, PLUGIN_HkIServerImpl_Startup_AFTER, 10));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Login, PLUGIN_HkIServerImpl_Login, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::RequestEvent, PLUGIN_HkIServerImpl_RequestEvent, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::RequestEvent_AFTER, PLUGIN_HkIServerImpl_RequestEvent_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Base_Land, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	// check causes lag: p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::LocationEnter, PLUGIN_HkIServerImpl_LocationEnter, 0));
@@ -1683,6 +1816,8 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::StopTradelane, PLUGIN_HkIServerImpl_StopTradelane, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateNewCharacter, PLUGIN_HkIServerImpl_CreateNewCharacter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::DestroyCharacter, PLUGIN_HkIServerImpl_DestroyCharacter, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::UseItemRequest, PLUGIN_HkIServerImpl_SPRequestUseItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIEngine::Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_SendChat, PLUGIN_HkCb_SendChat, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));

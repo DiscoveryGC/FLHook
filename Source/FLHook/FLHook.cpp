@@ -4,6 +4,10 @@
 #include "CConsole.h"
 #include "CSocket.h"
 
+using st6_malloc_t = void* (*)(size_t);
+using st6_free_t = void(*)(void*);
+EXPORT st6_malloc_t st6_malloc;
+EXPORT st6_free_t st6_free;
 // structs
 struct SOCKET_CONNECTION
 {
@@ -180,6 +184,16 @@ void FLHookInit_Pre()
 	InitializeCriticalSection(&cs);
 	hProcFL = GetModuleHandle(0);
 
+	// Get direct pointers to malloc and free for st6 to prevent debug heap
+	// issues
+	{
+		const auto dll = GetModuleHandle(TEXT("msvcrt.dll"));
+		if (!dll)
+			throw std::runtime_error("msvcrt.dll");
+
+		st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(dll, "malloc"));
+		st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(dll, "free"));
+	}
 	// start console
 	AllocConsole();
 	SetConsoleTitle("FLHook");

@@ -21,6 +21,8 @@
 
 #include "FLCoreDefs.h"
 #include "FLCoreCommon.h"
+#define ST6_ALLOCATION_DEFINED
+#include "st6.h"
 
 #pragma comment( lib, "FLCoreServer.lib" )
 
@@ -50,6 +52,13 @@ enum MissionMessageType
 	MissionMessageType_Type1, // objective
 	MissionMessageType_Type2, // objective
 	MissionMessageType_Type3, // mission success
+};
+
+struct SSPUseItem
+{
+	uint iUserShip;
+	ushort sItemId;
+	ushort sAmountUsed;
 };
 
 struct SSPMunitionCollisionInfo
@@ -89,6 +98,12 @@ struct XActivateThrusters
 {
 	uint	iShip;
 	bool	bActivate;
+};
+
+struct XCollisionGroup
+{
+	ushort sId;
+	float fHealth;
 };
 
 struct XTractorObjects
@@ -351,10 +366,7 @@ public:
 
 struct CollisionGroupDescList
 {
-	// std::list<CollisionGroupDesc> data; // FIXME: std::list is not compatible with VC9 libs
-	CollisionGroupDesc *iter;
-	CollisionGroupDesc *first;
-	UINT count;
+	st6::list<CollisionGroupDesc> data;
 };
 
 struct FLString

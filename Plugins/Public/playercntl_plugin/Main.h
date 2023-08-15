@@ -39,13 +39,6 @@ namespace pub
 	}
 }
 
-// From EquipmentUtilities.cpp
-namespace EquipmentUtilities
-{
-	void ReadIniNicknames();
-	const char *FindNickname(unsigned int hash);
-}
-
 // From PurchaseRestrictions
 namespace PurchaseRestrictions
 {
@@ -105,6 +98,10 @@ namespace MiscCmds
 	void AdminCmd_PlaySound(CCmds* cmds, const wstring &wscSoundname);
 	void AdminCmd_PlayNNM(CCmds* cmds, const wstring &wscSoundname);
 
+	void AdminCmd_SetHP(CCmds* cmds, const wstring& charName, uint hpPercentage);
+	void AdminCmd_SetHPFuse(CCmds* cmds, const wstring& charName, uint hpPercentage, const wstring& fuseName);
+	void AdminCmd_SetFuse(CCmds* cmds, const wstring& charName, const wstring& fuseName);
+	void AdminCmd_UnsetFuse(CCmds* cmds, const wstring& charName, const wstring& fuseName);
 }
 
 namespace IPBans
@@ -290,7 +287,7 @@ namespace SystemSensor
 	void JumpInComplete(unsigned int iSystem, unsigned int iShip, unsigned int iClientID);
 	void GoTradelane(unsigned int iClientID, struct XGoTradelane const &xgt);
 	void StopTradelane(unsigned int iClientID, unsigned int p1, unsigned int p2, unsigned int p3);
-	void Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response);
+	void Dock_Call(uint const& typeID, uint clientId);
 }
 
 #endif

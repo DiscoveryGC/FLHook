@@ -197,6 +197,7 @@ USERCMD UserCmds[] =
 {
 	{ L"/ping", Condata::UserCmd_Ping, L"Usage: /ping" },
 	{ L"/pingtarget", Condata::UserCmd_PingTarget, L"Usage: /pingtarget" },
+	{ L"/pt", Condata::UserCmd_PingTarget, L"Usage: /pingtarget" },
 };
 
 

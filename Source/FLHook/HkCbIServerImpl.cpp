@@ -1768,6 +1768,13 @@ namespace HkIServerImpl
 		EXECUTE_SERVER_CALL(Server.RequestEvent(iType, iShip, iShipTarget, p4, p5, iClientID));
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_RequestEvent_AFTER, __stdcall, (int iType, unsigned int iShip, unsigned int iShipTarget, unsigned int p4, unsigned long p5, unsigned int iClientID), (iType, iShip, iShipTarget, p4, p5, iClientID));
+		
+		//If Dock_Call plugin turns a successful dock into a failed one, we need to cancel the event
+		if (HkIEngine::bAbortEventRequest)
+		{
+			HkIEngine::bAbortEventRequest = false;
+			Server.RequestCancel(iType, iShip, 0, UINT_MAX, iClientID);
+		}
 	}
 
 	/**************************************************************************************************************

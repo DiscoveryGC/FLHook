@@ -672,13 +672,13 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 }
 
 // If this is a docking request at a player ship then process it.
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int& dockPort, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
 	//if not a player dock, skip
 	uint client = HkGetClientIDByShip(iShip);
-	if (client)
+	if (client && response == DOCK && dockPort == -1)
 	{
 		// If target not a player in FREIGHTER class ship, ignore request
 		uint iType;
@@ -689,9 +689,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		}
 		returncode = SKIPPLUGINS;
 
-		uint iTargetClientID = HkGetClientIDByShip(iBaseID);
-		if (!iTargetClientID)
-		{
+		uint iType;
+		pub::SpaceObj::GetType(iTargetShip, iType);
+		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
 			return 0;
 		}
 
@@ -699,6 +699,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (HkDistance3DByShip(iShip, iBaseID) > mobileDockingRange)
 		{
 			PrintUserCmdText(client, L"Ship is out of range");
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 
@@ -706,6 +708,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (!iTargetClientID || mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
 		{
 			PrintUserCmdText(client, L"Target ship has no free docking capacity");
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 
@@ -714,10 +718,10 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (shipInfo->fHoldSize > cargoCapacityLimit)
 		{
 			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
-
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 		// Create a docking request and send a notification to the target ship.
 		AddClientToDockQueue(client, iTargetClientID);

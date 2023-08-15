@@ -18,6 +18,8 @@
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
+constexpr uint ITEMS_PER_PAGE = 40;
+
 namespace PlayerCommands
 {
 	void BaseHelp(uint client, const wstring &args)
@@ -203,21 +205,24 @@ namespace PlayerCommands
 		BasePassword searchBp;
 		searchBp.pass = password;
 		list<BasePassword>::iterator ret = find(base->passwords.begin(), base->passwords.end(), searchBp);
-		if (ret == base->passwords.end()) {
+		if (ret == base->passwords.end())
+		{
 			base->unsuccessful_logins_in_a_row[charname]++; //count password failures
 			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
 		BasePassword foundBp = *ret;
-		if (foundBp.admin) {
+		if (foundBp.admin)
+		{
 			clients[client].admin = true;
 			SendMarketGoodSync(base, client);
 			PrintUserCmdText(client, L"OK Access granted");
 			PrintUserCmdText(client, L"Welcome administrator, all base command and control functions are available.");
 			BaseLogging("Base %s: player %s logged in as an admin", wstos(base->basename).c_str(), wstos(charname).c_str());
 		}
-		if (foundBp.viewshop) {
+		if (foundBp.viewshop)
+		{
 			clients[client].viewshop = true;
 			PrintUserCmdText(client, L"OK Access granted");
 			PrintUserCmdText(client, L"Welcome shop viewer.");
@@ -1682,7 +1687,7 @@ namespace PlayerCommands
 			}
 		}
 
-		int pages = (matchingItems / 40) + 1;
+		int pages = (matchingItems / ITEMS_PER_PAGE) + 1;
 		if (page > pages)
 			page = pages;
 		else if (page < 1)
@@ -1692,8 +1697,8 @@ namespace PlayerCommands
 		_snwprintf(buf, sizeof(buf), L"Shop Management : Page %d/%d", page, pages);
 		wstring title = buf;
 
-		int start_item = ((page - 1) * 40) + 1;
-		int end_item = page * 40;
+		int start_item = ((page - 1) * ITEMS_PER_PAGE) + 1;
+		int end_item = page * ITEMS_PER_PAGE;
 
 		wstring status = L"<RDL><PUSH/>";
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
@@ -1771,7 +1776,7 @@ namespace PlayerCommands
 			int item = ToInt(GetParam(args, ' ', 2));
 			int money = ToInt(GetParam(args, ' ', 3));
 
-			if (money < 1 || money > 1000000000)
+			if (money < 1 || money > 1'000'000'000)
 			{
 				PrintUserCmdText(client, L"ERR Price not valid");
 				return;
@@ -1786,7 +1791,7 @@ namespace PlayerCommands
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->Save();
 
-					int page = ((curr_item + 39) / 40);
+					int page = ((curr_item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 
@@ -1814,7 +1819,7 @@ namespace PlayerCommands
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->Save();
 
-					int page = ((curr_item + 39) / 40);
+					int page = ((curr_item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					
@@ -1843,7 +1848,7 @@ namespace PlayerCommands
 					base->market_items.erase(i->first);
 					base->Save();
 
-					int page = ((curr_item + 39) / 40);
+					int page = ((curr_item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					return;
@@ -1869,7 +1874,7 @@ namespace PlayerCommands
 				i->second.is_public = false;
 			base->Save();
 
-			int page = ((item + 39) / 40);
+			int page = ((item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
 			ShowShopStatus(client, base, L"", page);
 			PrintUserCmdText(client, L"OK");
 			
@@ -1912,20 +1917,26 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);
 
 		PrintUserCmdText(client, L"Crew supplies:");
-		for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin(); i != set_base_crew_consumption_items.end(); ++i) {
+		for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin(); i != set_base_crew_consumption_items.end(); ++i)
+		{
 			const GoodInfo *gi = GoodList::find_by_id(i->first);
 			if (gi)
 			{
 				if (base->market_items.count(i->first))
+				{
 					PrintUserCmdText(client, L"|    %s: %u/%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first), base->market_items[i->first].max_stock);
+				}
 				else
+				{
 					PrintUserCmdText(client, L"|    %s: %u/0", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first));
+				}
 			}
 		}
 		
 		uint foodCount = 0;
 		uint maxFoodCount = 0;
-		for (map<uint, uint>::iterator i = set_base_crew_food_items.begin(); i != set_base_crew_food_items.end(); ++i) {
+		for (map<uint, uint>::iterator i = set_base_crew_food_items.begin(); i != set_base_crew_food_items.end(); ++i)
+		{
 			foodCount += base->HasMarketItem(i->first);
 			if (base->market_items.count(i->first))
 				maxFoodCount += base->market_items[i->first].max_stock;
@@ -1933,15 +1944,20 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"|    Food: %u/%u", foodCount, maxFoodCount);
 
 		PrintUserCmdText(client, L"Repair materials:");
-		for (list<REPAIR_ITEM>::iterator i = set_base_repair_items.begin(); i != set_base_repair_items.end(); ++i) {
+		for (list<REPAIR_ITEM>::iterator i = set_base_repair_items.begin(); i != set_base_repair_items.end(); ++i)
+		{
 
 			const GoodInfo *gi = GoodList::find_by_id(i->good);
 			if (gi)
 			{
 				if (base->market_items.count(i->good))
+				{
 					PrintUserCmdText(client, L"|    %s: %u/%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good), base->market_items[i->good].max_stock);
+				}
 				else
+				{
 					PrintUserCmdText(client, L"|    %s: %u/0", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good));
+				}
 			}
 		}
 	}

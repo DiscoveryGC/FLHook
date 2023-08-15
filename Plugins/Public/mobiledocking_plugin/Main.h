@@ -55,4 +55,5 @@ void ForceLaunch(uint client);
 static int set_iMobileDockOffset = 100;
 
 // A map of all docking requests pending approval by the carrier
+// key = docking client id, value = carrier client id
 extern unordered_map<uint, uint> mapPendingDockingRequests;

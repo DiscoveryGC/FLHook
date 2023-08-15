@@ -1082,6 +1082,7 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 			if (clients[client].player_base)
 				return true;
 
+			// Check if ships is currently docked on a docking module
 			CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
 			mobileCheck.iClientID = client;
 			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
@@ -1691,6 +1692,7 @@ void __stdcall BaseEnter(uint base, uint client)
 	clients[client].admin = false;
 	clients[client].viewshop = false;
 
+	// Check if ships is currently docked on a docking module
 	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
 	mobileCheck.iClientID = client;
 	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
@@ -1754,7 +1756,9 @@ void __stdcall BaseExit(uint base, uint client)
 	if (clients[client].player_base || mobileCheck.isMobileDocked)
 	{
 		if (set_plugin_debug)
+		{
 			ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
+		}
 
 		if (clients[client].player_base) {
 			clients[client].last_player_base = clients[client].player_base;

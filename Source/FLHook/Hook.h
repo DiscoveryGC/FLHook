@@ -612,6 +612,7 @@ EXPORT HK_ERROR HkKick(const wstring &wscCharname);
 EXPORT HK_ERROR HkKickReason(const wstring &wscCharname, const wstring &wscReason);
 EXPORT HK_ERROR HkBan(const wstring &wscCharname, bool bBan);
 EXPORT HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename);
+EXPORT HK_ERROR HkBeamByIds(uint clientId, uint baseId);
 EXPORT HK_ERROR HkSaveChar(const wstring &wscCharname);
 EXPORT HK_ERROR HkEnumCargo(const wstring &wscCharname, list<CARGO_INFO> &lstCargo, int &iRemainingHoldSize);
 EXPORT HK_ERROR HkRemoveCargo(const wstring &wscCharname, uint iID, int iCount);

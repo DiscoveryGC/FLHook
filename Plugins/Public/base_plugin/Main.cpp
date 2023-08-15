@@ -829,8 +829,15 @@ void LoadSettingsActual()
 		{
 			string filepath = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\" + findfile.cFileName;
 			PlayerBase *base = new PlayerBase(filepath);
-			player_bases[base->base] = base;
-			base->Spawn();
+			if (base && !base->nickname.empty())
+			{
+				player_bases[base->base] = base;
+				base->Spawn();
+			}
+			else
+			{
+				AddLog("ERROR POB file corrupted: %s", findfile.cFileName);
+			}
 		} while (FindNextFile(h, &findfile));
 		FindClose(h);
 	}

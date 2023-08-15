@@ -24,20 +24,16 @@
 
 namespace AntiJumpDisconnect
 {
-	struct INFO
-	{
-		bool bInWarpGate;
-	};
-	static map<uint, INFO> mapInfo;
+	static map<uint, bool> isClientInJumpTunnelMap;
 
 	void AntiJumpDisconnect::ClearClientInfo(unsigned int iClientID)
 	{
-		mapInfo[iClientID].bInWarpGate = false;
+		isClientInJumpTunnelMap[iClientID] = false;
 	}
 
 	void AntiJumpDisconnect::DisConnect(unsigned int iClientID, enum  EFLConnection state)
 	{
-		if (mapInfo[iClientID].bInWarpGate)
+		if (isClientInJumpTunnelMap[iClientID])
 		{
 			uint iShip;
 			pub::Player::GetShip(iClientID, iShip);
@@ -53,7 +49,7 @@ namespace AntiJumpDisconnect
 
 	void AntiJumpDisconnect::CharacterInfoReq(unsigned int iClientID, bool p2)
 	{
-		if (mapInfo[iClientID].bInWarpGate)
+		if (isClientInJumpTunnelMap[iClientID])
 		{
 			uint iShip;
 			pub::Player::GetShip(iClientID, iShip);
@@ -69,16 +65,16 @@ namespace AntiJumpDisconnect
 
 	void AntiJumpDisconnect::JumpInComplete(unsigned int iSystem, unsigned int iShip, unsigned int iClientID)
 	{
-		mapInfo[iClientID].bInWarpGate = false;
+		isClientInJumpTunnelMap[iClientID] = false;
 	}
 
 	void AntiJumpDisconnect::SystemSwitchOut(uint iClientID)
 	{
-		mapInfo[iClientID].bInWarpGate = true;
+		isClientInJumpTunnelMap[iClientID] = true;
 	}
 
 	bool AntiJumpDisconnect::IsInWarp(uint iClientID)
 	{
-		return mapInfo[iClientID].bInWarpGate;
+		return isClientInJumpTunnelMap[iClientID];
 	}
 }

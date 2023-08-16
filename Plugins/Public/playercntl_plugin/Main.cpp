@@ -1177,8 +1177,6 @@ USERCMD UserCmds[] =
 	{ L"/shields",		MiscCmds::UserCmd_Shields, L"Usage: /shields"},
 	{ L"/shields*",		MiscCmds::UserCmd_Shields, L"Usage: /shields"},
 	//{ L"/ss",		    MiscCmds::UserCmd_Screenshot, L"Usage: /ss"},
-	{ L"/clearsystem",	HyperJump::UserCmd_ClearSystem, L"Usage: /clearsystem" },
-	{ L"/setsystem",	HyperJump::UserCmd_SetSystem, L"Usage: /setsystem <system name>"},
 	{ L"/setsector",	HyperJump::UserCmd_SetSector, L"Usage: /setsector <number>"},
 	{ L"/jump",			HyperJump::UserCmd_ActivateJumpDrive, L"Usage: /jump"},
 	{ L"/jump*",		HyperJump::UserCmd_ActivateJumpDrive, L"Usage: /jump"},

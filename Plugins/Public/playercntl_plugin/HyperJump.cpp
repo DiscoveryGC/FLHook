@@ -61,15 +61,13 @@ namespace HyperJump
 
 	static unordered_map<uint, unordered_map<uint, vector<uint>>> mapAvailableJumpSystems;
 
-	static int JumpWhiteListEnabled = 0;
 	static int JumpSystemListEnabled = 0;
 	static uint BeaconCommodity = 0;
 	static int BeaconTime = 120;
 	static int BeaconCooldown = 300;
 	static uint BeaconFuse = 0;
-	static int JumpInnacuracy = 2000;
 	static float JumpCargoSizeRestriction = 7000;
-	static uint BlindJumpOverrideSystem = 0;
+	static uint set_blindJumpOverrideSystem = 0;
 	static boolean set_canJumpWithCommodities = true;
 	static uint set_jumpInInvulnerabilityPeriod = 5000;
 	static uint set_exitJumpHoleLoadout = CreateID("wormhole_unstable");
@@ -77,7 +75,6 @@ namespace HyperJump
 	static uint set_entryJumpHoleLoadout = CreateID("wormhole_unstable");
 	static uint set_entryJumpHoleArchetype = CreateID("flhook_jumphole");
 	static uint set_iJumpHoleDuration = 30;
-	static uint set_iJumpHoleExitTimeout = 15;
 	static uint set_IDSNamespaceStart = 267200;
 
 	struct JD_JUMPHOLE
@@ -121,7 +118,7 @@ namespace HyperJump
 		vector<uint> charge_fuse;
 		uint jump_fuse;
 		uint jump_range;
-		map<uint, uint> mapFuelToUsage;
+		map<uint, vector<uint>> mapFuelToUsagePerDistance;
 		float power;
 		boolean cd_disrupts_charge;
 	};
@@ -141,6 +138,7 @@ namespace HyperJump
 		JUMP_TYPE jump_type = JUMPHOLE_JUMPTYPE;
 
 		int jump_timer;
+		uint jumpDistance;
 		uint iTargetSystem;
 		uint iCoordinateIndex;
 		uint targetClient;
@@ -148,15 +146,6 @@ namespace HyperJump
 		Matrix matTargetOrient;
 	};
 	static unordered_map<uint, JUMPDRIVE> mapJumpDrives;
-
-	struct BEACONTIMER
-	{
-		int timeleft;
-		int cooldown;
-		bool decayed;
-	};
-
-	static unordered_map<uint, BEACONTIMER> mapActiveBeacons;
 
 	struct BEACONMATRIX
 	{
@@ -181,6 +170,7 @@ namespace HyperJump
 		jd.charge_status = -1;
 
 		jd.jump_timer = 0;
+		jd.jumpDistance = 0;
 		jd.iTargetSystem = 0;
 		jd.vTargetPosition.x = 0;
 		jd.vTargetPosition.y = 0;
@@ -236,12 +226,7 @@ namespace HyperJump
 				{
 					while (ini.read_value())
 					{
-						if (ini.is_value("JumpWhiteListEnabled"))
-						{
-							JumpWhiteListEnabled = ini.get_value_int(0);
-							ConPrint(L"HYPERJUMP NOTICE: Ship Whitelist is %u (1=On, 0=Off)\n", JumpWhiteListEnabled);
-						}
-						else if (ini.is_value("JumpSystemListEnabled"))
+						if (ini.is_value("JumpSystemListEnabled"))
 						{
 							JumpSystemListEnabled = ini.get_value_int(0);
 							ConPrint(L"HYPERJUMP NOTICE: System Whitelist is %u (1=On, 0=Off)\n", JumpSystemListEnabled);
@@ -262,12 +247,8 @@ namespace HyperJump
 						{
 							BeaconCooldown = ini.get_value_int(0);
 						}
-						else if (ini.is_value("JumpInnacuracy"))
-						{
-							JumpInnacuracy = ini.get_value_int(0);
-						}
 						else if (ini.is_value("BlindJumpOverrideSystem")) {
-							BlindJumpOverrideSystem = CreateID(ini.get_value_string());
+							set_blindJumpOverrideSystem = CreateID(ini.get_value_string());
 						}
 						else if (ini.is_value("CanJumpWithCommodities"))
 						{
@@ -344,8 +325,13 @@ namespace HyperJump
 						else if (ini.is_value("fuel"))
 						{
 							uint fuel = CreateValidID(ini.get_value_string(0));
-							int rate = ini.get_value_int(1);
-							jd.mapFuelToUsage[fuel] = rate;
+							int rate;
+							do
+							{
+								static int i = 1;
+								rate = ini.get_value_int(i++);
+								jd.mapFuelToUsagePerDistance[fuel].push_back(rate);
+							} while (rate != 0);
 						}
 						else if (ini.is_value("power"))
 						{
@@ -565,20 +551,24 @@ namespace HyperJump
 		return false;
 	}
 
-	bool IsSystemJumpable(uint systemFrom, uint systemTo, uint range)
+	pair<bool, uint> IsSystemJumpable(uint systemFrom, uint systemTo, uint range)
 	{
 		if (mapAvailableJumpSystems.count(systemFrom) == 0)
-			return false;
+		{
+			return make_pair(false, 0);
+		}
 
 		if (systemFrom == systemTo)
-			return true;
+		{
+			return make_pair(true, 0);
+		}
 
 		auto& allowedSystemsByRange = mapAvailableJumpSystems[systemFrom];
 		for (uint depth = 1; depth <= range; depth++) {
 			if (allowedSystemsByRange.count(range) && find(allowedSystemsByRange[depth].begin(), allowedSystemsByRange[depth].end(), systemTo) != allowedSystemsByRange[depth].end())
-				return true;
+				return make_pair(true, depth);
 		}
-		return false;
+		return make_pair(false, 0);
 	}
 
 	bool CheckForCommodities(uint iClientID)
@@ -707,7 +697,9 @@ namespace HyperJump
 	void HyperJump::JumpInComplete(uint ship)
 	{
 		if (!shipToJumpObjMap.count(ship))
+		{
 			return;
+		}
 		uint dockObj = shipToJumpObjMap[ship];
 		if (!jumpObjMap.count(dockObj))
 		{
@@ -717,8 +709,9 @@ namespace HyperJump
 		shipToJumpObjMap.erase(ship);
 
 		if (set_canJumpWithCommodities)
+		{
 			return;
-
+		}
 		uint client = HkGetClientIDByShip(ship);
 		int iRemHoldSize;
 		std::list<CARGO_INFO> lstCargo;
@@ -780,7 +773,7 @@ namespace HyperJump
 			return true;
 		}
 
-		if (!JumpSystemListEnabled || IsSystemJumpable(Players[iClientID].iSystemID, Players[iTargetClientID].iSystemID, mapJumpDrives[iClientID].arch->jump_range + mapPlayerBeaconMatrix[iTargetClientID]->range))
+		if (!JumpSystemListEnabled || IsSystemJumpable(Players[iClientID].iSystemID, Players[iTargetClientID].iSystemID, mapJumpDrives[iClientID].arch->jump_range + mapPlayerBeaconMatrix[iTargetClientID]->range).first)
 		{
 			PrintUserCmdText(iClientID, L"Player beacon in jump range");
 		}
@@ -827,24 +820,15 @@ namespace HyperJump
 		return true;
 	}
 
-	bool UserCmd_ClearSystem(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
-	{
-		if (!InitJumpDriveInfo(iClientID)) {
-			PrintUserCmdText(iClientID, L"ERR No jump drive installed");
-			return true;
-		}
-		mapJumpDrives[iClientID].iTargetSystem = 0;
-		PrintUserCmdText(iClientID, L"System coordinates cleared");
-		return true;
-	}
-
 	bool HyperJump::UserCmd_IsSystemJumpable(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage) {
-		if (!InitJumpDriveInfo(iClientID)) {
+		if (!InitJumpDriveInfo(iClientID))
+		{
 			PrintUserCmdText(iClientID, L"ERR No jump drive installed");
 			return true;
 		}
 		wstring sysName = ToLower(GetParamToEnd(wscParam, ' ', 0));
-		if (sysName.empty()) {
+		if (sysName.empty())
+		{
 			PrintUserCmdText(iClientID, L"ERR Invalid system name");
 			return true;
 		}
@@ -856,10 +840,13 @@ namespace HyperJump
 				uint iClientSystem;
 				pub::Player::GetSystem(iClientID, iClientSystem);
 
-				if (IsSystemJumpable(iClientSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
-					PrintUserCmdText(iClientID, L"%ls is within your jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
+				auto canJump = IsSystemJumpable(iClientSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range);
+				if (canJump.first)
+				{
+					PrintUserCmdText(iClientID, L"%ls is %u systems away, within your jump range of %u systems", fullSystemName.c_str(), canJump.second, mapJumpDrives[iClientID].arch->jump_range);
 				}
-				else {
+				else
+				{
 					PrintUserCmdText(iClientID, L"%ls is out of your jump range of %u systems", fullSystemName.c_str(), mapJumpDrives[iClientID].arch->jump_range);
 				}
 				return true;
@@ -870,45 +857,72 @@ namespace HyperJump
 		return true;
 	}
 	
-	bool UserCmd_SetSystem(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
+	bool SetJumpSystem(const uint iClientID, JUMPDRIVE& jd, wstring& targetSystem)
 	{
 		if (!InitJumpDriveInfo(iClientID)) {
 			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
+			return false;
+		}
+
+		targetSystem = ToLower(targetSystem);
+
+		if (targetSystem == L"blind")
+		{
+			if (set_blindJumpOverrideSystem)
+			{
+				auto& jumpCoordList = mapSystemJumps[set_blindJumpOverrideSystem];
+				auto& jumpCoords = jumpCoordList.at(rand() % jumpCoordList.size());
+				mapJumpDrives[iClientID].iTargetSystem = set_blindJumpOverrideSystem;
+				mapJumpDrives[iClientID].vTargetPosition = jumpCoords.pos;
+				mapJumpDrives[iClientID].matTargetOrient = jumpCoords.ornt;
+			}
+			else
+			{
+				//TODO: implement nonoverride blind jump within range.
+			}
 			return true;
 		}
-		wstring sysName = ToLower(GetParamToEnd(wscParam, ' ', 0));
-		if (sysName.empty()) {
-			PrintUserCmdText(iClientID, L"ERR Invalid system name");
-			return true;
-		}
+
 		for (struct Universe::ISystem *sysinfo = Universe::GetFirstSystem(); sysinfo; sysinfo = Universe::GetNextSystem())
 		{
 			const auto& fullSystemName = HkGetWStringFromIDS(sysinfo->strid_name);
-			if (ToLower(fullSystemName) == sysName) {
+			if (ToLower(fullSystemName) == targetSystem) {
 				uint &iTargetSystemID = sysinfo->id;
 
 				uint iPlayerSystem;
 				pub::Player::GetSystem(iClientID, iPlayerSystem);
-				if (!IsSystemJumpable(iPlayerSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range)) {
+				auto canJump = IsSystemJumpable(iPlayerSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range);
+				if (JumpSystemListEnabled && !canJump.first) {
 					PrintUserCmdText(iClientID, L"System out of range, use /jumplist for a list of valid destinations");
-					return true;
+					return false;
 				}
 				if (mapSystemJumps.count(iTargetSystemID) == 0) {
 					PrintUserCmdText(iClientID, L"ERR Jumps to selected system not configured, please report the issue to the staff");
-					return true;
+					return false;
 				}
-				SYSTEMJUMPCOORDS &jumpCoords = mapSystemJumps[iTargetSystemID].at(0);
+				auto& jumpCoordList = mapSystemJumps[iTargetSystemID];
+				uint sectorSelectedIndex = rand() % jumpCoordList.size();
+				auto& jumpCoords = jumpCoordList.at(sectorSelectedIndex);
 				mapJumpDrives[iClientID].iTargetSystem = iTargetSystemID;
 				mapJumpDrives[iClientID].vTargetPosition = jumpCoords.pos;
 				mapJumpDrives[iClientID].matTargetOrient = jumpCoords.ornt;
+
+				jd.jumpDistance = canJump.second;
 
 				PrintUserCmdText(iClientID, L"System locked in, jumping to %ls, sector %ls", fullSystemName.c_str(), jumpCoords.sector.c_str());
 				if (mapSystemJumps[iTargetSystemID].size() > 1) {
 					PrintUserCmdText(iClientID, L"Alternate jump coordinates available, use /setsector to switch");
 					int iCount = 1;
 					for (auto coord : mapSystemJumps[iTargetSystemID]) {
-						PrintUserCmdText(iClientID, L"%u. %ls", iCount, coord.sector.c_str());
+						if (sectorSelectedIndex + 1 == iCount)
+						{
+							PrintUserCmdText(iClientID, L"%u. %ls - selected", iCount, coord.sector.c_str());
+						}
+						else
+						{
+							PrintUserCmdText(iClientID, L"%u. %ls", iCount, coord.sector.c_str());
+						}
 						iCount++;
 					}
 				}
@@ -916,7 +930,7 @@ namespace HyperJump
 			}
 		}
 		PrintUserCmdText(iClientID, L"ERR Invalid system name");
-		return true;
+		return false;
 	}
 
 	bool UserCmd_SetSector(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
@@ -929,7 +943,7 @@ namespace HyperJump
 
 		if (mapJumpDrives[iClientID].iTargetSystem == 0) 
 		{
-			PrintUserCmdText(iClientID, L"ERR Select system with /setsystem first!");
+			PrintUserCmdText(iClientID, L"ERR Jump Drive not locked onto a system, use /jump <systemName> to initiate.");
 			return true;
 		}
 
@@ -950,39 +964,6 @@ namespace HyperJump
 	void HyperJump::Timer()
 	{
 		list<uint> lstOldClients;
-
-		// Handle beacons
-		for (auto& i = mapActiveBeacons.begin(); i != mapActiveBeacons.end(); ++i)
-		{
-			BEACONTIMER &bc = i->second;
-
-			if (!bc.decayed)
-			{
-				if (bc.timeleft <= 0)
-				{
-					IObjInspectImpl *obj = HkGetInspect(i->first);
-					PrintUserCmdText(i->first, L"Hyperspace beacon has decayed.");
-					bc.decayed = true;
-					HkUnLightFuse((IObjRW*)obj, BeaconFuse, 0);
-				}
-				else
-				{
-					bc.timeleft -= 1;
-				}
-			}
-
-			if (bc.cooldown == 0)
-			{
-				PrintUserCmdText(i->first, L"Hyperspace beacon cooldown complete.");
-				mapActiveBeacons.erase(i->first);
-			}
-			else
-			{
-				bc.cooldown -= 1;
-			}
-		}
-
-		lstOldClients.clear();
 
 		// Handle jump drive charging
 		for (auto& iter = mapJumpDrives.begin(); iter != mapJumpDrives.end(); iter++)
@@ -1056,9 +1037,9 @@ namespace HyperJump
 
 					for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 					{
-						if (jd.arch->mapFuelToUsage.find(item->iArchID) != jd.arch->mapFuelToUsage.end())
+						if (jd.arch->mapFuelToUsagePerDistance.find(item->iArchID) != jd.arch->mapFuelToUsagePerDistance.end())
 						{
-							uint fuel_usage = jd.arch->mapFuelToUsage[item->iArchID];
+							uint fuel_usage = jd.arch->mapFuelToUsagePerDistance[item->iArchID].at(jd.jumpDistance);
 							if (item->iCount >= fuel_usage)
 							{
 								pub::Player::RemoveCargo(iClientID, item->sID, fuel_usage);
@@ -1150,7 +1131,7 @@ namespace HyperJump
 				{
 					if (jh.isEntrance)
 					{
-						jumpObjMap.at(jh.pairedJH).timeout = now + set_iJumpHoleExitTimeout;
+						jumpObjMap.at(jh.pairedJH).timeout = now + set_iJumpHoleDuration;
 					}
 					else if(!jh.timeout)
 					{
@@ -1470,51 +1451,40 @@ namespace HyperJump
 			PrintUserCmdText(iClientID, L"Warning! You cannot jump without clearing your cargo hold!");
 		}
 
-		// Toogle the charge state
-		jd.charging_on = !jd.charging_on;
-		jd.charge_status = -1;
-
-		uint iSystemID;
-		pub::Player::GetSystem(iClientID, iSystemID);
-
-		// Start the jump effect
 		if (jd.charging_on)
 		{
-			if (jd.iTargetSystem == 0)
+			if (ToLower(GetParam(wscParam, ' ', 0)) == L"stop")
 			{
-				PrintUserCmdText(iClientID, L"WARNING NO JUMP COORDINATES");
-				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_blind_jump_warning"));
-			}
-			////////////////////////// System limit restriction ///////////////////////////////////////
-			else if (JumpSystemListEnabled && !IsSystemJumpable(iSystemID, jd.iTargetSystem, jd.arch->jump_range))
-			{
-				const Universe::ISystem *iSysList = Universe::get_system(jd.iTargetSystem);
-				wstring wscSysNameList = HkGetWStringFromIDS(iSysList->strid_name);
-				PrintUserCmdText(iClientID, L"ERROR: Gravitational rift detected. Cannot jump to %s from this system.", wscSysNameList.c_str());
-				PrintUserCmdText(iClientID, L"Jump drive disabled. Use /jumpsys for the list of available systems.");
-				jd.charging_complete = false;
-				jd.curr_charge = 0.0;
 				jd.charging_on = false;
+				jd.charge_status = -1;
 				StopChargeFuses(iClientID);
-				return true;
+				SetFuse(iClientID, 0);
+				PrintUserCmdText(iClientID, L"Jump Drive disabled");
 			}
-			////////////////////////// End of System limit restriction ///////////////////////////////////////
+			else
+			{
+				PrintUserCmdText(iClientID, L"ERR Jump Drive charging, to stop, type /jump stop");
+			}
+			return true;
+		}
 
-			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging"));
-			PrintUserCmdText(iClientID, L"Jump drive charging");
-			// Print out a message within the iLocalChatRange when a player engages a JD.
-			wstring wscMsg = L"%time WARNING: A hyperspace breach is being opened by %player";
-			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
-			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
-			PrintLocalUserCmdText(iClientID, wscMsg, set_iLocalChatRange);
-		}
-		// Cancel jump effect if it is running
-		else
+		if (!SetJumpSystem(iClientID, jd, GetParam(wscParam, ' ', 0)))
 		{
-			PrintUserCmdText(iClientID, L"Jump drive disabled");
-			StopChargeFuses(iClientID);
-			SetFuse(iClientID, 0);
+			return true;
 		}
+
+		// Toogle the charge state
+		jd.charging_on = true;
+		jd.charge_status = -1;
+
+		pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging"));
+		PrintUserCmdText(iClientID, L"Jump drive charging");
+		// Print out a message within the iLocalChatRange when a player engages a JD.
+		wstring wscMsg = L"%time WARNING: A hyperspace breach is being opened by %player";
+		wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
+		wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
+		PrintLocalUserCmdText(iClientID, wscMsg, set_iLocalChatRange);
+		
 		return true;
 	}
 
@@ -1561,16 +1531,16 @@ namespace HyperJump
 
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_blind_jump_warning"));
 
-			if (BlindJumpOverrideSystem != 0)
+			if (set_blindJumpOverrideSystem != 0)
 			{
-				if (!mapSystemJumps.count(BlindJumpOverrideSystem)) {
+				if (!mapSystemJumps.count(set_blindJumpOverrideSystem)) {
 					PrintUserCmdText(iClientID, L"ERR Server Config Issue: blind jump target unavailable, contact staff");
 					return true;
 				}
-				const auto& overridenDestinationList = mapSystemJumps[BlindJumpOverrideSystem];
+				const auto& overridenDestinationList = mapSystemJumps[set_blindJumpOverrideSystem];
 				jd.iCoordinateIndex = rand() % overridenDestinationList.size();
 				const auto& overrideDestination = overridenDestinationList.at(jd.iCoordinateIndex);
-				jd.iTargetSystem = BlindJumpOverrideSystem;
+				jd.iTargetSystem = set_blindJumpOverrideSystem;
 				jd.vTargetPosition = overrideDestination.pos;
 				jd.matTargetOrient = overrideDestination.ornt;
 			}

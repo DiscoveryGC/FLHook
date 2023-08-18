@@ -212,7 +212,6 @@ void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uin
 {
 	returncode = NOFUNCTIONCALL;
 
-	HyperJump::SendDeathMsg(wscMsg, iSystem, iClientIDVictim, iClientIDKiller);
 	CargoDrop::SendDeathMsg(wscMsg, iSystem, iClientIDVictim, iClientIDKiller);
 	Message::SendDeathMsg(wscMsg, iSystem, iClientIDVictim, iClientIDKiller);
 
@@ -597,7 +596,6 @@ namespace HkIServerImpl
 
 	void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 	{
-		HyperJump::CheckForBeacon(iClientID, true);
 		HyperJump::InitJumpDriveInfo(iClientID, true);
 		returncode = DEFAULT_RETURNCODE;
 	}
@@ -624,6 +622,7 @@ namespace HkIServerImpl
 		GiveCash::BaseEnter(iBaseID, iClientID);
 		PurchaseRestrictions::BaseEnter(iBaseID, iClientID);
 		MiscCmds::BaseEnter(iBaseID, iClientID);
+		HyperJump::ClearClientInfo(iClientID);
 	}
 
 	void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
@@ -631,7 +630,7 @@ namespace HkIServerImpl
 		float fValue;
 		if (HKGetShipValue((const wchar_t*)Players.GetActiveCharacterName(iClientID), fValue) == HKE_OK)
 		{
-			if (fValue > 2100000000.0f)
+			if (fValue > 2'100'000'000.0f)
 			{
 				AddLog("ERROR: Possible corrupt ship charname=%s asset_value=%0.0f", wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(), fValue);
 			}
@@ -687,6 +686,7 @@ namespace HkIServerImpl
 	void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
 	{
 		AntiJumpDisconnect::SystemSwitchOut(iClientID);
+		HyperJump::SystemSwitchOut(iClientID);
 	}
 
 	void __stdcall SPObjCollision(struct SSPObjCollisionInfo const &ci, unsigned int iClientID)
@@ -1268,18 +1268,13 @@ USERCMD UserCmds[] =
 	{ L"/shields",		MiscCmds::UserCmd_Shields, L"Usage: /shields"},
 	{ L"/shields*",		MiscCmds::UserCmd_Shields, L"Usage: /shields"},
 	//{ L"/ss",		    MiscCmds::UserCmd_Screenshot, L"Usage: /ss"},
-	{ L"/clearsystem",	HyperJump::UserCmd_ClearSystem, L"Usage: /clearsystem" },
-	{ L"/setsystem",	HyperJump::UserCmd_SetSystem, L"Usage: /setsystem <system name>"},
 	{ L"/setsector",	HyperJump::UserCmd_SetSector, L"Usage: /setsector <number>"},
-	{ L"/jump",			HyperJump::UserCmd_ActivateJumpDrive, L"Usage: /jump"},
-	{ L"/jump*",		HyperJump::UserCmd_ActivateJumpDrive, L"Usage: /jump"},
-	{ L"/beacon",		HyperJump::UserCmd_DeployBeacon, L"Usage: /beacon"},
-	{ L"/beacon*",		HyperJump::UserCmd_DeployBeacon, L"Usage: /beacon"},
-	{ L"/jumpbeacon",	HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon <playername/playerID>"},
+	{ L"/jump",			HyperJump::UserCmd_Jump, L"Usage: /jump systemName"},
+	{ L"/jump*",		HyperJump::UserCmd_Jump, L"Usage: /jump systemName"},
+	{ L"/jumpbeacon",	HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon <playername/playerID>" },
+	{ L"/acceptbeacon",	HyperJump::UserCmd_AcceptBeaconRequest, L"Usage: /acceptbeacon <playername/playerID>" },
 	{ L"/canjump",		HyperJump::UserCmd_IsSystemJumpable, L"Usage: /canjump <systemname>" },
 	{ L"/beaconrange",	HyperJump::UserCmd_CanBeaconJumpToPlayer, L"Usage: /beaconrange <playername/playerID>" },
-	{ L"/charge",		HyperJump::UserCmd_ChargeJumpDrive, L"Usage: /charge"},
-	{ L"/charge*",		HyperJump::UserCmd_ChargeJumpDrive, L"Usage: /charge"},
 	{ L"/jumplist",		HyperJump::UserCmd_ListJumpableSystems, L"Usage: /jumplist"},
 	{ L"/showscan",		SystemSensor::UserCmd_ShowScan, L"Usage: /showscan or /scan <charname>"},
 	{ L"/showscan$",	SystemSensor::UserCmd_ShowScan, L"Usage: /showscan$ or /scanid <clientid>"},

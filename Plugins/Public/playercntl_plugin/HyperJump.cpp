@@ -330,7 +330,7 @@ namespace HyperJump
 							int rate;
 							do
 							{
-								static int i = 1;
+								int i = 1;
 								rate = ini.get_value_int(i++);
 								jd.mapFuelToUsagePerDistance[fuel].push_back(rate);
 							} while (rate != 0);

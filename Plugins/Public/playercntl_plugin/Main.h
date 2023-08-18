@@ -134,12 +134,12 @@ namespace HyperJump
 {
 	void LoadSettings(const string &scPluginCfgFile);
 	void Timer();
+	void SystemSwitchOut(uint clientId);
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
-	void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller);
 	void ClearClientInfo(uint iClientID);
 	void PlayerLaunch(unsigned int iShip, unsigned int iClientID);
 	void MissileTorpHit(uint iClientID, DamageList *dmg);
-	bool CheckForBeacon(uint iClientID, bool fullCheck);
+	bool CheckForBeacon(uint iClientID);
 	bool InitJumpDriveInfo(uint iClientID, bool fullCheck);
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
 	void SetJumpInFuse(uint iClientID);
@@ -147,7 +147,6 @@ namespace HyperJump
 	void SetJumpInInvulnerability(uint iClientID);
 	bool Dock_Call(uint const& iShip, uint const& iDockTarget);
 	void JumpInComplete(uint ship);
-	void DisConnect(uint iClientID);
 	void RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4);
 
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
@@ -157,10 +156,9 @@ namespace HyperJump
 	//void AdminCmd_TestBot(CCmds* cmds, const wstring &wscSystemNick, int iCheckZoneTime);
 	bool UserCmd_IsSystemJumpable(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_SetSector(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool UserCmd_ChargeJumpDrive(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool UserCmd_ActivateJumpDrive(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
-	bool UserCmd_DeployBeacon(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_Jump(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_JumpBeacon(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_AcceptBeaconRequest(uint iClientID, const wstring& wscCmd, const wstring& wscParam, const wchar_t* usage);
 	bool UserCmd_ListJumpableSystems(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_CanBeaconJumpToPlayer(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 }

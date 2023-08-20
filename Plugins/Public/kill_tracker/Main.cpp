@@ -357,8 +357,8 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 			if (!assistMessage.empty())
 			{
 				HkFMsg(playerId, assistMessage);
-				continue;
 			}
+			continue;
 		}
 		if (
 		(pd->PlayerGroup &&

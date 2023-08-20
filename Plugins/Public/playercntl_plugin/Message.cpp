@@ -1480,6 +1480,10 @@ namespace Message
 	/// Drop a percentage of cargo + some loot representing ship bits.
 	void Message::SendDeathMsg(const wstring &wscMsg, uint iSystemID, uint iClientIDVictim, uint iClientIDKiller)
 	{
+		if (!set_bEnableDeathMsg)
+		{
+			return;
+		}
 		// encode xml string(default and small)
 		// non-sys
 		wstring wscXMLMsg = L"<TRA data=\"" + set_wscDeathMsgStyle + L"\" mask=\"-1\"/> <TEXT>";

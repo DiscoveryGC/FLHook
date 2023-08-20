@@ -221,9 +221,65 @@ namespace HyperJump
 		string scCfgFile = string(szCurDir) + "\\flhook_plugins\\jump.cfg";
 		string scCfgFileSystemList = string(szCurDir) + "\\flhook_plugins\\jump_allowedsystems.cfg";
 
-		int iItemID = 1;
-
 		INI_Reader ini;
+		int maxJumpRange = 0;
+
+		if (ini.open(scCfgFileSystemList.c_str(), false))
+		{
+			uint sysConnectionListSize = 0;
+			uint coordListSize = 0;
+			while (ini.read_header())
+			{
+				if (ini.is_header("system"))
+				{
+					uint originSystem;
+					uint jumpRange;
+					vector<uint> targetSystemsList;
+					while (ini.read_value())
+					{
+						if (ini.is_value("target_system"))
+						{
+							targetSystemsList.push_back(CreateID(ini.get_value_string(0)));
+							sysConnectionListSize++;
+						}
+						else if (ini.is_value("origin_system"))
+						{
+							originSystem = CreateID(ini.get_value_string(0));
+						}
+						else if (ini.is_value("depth"))
+						{
+							jumpRange = ini.get_value_int(0);
+							if (jumpRange > maxJumpRange)
+							{
+								maxJumpRange = jumpRange;
+							}
+						}
+					}
+					mapAvailableJumpSystems[originSystem][jumpRange] = targetSystemsList;
+				}
+				if (ini.is_header("system_jump_positions")) {
+					while (ini.read_value())
+					{
+						if (ini.is_value("jump_position"))
+						{
+							SYSTEMJUMPCOORDS coords;
+							coords.system = CreateID(ini.get_value_string(0));
+							coords.pos = { ini.get_value_float(1), ini.get_value_float(2), ini.get_value_float(3) };
+
+							Vector erot = { ini.get_value_float(4), ini.get_value_float(5), ini.get_value_float(6) };
+							coords.ornt = EulerMatrix(erot);
+							coords.sector = VectorToSectorCoord(coords.system, coords.pos);
+
+							mapSystemJumps[coords.system].push_back(coords);
+							coordListSize++;
+						}
+					}
+				}
+			}
+			ConPrint(L"Hyperspace: Loaded %u system coordinates and %u connections for %u systems\n", coordListSize, sysConnectionListSize, mapAvailableJumpSystems.size());
+			ini.close();
+		}
+
 		if (ini.open(scCfgFile.c_str(), false))
 		{
 			while (ini.read_header())
@@ -329,11 +385,11 @@ namespace HyperJump
 							uint fuel = CreateValidID(ini.get_value_string(0));
 							int rate;
 							int i = 0;
-							do
+							for(int i = 0; i <= maxJumpRange; ++i)
 							{
-								rate = ini.get_value_int(++i);
+								rate = ini.get_value_int(i);
 								jd.mapFuelToUsagePerDistance[fuel].push_back(rate);
-							} while (rate != 0);
+							}
 						}
 						else if (ini.is_value("power"))
 						{
@@ -380,58 +436,6 @@ namespace HyperJump
 			{
 				BeaconFuse = CreateID("fuse_jumpdrive_charge_5");
 			}
-			ini.close();
-		}
-
-		if (ini.open(scCfgFileSystemList.c_str(), false))
-		{
-			uint sysConnectionListSize = 0;
-			uint coordListSize = 0;
-			while (ini.read_header())
-			{
-				if (ini.is_header("system"))
-				{
-					uint originSystem;
-					uint jumpRange;
-					vector<uint> targetSystemsList;
-					while (ini.read_value())
-					{
-						if (ini.is_value("target_system"))
-						{
-							targetSystemsList.push_back(CreateID(ini.get_value_string(0)));
-							sysConnectionListSize++;
-						}
-						else if (ini.is_value("origin_system"))
-						{
-							originSystem = CreateID(ini.get_value_string(0));
-						}
-						else if (ini.is_value("depth"))
-						{
-							jumpRange = ini.get_value_int(0);
-						}
-					}
-					mapAvailableJumpSystems[originSystem][jumpRange] = targetSystemsList;
-				}
-				if (ini.is_header("system_jump_positions")) {
-					while (ini.read_value())
-					{
-						if (ini.is_value("jump_position"))
-						{
-							SYSTEMJUMPCOORDS coords;
-							coords.system = CreateID(ini.get_value_string(0));
-							coords.pos = { ini.get_value_float(1), ini.get_value_float(2), ini.get_value_float(3) };
-
-							Vector erot = {ini.get_value_float(4), ini.get_value_float(5), ini.get_value_float(6) };
-							coords.ornt = EulerMatrix(erot);
-							coords.sector = VectorToSectorCoord(coords.system, coords.pos);
-
-							mapSystemJumps[coords.system].push_back(coords);
-							coordListSize++;
-						}
-					}
-				}
-			}
-			ConPrint(L"Hyperspace: Loaded %u system coordinates and %u connections for %u systems\n", coordListSize, sysConnectionListSize, mapAvailableJumpSystems.size());
 			ini.close();
 		}
 

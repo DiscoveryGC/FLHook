@@ -156,6 +156,9 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
+//siege weaponry definitions
+unordered_map<uint, float> siegeWeaponryMap;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;
@@ -625,6 +628,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("banned_system"))
 					{
 						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("siege_gun"))
+					{
+						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
 					}
 				}
 			}
@@ -2160,19 +2167,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 		if (set_plugin_debug)
 			ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
 		return;
-	}
-
-	// Ask the combat magic plugin if we need to do anything differently
-	COMBAT_DAMAGE_OVERRIDE_STRUCT info;
-	info.iMunitionID = iDmgMunitionID;
-	info.fDamageMultiplier = 0.0f;
-	Plugin_Communication(COMBAT_DAMAGE_OVERRIDE, &info);
-
-	if (info.fDamageMultiplier != 0.0f)
-	{
-		newHealth = (curr - (curr - newHealth) * info.fDamageMultiplier);
-		if (newHealth < 0.0f)
-			newHealth = 0.0f;
 	}
 
 	// This call is for us, skip all plugins.

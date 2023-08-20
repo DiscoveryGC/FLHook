@@ -575,22 +575,42 @@ bool CoreModule::Timer(uint time)
 float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
+	
+	if(base->shield_state == PlayerBase::SHIELD_STATE_OFFLINE)
+	{
+		// shield offline, return expected damage without modifications
+		return new_hitpoints;
+	}
 
 	if (base->shield_strength_multiplier >= 1.0f || isGlobalBaseInvulnerabilityActive || base->invulnerable == 1)
 	{
 		// base invulnerable, keep current health value
 		return curr_hitpoints;
 	}
-	
-	if(base->shield_state == PlayerBase::SHIELD_STATE_OFFLINE){
-		// shield offline, return expected damage without modifications
-		return new_hitpoints;
+
+	float damageTaken;
+	if (!siegeWeaponryMap.empty())
+	{
+		const auto& siegeDamageIter = siegeWeaponryMap.find(iDmgMunitionID);
+		if (siegeDamageIter == siegeWeaponryMap.end())
+		{
+			//Siege gun(s) defined, but this is not one of them, no damage dealt
+			return curr_hitpoints;
+		}
+		else
+		{
+			//Even with siege gun damage override, it still takes shield strength into the account
+			damageTaken = siegeDamageIter->second * (1.0f - base->shield_strength_multiplier);
+		}
 	}
-	
-	float damageTaken = ((curr_hitpoints - new_hitpoints) * (1 - base->shield_strength_multiplier));
+	else
+	{
+		damageTaken = ((curr_hitpoints - new_hitpoints) * (1.0f - base->shield_strength_multiplier));
+	}
 
 	base->damage_taken_since_last_threshold += damageTaken;
-	if (base->damage_taken_since_last_threshold >= base->base_shield_reinforcement_threshold) {
+	if (base->damage_taken_since_last_threshold >= base->base_shield_reinforcement_threshold)
+	{
 		base->damage_taken_since_last_threshold -= base->base_shield_reinforcement_threshold;
 		base->shield_strength_multiplier += shield_reinforcement_increment;
 	}

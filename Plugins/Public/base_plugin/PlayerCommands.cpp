@@ -1908,43 +1908,50 @@ namespace PlayerCommands
 	bool CheckSolarDistances(uint client, uint systemID, Vector pos)
 	{
 		// Other POB Check
-		for (const auto& base : player_bases)
+		if (minOtherPOBDistance > 0)
 		{
-			if (base.second->basetype != "legacy" 
-				|| base.second->invulnerable 
-				|| !base.second->logic
-				|| base.second->system != systemID
-				|| (base.second->position.x == pos.x
-					&& base.second->position.y == pos.y
-					&& base.second->position.z == pos.z))
-				continue;
-
-			float distance = HkDistance3D(pos, base.second->position);
-			if (distance < minOtherPOBDistance)
+			for (const auto& base : player_bases)
 			{
-				if (client)
+				// do not check POBs in a different system
+				if ( base.second->system != systemID
+					|| (base.second->position.x == pos.x
+						&& base.second->position.y == pos.y
+						&& base.second->position.z == pos.z))
 				{
-					PrintUserCmdText(client, L"Player base %ls is too close! Minimum distance: %um", base.second->basename.c_str(), static_cast<uint>(minOtherPOBDistance));
+					continue;
 				}
-				else
+
+				float distance = HkDistance3D(pos, base.second->position);
+				if (distance < minOtherPOBDistance)
 				{
-					ConPrint(L"Base is too close to another Player Base, distance %um, name %ls", static_cast<uint>(distance), base.second->basename.c_str());
+					if (client)
+					{
+						PrintUserCmdText(client, L"%ls is too close! Current: %um, Minimum: %um", base.second->basename.c_str(), static_cast<uint>(distance), static_cast<uint>(minOtherPOBDistance));
+					}
+					else
+					{
+						ConPrint(L"Base is too close to another Player Base, distance %um, min %um, name %ls", static_cast<uint>(distance), static_cast<uint>(minOtherPOBDistance), base.second->basename.c_str());
+					}
+					return false;
 				}
-				return false;
 			}
 		}
 
 		// Mining Zone Check
-		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemID);
-		if (csys)
+		CmnAsteroid::CAsteroidSystem* asteroidSystem = CmnAsteroid::Find(systemID);
+		if (asteroidSystem && minMiningDistance > 0)
 		{
-			for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
+			for (CmnAsteroid::CAsteroidField* cfield = asteroidSystem->FindFirst(); cfield; cfield = asteroidSystem->FindNext())
 			{
 				auto& zone = cfield->zone;
 				if (!zone->lootableZone)
+				{
 					continue;
+				}
 
-				if (minMiningDistance > 0 && cfield->near_field(pos))
+				float distance = pub::Zone::GetDistance(zone->iZoneID, pos); // returns distance from the nearest point at the edge of the zone, value is negative if you're within the zone.
+
+				if (distance <= 0)
 				{
 					if (client)
 					{
@@ -1964,39 +1971,13 @@ namespace PlayerCommands
 					}
 					return false;
 				}
-				// pretend zone is actually centered 0,0,0 and unrotated
-				// Subtract zone position from player position so their relative position is the same
-				Vector playerPos = pos;
-				playerPos.x -= zone->vPos.x;
-				playerPos.y -= zone->vPos.y;
-				playerPos.z -= zone->vPos.z;
-				
-				//Then rotate player position by inverse of original zone position, to make the relative positions truly in sync
-
-				Matrix InvertedZoneRot = TransposeMatrix(zone->mRot);
-				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
-
-				//Now, player position is effectively a vector from center of mining zone to player position.
-				//We normalize the vector, then apply original zone rotation and stretch it by zone sizes
-				Vector v2 = NormalizeVector(playerPos);
-				Matrix EllipseSizeMat = { {{zone->vSize.x,0,0},{0,zone->vSize.y,0},{0,0,zone->vSize.z}} };
-				v2 = VectorMatrixMultiply(v2, EllipseSizeMat);
-				v2 = VectorMatrixMultiply(v2, zone->mRot);
-				
-				//Now that we have our aproximated closest point to the mining zone, we move it back so comparison with player position yields proper result
-				v2.x += zone->vPos.x;
-				v2.y += zone->vPos.y;
-				v2.z += zone->vPos.z;
-
-				float distance = HkDistance3D(v2, pos);
-
-				if (distance < minMiningDistance)
+				else if (distance < minMiningDistance)
 				{
 					if (zone->idsName)
 					{
 						if (client)
 						{
-							PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
+							PrintUserCmdText(client, L"Distance to %ls too close, Current: %um, Minimum: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minMiningDistance));
 						}
 						else
 						{
@@ -2022,8 +2003,8 @@ namespace PlayerCommands
 
 		// Solars
 		bool foundSystemMatch = false;
-		for (CSolar* solar = reinterpret_cast<CSolar*>(CObject::FindFirst(CObject::CSOLAR_OBJECT)); solar;
-			solar = reinterpret_cast<CSolar*>(CObject::FindNext()))
+		for (CSolar* solar = dynamic_cast<CSolar*>(CObject::FindFirst(CObject::CSOLAR_OBJECT)); solar;
+			solar = dynamic_cast<CSolar*>(CObject::FindNext()))
 		{
 			//solars are iterated on per system, we can stop once we're done scanning the last solar in the system we're looking for.
 			if (solar->iSystem != systemID)
@@ -2049,7 +2030,7 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minPlanetDistance));
 						}
 						else
 						{
@@ -2068,11 +2049,11 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if(client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minStationDistance));
 						}
 						else
 						{
-							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+							ConPrint(L"Base too close to %ls, Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
 						}
 						return false;
 					}
@@ -2084,7 +2065,7 @@ namespace PlayerCommands
 					{
 						if (client)
 						{
-							PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um", static_cast<uint>(minLaneDistance));
+							PrintUserCmdText(client, L"Trade Lane Ring is too close. Current: %um, Minimum distance: %um", static_cast<uint>(distance), static_cast<uint>(minLaneDistance));
 						}
 						else
 						{
@@ -2104,7 +2085,7 @@ namespace PlayerCommands
 
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minJumpDistance));
 						}
 						else
 						{
@@ -2126,7 +2107,7 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minDistanceMisc));
 						}
 						else
 						{

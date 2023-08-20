@@ -57,8 +57,6 @@ float set_fSpinImpulseMultiplier;
 // from forming on other ships to bypass the block
 unordered_set<uint> setLaneAndFormationBannedShips;
 
-unordered_set<uint> setDumbProjectiles;
-
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
 
@@ -137,17 +135,7 @@ void LoadSettings()
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("MissileFix"))
-			{
-				while (ini.read_value())
-				{
-					if (ini.is_value("DumbProjectile"))
-					{
-						setDumbProjectiles.insert(CreateID(ini.get_value_string(0)));
-					}
-				}
-			}
-            else if (ini.is_header("TradeLaneBan"))
+			if (ini.is_header("TradeLaneBan"))
 			{
 				while (ini.read_value())
 				{

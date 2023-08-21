@@ -19,6 +19,7 @@ bool extern set_bEnablePimpShip;
 bool extern set_bEnableRenameMe;
 bool extern set_bEnableMoveChar;
 bool extern set_bLocalTime;
+bool extern set_bEnableDeathMsg;
 float extern set_iLocalChatRange;
 
 bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension);

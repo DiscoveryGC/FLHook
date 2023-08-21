@@ -18,6 +18,8 @@
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
+constexpr uint ITEMS_PER_PAGE = 40;
+
 namespace PlayerCommands
 {
 	void BaseHelp(uint client, const wstring &args)
@@ -59,8 +61,11 @@ namespace PlayerCommands
 		pages[1] = L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 			L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
 
-			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the [price] of [item]. If the current stock is less than [min stock]"
+			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price]</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Set the [price] of [item].</TEXT><PARA/><PARA/>"
+
+			L"<TRA bold=\"true\"/><TEXT>/shop stock [item] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
+			L"<TEXT>Set the [min stock] and [max stock] of [item]. If the current stock is less than [min stock]"
 			L" then the item cannot be bought by docked ships. If the current stock is more or equal"
 			L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
 			L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
@@ -200,20 +205,24 @@ namespace PlayerCommands
 		BasePassword searchBp;
 		searchBp.pass = password;
 		list<BasePassword>::iterator ret = find(base->passwords.begin(), base->passwords.end(), searchBp);
-		if (ret == base->passwords.end()) {
+		if (ret == base->passwords.end())
+		{
 			base->unsuccessful_logins_in_a_row[charname]++; //count password failures
 			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
 		BasePassword foundBp = *ret;
-		if (foundBp.admin) {
+		if (foundBp.admin)
+		{
 			clients[client].admin = true;
 			SendMarketGoodSync(base, client);
 			PrintUserCmdText(client, L"OK Access granted");
 			PrintUserCmdText(client, L"Welcome administrator, all base command and control functions are available.");
+			BaseLogging("Base %s: player %s logged in as an admin", wstos(base->basename).c_str(), wstos(charname).c_str());
 		}
-		if (foundBp.viewshop) {
+		if (foundBp.viewshop)
+		{
 			clients[client].viewshop = true;
 			PrintUserCmdText(client, L"OK Access granted");
 			PrintUserCmdText(client, L"Welcome shop viewer.");
@@ -1678,7 +1687,7 @@ namespace PlayerCommands
 			}
 		}
 
-		int pages = (matchingItems / 40) + 1;
+		int pages = (matchingItems / ITEMS_PER_PAGE) + 1;
 		if (page > pages)
 			page = pages;
 		else if (page < 1)
@@ -1688,8 +1697,8 @@ namespace PlayerCommands
 		_snwprintf(buf, sizeof(buf), L"Shop Management : Page %d/%d", page, pages);
 		wstring title = buf;
 
-		int start_item = ((page - 1) * 40) + 1;
-		int end_item = page * 40;
+		int start_item = ((page - 1) * ITEMS_PER_PAGE) + 1;
+		int end_item = page * ITEMS_PER_PAGE;
 
 		wstring status = L"<RDL><PUSH/>";
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
@@ -1766,10 +1775,8 @@ namespace PlayerCommands
 		{
 			int item = ToInt(GetParam(args, ' ', 2));
 			int money = ToInt(GetParam(args, ' ', 3));
-			int min_stock = ToInt(GetParam(args, ' ', 4));
-			int max_stock = ToInt(GetParam(args, ' ', 5));
 
-			if (money < 1 || money > 1000000000)
+			if (money < 1 || money > 1'000'000'000)
 			{
 				PrintUserCmdText(client, L"ERR Price not valid");
 				return;
@@ -1781,14 +1788,44 @@ namespace PlayerCommands
 				if (curr_item == item)
 				{
 					i->second.price = (float)money;
+					SendMarketGoodUpdated(base, i->first, i->second);
+					base->Save();
+
+					int page = ((curr_item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
+					ShowShopStatus(client, base, L"", page);
+					PrintUserCmdText(client, L"OK");
+
+					wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+					const GoodInfo* gi = GoodList::find_by_id(i->first);
+					BaseLogging("Base %s: player %s changed price of %s to %f", wstos(base->basename).c_str(), wstos(charname).c_str(), wstos(HkGetWStringFromIDS(gi->iIDSName)).c_str(), money);
+					return;
+				}
+			}
+			PrintUserCmdText(client, L"ERR Commodity does not exist");
+		}
+		if (cmd == L"stock")
+		{
+			int item = ToInt(GetParam(args, ' ', 2));
+			uint min_stock = ToUInt(GetParam(args, ' ', 3));
+			uint max_stock = ToUInt(GetParam(args, ' ', 4));
+
+			int curr_item = 1;
+			for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
+			{
+				if (curr_item == item)
+				{
 					i->second.min_stock = min_stock;
 					i->second.max_stock = max_stock;
 					SendMarketGoodUpdated(base, i->first, i->second);
 					base->Save();
 
-					int page = ((curr_item + 39) / 40);
+					int page = ((curr_item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
+					
+					wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+					const GoodInfo* gi = GoodList::find_by_id(i->first);
+					BaseLogging("Base %s: player %s changed stock of %s to min:%u max:%u", wstos(base->basename).c_str(), wstos(charname).c_str(), wstos(HkGetWStringFromIDS(gi->iIDSName)).c_str(), min_stock, max_stock);
 					return;
 				}
 			}
@@ -1811,7 +1848,7 @@ namespace PlayerCommands
 					base->market_items.erase(i->first);
 					base->Save();
 
-					int page = ((curr_item + 39) / 40);
+					int page = ((curr_item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
 					ShowShopStatus(client, base, L"", page);
 					PrintUserCmdText(client, L"OK");
 					return;
@@ -1837,7 +1874,7 @@ namespace PlayerCommands
 				i->second.is_public = false;
 			base->Save();
 
-			int page = ((item + 39) / 40);
+			int page = ((item + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
 			ShowShopStatus(client, base, L"", page);
 			PrintUserCmdText(client, L"OK");
 			
@@ -1880,27 +1917,47 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);
 
 		PrintUserCmdText(client, L"Crew supplies:");
-		for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin(); i != set_base_crew_consumption_items.end(); ++i) {
+		for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin(); i != set_base_crew_consumption_items.end(); ++i)
+		{
 			const GoodInfo *gi = GoodList::find_by_id(i->first);
 			if (gi)
 			{
-				PrintUserCmdText(client, L"|    %s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first));
+				if (base->market_items.count(i->first))
+				{
+					PrintUserCmdText(client, L"|    %s: %u/%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first), base->market_items[i->first].max_stock);
+				}
+				else
+				{
+					PrintUserCmdText(client, L"|    %s: %u/0", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->first));
+				}
 			}
 		}
 		
 		uint foodCount = 0;
-		for (map<uint, uint>::iterator i = set_base_crew_food_items.begin(); i != set_base_crew_food_items.end(); ++i) {
+		uint maxFoodCount = 0;
+		for (map<uint, uint>::iterator i = set_base_crew_food_items.begin(); i != set_base_crew_food_items.end(); ++i)
+		{
 			foodCount += base->HasMarketItem(i->first);
+			if (base->market_items.count(i->first))
+				maxFoodCount += base->market_items[i->first].max_stock;
 		}
-		PrintUserCmdText(client, L"|    Food: %u", foodCount);
+		PrintUserCmdText(client, L"|    Food: %u/%u", foodCount, maxFoodCount);
 
 		PrintUserCmdText(client, L"Repair materials:");
-		for (list<REPAIR_ITEM>::iterator i = set_base_repair_items.begin(); i != set_base_repair_items.end(); ++i) {
+		for (list<REPAIR_ITEM>::iterator i = set_base_repair_items.begin(); i != set_base_repair_items.end(); ++i)
+		{
 
 			const GoodInfo *gi = GoodList::find_by_id(i->good);
 			if (gi)
 			{
-				PrintUserCmdText(client, L"|    %s: %u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good));
+				if (base->market_items.count(i->good))
+				{
+					PrintUserCmdText(client, L"|    %s: %u/%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good), base->market_items[i->good].max_stock);
+				}
+				else
+				{
+					PrintUserCmdText(client, L"|    %s: %u/0", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i->good));
+				}
 			}
 		}
 	}
@@ -1908,43 +1965,50 @@ namespace PlayerCommands
 	bool CheckSolarDistances(uint client, uint systemID, Vector pos)
 	{
 		// Other POB Check
-		for (const auto& base : player_bases)
+		if (minOtherPOBDistance > 0)
 		{
-			if (base.second->basetype != "legacy" 
-				|| base.second->invulnerable 
-				|| !base.second->logic
-				|| base.second->system != systemID
-				|| (base.second->position.x == pos.x
-					&& base.second->position.y == pos.y
-					&& base.second->position.z == pos.z))
-				continue;
-
-			float distance = HkDistance3D(pos, base.second->position);
-			if (distance < minOtherPOBDistance)
+			for (const auto& base : player_bases)
 			{
-				if (client)
+				// do not check POBs in a different system
+				if ( base.second->system != systemID
+					|| (base.second->position.x == pos.x
+						&& base.second->position.y == pos.y
+						&& base.second->position.z == pos.z))
 				{
-					PrintUserCmdText(client, L"Player base %ls is too close! Minimum distance: %um", base.second->basename.c_str(), static_cast<uint>(minOtherPOBDistance));
+					continue;
 				}
-				else
+
+				float distance = HkDistance3D(pos, base.second->position);
+				if (distance < minOtherPOBDistance)
 				{
-					ConPrint(L"Base is too close to another Player Base, distance %um, name %ls", static_cast<uint>(distance), base.second->basename.c_str());
+					if (client)
+					{
+						PrintUserCmdText(client, L"%ls is too close! Current: %um, Minimum: %um", base.second->basename.c_str(), static_cast<uint>(distance), static_cast<uint>(minOtherPOBDistance));
+					}
+					else
+					{
+						ConPrint(L"Base is too close to another Player Base, distance %um, min %um, name %ls", static_cast<uint>(distance), static_cast<uint>(minOtherPOBDistance), base.second->basename.c_str());
+					}
+					return false;
 				}
-				return false;
 			}
 		}
 
 		// Mining Zone Check
-		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemID);
-		if (csys)
+		CmnAsteroid::CAsteroidSystem* asteroidSystem = CmnAsteroid::Find(systemID);
+		if (asteroidSystem && minMiningDistance > 0)
 		{
-			for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
+			for (CmnAsteroid::CAsteroidField* cfield = asteroidSystem->FindFirst(); cfield; cfield = asteroidSystem->FindNext())
 			{
 				auto& zone = cfield->zone;
 				if (!zone->lootableZone)
+				{
 					continue;
+				}
 
-				if (minMiningDistance > 0 && cfield->near_field(pos))
+				float distance = pub::Zone::GetDistance(zone->iZoneID, pos); // returns distance from the nearest point at the edge of the zone, value is negative if you're within the zone.
+
+				if (distance <= 0)
 				{
 					if (client)
 					{
@@ -1964,39 +2028,13 @@ namespace PlayerCommands
 					}
 					return false;
 				}
-				// pretend zone is actually centered 0,0,0 and unrotated
-				// Subtract zone position from player position so their relative position is the same
-				Vector playerPos = pos;
-				playerPos.x -= zone->vPos.x;
-				playerPos.y -= zone->vPos.y;
-				playerPos.z -= zone->vPos.z;
-				
-				//Then rotate player position by inverse of original zone position, to make the relative positions truly in sync
-
-				Matrix InvertedZoneRot = TransposeMatrix(zone->mRot);
-				playerPos = VectorMatrixMultiply(playerPos, InvertedZoneRot);
-
-				//Now, player position is effectively a vector from center of mining zone to player position.
-				//We normalize the vector, then apply original zone rotation and stretch it by zone sizes
-				Vector v2 = NormalizeVector(playerPos);
-				Matrix EllipseSizeMat = { {{zone->vSize.x,0,0},{0,zone->vSize.y,0},{0,0,zone->vSize.z}} };
-				v2 = VectorMatrixMultiply(v2, EllipseSizeMat);
-				v2 = VectorMatrixMultiply(v2, zone->mRot);
-				
-				//Now that we have our aproximated closest point to the mining zone, we move it back so comparison with player position yields proper result
-				v2.x += zone->vPos.x;
-				v2.y += zone->vPos.y;
-				v2.z += zone->vPos.z;
-
-				float distance = HkDistance3D(v2, pos);
-
-				if (distance < minMiningDistance)
+				else if (distance < minMiningDistance)
 				{
 					if (zone->idsName)
 					{
 						if (client)
 						{
-							PrintUserCmdText(client, L"Distance to %ls too close, minimum distance: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(minMiningDistance));
+							PrintUserCmdText(client, L"Distance to %ls too close, Current: %um, Minimum: %um.", HkGetWStringFromIDS(zone->idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minMiningDistance));
 						}
 						else
 						{
@@ -2022,8 +2060,8 @@ namespace PlayerCommands
 
 		// Solars
 		bool foundSystemMatch = false;
-		for (CSolar* solar = reinterpret_cast<CSolar*>(CObject::FindFirst(CObject::CSOLAR_OBJECT)); solar;
-			solar = reinterpret_cast<CSolar*>(CObject::FindNext()))
+		for (CSolar* solar = dynamic_cast<CSolar*>(CObject::FindFirst(CObject::CSOLAR_OBJECT)); solar;
+			solar = dynamic_cast<CSolar*>(CObject::FindNext()))
 		{
 			//solars are iterated on per system, we can stop once we're done scanning the last solar in the system we're looking for.
 			if (solar->iSystem != systemID)
@@ -2049,7 +2087,7 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minPlanetDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minPlanetDistance));
 						}
 						else
 						{
@@ -2068,11 +2106,11 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if(client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minStationDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minStationDistance));
 						}
 						else
 						{
-							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+							ConPrint(L"Base too close to %ls, Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
 						}
 						return false;
 					}
@@ -2084,7 +2122,7 @@ namespace PlayerCommands
 					{
 						if (client)
 						{
-							PrintUserCmdText(client, L"Trade Lane Ring is too close, minimum distance: %um", static_cast<uint>(minLaneDistance));
+							PrintUserCmdText(client, L"Trade Lane Ring is too close. Current: %um, Minimum distance: %um", static_cast<uint>(distance), static_cast<uint>(minLaneDistance));
 						}
 						else
 						{
@@ -2104,7 +2142,7 @@ namespace PlayerCommands
 
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minJumpDistance));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minJumpDistance));
 						}
 						else
 						{
@@ -2126,7 +2164,7 @@ namespace PlayerCommands
 						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 						if (client)
 						{
-							PrintUserCmdText(client, L"%ls too close, minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(minDistanceMisc));
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minDistanceMisc));
 						}
 						else
 						{

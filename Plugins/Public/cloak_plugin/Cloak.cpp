@@ -346,6 +346,13 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 	return false;
 }
 
+void InitCloakInfo(uint client, uint distance)
+{
+	wchar_t buf[50];
+	_snwprintf(buf, sizeof(buf), L" InitCloakInfo %u", distance);
+	HkFMsg(client, L"<TEXT>" + XMLText(buf) + L"</TEXT>");
+}
+
 void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 {
 	mapClientsCloak[iClientID].bCanCloak = false;
@@ -388,29 +395,34 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 		{
 			if (CECloakingDevice::cast(equip))
 			{
-				mapClientsCloak[iClientID].iCloakSlot = equip->GetID();
+				auto& cloakInfo = mapClientsCloak[iClientID];
+				cloakInfo.iCloakSlot = equip->GetID();
 
 				if (mapCloakingDevices.find(equip->EquipArch()->iArchID) != mapCloakingDevices.end())
 				{
 					// Otherwise set the fuel usage and warm up time
-					mapClientsCloak[iClientID].arch = mapCloakingDevices[equip->EquipArch()->iArchID];
+					cloakInfo.arch = mapCloakingDevices[equip->EquipArch()->iArchID];
 				}
 				// If this cloaking device does not appear in the cloaking device list
 				// then warming up and fuel usage is zero and it may be used by any
 				// ship.
 				else
 				{
-					mapClientsCloak[iClientID].arch.bDropShieldsOnUncloak = false;
-					mapClientsCloak[iClientID].arch.iCooldownTime = 0;
-					mapClientsCloak[iClientID].arch.iHoldSizeLimit = 0;
-					mapClientsCloak[iClientID].arch.iWarmupTime = 0;
-					mapClientsCloak[iClientID].arch.mapFuelToUsage.clear();
+					cloakInfo.arch.bDropShieldsOnUncloak = false;
+					cloakInfo.arch.iCooldownTime = 0;
+					cloakInfo.arch.iHoldSizeLimit = 0;
+					cloakInfo.arch.iWarmupTime = 0;
+					cloakInfo.arch.mapFuelToUsage.clear();
 				}
 
-				mapClientsCloak[iClientID].DisruptTime = 0;
-				mapClientsCloak[iClientID].bCanCloak = true;
-				mapClientsCloak[iClientID].iState = STATE_CLOAK_INVALID;
+				cloakInfo.DisruptTime = 0;
+				cloakInfo.bCanCloak = true;
+				cloakInfo.iState = STATE_CLOAK_INVALID;
 				SetState(iClientID, iShip, STATE_CLOAK_OFF);
+				if (cloakInfo.arch.bBreakOnProximity)
+				{
+					InitCloakInfo(iClientID, (uint)mapClientsCloak[iClientID].arch.fRange);
+				}
 				return;
 			}
 
@@ -500,74 +512,6 @@ void HkTimerCheckKick()
 				else if (info.arch.bDropShieldsOnUncloak && !info.bAdmin)
 				{
 					pub::SpaceObj::DrainShields(iShipID);
-
-					if ((curr_time % 5) == 0)
-					{
-						uint iShip;
-						pub::Player::GetShip(iClientID, iShip);
-
-						Vector pos;
-						Matrix rot;
-						pub::SpaceObj::GetLocation(iShipID, pos, rot);
-
-						uint iSystem;
-						pub::Player::GetSystem(iClientID, iSystem);
-
-						//pub::Audio::PlaySoundEffect(iClientID, MusictoID);
-
-						list<GROUP_MEMBER> lstGrpMembers;
-						HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstGrpMembers);
-
-						// For all players in system...
-						struct PlayerData *pPD = 0;
-						while (pPD = Players.traverse_active(pPD))
-						{
-							if (pPD->iOnlineID == iClientID)
-								continue;
-							// Get the this player's current system and location in the system.
-							uint client2 = HkGetClientIdFromPD(pPD);
-							uint iSystem2 = 0;
-							pub::Player::GetSystem(client2, iSystem2);
-							if (iSystem != iSystem2)
-								continue;
-
-							uint iShip2;
-							pub::Player::GetShip(client2, iShip2);
-
-							Vector pos2;
-							Matrix rot2;
-							pub::SpaceObj::GetLocation(iShip2, pos2, rot2);
-
-							// Is player within the specified range of the sending char.
-							if (HkDistance3D(pos, pos2) < info.arch.fRange) {
-								if (info.arch.bBreakOnProximity)
-								{
-									bool isGroupMember = false;
-									for (auto& member : lstGrpMembers) {
-										if (member.iClientID == pPD->iOnlineID) {
-											isGroupMember = true;
-											break;
-										}
-									}
-									if (isGroupMember)
-									{
-										pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
-									}
-									else
-									{
-										PrintUserCmdText(iClientID, L"Cloak broken by proximity to another vessel!");
-										SetState(iClientID, iShipID, STATE_CLOAK_OFF);
-										break;
-									}
-								}
-								else
-								{
-									pub::Audio::PlaySoundEffect(client2, cloakAlertSound);
-								}
-							}
-
-						}
-					}
 				}
 				break;
 			}
@@ -770,6 +714,13 @@ bool UserCmd_Disruptor(uint iClientID, const wstring &wscCmd, const wstring &wsc
 	return true;
 }
 
+void CloakAlert(CUSTOM_CLOAK_ALERT_STRUCT* data)
+{
+	for (uint clientId : data->alertedGroupMembers)
+	{
+		pub::Audio::PlaySoundEffect(clientId, cloakAlertSound);
+	}
+}
 
 typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
 
@@ -954,12 +905,24 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 
 void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	// in case of SERVER_PACKET hooks, first argument is junk data before it gets processed by the server.
 	uint packetClient = HkGetClientIDByShip(switchOutPacket.shipId);
 	if (packetClient)
 		setJumpingClients.insert(packetClient);
 }
 
+void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (msg == CUSTOM_CLOAK_ALERT)
+	{
+		CUSTOM_CLOAK_ALERT_STRUCT* info = reinterpret_cast<CUSTOM_CLOAK_ALERT_STRUCT*>(data);
+		CloakAlert(info);
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Functions to hook */
@@ -983,6 +946,8 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JumpInComplete_AFTER, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
+
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 0));
 
 
 	return p_PI;

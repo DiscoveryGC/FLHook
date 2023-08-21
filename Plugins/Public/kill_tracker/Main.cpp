@@ -339,7 +339,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 			L"\" mask=\"-1\"/><TEXT>" + XMLText(assistMessage) + L"</TEXT>";
 	}
 
-	CPlayerGroup* victimGroup = victimGroup = Players[clientVictim].PlayerGroup;
+	CPlayerGroup* victimGroup = Players[clientVictim].PlayerGroup;
 
 	uint systemId;
 	pub::Player::GetSystem(clientVictim, systemId);
@@ -357,8 +357,8 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 			if (!assistMessage.empty())
 			{
 				HkFMsg(playerId, assistMessage);
-				continue;
 			}
+			continue;
 		}
 		if (
 		(pd->PlayerGroup &&

@@ -86,7 +86,7 @@ however you can't figure out here, which ship is being damaged, that's why i use
 void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2, enum DamageEntry::SubObjFate p3)
 {
 
-	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry, __stdcall, (DamageList *, unsigned short, float&, DamageEntry::SubObjFate), (dmgList, p1, p2, p3));
+	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry, __stdcall, (DamageList *, unsigned short, float&, DamageEntry::SubObjFate&), (dmgList, p1, p2, p3));
 
 	//check if we've got dmged by a cd with changed behaviour
 	if (dmgList->get_cause() == 0xC0)
@@ -180,15 +180,12 @@ void __stdcall HkCb_GeneralDmg(char *szECX)
 	CALL_PLUGINS_V(PLUGIN_HkCb_GeneralDmg, __stdcall, (char*), (szECX));
 
 	try {
-		char *szP;
-		memcpy(&szP, szECX + 0x10, 4);
-		uint iClientID;
-		memcpy(&iClientID, szP + 0xB4, 4);
-		uint iSpaceID;
-		memcpy(&iSpaceID, szP + 0xB0, 4);
+		CSimple* simple;
+		memcpy(&simple, szECX + 0x10, 4);
 
-		iDmgTo = iClientID;
-		iDmgToSpaceID = iSpaceID;
+		iDmgTo = simple->GetOwnerPlayer();
+		iDmgToSpaceID = simple->get_id();
+		g_LastHitPts = simple->get_hit_pts();
 	}
 	catch (...) { LOG_EXCEPTION }
 }

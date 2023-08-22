@@ -104,7 +104,7 @@ void SendLocalSystemChat(uint iFromClientID, const wstring &wscText)
 		pub::SpaceObj::GetLocation(iShip, vShipLoc, mShipDir);
 
 		// Cheat in the distance calculation. Ignore the y-axis.
-		float fDistance = sqrt(pow(vShipLoc.x - vFromShipLoc.x, 2) + pow(vShipLoc.z - vFromShipLoc.z, 2));
+		float fDistance = sqrtf(powf(vShipLoc.x - vFromShipLoc.x, 2) + powf(vShipLoc.z - vFromShipLoc.z, 2));
 
 		//Is player within scanner range (15K) of the sending char.
 		if (fDistance > set_iLocalChatRangeUtl)
@@ -1480,6 +1480,10 @@ namespace Message
 	/// Drop a percentage of cargo + some loot representing ship bits.
 	void Message::SendDeathMsg(const wstring &wscMsg, uint iSystemID, uint iClientIDVictim, uint iClientIDKiller)
 	{
+		if (!set_bEnableDeathMsg)
+		{
+			return;
+		}
 		// encode xml string(default and small)
 		// non-sys
 		wstring wscXMLMsg = L"<TRA data=\"" + set_wscDeathMsgStyle + L"\" mask=\"-1\"/> <TEXT>";

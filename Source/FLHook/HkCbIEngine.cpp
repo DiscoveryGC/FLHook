@@ -15,6 +15,7 @@
 namespace HkIEngine
 {
 
+	bool bAbortEventRequest;
 	/**************************************************************************************************************
 	// ship create & destroy
 	**************************************************************************************************************/
@@ -122,24 +123,42 @@ namespace HkIEngine
 	/**************************************************************************************************************
 	**************************************************************************************************************/
 
-	int __cdecl Dock_Call(unsigned int const &uShipID, unsigned int const &uSpaceID, int p3, enum DOCK_HOST_RESPONSE p4)
+	int __cdecl Dock_Call(unsigned int const &uShipID, unsigned int const &uSpaceID, int iDockPort, enum DOCK_HOST_RESPONSE dockResponse)
 	{
 
-		//	p3 == -1, p4 -> 2 --> Dock Denied!
-		//	p3 == -1, p4 -> 3 --> Dock in Use
-		//	p3 != -1, p4 -> 4 --> Dock ok, proceed (p3 Dock Port?)
-		//	p3 == -1, p4 -> 5 --> now DOCK!
+		//	iDockPort == -1, dockResponse -> 2 --> Dock Denied!
+		//	iDockPort == -1, dockResponse -> 3 --> Dock in Use
+		//	iDockPort != -1, dockResponse -> 4 --> Dock ok, proceed
+		//	iDockPort == -1, dockResponse -> 5 --> now DOCK!
 
-		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call, int, , (unsigned int const &, unsigned int const &, int, DOCK_HOST_RESPONSE), (uShipID, uSpaceID, p3, p4));
+		DOCK_HOST_RESPONSE prePluginResponse = dockResponse;
+		int prePluginDockPort = iDockPort;
+
+		int returnValue;
+
+		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call, int, , (unsigned int const &, unsigned int const &, int&, DOCK_HOST_RESPONSE&), (uShipID, uSpaceID, iDockPort, dockResponse));
 
 		try {
-			return pub::SpaceObj::Dock(uShipID, uSpaceID, p3, p4);
+			returnValue = pub::SpaceObj::Dock(uShipID, uSpaceID, iDockPort, dockResponse);
 		}
 		catch (...) { LOG_EXCEPTION }
 
-		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call_AFTER, int, , (unsigned int const &, unsigned int const &, int, DOCK_HOST_RESPONSE), (uShipID, uSpaceID, p3, p4));
+		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call_AFTER, int, , (unsigned int const &, unsigned int const &, int&, DOCK_HOST_RESPONSE&), (uShipID, uSpaceID, iDockPort, dockResponse));
 
-		return 0;
+		//if original response was positive and new response is negative, set the dock event for immediate cancellation
+		//also ACCESS_DENIED response doesn't automatically trigger the appropriate voice line
+		if (prePluginDockPort != -1 && iDockPort == -1 &&
+			(uint)prePluginResponse >= 3 && (uint)dockResponse < 3)
+		{
+			bAbortEventRequest = true;
+			if (dockResponse == ACCESS_DENIED)
+			{
+				uint client = HkGetClientIDByShip(uShipID);
+				pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
+			}
+		}
+
+		return returnValue;
 	}
 
 

@@ -27,6 +27,10 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/lexical_cast.hpp>
+#include <unordered_map>
+
+static uint maxJettisonCount = 25;
+static uint lootCleanupFrequency = 420;
 
 namespace pt = boost::posix_time;
 static int set_iPluginDebug = 0;
@@ -163,10 +167,11 @@ void Init()
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
-static map<uint, string> notradelist;
+static map<uint, float> notradelist;
 static list<uint> MarkedPlayers;
 //Added this due to idiocy
 static list<uint> MarkUsageTimer;
+static map<uint, bool> reverseTrade;
 
 
 
@@ -187,9 +192,13 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		if (set_scCfgFile.length() > 0)
 			LoadSettings();
+
+		HkLoadStringDLLs();
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
+
+		HkUnloadStringDLLs();
 	}
 	return true;
 }
@@ -229,8 +238,15 @@ void PMLogging(const char *szString, ...)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-map<uint, float> healingMultipliers;
-map<uint, uint> healingAdditions;
+struct HEALING_DATA
+{
+	float healingMultiplier;
+	float healingStatic;
+	float maxHeal;
+};
+unordered_map<uint, HEALING_DATA> healingMultipliers;
+
+uint repairMunitionId = CreateID("healing_gun01_ammo");
 
 void LoadSettings()
 {
@@ -252,7 +268,21 @@ void LoadSettings()
 				{
 					if (ini.is_value("tr"))
 					{
-						notradelist[CreateID(ini.get_value_string(0))] = ini.get_value_string(1);
+						notradelist[CreateID(ini.get_value_string(0))] = min(1.0f, max( 0.0f, ini.get_value_float(1)));
+					}
+				}
+			}
+			else if (ini.is_header("general"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("MaxJettisonCount"))
+					{
+						maxJettisonCount = ini.get_value_int(0);
+					}
+					else if (ini.is_value("LootCleanupFrequency"))
+					{
+						lootCleanupFrequency = ini.get_value_int(0);
 					}
 				}
 			}
@@ -260,16 +290,27 @@ void LoadSettings()
 		ini.close();
 	}
 
-	string scHealingCfgFile = string(szCurDir) + "\\..\\DATA\\EQUIPMENT\\healingrates.cfg";
+	string scHealingCfgFile = string(szCurDir) + "\\flhook_plugins\\healingrates.cfg";
 	if (ini.open(scHealingCfgFile.c_str(), false))
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("HealingRate"))
+			if (ini.is_header("General"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("repair_munition"))
+					{
+						repairMunitionId = CreateID(ini.get_value_string(0));
+					}
+				}
+			}
+			else if (ini.is_header("HealingRate"))
 			{
 				list<uint> shipclasses;
 				float multiplier = 1.0f;
-				uint addition = 0;
+				float addition = 0;
+				float max_hp = 1.0f;
 				while (ini.read_value())
 				{
 					if (ini.is_value("target_shipclass"))
@@ -278,17 +319,24 @@ void LoadSettings()
 					}
 					else if (ini.is_value("addition"))
 					{
-						addition = ini.get_value_int(0);
+						addition = ini.get_value_float(0);
 					}
 					else if (ini.is_value("multiplier"))
 					{
 						multiplier = ini.get_value_float(0);
 					}
+					else if (ini.is_value("max_heal"))
+					{
+						max_hp = ini.get_value_float(0);
+					}
 				}
 				foreach(shipclasses, uint, shipclass)
 				{
-					healingMultipliers[*shipclass] = multiplier;
-					healingAdditions[*shipclass] = addition;
+					HEALING_DATA healing;
+					healing.healingMultiplier = multiplier;
+					healing.healingStatic = addition;
+					healing.maxHeal = max_hp;
+					healingMultipliers[*shipclass] = healing;
 				}
 			}
 		}
@@ -644,6 +692,30 @@ bool  UserCmd_MarkObjGroup(uint iClientID, const wstring &wscCmd, const wstring 
 	return true;
 }
 
+void RemoveSurplusJettisonItems()
+{
+	unordered_map<uint, vector<uint>> jettisonedItemsMap;
+	auto cObj = dynamic_cast<CLoot*>(CObject::FindFirst(CObject::CLOOT_OBJECT));
+	for (; cObj; cObj = dynamic_cast<CLoot*>(CObject::FindNext()))
+	{
+		uint ownerSpaceObjID = cObj->get_owner();
+		if (ownerSpaceObjID)
+		{
+			jettisonedItemsMap[ownerSpaceObjID].push_back(cObj->iSpaceID);
+		}
+	}
+	for (const auto& jettisonData : jettisonedItemsMap)
+	{
+		if (jettisonData.second.size() <= maxJettisonCount)
+			continue;
+		//iterate from the beginning until the 25th last element
+		for (uint i = 0; i < jettisonData.second.size() - maxJettisonCount; i++)
+		{
+			pub::SpaceObj::Destroy(jettisonData.second[i], DestroyType::VANISH);
+		}
+	}
+}
+
 bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
 	uint baseID = 0;
@@ -667,6 +739,7 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 	list<CARGO_INFO> lstCargo;
 	int iRemainingHoldSize = 0;
 	uint items = 0;
+	bool isFirstJettisonItem = true;
 	if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize) == HKE_OK)
 	{
 		foreach(lstCargo, CARGO_INFO, item)
@@ -676,7 +749,7 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 			if (!item->bMounted && flag)
 			{
 				bool skipItem = false;
-				for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+				for (map<uint, float>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 				{
 					if (i->first == item->iArchID)
 					{
@@ -687,8 +760,23 @@ bool UserCmd_JettisonAll(uint iClientID, const wstring &wscCmd, const wstring &w
 				if (skipItem) {
 					continue;
 				}
-				HkRemoveCargo(wscCharname, item->iID, item->iCount);
-				Server.MineAsteroid(iSystem, vLoc, CreateID("lootcrate_ast_loot_metal"), item->iArchID, item->iCount, iClientID);
+
+				if (isFirstJettisonItem)
+				{
+					isFirstJettisonItem = false;
+					XJettisonCargo jettisonCargo;
+					jettisonCargo.iShip = iShip;
+					jettisonCargo.iCount = item->iCount;
+					jettisonCargo.iSlot = item->iID;
+					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("cargo_jettisoned"));
+					Server.JettisonCargo(iClientID, jettisonCargo);
+				}
+				else
+				{
+					HkRemoveCargo(wscCharname, item->iID, item->iCount); 
+					uint lootCrateId = Archetype::GetEquipment(item->iArchID)->get_loot_appearance()->iArchID;
+					Server.MineAsteroid(iSystem, vLoc, lootCrateId, item->iArchID, item->iCount, iClientID);
+				}
 				items++;
 			}
 		}
@@ -997,62 +1085,49 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	return false;
 }
 
-void __stdcall HkCb_AddDmgEntry_AFTER(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& damage, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id() && dmg->is_inflictor_a_player())
+
+	if (iDmgMunitionID != repairMunitionId
+		|| !iDmgTo
+		|| !dmg->is_inflictor_a_player()
+		|| sID == 65521) //shield hit
+		return;
+
+	if (!iDmgToSpaceID)
 	{
-		uint client = HkGetClientIDByShip(iDmgToSpaceID);
-		if (client)
-		{
-			uint ShootingClient = dmg->get_inflictor_owner_player();
-			Archetype::Ship* TheShipArch = Archetype::GetShip(Players[ShootingClient].iShipArchetype);
+		pub::Player::GetShip(iDmgTo, iDmgToSpaceID);
+	}
 
-			if (TheShipArch->iShipClass == 19)
-			{
-				float curr, max;
-				pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
-				float expecteddmg = (float)1;
-				float projecteddamage = curr - damage;
+	Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[iDmgTo].iShipArchetype);
 
-				//If a repair gun heals the ship but this doesn't show up, it's because it's hitting the shield.
-				//HkMsgU(L"DEBUG: damage by repair ship, is it healing?");					
-				//PrintUserCmdText(client, L"Projected damage: %f", projecteddamage);
+	const auto& healingData = healingMultipliers.find(TheShipArchHealed->iShipClass);
+	if (healingData == healingMultipliers.end())
+		return;
 
-				if ((projecteddamage <= 1) && (projecteddamage > 0))
-				{
-					//Handle the healing.
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	float curr, maxHP;
+	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, maxHP);
 
-					Archetype::Ship* TheShipArchHealed = Archetype::GetShip(Players[client].iShipArchetype);
-					float amounttoheal = curr;
+	const HEALING_DATA& healing = healingData->second;
 
-					if (healingMultipliers.find(TheShipArchHealed->iShipClass) == healingMultipliers.end())
-					{
-						return;
-					}
-					// no need to check healingAdditions here as it is set at the same time as healingMultipliers
-					amounttoheal = max / 100 * healingMultipliers[TheShipArchHealed->iShipClass] + healingAdditions[TheShipArchHealed->iShipClass];
+	if (curr >= healing.maxHeal * maxHP)
+		return;
 
-					float testhealth = curr + amounttoheal;
+	float healedHP = curr + healing.healingStatic + ((healing.healingMultiplier / 100) * maxHP) ;
+	float newHP = min(maxHP * healing.maxHeal, healedHP);
 
-
-					if (testhealth > max)
-					{
-						//HkMsgU(L"DEBUG: Health would be superior to max");
-						dmg->add_damage_entry(1, max, (DamageEntry::SubObjFate)0);
-						return;
-					}
-					else
-					{
-						//HkMsgU(L"DEBUG: Health less max");
-						dmg->add_damage_entry(1, testhealth, (DamageEntry::SubObjFate)0);
-						return;
-					}
-				}
-				//else do nothing, means it isn't a healing call.
-			}
-		}
+	if (sID == 1) // hull hit
+	{
+		damage = newHP;
+	}
+	else // not a hull hit, stop processing this event and add a hull-repairing one.
+	{
+		iDmgTo = 0;
+		iDmgMunitionID = 0;
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		//Adding 'damage entry' that will heal the main hull. 1 stands for hull internal id. Fate 0 means alive.
+		dmg->add_damage_entry(1, newHP, static_cast<DamageEntry::SubObjFate>(0));
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1081,42 +1156,62 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 void JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &jc)
 {
 	returncode = DEFAULT_RETURNCODE;
-	//int iSlotPlayer;
-
-	boolean matchFound = false;
-	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	
+	for (const EquipDesc& item : Players[iClientID].equipDescList.equip)
 	{
-		if (item->sID == jc.iSlot)
+		if (item.sID != jc.iSlot)
 		{
-			matchFound = true;
-			//PrintUserCmdText(iClientID, L"Slot match");
-			for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
-			{
-				if (i->first == item->iArchID)
-				{
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-					PrintUserCmdText(iClientID, L"ERR you can't jettison %s.", stows(i->second).c_str());
-				}
+			continue;
+		}
+
+		const auto& noTradeGood = notradelist.find(item.iArchID);
+		if (noTradeGood == notradelist.end()) {
+			return;
+		}
+
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		const GoodInfo* gi = GoodList::find_by_id(noTradeGood->first);
+		wstring goodName = HkGetWStringFromIDS(gi->iIDSName).c_str();
+		if (noTradeGood->second == 0.0f)
+		{
+			PrintUserCmdText(iClientID, L"ERR you can't jettison %ls.", goodName.c_str());
+		}
+		else
+		{
+			uint amountToJettison = static_cast<uint>(jc.iCount * noTradeGood->second);
+			PrintUserCmdText(iClientID, L"%u units of %ls jettisoned, %u units lost in the process.", jc.iCount, goodName.c_str(), jc.iCount - amountToJettison);
+			pub::Player::RemoveCargo(iClientID, static_cast<ushort>(jc.iSlot), jc.iCount);
+			if (amountToJettison > 0) {
+				uint shipId;
+				uint sysId;
+				Vector pos;
+				Matrix ori;
+				pub::Player::GetSystem(iClientID, sysId);
+				pub::Player::GetShip(iClientID, shipId);
+				pub::SpaceObj::GetLocation(shipId, pos, ori);
+				pos.x += 30.0;
+				Server.MineAsteroid(sysId, pos, CreateID("lootcrate_ast_loot_metal"), item.iArchID, amountToJettison, iClientID);
 			}
 		}
+		return;
 	}
 	// no match found, something went VERY wrong
-	if(!matchFound){
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		PrintUserCmdText(iClientID, L"ERR couldn't verify cargo, please try again.");
-	}
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	PrintUserCmdText(iClientID, L"ERR couldn't verify cargo, please try again.");
 }
 
 void AddTradeEquip(unsigned int iClientID, struct EquipDesc const &ed)
 {
 	if (notradelist.find(ed.iArchID) != notradelist.end())
 	{
-		for (map<uint, string>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
+		for (map<uint, float>::iterator i = notradelist.begin(); i != notradelist.end(); ++i)
 		{
 			if (i->first == ed.iArchID)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				PrintUserCmdText(iClientID, L"ERR you can't trade %s. The player will not receive it.", stows(i->second).c_str());
+				const GoodInfo* gi = GoodList::find_by_id(i->first);
+				PrintUserCmdText(iClientID, L"ERR you can't trade %ls. The player will not receive it.", HkGetWStringFromIDS(gi->iIDSName).c_str());
+				return;
 			}
 		}
 	}
@@ -1165,7 +1260,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int client)
 	SCI::UpdatePlayerID(client);
 }
 
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -1175,12 +1270,14 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 	{
 		if (!ADOCK::IsDockAllowed(iShip, iDockTarget, iClientID))
 		{
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			iCancel = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 		if (!SCI::CanDock(iDockTarget, iClientID))
 		{
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			iCancel = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 	}
@@ -1206,7 +1303,60 @@ void __stdcall ReqAddItem(unsigned int iArchID, char const *Hardpoint, int count
 		PrintUserCmdText(iClientID, L"Triggered on add equip");
 	}
 	*/
+
+	returncode = DEFAULT_RETURNCODE;
+	if (reverseTrade[iClientID])
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
 }
+
+void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (!SCI::CanBuyItem(gbi.iGoodID, client)) {
+		const GoodInfo* gi = GoodList::find_by_id(gbi.iGoodID);
+		switch (gi->iType) {
+			case GOODINFO_TYPE_COMMODITY: {
+				PrintUserCmdText(client, L"ERR Your ship can't load this cargo");
+				break;
+			}
+			case GOODINFO_TYPE_EQUIPMENT: {
+				PrintUserCmdText(client, L"ERR Your ship can't use this equipment");
+				break;
+			}
+			default:
+				PrintUserCmdText(client, L"ERR You can't buy this");
+		}
+
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		reverseTrade[client] = true;
+		return;
+	}
+
+	reverseTrade[client] = false;
+}
+
+void __stdcall ReqChangeCash(int cash, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (reverseTrade[iClientID])
+	{
+		reverseTrade[iClientID] = false;
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
+}
+
+void __stdcall ReqSetCash(int cash, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (reverseTrade[iClientID])
+	{
+		reverseTrade[iClientID] = false;
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
+}
+
 
 void __stdcall ReqEquipment(class EquipDescList const &edl, unsigned int iClientID)
 {
@@ -1266,6 +1416,11 @@ void HkTimerCheckKick()
 	{
 		MarkUsageTimer.clear();
 	}
+	// every 7 minutes, sweep and clean up CLoot entries
+	if ((curr_time % lootCleanupFrequency) == 0)
+	{
+		RemoveSurplusJettisonItems();
+	}
 
 	AP::Timer();
 }
@@ -1288,9 +1443,12 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry_AFTER, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JettisonCargo, PLUGIN_HkIServerImpl_JettisonCargo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddTradeEquip, PLUGIN_HkIServerImpl_AddTradeEquip, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqChangeCash, PLUGIN_HkIServerImpl_ReqChangeCash, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqSetCash, PLUGIN_HkIServerImpl_ReqSetCash, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));

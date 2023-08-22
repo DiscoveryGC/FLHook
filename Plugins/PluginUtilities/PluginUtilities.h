@@ -62,6 +62,14 @@ wstring GetTimeString(bool bLocalTime);
 
 Vector MatrixToEuler(const Matrix& mat);
 Quaternion HkMatrixToQuaternion(Matrix m);
+Matrix TransposeMatrix(Matrix& m);
+float MatrixDeterminant(Matrix& m, uint row, uint col);
+Matrix MatrixDeterminateTable(Matrix& m);
+void MatrixCofactorsTable(Matrix& m);
+void MultiplyMatrix(Matrix& m, float num);
+Matrix InverseMatrix(Matrix& m1);
+Vector VectorMatrixMultiply(Vector& v1, Matrix& m1);
+Vector NormalizeVector(Vector& v);
 
 void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &wscText, const wstring &wscTextColor);
 void ini_get_wstring(INI_Reader &ini, wstring &wscValue);

@@ -411,12 +411,13 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 }
 
 // If this is a docking request at a player ship then process it.
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, int& dockPort, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	UINT client = HkGetClientIDByShip(iShip);
-	if (client)
+	//if not a player dock, skip
+	uint client = HkGetClientIDByShip(iShip);
+	if (client && response == DOCK && dockPort == -1)
 	{
 		// If no target then ignore the request.
 		uint iTargetShip;
@@ -426,7 +427,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 
 		uint iType;
 		pub::SpaceObj::GetType(iTargetShip, iType);
-		if (iType != OBJ_FREIGHTER)
+		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
 			return 0;
 
 		// If target is not player ship or ship is too far away then ignore the request.
@@ -434,6 +435,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (!iTargetClientID || HkDistance3DByShip(iShip, iTargetShip) > 1000.0f)
 		{
 			PrintUserCmdText(client, L"Ship is out of range");
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 
@@ -441,6 +444,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (mobiledockClients[iTargetClientID].iDockingModulesAvailable == 0)
 		{
 			PrintUserCmdText(client, L"Target ship has no free docking capacity");
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 
@@ -449,10 +454,10 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iBaseID, in
 		if (cship->shiparch()->fHoldSize > cargoCapacityLimit)
 		{
 			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
-
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
 		// Create a docking request and send a notification to the target ship.
 		mapPendingDockingRequests[client] = iTargetClientID;

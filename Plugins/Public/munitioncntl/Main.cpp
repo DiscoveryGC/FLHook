@@ -71,7 +71,7 @@ void LoadSettings()
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + R"(\flhook_plugins\munitioncntl.cfg)";
-	if (ini.open(scPluginCfgFile.c_str(), false))
+	if (!ini.open(scPluginCfgFile.c_str(), false))
 	{
 		return;
 	}

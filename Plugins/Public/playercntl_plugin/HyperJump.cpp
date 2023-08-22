@@ -257,7 +257,8 @@ namespace HyperJump
 					}
 					mapAvailableJumpSystems[originSystem][jumpRange] = targetSystemsList;
 				}
-				if (ini.is_header("system_jump_positions")) {
+				if (ini.is_header("system_jump_positions"))
+				{
 					while (ini.read_value())
 					{
 						if (ini.is_value("jump_position"))
@@ -309,7 +310,8 @@ namespace HyperJump
 						{
 							BeaconCooldown = ini.get_value_int(0);
 						}
-						else if (ini.is_value("BlindJumpOverrideSystem")) {
+						else if (ini.is_value("BlindJumpOverrideSystem"))
+						{
 							set_blindJumpOverrideSystem = CreateID(ini.get_value_string());
 						}
 						else if (ini.is_value("CanJumpWithCommodities"))
@@ -567,7 +569,8 @@ namespace HyperJump
 
 	bool HyperJump::CheckForBeacon(uint iClientID)
 	{
-		if (mapPlayerBeaconMatrix.count(iClientID)) {
+		if (mapPlayerBeaconMatrix.count(iClientID))
+		{
 			return true;
 		}
 		for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
@@ -595,7 +598,8 @@ namespace HyperJump
 		}
 
 		auto& allowedSystemsByRange = mapAvailableJumpSystems[systemFrom];
-		for (uint depth = 1; depth <= range; depth++) {
+		for (uint depth = 1; depth <= range; depth++)
+		{
 			if (allowedSystemsByRange.count(range) && find(allowedSystemsByRange[depth].begin(), allowedSystemsByRange[depth].end(), systemTo) != allowedSystemsByRange[depth].end())
 				return make_pair(true, depth);
 		}
@@ -607,7 +611,8 @@ namespace HyperJump
 		int iRemHoldSize;
 		std::list<CARGO_INFO> lstCargo;
 		HkEnumCargo(ARG_CLIENTID(iClientID), lstCargo, iRemHoldSize);
-		for (auto& cargo : lstCargo) {
+		for (auto& cargo : lstCargo)
+		{
 			bool flag = false;
 			pub::IsCommodity(cargo.iArchID, flag);
 			if (flag)
@@ -748,7 +753,8 @@ namespace HyperJump
 		std::list<CARGO_INFO> lstCargo;
 		HkEnumCargo(ARG_CLIENTID(client), lstCargo, iRemHoldSize);
 		bool cargoFound = false;
-		for (const auto& cargo : lstCargo) {
+		for (const auto& cargo : lstCargo)
+		{
 			bool flag = false;
 			pub::IsCommodity(cargo.iArchID, flag);
 			if (flag)
@@ -776,7 +782,8 @@ namespace HyperJump
 	pair<bool, uint> CanBeaconJumpToPlayer(const uint jumpingClientId, const uint beaconClientId)
 	{
 
-		if (!CheckForBeacon(beaconClientId)) {
+		if (!CheckForBeacon(beaconClientId))
+		{
 			return { false, 0 };
 		}
 
@@ -790,18 +797,21 @@ namespace HyperJump
 
 	bool HyperJump::UserCmd_CanBeaconJumpToPlayer(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
-		if (wscParam.empty()) {
+		if (wscParam.empty())
+		{
 			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 			PrintUserCmdText(iClientID, usage);
 			return true;
 		}
-		if (!InitJumpDriveInfo(iClientID)) {
+		if (!InitJumpDriveInfo(iClientID))
+		{
 			PrintUserCmdText(iClientID, L"ERR Jump Drive not equipped");
 			return true;
 		}
 		wstring wscCharname = GetParam(wscParam, L' ', 0);
 		uint iTargetClientID = HkGetClientIdFromCharname(wscCharname);
-		if (iTargetClientID == UINT_MAX) {
+		if (iTargetClientID == UINT_MAX)
+		{
 			uint targetClientID = ToUInt(wscCharname);
 			if (targetClientID && HkIsValidClientID(targetClientID))
 			{
@@ -830,14 +840,16 @@ namespace HyperJump
 		uint iSystemID;
 		pub::Player::GetSystem(iClientID, iSystemID);
 		const auto& playerJumpDrive = mapJumpDrives[iClientID];
-		if (!InitJumpDriveInfo(iClientID)) {
+		if (!InitJumpDriveInfo(iClientID))
+		{
 			PrintUserCmdText(iClientID, L"ERR Jump Drive not equipped");
 			return;
 		}
 
 		if (JumpSystemListEnabled == 1)
 		{
-			if (mapAvailableJumpSystems.count(iSystemID) == 0) {
+			if (mapAvailableJumpSystems.count(iSystemID) == 0)
+			{
 				PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
 				return;
 			}
@@ -860,7 +872,8 @@ namespace HyperJump
 		}
 	}
 
-	bool HyperJump::UserCmd_IsSystemJumpable(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage) {
+	bool HyperJump::UserCmd_IsSystemJumpable(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	{
 		if (!InitJumpDriveInfo(iClientID))
 		{
 			PrintUserCmdText(iClientID, L"ERR No jump drive installed");
@@ -875,7 +888,8 @@ namespace HyperJump
 		for (struct Universe::ISystem *sysinfo = Universe::GetFirstSystem(); sysinfo; sysinfo = Universe::GetNextSystem())
 		{
 			const auto& fullSystemName = HkGetWStringFromIDS(sysinfo->strid_name);
-			if (ToLower(fullSystemName) == sysName) {
+			if (ToLower(fullSystemName) == sysName)
+			{
 				uint &iTargetSystemID = sysinfo->id;
 				uint iClientSystem;
 				pub::Player::GetSystem(iClientID, iClientSystem);
@@ -899,7 +913,8 @@ namespace HyperJump
 	
 	bool SetJumpSystem(const uint iClientID, JUMPDRIVE& jd, wstring& targetSystem)
 	{
-		if (!InitJumpDriveInfo(iClientID)) {
+		if (!InitJumpDriveInfo(iClientID))
+		{
 			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return false;
@@ -911,6 +926,11 @@ namespace HyperJump
 		{
 			if (set_blindJumpOverrideSystem)
 			{
+				if (!mapSystemJumps.count(set_blindJumpOverrideSystem))
+				{
+					PrintUserCmdText(iClientID, L"ERR Blind jumping misconfigured, contact staff!");
+					return false;
+				}
 				auto& jumpCoordList = mapSystemJumps[set_blindJumpOverrideSystem];
 				auto& jumpCoords = jumpCoordList.at(rand() % jumpCoordList.size());
 				mapJumpDrives[iClientID].iTargetSystem = set_blindJumpOverrideSystem;
@@ -927,7 +947,8 @@ namespace HyperJump
 		for (struct Universe::ISystem *sysinfo = Universe::GetFirstSystem(); sysinfo; sysinfo = Universe::GetNextSystem())
 		{
 			const auto& fullSystemName = ToLower(HkGetWStringFromIDS(sysinfo->strid_name));
-			if (fullSystemName != targetSystem) {
+			if (fullSystemName != targetSystem)
+			{
 				continue;
 			}
 			uint &iTargetSystemID = sysinfo->id;
@@ -935,11 +956,13 @@ namespace HyperJump
 			uint iPlayerSystem;
 			pub::Player::GetSystem(iClientID, iPlayerSystem);
 			auto canJump = IsSystemJumpable(iPlayerSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range);
-			if (JumpSystemListEnabled && !canJump.first) {
+			if (JumpSystemListEnabled && !canJump.first)
+			{
 				PrintUserCmdText(iClientID, L"System out of range, use /jumplist for a list of valid destinations");
 				return false;
 			}
-			if (mapSystemJumps.count(iTargetSystemID) == 0) {
+			if (mapSystemJumps.count(iTargetSystemID) == 0)
+			{
 				PrintUserCmdText(iClientID, L"ERR Jumps to selected system not configured, please report the issue to the staff");
 				return false;
 			}
@@ -953,11 +976,13 @@ namespace HyperJump
 			jd.jumpDistance = canJump.second;
 
 			PrintUserCmdText(iClientID, L"System locked in, jumping to %ls, sector %ls", fullSystemName.c_str(), jumpCoords.sector.c_str());
-			if (mapSystemJumps[iTargetSystemID].size() > 1) {
+			if (mapSystemJumps[iTargetSystemID].size() > 1)
+			{
 				PrintUserCmdText(iClientID, L"Alternate jump coordinates available, use /setsector to switch");
 				int iCount = 1;
 				++sectorSelectedIndex;
-				for (auto coord : mapSystemJumps[iTargetSystemID]) {
+				for (auto coord : mapSystemJumps[iTargetSystemID])
+				{
 					if (sectorSelectedIndex == iCount)
 					{
 						PrintUserCmdText(iClientID, L"%u. %ls - selected", iCount, coord.sector.c_str());
@@ -976,7 +1001,8 @@ namespace HyperJump
 
 	bool UserCmd_SetSector(uint iClientID, const wstring & wscCmd, const wstring & wscParam, const wchar_t * usage)
 	{
-		if (!InitJumpDriveInfo(iClientID)) {
+		if (!InitJumpDriveInfo(iClientID))
+		{
 			PrintUserCmdText(iClientID, L"ERR Jump drive not equipped");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
@@ -990,7 +1016,8 @@ namespace HyperJump
 
 		auto &jd = mapJumpDrives[iClientID];
 		uint index = ToUInt(GetParam(wscParam, ' ', 0));
-		if (index == 0 || mapSystemJumps[jd.iTargetSystem].size() < index ) {
+		if (index == 0 || mapSystemJumps[jd.iTargetSystem].size() < index )
+		{
 			PrintUserCmdText(iClientID, L"ERR invalid selection");
 			return true;
 		}
@@ -1021,7 +1048,8 @@ namespace HyperJump
 			{
 				JUMPDRIVE &jd = iter->second;
 
-				if (jd.arch == nullptr) {
+				if (jd.arch == nullptr)
+				{
 					continue;
 				}
 				if (jd.jump_timer > 0)
@@ -1211,7 +1239,8 @@ namespace HyperJump
 
 	void HyperJump::SetJumpInInvulnerability(uint clientID)
 	{
-		if (set_jumpInInvulnerabilityPeriod) {
+		if (set_jumpInInvulnerabilityPeriod)
+		{
 			ClientInfo[clientID].tmProtectedUntil = timeInMS() + set_jumpInInvulnerabilityPeriod;
 		}
 	}
@@ -1500,7 +1529,8 @@ namespace HyperJump
 			return true;
 		}
 
-		if (!set_canJumpWithCommodities && CheckForCommodities(iClientID)) {
+		if (!set_canJumpWithCommodities && CheckForCommodities(iClientID))
+		{
 			PrintUserCmdText(iClientID, L"Warning! You cannot jump without clearing your cargo hold!");
 		}
 
@@ -1545,7 +1575,8 @@ namespace HyperJump
 		return true;
 	}
 
-	time_t filetime_to_timet(const FILETIME& ft) {
+	time_t filetime_to_timet(const FILETIME& ft)
+	{
 		ULARGE_INTEGER ull;
 		ull.LowPart = ft.dwLowDateTime;
 		ull.HighPart = ft.dwHighDateTime;
@@ -1614,7 +1645,8 @@ namespace HyperJump
 		}
 
 		uint iTargetClientID = HkGetClientIdFromCharname(wscParam);
-		if (iTargetClientID == UINT_MAX) {
+		if (iTargetClientID == UINT_MAX)
+		{
 			uint targetClientID = ToUInt(wscParam);
 			if (targetClientID && HkIsValidClientID(targetClientID))
 			{
@@ -1693,7 +1725,8 @@ namespace HyperJump
 
 		wstring wscCharname = GetParam(wscParam, L' ', 0);
 		uint iTargetClientID = HkGetClientIdFromCharname(wscCharname);
-		if (iTargetClientID == UINT_MAX) {
+		if (iTargetClientID == UINT_MAX)
+		{
 			uint targetClientID = ToUInt(wscCharname);
 			if (targetClientID && HkIsValidClientID(targetClientID))
 			{
@@ -1728,7 +1761,8 @@ namespace HyperJump
 		return true;
 	}
 
-	void HyperJump::ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData) {
+	void HyperJump::ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData)
+	{
 		mapJumpDrives[jumpData.iClientID].jump_type = jumpData.jumpType;
 		SwitchSystem(jumpData.iClientID, jumpData.iSystemID, jumpData.pos, jumpData.ori);
 	}

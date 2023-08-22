@@ -10,6 +10,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
@@ -68,7 +69,7 @@ struct ARCHTYPE_STRUCT
 
 struct MARKET_ITEM
 {
-	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000) {}
+	MARKET_ITEM() : quantity(0), price(1.0f), min_stock(100000), max_stock(100000), is_public(false) {}
 
 	// Number of units of commodity stored in this base
 	uint quantity;
@@ -81,6 +82,9 @@ struct MARKET_ITEM
 
 	// Stop buying if the base holds more than this number of items
 	uint max_stock;
+
+	// Making public to all players without restrictions
+	bool is_public;
 };
 
 struct NEWS_ITEM
@@ -375,7 +379,7 @@ public:
 	uint base;
 
 	map<wstring, uint> last_login_attempt_time;
-	map<wstring, int> unsuccessful_logins_in_a_row;
+	map<wstring, uint> unsuccessful_logins_in_a_row;
 
 	// The list of administration passwords
 	list<BasePassword> passwords;
@@ -562,6 +566,7 @@ namespace PlayerCommands
 	void Shop(uint client, const wstring &args);
 	void BaseSwapModule(uint client, const wstring &args);
 	void GetNecessitiesStatus(uint client, const wstring &args);
+	bool CheckSolarDistances(uint client, uint systemID, Vector pos);
 
 	void BaseDeploy(uint client, const wstring &args);
 
@@ -575,10 +580,11 @@ namespace Log {
 
 extern map<uint, CLIENT_DATA> clients;
 
-extern map<uint, Module*> spaceobj_modules;
+extern unordered_map<uint, Module*> spaceobj_modules;
 
 // Map of ingame hash to info
 extern map<uint, class PlayerBase*> player_bases;
+extern map<uint, PlayerBase*>::iterator baseSaveIterator;
 
 struct POBSOUNDS
 {
@@ -625,11 +631,31 @@ extern uint set_crew_check_frequency;
 
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
 
+/// List of banned systems
+extern set<uint> bannedSystemList;
+
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;
 
+/// Mininmum distances for base deployment
+extern bool enableDistanceCheck;
+extern float minMiningDistance;
+extern float minPlanetDistance;
+extern float minStationDistance;
+extern float minLaneDistance;
+extern float minJumpDistance;
+extern float minDistanceMisc;
+extern float minOtherPOBDistance;
+
+/// Deployment command cooldown trackimg
+extern unordered_map<uint, uint> deploymentCooldownMap;
+extern uint deploymentCooldownDuration;
+
 /// Map of good to quantity for items required by construction ship
 extern map<uint, uint> construction_items;
+
+/// Construction cost in credits
+extern int construction_credit_cost;
 
 /// Map of item nickname hash to recipes to operate shield.
 extern map<uint, uint> shield_power_items;
@@ -681,4 +707,13 @@ extern float damage_threshold;
 extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
+
+extern unordered_map<uint, float> siegeWeaponryMap;
+
+// From EquipmentUtilities.cpp
+namespace EquipmentUtilities
+{
+	void ReadIniNicknames();
+	const char* FindNickname(unsigned int hash);
+}
 #endif

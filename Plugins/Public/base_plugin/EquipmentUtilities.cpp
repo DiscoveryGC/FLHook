@@ -14,7 +14,7 @@
 static std::map<uint, std::string> mapHashToNickname;
 
 /// Read an ini file for nicknames and save the associated hashcode
-static void ReadIniNicknameFile(const string &filePath)
+static void ReadIniNicknameFile(const string& filePath)
 {
 	INI_Reader ini;
 	if (ini.open(filePath.c_str(), false))
@@ -34,7 +34,7 @@ static void ReadIniNicknameFile(const string &filePath)
 	}
 }
 
-const char *EquipmentUtilities::FindNickname(uint hash)
+const char* EquipmentUtilities::FindNickname(uint hash)
 {
 	std::map<uint, std::string>::iterator i = mapHashToNickname.find(hash);
 	if (i == mapHashToNickname.end())

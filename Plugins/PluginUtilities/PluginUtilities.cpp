@@ -110,7 +110,7 @@ CAccount* HkGetAccountByClientID(uint iClientID)
 float HkDistance3D(Vector v1, Vector v2)
 {
 	float sq1 = v1.x - v2.x, sq2 = v1.y - v2.y, sq3 = v1.z - v2.z;
-	return sqrt(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
+	return sqrtf(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
 }
 
 // Calculate the distance between the two vectors
@@ -123,7 +123,7 @@ float HkDistance3DByShip(uint iShip1, uint iShip2)
 	Matrix m2;
 	pub::SpaceObj::GetLocation(iShip2, v2, m2);
 	float sq1 = v1.x - v2.x, sq2 = v1.y - v2.y, sq3 = v1.z - v2.z;
-	return sqrt(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
+	return sqrtf(sq1*sq1 + sq2 * sq2 + sq3 * sq3);
 }
 
 bool HkSetEquip(uint iClientID, const list<EquipDesc>& equip)
@@ -928,14 +928,110 @@ Vector MatrixToEuler(const Matrix& mat)
 Quaternion HkMatrixToQuaternion(Matrix m)
 {
 	Quaternion quaternion;
-	quaternion.w = sqrt(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
-	quaternion.x = sqrt(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.y = sqrt(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
-	quaternion.z = sqrt(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
+	quaternion.w = sqrtf(max(0, 1 + m.data[0][0] + m.data[1][1] + m.data[2][2])) / 2;
+	quaternion.x = sqrtf(max(0, 1 + m.data[0][0] - m.data[1][1] - m.data[2][2])) / 2;
+	quaternion.y = sqrtf(max(0, 1 - m.data[0][0] + m.data[1][1] - m.data[2][2])) / 2;
+	quaternion.z = sqrtf(max(0, 1 - m.data[0][0] - m.data[1][1] + m.data[2][2])) / 2;
 	quaternion.x = (float)_copysign(quaternion.x, m.data[2][1] - m.data[1][2]);
 	quaternion.y = (float)_copysign(quaternion.y, m.data[0][2] - m.data[2][0]);
 	quaternion.z = (float)_copysign(quaternion.z, m.data[1][0] - m.data[0][1]);
 	return quaternion;
+}
+
+Matrix TransposeMatrix(Matrix& m)
+{
+	return { {
+		{m.data[0][0], m.data[1][0], m.data[2][0]},
+		{m.data[0][1], m.data[1][1], m.data[2][1]},
+		{m.data[0][2], m.data[1][2], m.data[2][2]}} };
+}
+
+float MatrixSubDeterminant(Matrix& m, uint row, uint col)
+{
+	float minorMatrix[4];
+	uint counter = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (i == row)
+			continue;
+		for (int j = 0; j < 3; j++)
+		{
+			if (j == col)
+				continue;
+			minorMatrix[counter] = m.data[i][j];
+			counter++;
+		}
+	}
+	return m.data[row][col] * ( minorMatrix[0] * minorMatrix[3] - minorMatrix[1] * minorMatrix[2] );
+}
+
+Matrix MatrixDeterminateTable(Matrix& m)
+{
+	Matrix determinantTable;
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			determinantTable.data[i][j] = MatrixSubDeterminant(m, i, j);
+		}
+	}
+	return determinantTable;
+}
+
+void MatrixCofactorsTable(Matrix& m)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			if ((((i * 3) + j) % 2) != 0) {
+				m.data[i][j] *= -1;
+			}
+		}
+	}
+}
+
+void MultiplyMatrix(Matrix& m, float num)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			m.data[i][j] *= num;
+		}
+	}
+}
+
+Matrix InverseMatrix(Matrix& m1)
+{
+	float adjoint = MatrixSubDeterminant(m1, 0, 0) + MatrixSubDeterminant(m1, 0, 1) + MatrixSubDeterminant(m1, 0, 2);
+	float inverseAdjoint = 1 / adjoint;
+	Matrix transp = TransposeMatrix(m1);
+	Matrix determinantTable = MatrixDeterminateTable(transp);
+	MatrixCofactorsTable(determinantTable);
+	MultiplyMatrix(determinantTable, inverseAdjoint);
+
+	return determinantTable;
+}
+
+Vector VectorMatrixMultiply(Vector& v1, Matrix& m1)
+{
+	Vector ret;
+	ret.x = v1.x * m1.data[0][0] + v1.y * m1.data[0][1] + v1.z * m1.data[0][2];
+	ret.y = v1.x * m1.data[1][0] + v1.y * m1.data[1][1] + v1.z * m1.data[1][2];
+	ret.z = v1.x * m1.data[2][0] + v1.y * m1.data[2][1] + v1.z * m1.data[2][2];
+	return ret;
+}
+
+Vector NormalizeVector(Vector& v)
+{
+	float inverseMagnitude = 1 / sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+
+	Vector ret;
+	ret.x = v.x * inverseMagnitude;
+	ret.y = v.y * inverseMagnitude;
+	ret.z = v.z * inverseMagnitude;
+	return ret;
 }
 
 // Format a chat string in accordance with the receiver's preferences and send it. Will

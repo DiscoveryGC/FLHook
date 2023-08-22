@@ -377,7 +377,7 @@ struct MONEY_FIX
 	wstring		wscCharname;
 	int			iAmount;
 
-	bool operator==(MONEY_FIX mf1)
+	bool operator==(const MONEY_FIX& mf1) const
 	{
 		if (!wscCharname.compare(mf1.wscCharname))
 			return true;
@@ -711,6 +711,7 @@ namespace HkIEngine
 	extern FARPROC fpOldInitCShip;
 	extern FARPROC fpOldDestroyCShip;
 	extern FARPROC fpOldLoadRepCharFile;
+	extern bool bAbortEventRequest;
 }
 
 // HkTimers

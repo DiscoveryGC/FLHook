@@ -361,12 +361,14 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_CREATECOUNTER(uint iClientID, FLPACKET_
 /**************************************************************************************************************
 **************************************************************************************************************/
 
-bool HkIClientImpl::Send_FLPACKET_SERVER_CREATEGUIDED(uint iClientID, FLPACKET_UNKNOWN& pDunno)
+bool HkIClientImpl::Send_FLPACKET_SERVER_CREATEGUIDED(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
 
-	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_CREATEGUIDED(iClientID, pDunno));
+	CALL_PLUGINS(PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, bool, __stdcall, (uint, FLPACKET_CREATEGUIDED&), (iClientID, createGuidedPacket));
+
+	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_CREATEGUIDED(iClientID, createGuidedPacket));
 	return reinterpret_cast<bool>(vRet);
 }
 
@@ -649,6 +651,8 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_LAND(uint iClientID, FLPACKET_LAND& pLa
 {
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
+
+	CALL_PLUGINS(PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND, bool, __stdcall, (uint, FLPACKET_LAND&), (iClientID, pLand));
 
 	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_LAND(iClientID, pLand));
 	return reinterpret_cast<bool>(vRet);
@@ -1035,12 +1039,14 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_SYSTEM_SWITCH_IN(uint iClientID, FLPACK
 /**************************************************************************************************************
 **************************************************************************************************************/
 
-bool HkIClientImpl::Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_UNKNOWN &pDunno)
+bool HkIClientImpl::Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT &switchOutPacket)
 {
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
 
-	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, pDunno));
+	CALL_PLUGINS(PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT, bool, __stdcall, (uint, FLPACKET_SYSTEM_SWITCH_OUT&), (iClientID, switchOutPacket));
+
+	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT(iClientID, switchOutPacket));
 	return reinterpret_cast<bool>(vRet);
 }
 

@@ -71,6 +71,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiscellaneousCommands", "Pl
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvE Controller", "Plugins\Public\pvecontroller\pvecontroller.vcxproj", "{22D02598-F2D3-495F-BBA9-72DC156DA723}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kill_tracker", "Plugins\Public\kill_tracker\kill_tracker.vcxproj", "{91E8438D-F413-4A2C-8A9B-6CE3544116DB}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{097bffbb-2bbe-4e16-b2fb-3ed8e90ecbd7}*SharedItemsImports = 4
@@ -83,9 +85,11 @@ Global
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{7de3df47-662f-4e34-9899-140f103d2d01}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{81a35b95-1cdd-4f58-a24c-e2dc47d43dd0}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{81a35b95-1ced-4f58-a24c-e2dc47d43dd0}*SharedItemsImports = 4
+		Plugins\PluginUtilities\PluginUtilities.vcxitems*{81d33b95-1cdd-4f58-a24c-e2ec47143dd0}*SharedItemsImports = 4 
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{81d33b95-1ddd-4f58-a24c-e2ec4a143dd0}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{81d35b95-1cdd-4f58-a24c-e2ec47d43dd0}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{8cbf9ef0-324a-4699-8a26-c2999b99b225}*SharedItemsImports = 4
+		Plugins\PluginUtilities\PluginUtilities.vcxitems*{91e8438d-f413-4a2c-8a9b-6ce3544116db}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{9e084a9e-a8b9-4f64-8048-f3357839683e}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{9ed72c7d-81fc-49f5-8709-0ab542113d3f}*SharedItemsImports = 4
 		Plugins\PluginUtilities\PluginUtilities.vcxitems*{b92d0fa9-093b-4db0-9afd-3af72bd87aae}*SharedItemsImports = 4
@@ -265,6 +269,14 @@ Global
 		{22D02598-F2D3-495F-BBA9-72DC156DA723}.Release|Win32.ActiveCfg = Release|Win32
 		{22D02598-F2D3-495F-BBA9-72DC156DA723}.Release|Win32.Build.0 = Release|Win32
 		{22D02598-F2D3-495F-BBA9-72DC156DA723}.Release|x64.ActiveCfg = Release|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.DebugDONOTUSE|Win32.ActiveCfg = Debug|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.DebugDONOTUSE|Win32.Build.0 = Debug|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.DebugDONOTUSE|x64.ActiveCfg = Debug|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.DebugDONOTUSE|x64.Build.0 = Debug|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.Release|Win32.ActiveCfg = Release|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.Release|Win32.Build.0 = Release|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.Release|x64.ActiveCfg = Release|Win32
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB}.Release|x64.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -295,6 +307,7 @@ Global
 		{2853796F-8AAF-4E93-A210-08EA11C63D6B} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 		{C26DA99F-10F7-421B-AC31-EED1623E7B04} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 		{22D02598-F2D3-495F-BBA9-72DC156DA723} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
+		{91E8438D-F413-4A2C-8A9B-6CE3544116DB} = {F77D3998-A163-4D75-95E3-88C3C6B2DCFA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {393C1DF6-B2DC-4FF2-8100-36DD1F304E10}

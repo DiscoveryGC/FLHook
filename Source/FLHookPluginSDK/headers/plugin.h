@@ -208,6 +208,9 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_ProcessEvent_BEFORE,
 	PLUGIN_LoadSettings,
 	PLUGIN_Plugin_Communication,
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, // adding here to avoid breaking private plugins due to enum mismatch, can be moved in case of global plugin recompile
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT,
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND,
 	PLUGIN_CALLBACKS_AMOUNT,
 };
 
@@ -252,7 +255,8 @@ enum PLUGIN_MESSAGE
 	COMBAT_DAMAGE_OVERRIDE = 45,
 	CUSTOM_JUMP = 47,
 	CUSTOM_IS_IT_POB = 50,
-	CUSTOM_REVERSE_TRANSACTION = 48
+	CUSTOM_REVERSE_TRANSACTION = 48,
+	CUSTOM_CLOAK_ALERT = 60
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -364,6 +368,11 @@ struct CUSTOM_JUMP_STRUCT
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 {
 	uint iClientID;
+};
+
+struct CUSTOM_CLOAK_ALERT_STRUCT
+{
+	vector<uint> alertedGroupMembers;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

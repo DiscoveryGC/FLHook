@@ -14,12 +14,14 @@
 #include "Main.h"
 #include <sstream>
 #include <hookext_exports.h>
+#include <unordered_map>
 
 // Clients
 map<uint, CLIENT_DATA> clients;
 
 // Bases
 map<uint, PlayerBase*> player_bases;
+map<uint, PlayerBase*>::iterator baseSaveIterator = player_bases.begin();
 
 map<uint, bool> mapPOBShipPurchases;
 
@@ -29,11 +31,31 @@ int ExportType = 0;
 /// The debug mode
 int set_plugin_debug = 0;
 
+/// List of banned systems
+set<uint> bannedSystemList;
+
 /// The ship used to construct and upgrade bases
 uint set_construction_shiparch = 0;
 
+/// Mininmum distances for base deployment
+bool enableDistanceCheck = false;
+float minMiningDistance = 30000;
+float minPlanetDistance = 2500;
+float minStationDistance = 10000;
+float minLaneDistance = 5000;
+float minJumpDistance = 15000;
+float minDistanceMisc = 2500;
+float minOtherPOBDistance = 5000;
+
+/// Deployment command cooldown trackimg
+unordered_map<uint, uint> deploymentCooldownMap;
+uint deploymentCooldownDuration = 60;
+
 /// Map of good to quantity for items required by construction ship
 map<uint, uint> construction_items;
+
+/// Construction cost in credits
+int construction_credit_cost = 0;
 
 /// list of items and quantity used to repair 10000 units of damage
 list<REPAIR_ITEM> set_base_repair_items;
@@ -69,7 +91,7 @@ void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring b
 map<uint, uint> shield_power_items;
 
 /// Map of space obj IDs to base modules to speed up damage algorithms.
-map<uint, Module*> spaceobj_modules;
+unordered_map<uint, Module*> spaceobj_modules;
 
 /// Path to shield status html page
 string set_status_path_html;
@@ -140,6 +162,8 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
+//siege weaponry definitions
+unordered_map<uint, float> siegeWeaponryMap;
 
 uint GetAffliationFromClient(uint client)
 {
@@ -400,6 +424,8 @@ void LoadSettingsActual()
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	EquipmentUtilities::ReadIniNicknames();
+
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
@@ -523,6 +549,10 @@ void LoadSettingsActual()
 						uint quantity = ini.get_value_int(1);
 						construction_items[good] = quantity;
 					}
+					else if (ini.is_value("construction_credit_cost"))
+					{
+						construction_credit_cost = ini.get_value_int(0);
+					}
 					else if (ini.is_value("base_crew_item"))
 					{
 						set_base_crew_type = CreateID(ini.get_value_string(0));
@@ -573,6 +603,50 @@ void LoadSettingsActual()
 						uint c = CreateID(ini.get_value_string());
 						listCommodities[c] = stows(ini.get_value_string());
 
+					}
+					else if (ini.is_value("min_mining_distance"))
+					{
+						minMiningDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_planet_distance"))
+					{
+						minPlanetDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_station_distance"))
+					{
+						minStationDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_trade_lane_distance"))
+					{
+						minLaneDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_distance_misc"))
+					{
+						minDistanceMisc = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_pob_distance"))
+					{
+						minOtherPOBDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("min_jump_distance"))
+					{
+						minJumpDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if(ini.is_value("deployment_cooldown"))
+					{
+						deploymentCooldownDuration = ini.get_value_int(0);
+					}
+					else if (ini.is_value("enable_distance_check"))
+					{
+						enableDistanceCheck = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("banned_system"))
+					{
+						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("siege_gun"))
+					{
+						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
 					}
 				}
 			}
@@ -827,8 +901,15 @@ void LoadSettingsActual()
 		{
 			string filepath = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\" + findfile.cFileName;
 			PlayerBase *base = new PlayerBase(filepath);
-			player_bases[base->base] = base;
-			base->Spawn();
+			if (base && !base->nickname.empty())
+			{
+				player_bases[base->base] = base;
+				base->Spawn();
+			}
+			else
+			{
+				AddLog("ERROR POB file corrupted: %s", findfile.cFileName);
+			}
 		} while (FindNextFile(h, &findfile));
 		FindClose(h);
 	}
@@ -894,6 +975,20 @@ void HkTimerCheckKick()
 		++iter;
 		// Dispatch timer but we can safely ignore the return
 		base->Timer(curr_time);
+	}
+	if (!player_bases.empty() && !set_holiday_mode) {
+		if (baseSaveIterator == player_bases.end()) {
+			baseSaveIterator = player_bases.begin();
+		}
+		bool saveSuccessful = false;
+		while (!saveSuccessful && baseSaveIterator != player_bases.end()) {
+			auto& pb = baseSaveIterator->second;
+			if (pb->logic == 1 || pb->invulnerable == 0) {
+				pb->Save();
+				saveSuccessful = true;
+			}
+			baseSaveIterator++;
+		}
 	}
 
 	if (ExportType == 0 || ExportType == 2)
@@ -1370,7 +1465,7 @@ void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientI
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 }
 
-int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int iCancel, enum DOCK_HOST_RESPONSE response)
+int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
 
@@ -1408,8 +1503,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					if (foundid == false)
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with this ID.");
-						pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+						iCancel = -1;
+						response = ACCESS_DENIED;
 						return 0;
 					}
 				}
@@ -1437,8 +1532,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 					if (foundclass == false)
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
-						pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-						returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+						iCancel = -1;
+						response = ACCESS_DENIED;
 						return 0;
 					}
 				}
@@ -1455,9 +1550,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 				const Universe::ISystem *iSys = Universe::get_system(pbase->destsystem);
 				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
 
-				//PrintUserCmdText(client, L"Jump to system=%s x=%0.0f y=%0.0f z=%0.0f\n", wscSysName.c_str(), pos.x, pos.y, pos.z);
 				AP::SwitchSystem(client, pbase->destsystem, pos, ornt);
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = DOCK;
 				return 1;
 			}
 
@@ -1465,16 +1560,16 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int i
 			if (pbase->shield_active_time)
 			{
 				PrintUserCmdText(client, L"Docking failed because base shield is active");
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 
 			if (!IsDockingAllowed(pbase, client))
 			{
 				PrintUserCmdText(client, L"Docking at this base is restricted");
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+				iCancel = -1;
+				response = ACCESS_DENIED;
 				return 0;
 			}
 
@@ -2080,7 +2175,7 @@ void __stdcall CShip_destroy(CShip* ship)
 
 	// Dispatch the destroy event to the appropriate module.
 	uint space_obj = ship->get_id();
-	map<uint, Module*>::iterator i = spaceobj_modules.find(space_obj);
+	auto& i = spaceobj_modules.find(space_obj);
 	if (i != spaceobj_modules.end())
 	{
 		returncode = SKIPPLUGINS;
@@ -2091,7 +2186,7 @@ void __stdcall CShip_destroy(CShip* ship)
 void BaseDestroyed(uint space_obj, uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	map<uint, Module*>::iterator i = spaceobj_modules.find(space_obj);
+	auto& i = spaceobj_modules.find(space_obj);
 	if (i != spaceobj_modules.end())
 	{
 		returncode = SKIPPLUGINS;
@@ -2099,92 +2194,77 @@ void BaseDestroyed(uint space_obj, uint client)
 	}
 }
 
-void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short p1, float& damage, enum DamageEntry::SubObjFate fate)
+void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate& fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgToSpaceID && dmg->get_inflictor_id())
+	if (!iDmgToSpaceID || !dmg->get_inflictor_id())
 	{
-		float curr, max;
-		pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
+		return;
+	}
+	
+	if (!spaceobj_modules.count(iDmgToSpaceID)) {
+		return;
+	}
 
-		map<uint, Module*>::iterator i = spaceobj_modules.find(iDmgToSpaceID);
-		if ((i != spaceobj_modules.end()) && (i->second->mining == false))
-		{
-			if (set_plugin_debug)
-				ConPrint(L"HkCb_AddDmgEntry iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f damage=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
-					iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, damage, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);
+	Module* damagedModule = spaceobj_modules[iDmgToSpaceID];
+	if(damagedModule->mining){
+		return;
+	}
+	
+	if (set_holiday_mode)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		iDmgToSpaceID = 0;
+		return;
+	}
 
-			if (set_holiday_mode)
-			{
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				iDmgToSpaceID = 0;
-				return;
-			}
+	// If this is an NPC hit then suppress the call completely
+	if (!dmg->is_inflictor_a_player())
+	{
+		if (set_plugin_debug)
+			ConPrint(L"HkCb_AddDmgEntry[2] suppressed - npc\n");
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		iDmgToSpaceID = 0;
+		return;
+	}
 
-			// A work around for an apparent bug where mines/missiles at the base
-			// causes the base damage to jump down to 0 even if the base is
-			// otherwise healthy.
-			if (damage == 0.0f /*&& dmg->get_cause()==7*/ && curr > 200000)
-			{
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
-				return;
-			}
+	float curr, max;
+	pub::SpaceObj::GetHealth(iDmgToSpaceID, curr, max);
 
-			// If this is an NPC hit then suppress the call completely
-			if (!dmg->is_inflictor_a_player())
-			{
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[2] suppressed - npc\n");
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				iDmgToSpaceID = 0;
-				return;
-			}
+	if (set_plugin_debug)
+		ConPrint(L"HkCb_AddDmgEntry iDmgToSpaceID=%u get_inflictor_id=%u curr=%0.2f max=%0.0f newHealth=%0.2f cause=%u is_player=%u player_id=%u fate=%u\n",
+			iDmgToSpaceID, dmg->get_inflictor_id(), curr, max, newHealth, dmg->get_cause(), dmg->is_inflictor_a_player(), dmg->get_inflictor_owner_player(), fate);
 
-			// Ask the combat magic plugin if we need to do anything differently
-			COMBAT_DAMAGE_OVERRIDE_STRUCT info;
-			info.iMunitionID = iDmgMunitionID;
-			info.fDamageMultiplier = 0.0f;
-			Plugin_Communication(COMBAT_DAMAGE_OVERRIDE, &info);
+	// A work around for an apparent bug where mines/missiles at the base
+	// causes the base damage to jump down to 0 even if the base is
+	// otherwise healthy.
+	if (newHealth == 0.0f /*&& dmg->get_cause()==7*/ && curr > 200000)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		if (set_plugin_debug)
+			ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
+		return;
+	}
 
-			if (info.fDamageMultiplier != 0.0f)
-			{
-				//ConPrint(L"base: Got a response back, info.fDamage = %0.0f\n", info.fDamage);
-				//ConPrint(L"base: Got a response back, changing damage = %0.0f -> ", damage);
-				damage = (curr - (curr - damage) * info.fDamageMultiplier);
-				if (damage < 0.0f)
-					damage = 0.0f;
-				//ConPrint(L"%0.0f\n", damage);
-			}
+	// This call is for us, skip all plugins.
+	iDmgToSpaceID = 0;
+	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
+	if (newHealth == curr) {
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		return;
+	}
 
-			// This call is for us, skip all plugins.		
-			float new_damage = i->second->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, damage);
-			returncode = SKIPPLUGINS;
+	returncode = SKIPPLUGINS;
 
-			if (new_damage == 0.0f)
-			{
-				new_damage = damage;
-			}
-
-			if (new_damage <= 0 && p1 == 1)
-			{
-				uint iType;
-				pub::SpaceObj::GetType(iDmgToSpaceID, iType);
-				uint iClientIDKiller = HkGetClientIDByShip(dmg->get_inflictor_id());
-				if (set_plugin_debug)
-					ConPrint(L"HkCb_AddDmgEntry[3]: iType is %u, iClientIDKiller is %u\n", iType, iClientIDKiller);
-				if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
-					BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
-			}
-
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-			if (set_plugin_debug)
-				ConPrint(L"HkCb_AddDmgEntry[4] suppressed - shield up - new_damage=%0.0f\n", new_damage);
-			dmg->add_damage_entry(p1, new_damage, fate);
-			iDmgToSpaceID = 0;
-			return;
-		}
+	if (newHealth <= 0 && sID == 1)
+	{
+		uint iType;
+		pub::SpaceObj::GetType(iDmgToSpaceID, iType);
+		uint iClientIDKiller = HkGetClientIDByShip(dmg->get_inflictor_id());
+		if (set_plugin_debug)
+			ConPrint(L"HkCb_AddDmgEntry[2]: iType is %u, iClientIDKiller is %u\n", iType, iClientIDKiller);
+		if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
+			BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
 	}
 }
 
@@ -2803,6 +2883,25 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		set_plugin_debug = 0;
 		cmd->Print(L"OK base debug is off.\n");
 		return true;
+	}
+	else if (args.find(L"checkbasedistances") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		for (const auto& base : player_bases)
+		{
+			if (base.second->basetype != "legacy" || base.second->invulnerable || !base.second->logic)
+				continue;
+
+			Vector& pos = base.second->position;
+			uint system = base.second->system;
+			if (!PlayerCommands::CheckSolarDistances(0, system, pos))
+			{
+				ConPrint(L" - %ls\n", base.second->basename.c_str());
+			}
+		}
 	}
 
 	return false;

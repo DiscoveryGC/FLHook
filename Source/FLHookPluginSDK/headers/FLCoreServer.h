@@ -54,6 +54,13 @@ enum MissionMessageType
 	MissionMessageType_Type3, // mission success
 };
 
+struct SSPUseItem
+{
+	uint iUserShip;
+	ushort sItemId;
+	ushort sAmountUsed;
+};
+
 struct SSPMunitionCollisionInfo
 {
 	uint iProjectileArchID;

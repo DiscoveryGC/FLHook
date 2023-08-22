@@ -825,21 +825,21 @@ namespace HyperJump
 		return true;
 	}
 
-	bool HyperJump::UserCmd_ListJumpableSystems(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
+	void ListJumpableSystems(uint iClientID)
 	{
 		uint iSystemID;
 		pub::Player::GetSystem(iClientID, iSystemID);
 		const auto& playerJumpDrive = mapJumpDrives[iClientID];
 		if (!InitJumpDriveInfo(iClientID)) {
 			PrintUserCmdText(iClientID, L"ERR Jump Drive not equipped");
-			return true;
+			return;
 		}
 
 		if (JumpSystemListEnabled == 1)
 		{
 			if (mapAvailableJumpSystems.count(iSystemID) == 0) {
 				PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
-				return true;
+				return;
 			}
 
 			PrintUserCmdText(iClientID, L"You are allowed to jump to:");
@@ -858,7 +858,6 @@ namespace HyperJump
 		{
 			PrintUserCmdText(iClientID, L"Jump System Whitelisting is not enabled.");
 		}
-		return true;
 	}
 
 	bool HyperJump::UserCmd_IsSystemJumpable(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage) {
@@ -927,50 +926,51 @@ namespace HyperJump
 
 		for (struct Universe::ISystem *sysinfo = Universe::GetFirstSystem(); sysinfo; sysinfo = Universe::GetNextSystem())
 		{
-			const auto& fullSystemName = HkGetWStringFromIDS(sysinfo->strid_name);
-			if (ToLower(fullSystemName) == targetSystem) {
-				uint &iTargetSystemID = sysinfo->id;
-
-				uint iPlayerSystem;
-				pub::Player::GetSystem(iClientID, iPlayerSystem);
-				auto canJump = IsSystemJumpable(iPlayerSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range);
-				if (JumpSystemListEnabled && !canJump.first) {
-					PrintUserCmdText(iClientID, L"System out of range, use /jumplist for a list of valid destinations");
-					return false;
-				}
-				if (mapSystemJumps.count(iTargetSystemID) == 0) {
-					PrintUserCmdText(iClientID, L"ERR Jumps to selected system not configured, please report the issue to the staff");
-					return false;
-				}
-				auto& jumpCoordList = mapSystemJumps[iTargetSystemID];
-				uint sectorSelectedIndex = rand() % jumpCoordList.size();
-				auto& jumpCoords = jumpCoordList.at(sectorSelectedIndex);
-				mapJumpDrives[iClientID].iTargetSystem = iTargetSystemID;
-				mapJumpDrives[iClientID].vTargetPosition = jumpCoords.pos;
-				mapJumpDrives[iClientID].matTargetOrient = jumpCoords.ornt;
-
-				jd.jumpDistance = canJump.second;
-
-				PrintUserCmdText(iClientID, L"System locked in, jumping to %ls, sector %ls", fullSystemName.c_str(), jumpCoords.sector.c_str());
-				if (mapSystemJumps[iTargetSystemID].size() > 1) {
-					PrintUserCmdText(iClientID, L"Alternate jump coordinates available, use /setsector to switch");
-					int iCount = 1;
-					for (auto coord : mapSystemJumps[iTargetSystemID]) {
-						if (sectorSelectedIndex + 1 == iCount)
-						{
-							PrintUserCmdText(iClientID, L"%u. %ls - selected", iCount, coord.sector.c_str());
-						}
-						else
-						{
-							PrintUserCmdText(iClientID, L"%u. %ls", iCount, coord.sector.c_str());
-						}
-						iCount++;
-					}
-				}
-				return true;
+			const auto& fullSystemName = ToLower(HkGetWStringFromIDS(sysinfo->strid_name));
+			if (fullSystemName != targetSystem) {
+				continue;
 			}
+			uint &iTargetSystemID = sysinfo->id;
+
+			uint iPlayerSystem;
+			pub::Player::GetSystem(iClientID, iPlayerSystem);
+			auto canJump = IsSystemJumpable(iPlayerSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range);
+			if (JumpSystemListEnabled && !canJump.first) {
+				PrintUserCmdText(iClientID, L"System out of range, use /jumplist for a list of valid destinations");
+				return false;
+			}
+			if (mapSystemJumps.count(iTargetSystemID) == 0) {
+				PrintUserCmdText(iClientID, L"ERR Jumps to selected system not configured, please report the issue to the staff");
+				return false;
+			}
+			auto& jumpCoordList = mapSystemJumps[iTargetSystemID];
+			uint sectorSelectedIndex = rand() % jumpCoordList.size();
+			auto& jumpCoords = jumpCoordList.at(sectorSelectedIndex);
+			mapJumpDrives[iClientID].iTargetSystem = iTargetSystemID;
+			mapJumpDrives[iClientID].vTargetPosition = jumpCoords.pos;
+			mapJumpDrives[iClientID].matTargetOrient = jumpCoords.ornt;
+
+			jd.jumpDistance = canJump.second;
+
+			PrintUserCmdText(iClientID, L"System locked in, jumping to %ls, sector %ls", fullSystemName.c_str(), jumpCoords.sector.c_str());
+			if (mapSystemJumps[iTargetSystemID].size() > 1) {
+				PrintUserCmdText(iClientID, L"Alternate jump coordinates available, use /setsector to switch");
+				int iCount = 1;
+				++sectorSelectedIndex;
+				for (auto coord : mapSystemJumps[iTargetSystemID]) {
+					if (sectorSelectedIndex == iCount)
+					{
+						PrintUserCmdText(iClientID, L"%u. %ls - selected", iCount, coord.sector.c_str());
+					}
+					else
+					{
+						PrintUserCmdText(iClientID, L"%u. %ls", iCount, coord.sector.c_str());
+					}
+					iCount++;
+				}
+			}
+			return true;
 		}
-		PrintUserCmdText(iClientID, L"ERR Invalid system name");
 		return false;
 	}
 
@@ -1507,10 +1507,15 @@ namespace HyperJump
 
 		if (jd.charging_on)
 		{
-			if (ToLower(GetParam(wscParam, ' ', 0)) == L"stop")
+			wstring& input = ToLower(GetParam(wscParam, ' ', 0));
+			if (input == L"stop")
 			{
 				ShutdownJumpDrive(iClientID);
 				PrintUserCmdText(iClientID, L"Jump Drive disabled");
+			}
+			else if (input == L"list")
+			{
+				ListJumpableSystems(iClientID);
 			}
 			else
 			{
@@ -1519,8 +1524,10 @@ namespace HyperJump
 			return true;
 		}
 
-		if (!SetJumpSystem(iClientID, jd, GetParam(wscParam, ' ', 0)))
+		if (!SetJumpSystem(iClientID, jd, GetParamToEnd(wscParam, ' ', 0)))
 		{
+			PrintUserCmdText(iClientID, L"ERR Command or system name unrecognized");
+			PrintUserCmdText(iClientID, usage);
 			return true;
 		}
 

@@ -6,6 +6,9 @@
  */
 
 #include "Main.h"
+#include <thread>
+#include <atomic>
+#include <mutex>
 #include <ctime>
 
 PLUGIN_RETURNCODE returncode;
@@ -16,10 +19,13 @@ unordered_map<uint, CLIENT_DATA> mobiledockClients;
 
 unordered_map<wstring, CARRIERINFO> nameToCarrierInfoMap;
 unordered_map<wstring, DOCKEDCRAFTINFO> nameToDockedInfoMap;
+
 unordered_map<uint, CARRIERINFO*> idToCarrierInfoMap;
 unordered_map<uint, DOCKEDCRAFTINFO*> idToDockedInfoMap;
 
-uint saveFrequency = 7200; // once every 2 hours, possibly a heavy operation so doesn't have to happen often
+std::mutex saveMutex;
+std::thread saveThread;
+
 uint forgetCarrierDataInSeconds = 31556926; // since it's all kept in a single file, clear old enough values. Default value being a year
 
 // By default, docking is instant, but can be set to take defined number of seconds.
@@ -75,16 +81,12 @@ void LoadSettings()
 				{
 					if (ini.is_value("allowedmodule"))
 					{
-						dockingModuleEquipmentIds.push_back(CreateID(ini.get_value_string()));
+						dockingModuleEquipmentIds.emplace_back(CreateID(ini.get_value_string()));
 						dockingModAmount++;
 					}
 					else if (ini.is_value("cargo_capacity_limit"))
 					{
 						cargoCapacityLimit = ini.get_value_int(0);
-					}
-					else if (ini.is_value("save_frequency"))
-					{
-						saveFrequency = ini.get_value_int(0);
 					}
 					else if (ini.is_value("carrier_data_wipe_period"))
 					{
@@ -130,6 +132,7 @@ void LoadSettings()
 
 	if (ini.open(scCarrierDataFile.c_str(), false))
 	{
+		std::lock_guard<std::mutex> saveLock(saveMutex);
 		time_t curTime = time(0);
 		while (ini.read_header())
 		{
@@ -173,7 +176,7 @@ void LoadSettings()
 						nameToDockedInfoMap[dockedShipName].carrierName = carrierName.c_str();
 						nameToDockedInfoMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
 
-						ci.dockedShipList.push_back(dockedShipName);
+						ci.dockedShipList.emplace_back(dockedShipName);
 						dockedCount++;
 					}
 				}
@@ -200,37 +203,44 @@ void LoadSettings()
 
 void SaveData()
 {
-	if (nameToCarrierInfoMap.empty()){
-		return;
-	}
-	char datapath[MAX_PATH];
-	GetUserDataPath(datapath);
-	string path = string(datapath) + "\\Accts\\MultiPlayer\\docking_module\\mobile_docking.ini";
-	FILE *file = fopen(path.c_str(), "w");
-	if (file)
+	while (true)
 	{
-		for (const auto& ci : nameToCarrierInfoMap)
-		{
-			if (ci.second.dockedShipList.empty())
-			{
-				continue;
-			}
-			fprintf(file, "[CarrierData]\n");
-			fprintf(file, "carrier = %ls\n", ci.first.c_str());
-			fprintf(file, "lastLogin = %u\n", (uint)ci.second.lastCarrierLogin);
-			for (const wstring& dockedName : ci.second.dockedShipList)
-			{
-				const auto& lastSolarInfo = Universe::get_base(nameToDockedInfoMap[dockedName.c_str()].lastDockedSolar);
-				fprintf(file, "docked = %ls, %s\n", dockedName.c_str(), lastSolarInfo->cNickname);
-			}
-		}
+		std::this_thread::sleep_for(std::chrono::minutes(1));
 
-		fclose(file);
-	}
-	else
-	{
-		ConPrint(L"ERROR MobileDock failed to open the player data file!\n");
-		AddLog("ERROR MobileDock failed to open the player data file!\n");
+		if (nameToCarrierInfoMap.empty())
+		{
+			return;
+		}
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+		string path = string(datapath) + "\\Accts\\MultiPlayer\\docking_module\\mobile_docking.ini";
+		FILE* file = fopen(path.c_str(), "w");
+		if (file)
+		{
+			std::lock_guard<std::mutex> saveLock(saveMutex);
+			for (const auto& ci : nameToCarrierInfoMap)
+			{
+				if (ci.second.dockedShipList.empty())
+				{
+					continue;
+				}
+				fprintf(file, "[CarrierData]\n");
+				fprintf(file, "carrier = %ls\n", ci.first.c_str());
+				fprintf(file, "lastLogin = %u\n", (uint)ci.second.lastCarrierLogin);
+				for (const wstring& dockedName : ci.second.dockedShipList)
+				{
+					const auto& lastSolarInfo = Universe::get_base(nameToDockedInfoMap[dockedName.c_str()].lastDockedSolar);
+					fprintf(file, "docked = %ls, %s\n", dockedName.c_str(), lastSolarInfo->cNickname);
+				}
+			}
+
+			fclose(file);
+		}
+		else
+		{
+			ConPrint(L"ERROR MobileDock failed to open the player data file!\n");
+			AddLog("ERROR MobileDock failed to open the player data file!\n");
+		}
 	}
 }
 
@@ -273,9 +283,12 @@ void DockShipOnCarrier(uint dockingID, uint carrierID)
 	const wchar_t* carrierName = (const wchar_t*)Players.GetActiveCharacterName(carrierID);
 	const wchar_t* dockedName = (const wchar_t*)Players.GetActiveCharacterName(dockingID);
 
+
+	std::lock_guard<std::mutex> saveLock(saveMutex);
+
 	nameToDockedInfoMap[dockedName].carrierName = carrierName;
 	nameToDockedInfoMap[dockedName].lastDockedSolar = Players[dockingID].iLastBaseID;
-	nameToCarrierInfoMap[carrierName].dockedShipList.push_back(dockedName);
+	nameToCarrierInfoMap[carrierName].dockedShipList.emplace_back(dockedName);
 	nameToCarrierInfoMap[carrierName].lastCarrierLogin = time(0);
 	idToCarrierInfoMap[carrierID] = &nameToCarrierInfoMap[carrierName];
 	idToDockedInfoMap[dockingID] = &nameToDockedInfoMap[dockedName];
@@ -345,11 +358,6 @@ void HkTimerCheckKick()
 
 		PrintUserCmdText(dd.dockingID, L"Docking in %us", dd.timeLeft);
 		dockdata++;
-	}
-
-	if ((time(0) + 60) % saveFrequency == 0) // 60 second offset so it happens before daily restart at full hour
-	{
-		SaveData();
 	}
 }
 
@@ -438,6 +446,7 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 		for (auto& iter = dockedList.begin(); iter != dockedList.end(); iter++) {
 			if (*iter == dockedShipName)
 			{
+				std::lock_guard<std::mutex> saveLock(saveMutex);
 				dockedList.erase(iter);
 				break;
 			}
@@ -1059,6 +1068,8 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 12));
+
+	saveThread = std::thread(SaveData);
 
 	return p_PI;
 }

@@ -23,6 +23,8 @@ unordered_set<uint> setNoTrackingAlertProjectiles;
 unordered_map<uint, uint> mapTrackingByObjTypeBlacklistBitmap;
 uint lastProcessedProjectile = 0;
 
+constexpr uint shipObjType = (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL);
+
 enum TRACKING_STATE {
 	TRACK_ALERT,
 	TRACK_NOALERT,
@@ -33,14 +35,15 @@ void LoadSettings();
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-	srand((uint)time(0));
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
 		if (set_scCfgFile.length() > 0)
+		{
 			LoadSettings();
+		}
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
@@ -55,8 +58,6 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 	return returncode;
 }
 
-bool bPluginEnabled = true;
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,57 +70,65 @@ void LoadSettings()
 
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\munitioncntl.cfg";
+	string scPluginCfgFile = string(szCurDir) + R"(\flhook_plugins\munitioncntl.cfg)";
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
-		while (ini.read_header())
+		return;
+	}
+	while (ini.read_header())
+	{
+		if (ini.is_header("NoTrackingAlert"))
 		{
-			if (ini.is_header("NoTrackingAlert"))
+			while (ini.read_value())
 			{
-				while (ini.read_value())
+				if (ini.is_value("MissileArch"))
 				{
-					if (ini.is_value("MissileArch"))
-					{
-						setNoTrackingAlertProjectiles.insert(CreateID(ini.get_value_string(0)));
-					}
+					setNoTrackingAlertProjectiles.insert(CreateID(ini.get_value_string(0)));
 				}
-			}
-			else if (ini.is_header("TrackingBlacklist"))
-			{
-				uint missileArch = 0;
-				uint blacklistedTrackingTypesBitmap = 0;
-				while (ini.read_value())
-				{
-					if (ini.is_value("MissileArch"))
-					{
-						missileArch = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("Type"))
-					{
-						string typeStr = ToLower(ini.get_value_string(0));
-						if (typeStr.find("fighter") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_FIGHTER;
-						if (typeStr.find("freighter") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_FREIGHTER;
-						if (typeStr.find("transport") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_TRANSPORT;
-						if (typeStr.find("gunboat") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_GUNBOAT;
-						if (typeStr.find("cruiser") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_CRUISER;
-						if (typeStr.find("capital") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_CAPITAL;
-						if (typeStr.find("guided") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_GUIDED;
-						if (typeStr.find("mine") != string::npos)
-							blacklistedTrackingTypesBitmap |= OBJ_MINE;
-					}
-				}
-				mapTrackingByObjTypeBlacklistBitmap[missileArch] = blacklistedTrackingTypesBitmap;
 			}
 		}
-		ini.close();
+		else if (ini.is_header("TrackingBlacklist"))
+		{
+			uint missileArch = 0;
+			uint blacklistedTrackingTypesBitmap = 0;
+			while (ini.read_value())
+			{
+				if (ini.is_value("MissileArch"))
+				{
+					missileArch = CreateID(ini.get_value_string(0));
+				}
+				else if (ini.is_value("Type"))
+				{
+					string typeStr = ToLower(ini.get_value_string(0));
+					if (typeStr.find("fighter") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_FIGHTER;
+					if (typeStr.find("freighter") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_FREIGHTER;
+					if (typeStr.find("transport") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_TRANSPORT;
+					if (typeStr.find("gunboat") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_GUNBOAT;
+					if (typeStr.find("cruiser") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_CRUISER;
+					if (typeStr.find("capital") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_CAPITAL;
+					if (typeStr.find("guided") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_GUIDED;
+					if (typeStr.find("mine") != string::npos)
+						blacklistedTrackingTypesBitmap |= OBJ_MINE;
+				}
+			}
+			if (missileArch && blacklistedTrackingTypesBitmap)
+			{
+				mapTrackingByObjTypeBlacklistBitmap[missileArch] = blacklistedTrackingTypesBitmap;
+			}
+			else
+			{
+				ConPrint(L"MunitionCntl: Error! Incomplete [TrackingBlacklist] definition in config files!\n");
+			}
+		}
 	}
+	ini.close();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,8 +139,10 @@ void ProcessGuided(FLPACKET_CREATEGUIDED& createGuidedPacket)
 {
 	uint ownerType;
 	pub::SpaceObj::GetType(createGuidedPacket.iOwner, ownerType);
-	if (!(ownerType & (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL))) //GetTarget throws an exception for non-ship entities.
+	if (!(ownerType & shipObjType)) //GetTarget throws an exception for non-ship entities.
+	{
 		return;
+	}
 	uint targetId;
 	pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
 

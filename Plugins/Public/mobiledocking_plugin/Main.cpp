@@ -14,7 +14,8 @@
 PLUGIN_RETURNCODE returncode;
 unordered_map<uint, uint> mapPendingDockingRequests;
 unordered_map<uint, DELAYEDDOCK> dockingInProgress;
-vector<uint> dockingModuleEquipmentIds;
+
+unordered_map<uint, uint> dockingModuleEquipmentCapacityMap;
 unordered_map<uint, CLIENT_DATA> mobiledockClients;
 
 unordered_map<wstring, CARRIERINFO> nameToCarrierInfoMap;
@@ -79,9 +80,9 @@ void LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					if (ini.is_value("allowedmodule"))
+					if (ini.is_value("module"))
 					{
-						dockingModuleEquipmentIds.emplace_back(CreateID(ini.get_value_string()));
+						dockingModuleEquipmentCapacityMap[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
 						dockingModAmount++;
 					}
 					else if (ini.is_value("cargo_capacity_limit"))
@@ -466,12 +467,9 @@ uint GetInstalledModules(uint iClientID)
 	// Check to see if the vessel undocking currently has a docking module equipped
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
-		if (find(dockingModuleEquipmentIds.begin(), dockingModuleEquipmentIds.end(), item->iArchID) != dockingModuleEquipmentIds.end())
+		if (item->bMounted && dockingModuleEquipmentCapacityMap.count(item->iArchID))
 		{
-			if (item->bMounted)
-			{
-				modules++;
-			}
+			modules += dockingModuleEquipmentCapacityMap.at(item->iArchID);
 		}
 	}
 

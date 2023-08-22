@@ -186,7 +186,16 @@ void PlayerBase::Load()
 					}
 					else if (ini.is_value("system"))
 					{
-						system = ini.get_value_int(0);
+						string sysNickname = ini.get_value_string(0);
+						uint systemId = Universe::get_system_id(sysNickname.c_str());
+						if (systemId)
+						{
+							system = systemId;
+						}
+						else
+						{
+							system = ini.get_value_int(0);
+						}
 					}
 					else if (ini.is_value("pos"))
 					{
@@ -390,7 +399,8 @@ void PlayerBase::Save()
 		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 
 		fprintf(file, "money = %I64d\n", money);
-		fprintf(file, "system = %u\n", system);
+		auto sysInfo = Universe::get_system(system);
+		fprintf(file, "system = %s\n", sysInfo->nickname);
 		fprintf(file, "pos = %0.0f, %0.0f, %0.0f\n", position.x, position.y, position.z);
 
 		Vector vRot = MatrixToEuler(rotation);

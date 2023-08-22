@@ -52,10 +52,10 @@ struct ARCHTYPE_STRUCT
 	list<uint> allowedids;
 	int shipclassrestriction;
 	list<uint> allowedshipclasses;
-	int isjump;
-	bool ishubreturn;
-	bool display;
-	bool mining;
+	bool isjump = false;
+	bool ishubreturn = false;
+	bool display = false;
+	bool mining = false;
 	string miningevent;
 };
 

@@ -334,7 +334,9 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 		const auto& coordsList = mapSystemJumps[legalReturnSystems.at(index)];
 		const auto& coords = coordsList.at(rand() % coordsList.size());
 
-		SetupCustomExitHole(pb, coords, exitJumpHoleLoadout, exitJumpHoleArchetype);
+		pb->destSystem = coords.system;
+		pb->destPos = coords.pos;
+		pb->destOri = coords.ornt;
 
 		const auto& systemInfo = Universe::get_system(coords.system);
 		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";

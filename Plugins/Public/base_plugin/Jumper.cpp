@@ -62,18 +62,23 @@ void HyperJump::InitJumpHole(uint baseId, uint destSystem, uint destObject)
 	memcpy((char*)solar + (0x6e * 4), &destObject, 4);
 }
 
-void SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
+bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
 {
 	static uint counter = 0;
 	auto systemInfo = Universe::get_system(coords.system);
+	if (!systemInfo)
+	{
+		return false;
+	}
 	string baseNickName = "custom_return_hole_exit_" + (string)systemInfo->nickname;
 	counter++;
 
 	if (pub::SpaceObj::ExistsAndAlive(CreateID(baseNickName.c_str())) == 0)
 	{
-		return;
+		return false;
 	}
 
+	ConPrint(L"2");
 	SPAWN_SOLAR_STRUCT info;
 	info.overwrittenName = L"Unstable Jump Hole Exit Point";
 	info.iSystemId = coords.system;
@@ -99,6 +104,7 @@ void SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpH
 	memcpy((char*)solar + (0x6e * 4), &pb->destObject, 4);
 
 	customSolarList.insert(info.iSpaceObjId);
+	return true;
 }
 
 void HyperJump::InitJumpHoleConfig()
@@ -113,6 +119,7 @@ void HyperJump::InitJumpHoleConfig()
 
 	for (auto& base : player_bases)
 	{
+		bool completedLoad = false;
 		PlayerBase* pbase = base.second;
 		if (!mapArchs[pbase->basetype].isjump)
 		{
@@ -122,12 +129,17 @@ void HyperJump::InitJumpHoleConfig()
 		if (mapArchs[pbase->basetype].ishubreturn)
 		{
 			SYSTEMJUMPCOORDS coords = { pbase->destSystem, pbase->destPos, pbase->destOri };
-			SetupCustomExitHole(pbase, coords, exitJumpHoleLoadout, exitJumpHoleArchetype);
+			completedLoad = SetupCustomExitHole(pbase, coords, exitJumpHoleLoadout, exitJumpHoleArchetype);
 		}
 		else if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == -2) // method returns 0 for alive, -2 otherwise
 		{
+			completedLoad = false;
+		}
+		
+		if (!completedLoad)
+		{
 			wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\') + 1));
-			ConPrint(L"ERROR: Jump Base %ls's jump target does not exist, despawning it to prevent issues\nfilename: %ls\n", pbase->basename.c_str(), fileName.c_str());
+			ConPrint(L"ERROR: Jump Base %ls's jump target/target system does not exist, despawning it to prevent issues\nfilename: %ls\n", pbase->basename.c_str(), fileName.c_str());
 			pbase->base_health = 0;
 			CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
 

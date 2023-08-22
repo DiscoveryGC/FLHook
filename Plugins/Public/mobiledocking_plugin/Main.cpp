@@ -81,7 +81,7 @@ void LoadSettings()
 				{
 					if (ini.is_value("allowedmodule"))
 					{
-						dockingModuleEquipmentIds.push_back(CreateID(ini.get_value_string()));
+						dockingModuleEquipmentIds.emplace_back(CreateID(ini.get_value_string()));
 						dockingModAmount++;
 					}
 					else if (ini.is_value("cargo_capacity_limit"))
@@ -132,6 +132,7 @@ void LoadSettings()
 
 	if (ini.open(scCarrierDataFile.c_str(), false))
 	{
+		std::lock_guard<std::mutex> saveLock(saveMutex);
 		time_t curTime = time(0);
 		while (ini.read_header())
 		{
@@ -175,13 +176,12 @@ void LoadSettings()
 						nameToDockedInfoMap[dockedShipName].carrierName = carrierName.c_str();
 						nameToDockedInfoMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
 
-						ci.dockedShipList.push_back(dockedShipName);
+						ci.dockedShipList.emplace_back(dockedShipName);
 						dockedCount++;
 					}
 				}
 				if (doLoad)
 				{
-					std::lock_guard<std::mutex> saveLock(saveMutex);
 					nameToCarrierInfoMap[carrierName] = ci;
 					carrierCount++;
 				}
@@ -289,7 +289,7 @@ void DockShipOnCarrier(uint dockingID, uint carrierID)
 
 	nameToDockedInfoMap[dockedName].carrierName = carrierName;
 	nameToDockedInfoMap[dockedName].lastDockedSolar = Players[dockingID].iLastBaseID;
-	nameToCarrierInfoMap[carrierName].dockedShipList.push_back(dockedName);
+	nameToCarrierInfoMap[carrierName].dockedShipList.emplace_back(dockedName);
 	nameToCarrierInfoMap[carrierName].lastCarrierLogin = time(0);
 	idToCarrierInfoMap[carrierID] = &nameToCarrierInfoMap[carrierName];
 	idToDockedInfoMap[dockingID] = &nameToDockedInfoMap[dockedName];

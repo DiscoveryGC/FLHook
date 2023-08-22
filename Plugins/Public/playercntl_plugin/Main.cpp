@@ -593,8 +593,10 @@ namespace HkIServerImpl
 
 		// If spin protection is off, do nothing.
 		if (!ci.dwTargetShip || set_fSpinProtectMass == -1.0f)
+		{
 			return;
-
+		}
+		
 		uint type;
 		pub::SpaceObj::GetType(ci.dwTargetShip, type);
 

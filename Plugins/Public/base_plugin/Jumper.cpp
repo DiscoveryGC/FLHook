@@ -78,7 +78,6 @@ bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpH
 		return false;
 	}
 
-	ConPrint(L"2");
 	SPAWN_SOLAR_STRUCT info;
 	info.overwrittenName = L"Unstable Jump Hole Exit Point";
 	info.iSystemId = coords.system;
@@ -117,6 +116,7 @@ void HyperJump::InitJumpHoleConfig()
 	exitJumpHoleArchetype = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleArchetype", "flhook_jumphole").c_str());
 	exitJumpHoleLoadout = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleLoadout", "wormhole_unstable").c_str());
 
+	vector<PlayerBase*> invalidJumpHoles;
 	for (auto& base : player_bases)
 	{
 		bool completedLoad = false;
@@ -131,18 +131,14 @@ void HyperJump::InitJumpHoleConfig()
 			SYSTEMJUMPCOORDS coords = { pbase->destSystem, pbase->destPos, pbase->destOri };
 			completedLoad = SetupCustomExitHole(pbase, coords, exitJumpHoleLoadout, exitJumpHoleArchetype);
 		}
-		else if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == -2) // method returns 0 for alive, -2 otherwise
+		else if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == 0) // method returns 0 for alive, -2 otherwise
 		{
-			completedLoad = false;
+			completedLoad = true;
 		}
 		
 		if (!completedLoad)
 		{
-			wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\') + 1));
-			ConPrint(L"ERROR: Jump Base %ls's jump target/target system does not exist, despawning it to prevent issues\nfilename: %ls\n", pbase->basename.c_str(), fileName.c_str());
-			pbase->base_health = 0;
-			CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
-
+			invalidJumpHoles.emplace_back(pbase);
 			continue;
 		}
 
@@ -153,6 +149,14 @@ void HyperJump::InitJumpHoleConfig()
 		pbase->Save();
 
 		InitJumpHole(base.first, pbase->destSystem, pbase->destObject);
+	}
+
+	for (auto pbase : invalidJumpHoles)
+	{
+		wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\') + 1));
+		ConPrint(L"ERROR: Jump Base %ls's jump target/target system does not exist, despawning it to prevent issues\ntargetObject: %u, targetSystem: %u\nfilename: %ls\n", stows(pbase->nickname).c_str(), pbase->destObject, pbase->destSystem, fileName.c_str());
+		pbase->base_health = 0;
+		CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
 	}
 }
 

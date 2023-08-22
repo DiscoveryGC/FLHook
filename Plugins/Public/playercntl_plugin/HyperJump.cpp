@@ -76,6 +76,7 @@ namespace HyperJump
 	static uint set_entryJumpHoleArchetype = CreateID("flhook_jumphole");
 	static uint set_iJumpHoleDuration = 30;
 	static uint set_IDSNamespaceStart = 267200;
+	static uint set_maxJumpRange = 0;
 
 	struct JD_JUMPHOLE
 	{
@@ -222,7 +223,6 @@ namespace HyperJump
 		string scCfgFileSystemList = string(szCurDir) + "\\flhook_plugins\\jump_allowedsystems.cfg";
 
 		INI_Reader ini;
-		int maxJumpRange = 0;
 
 		if (ini.open(scCfgFileSystemList.c_str(), false))
 		{
@@ -249,9 +249,9 @@ namespace HyperJump
 						else if (ini.is_value("depth"))
 						{
 							jumpRange = ini.get_value_int(0);
-							if (jumpRange > maxJumpRange)
+							if (jumpRange > set_maxJumpRange)
 							{
-								maxJumpRange = jumpRange;
+								set_maxJumpRange = jumpRange;
 							}
 						}
 					}
@@ -387,7 +387,7 @@ namespace HyperJump
 							uint fuel = CreateValidID(ini.get_value_string(0));
 							int rate;
 							int i = 0;
-							for(int i = 0; i <= maxJumpRange; ++i)
+							for(int i = 0; i <= set_maxJumpRange; ++i)
 							{
 								rate = ini.get_value_int(i);
 								jd.mapFuelToUsagePerDistance[fuel].push_back(rate);
@@ -933,9 +933,11 @@ namespace HyperJump
 				}
 				auto& jumpCoordList = mapSystemJumps[set_blindJumpOverrideSystem];
 				auto& jumpCoords = jumpCoordList.at(rand() % jumpCoordList.size());
-				mapJumpDrives[iClientID].iTargetSystem = set_blindJumpOverrideSystem;
-				mapJumpDrives[iClientID].vTargetPosition = jumpCoords.pos;
-				mapJumpDrives[iClientID].matTargetOrient = jumpCoords.ornt;
+				JUMPDRIVE& jd = mapJumpDrives[iClientID];
+				jd.iTargetSystem = set_blindJumpOverrideSystem;
+				jd.vTargetPosition = jumpCoords.pos;
+				jd.matTargetOrient = jumpCoords.ornt;
+				jd.jumpDistance = set_maxJumpRange;
 			}
 			else
 			{

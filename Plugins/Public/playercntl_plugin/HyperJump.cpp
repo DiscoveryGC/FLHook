@@ -1117,7 +1117,6 @@ namespace HyperJump
 									PrintUserCmdText(iClientID, L"Jump drive charging complete, initiating jump sequence");
 									pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_complete"));
 									jd.jump_timer = 6;
-									continue;
 								}
 								jd.curr_charge += jd.arch->charge_rate;
 								successfulCharge = true;

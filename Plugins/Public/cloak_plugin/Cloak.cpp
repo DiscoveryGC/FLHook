@@ -78,6 +78,7 @@ struct CLOAK_INFO
 	bool bCanCloak;
 	mstime tmCloakTime;
 	uint iState;
+	float fuelUsageCounter;
 	bool bAdmin;
 	int DisruptTime;
 
@@ -333,8 +334,10 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 				currFuelUsage += fuelUsage.usageLinear * vecLength;
 				currFuelUsage += fuelUsage.usageSquare * vecLength * vecLength;
 			}
-			uint totalFuelUsage = static_cast<uint>(max(currFuelUsage, 0.0f));
-			if (item->iCount >= totalFuelUsage)
+			info.fuelUsageCounter += currFuelUsage;
+			uint totalFuelUsage = static_cast<uint>(max(info.fuelUsageCounter, 0.0f));
+			info.fuelUsageCounter -= static_cast<float>(totalFuelUsage);
+			if (totalFuelUsage && item->iCount >= totalFuelUsage)
 			{
 				pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);
 				return true;

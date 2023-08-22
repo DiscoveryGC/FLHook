@@ -10,10 +10,10 @@
 #include <set>
 #include <map>
 #include <algorithm>
-#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
+#include <unordered_map>
 
 using namespace std;
 
@@ -23,13 +23,20 @@ uint GetAffliationFromClient(uint client);
 
 struct RECIPE
 {
-	RECIPE() : produced_item(0), cooking_rate(0) {}
+	RECIPE() : produced_item(0), cooking_rate(0), credit_cost(0) {}
 	uint nickname;
 	uint produced_item;
+	uint shortcut_number;
+	uint produced_amount;
+	bool loop_production;
 	wstring infotext;
+	wstring craft_type;
 	uint cooking_rate;
-	map<uint, uint> consumed_items;
+	vector<pair<uint, uint>> consumed_items;
+	vector<pair<uint, uint>> catalyst_items;
+	uint credit_cost;
 	uint reqlevel;
+	unordered_map<uint, float> affiliationBonus;
 };
 
 struct BASE_VULNERABILITY_WINDOW {
@@ -97,14 +104,10 @@ public:
 	static const int TYPE_SHIELDGEN = 2;
 	static const int TYPE_STORAGE = 3;
 	static const int TYPE_DEFENSE_1 = 4;
-	static const int TYPE_M_DOCKING = 5;
-	static const int TYPE_M_JUMPDRIVES = 6;
-	static const int TYPE_M_HYPERSPACE_SCANNER = 7;
-	static const int TYPE_M_CLOAK = 8;
+	static const int TYPE_FACTORY = 5;
 	static const int TYPE_DEFENSE_2 = 9;
 	static const int TYPE_DEFENSE_3 = 10;
-	static const int TYPE_M_CLOAKDISRUPTOR = 11;
-	static const int TYPE_LAST = TYPE_M_CLOAKDISRUPTOR;
+
 
 	Module(uint the_type) : type(the_type) {}
 	virtual ~Module() {}
@@ -227,18 +230,17 @@ class BuildModule : public Module
 public:
 	PlayerBase *base;
 
-	int build_type;
-
 	RECIPE active_recipe;
 
 	BuildModule(PlayerBase *the_base);
-	BuildModule(PlayerBase *the_base, uint the_building_type);
+	BuildModule(PlayerBase *the_base, RECIPE* moduleRecipe);
 
 	wstring GetInfo(bool xml);
 
 	bool Paused = false;
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
+	static RECIPE* GetModuleRecipe(wstring module_name, wstring build_list);
 
 	bool Timer(uint time);
 };
@@ -248,6 +250,8 @@ class FactoryModule : public Module
 public:
 	PlayerBase *base;
 
+	uint factoryNickname;
+
 	// The currently active recipe
 	RECIPE active_recipe;
 
@@ -255,15 +259,20 @@ public:
 	list<uint> build_queue;
 
 	FactoryModule(PlayerBase *the_base);
-	FactoryModule(PlayerBase *the_base, uint type);
+	FactoryModule(PlayerBase *the_base, uint factoryNickname);
 	wstring GetInfo(bool xml);
 	void LoadState(INI_Reader &ini);
 	void SaveState(FILE *file);
+	void SetActiveRecipe(uint product);
 	bool Timer(uint time);
+	static FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct);
+	static RECIPE* FactoryModule::GetFactoryProductRecipe(wstring craftType, wstring product);
+	static void FactoryModule::StopAllProduction(PlayerBase* pb);
+	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;
 	bool ToggleQueuePaused(bool NewState);
-	bool AddToQueue(uint the_equipment_type);
+	void AddToQueue(uint product);
 	bool ClearQueue();
 	void ClearRecipe();
 };
@@ -405,6 +414,10 @@ public:
 
 	// Modules for base
 	vector<Module*> modules;
+	map<wstring, FactoryModule*> craftTypeTofactoryModuleMap;
+
+	// Available crafting types
+	set<wstring> availableCraftList;
 
 	// Path to base ini file.
 	string path;
@@ -413,7 +426,7 @@ public:
 	uint proxy_base;
 
 	// if true, the base was repaired or is able to be repaired
-	bool repairing;
+	bool isCrewSupplied;
 
 	// The state of the shield
 	static const int SHIELD_STATE_OFFLINE = 0;
@@ -549,11 +562,14 @@ namespace PlayerCommands
 	void BaseDefenseMode(uint client, const wstring &args);
 	void BaseDefMod(uint client, const wstring &args);
 	void BaseBuildMod(uint client, const wstring &args);
+	void BaseBuildModDestroy(uint client, const wstring &args);
 	void BaseFacMod(uint client, const wstring &args);
+	void PopulateHelpMenus();
 	void BaseShieldMod(uint client, const wstring &args);
 	void Bank(uint client, const wstring &args);
 	void Shop(uint client, const wstring &args);
 	void GetNecessitiesStatus(uint client, const wstring &args);
+	void BaseSwapModule(uint client, const wstring &args);
 	bool CheckSolarDistances(uint client, uint systemID, Vector pos);
 
 	void BaseDeploy(uint client, const wstring &args);
@@ -598,7 +614,16 @@ extern POBSOUNDS pbsounds;
 
 extern int set_plugin_debug;
 
-extern map<uint, RECIPE> recipes;
+/// Global recipe map
+extern map<uint, RECIPE> recipeMap;
+/// Maps of shortcut numbers to recipes to construct item.
+extern map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+extern map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+extern map<wstring, RECIPE> moduleNameRecipeMap;
+extern map<uint, RECIPE> moduleNumberRecipeMap;
+extern map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+extern set<wstring> buildingCraftLists;
 
 struct REPAIR_ITEM
 {
@@ -687,8 +712,6 @@ wstring HtmlEncode(wstring text);
 
 extern string set_status_path_html;
 extern string set_status_path_json;
-
-extern const char* MODULE_TYPE_NICKNAMES[13];
 
 extern float damage_threshold;
 

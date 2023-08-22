@@ -99,10 +99,10 @@ namespace MiscCmds
 	void AdminCmd_PlaySound(CCmds* cmds, const wstring &wscSoundname);
 	void AdminCmd_PlayNNM(CCmds* cmds, const wstring &wscSoundname);
 
-	void AdminCmd_SetHP(CCmds* cmds, const wstring& charName, uint hpPercentage);
-	void AdminCmd_SetHPFuse(CCmds* cmds, const wstring& charName, uint hpPercentage, const wstring& fuseName);
-	void AdminCmd_SetFuse(CCmds* cmds, const wstring& charName, const wstring& fuseName);
-	void AdminCmd_UnsetFuse(CCmds* cmds, const wstring& charName, const wstring& fuseName);
+	void AdminCmd_SetHP(CCmds* cmds, uint hpPercentage, const wstring& charName);
+	void AdminCmd_SetHPFuse(CCmds* cmds, uint hpPercentage, const wstring& fuseName, const wstring& charName);
+	void AdminCmd_SetFuse(CCmds* cmds, const wstring& fuseName, const wstring& charName);
+	void AdminCmd_UnsetFuse(CCmds* cmds, const wstring& fuseName, const wstring& charName);
 }
 
 namespace IPBans
@@ -271,6 +271,7 @@ namespace AntiJumpDisconnect
 	void JumpInComplete(unsigned int iSystem, unsigned int iShip, unsigned int iClientID);
 	void SystemSwitchOut(uint iClientID);
 	void CharacterInfoReq(unsigned int iClientID, bool p2);
+	bool IsInWarp(uint iClientID);
 }
 
 

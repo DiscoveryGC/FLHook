@@ -53,9 +53,12 @@ float set_iDockBroadcastRange = 9999;
 float set_fSpinProtectMass;
 float set_fSpinImpulseMultiplier;
 
+float set_fMinCLootRoadkillSpeed = 25.0f;
+
 // set of ships which cannot use TradeLane, and are blocked
 // from forming on other ships to bypass the block
 unordered_set<uint> setLaneAndFormationBannedShips;
+
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
 
@@ -124,8 +127,10 @@ void LoadSettings()
 	set_fSpinProtectMass = IniGetF(scPluginCfgFile, "General", "SpinProtectionMass", 180.0f);
 	set_fSpinImpulseMultiplier = IniGetF(scPluginCfgFile, "General", "SpinProtectionMultiplier", -1.0f);
 
-	set_iLocalChatRange = IniGetF(scPluginCfgFile, "General", "LocalChatRange", 0);
-	set_iDockBroadcastRange = IniGetF(scPluginCfgFile, "General", "DockBroadcastRange", 0);
+	set_iLocalChatRange = IniGetF(scPluginCfgFile, "General", "LocalChatRange", set_iLocalChatRange);
+	set_iDockBroadcastRange = IniGetF(scPluginCfgFile, "General", "DockBroadcastRange", set_iDockBroadcastRange);
+	
+	set_fMinCLootRoadkillSpeed = IniGetF(scPluginCfgFile, "General", "MinCLootRoadkillSpeed", 25.0f);
 
 	set_bLocalTime = IniGetB(scPluginCfgFile, "General", "LocalTime", false);
 
@@ -147,6 +152,7 @@ void LoadSettings()
 		}
 		ini.close();
 	}
+
 	//JDDisruptAmmo = CreateID("dsy_torpedo_jd_ammo");
 
 	ZoneUtilities::ReadUniverse();
@@ -343,7 +349,6 @@ namespace HkIEngine
 				}
 			}
 
-
 			if (!HyperJump::Dock_Call(iShip, iDockTarget))
 			{
 				dockPort = -1;
@@ -351,9 +356,7 @@ namespace HkIEngine
 				return 0;
 			}
 
-
 			SystemSensor::Dock_Call(iTypeID, iClientID);
-
 			return 0;
 		}
 		return 0;
@@ -433,18 +436,40 @@ namespace HkIServerImpl
 		}
 	}
 
-	void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
+	void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)
 	{
-		uint clientID = HkGetClientIDByShip(createGuidedPacket.iOwner);
-		if (!clientID)
-			return;
-		uint targetId;
-		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
-		if (targetId)
-			return;
+		const static uint NANOBOT_ARCH_ID = CreateID("ge_s_repair_01");
+		const static float NANOBOT_HEAL_AMOUNT = Archetype::GetEquipment(NANOBOT_ARCH_ID)->fHitPoints;
 
-		const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
-		projectile->set_target(nullptr);
+		returncode = DEFAULT_RETURNCODE;
+
+		float currHitPts, maxHitPts;
+		pub::SpaceObj::GetHealth(p1.iUserShip, currHitPts, maxHitPts);
+		if (currHitPts > 0)
+		{
+			return;
+		}
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		for (auto& eq : Players[iClientID].equipDescList.equip)
+		{
+			if (eq.sID == p1.sItemId)
+			{
+				if (eq.iArchID == NANOBOT_ARCH_ID)
+				{
+					uint amountToUse = static_cast<uint>(ceil((maxHitPts * 1.5) / NANOBOT_HEAL_AMOUNT));
+					if (amountToUse < p1.sAmountUsed)
+					{
+						pub::Player::RemoveCargo(iClientID, p1.sItemId, amountToUse);
+						pub::SpaceObj::SetRelativeHealth(p1.iUserShip, 1.0f);
+					}
+					else
+					{
+						pub::Audio::PlaySoundEffect(iClientID, CreateID("ui_select_reject"));
+					}
+				}
+				break;
+			}
+		}
 	}
 
 	void __stdcall RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4, unsigned int iClientID)
@@ -661,8 +686,29 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 
 		// If spin protection is off, do nothing.
-		if (set_fSpinProtectMass == -1.0f)
+		if (!ci.dwTargetShip || set_fSpinProtectMass == -1.0f)
+		{
 			return;
+		}
+		
+		uint type;
+		pub::SpaceObj::GetType(ci.dwTargetShip, type);
+
+		uint client_ship;
+		pub::Player::GetShip(iClientID, client_ship);
+
+		if (type == OBJ_LOOT)
+		{
+			Vector V1, V2;
+			pub::SpaceObj::GetMotion(client_ship, V1, V2);
+			float playerSpeed = sqrtf(V1.x * V1.x + V1.y * V1.y + V1.z * V1.z);
+			if (playerSpeed > set_fMinCLootRoadkillSpeed)
+			{
+				pub::SpaceObj::Destroy(ci.dwTargetShip, DestroyType::FUSE);
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			}
+			return;
+		}
 
 		// If the target is not a player, do nothing.
 		//uint iClientIDTarget = HkGetClientIDByShip(ci.dwTargetShip);
@@ -671,9 +717,6 @@ namespace HkIServerImpl
 
 		float target_mass;
 		pub::SpaceObj::GetMass(ci.dwTargetShip, target_mass);
-
-		uint client_ship;
-		pub::Player::GetShip(iClientID, client_ship);
 
 		float client_mass;
 		pub::SpaceObj::GetMass(client_ship, client_mass);
@@ -1666,25 +1709,25 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	else if (IS_CMD("sethp"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_SetHP(cmds, cmds->ArgCharname(1), cmds->ArgUInt(2));
+		MiscCmds::AdminCmd_SetHP(cmds, cmds->ArgUInt(1), cmds->ArgStr(2));
 		return true;
 	}
 	else if (IS_CMD("setfuse"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_SetFuse(cmds, cmds->ArgCharname(1), cmds->ArgStr(2));
+		MiscCmds::AdminCmd_SetFuse(cmds, cmds->ArgStr(1), cmds->ArgStr(2));
 		return true;
 	}
 	else if (IS_CMD("sethpfuse"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_SetHPFuse(cmds, cmds->ArgCharname(1), cmds->ArgUInt(2), cmds->ArgStr(3));
+		MiscCmds::AdminCmd_SetHPFuse(cmds, cmds->ArgUInt(1), cmds->ArgStr(2), cmds->ArgStr(3));
 		return true;
 	}
 	else if (IS_CMD("unsetfuse"))
 		{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		MiscCmds::AdminCmd_UnsetFuse(cmds, cmds->ArgCharname(1), cmds->ArgStr(2));
+		MiscCmds::AdminCmd_UnsetFuse(cmds, cmds->ArgStr(1), cmds->ArgStr(2));
 		return true;
 	}
 	return false;
@@ -1756,6 +1799,11 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		CUSTOM_JUMP_CALLOUT_STRUCT* jumpData = reinterpret_cast<CUSTOM_JUMP_CALLOUT_STRUCT*>(data);
 		HyperJump::ForceJump(*jumpData);
 	}
+	else if (msg == CUSTOM_IN_WARP_CHECK)
+	{
+		CUSTOM_IN_WARP_CHECK_STRUCT* checkData = reinterpret_cast<CUSTOM_IN_WARP_CHECK_STRUCT*>(data);
+		checkData->inWarp = AntiJumpDisconnect::IsInWarp(checkData->clientId);
+	}
 	return;
 }
 
@@ -1788,6 +1836,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::JumpInComplete_AFTER, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SystemSwitchOut, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SPObjCollision, PLUGIN_HkIServerImpl_SPObjCollision, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));
@@ -1809,7 +1858,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::StopTradelane, PLUGIN_HkIServerImpl_StopTradelane, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateNewCharacter, PLUGIN_HkIServerImpl_CreateNewCharacter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::DestroyCharacter, PLUGIN_HkIServerImpl_DestroyCharacter, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::UseItemRequest, PLUGIN_HkIServerImpl_SPRequestUseItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIEngine::Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_SendChat, PLUGIN_HkCb_SendChat, 0));

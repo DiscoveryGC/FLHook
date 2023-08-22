@@ -922,7 +922,7 @@ wstring CCmds::ArgCharname(uint iArg)
 			iClientID = HkGetClientIDByShip(iTarget);
 			if (!iClientID)
 				return L"";
-			return (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+			return L"id " + stows(itos(iClientID));
 		}
 		else
 			return wscArg;

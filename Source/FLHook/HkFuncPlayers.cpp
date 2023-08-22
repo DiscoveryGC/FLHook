@@ -217,7 +217,7 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 				if (wcsstr(buf, wscBasename.c_str()))
 				{
 					// Ignore the intro bases.
-					if (_strnicmp("intro", (char*)pBase->iDunno2, 5) != 0)
+					if (_strnicmp("intro", pBase->cNickname, 5) != 0)
 					{
 						iBaseID = pBase->iBaseID;
 						break;
@@ -250,6 +250,25 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 		Server.CharacterSelect(cID, iClientID);
 	}
 
+	return HKE_OK;
+}
+
+HK_ERROR HkBeamById(const uint clientId, const uint baseId)
+{
+	auto baseInfo = Universe::get_base(baseId);
+	pub::Player::ForceLand(clientId, baseId);
+	if (Players[clientId].iSystemID != baseInfo->iSystemID)
+	{
+		auto charName = (const wchar_t*)Players.GetActiveCharacterName(clientId);
+		Server.BaseEnter(baseInfo->iBaseID, clientId);
+		Server.BaseExit(baseInfo->iBaseID, clientId);
+		wstring wscCharFileName;
+		HkGetCharFileName(charName, wscCharFileName);
+		wscCharFileName += L".fl";
+		CHARACTER_ID cID;
+		strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
+		Server.CharacterSelect(cID, clientId);
+	}
 	return HKE_OK;
 }
 

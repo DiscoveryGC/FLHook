@@ -284,7 +284,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, ushort subObjID, float& setHeal
 	}
 	
 	// Collision Group Handling
-	if (iDmgTo && subObjID > 1 && subObjID <= 32) {
+	if (iDmgTo && subObjID > 1 && subObjID < 34) {
 		ClientInfo[iDmgTo].dmgLast = *dmg;
 		float currHullHP;
 		pub::SpaceObj::GetHealth(iDmgToSpaceID, currHullHP, max);

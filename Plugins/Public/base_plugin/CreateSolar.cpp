@@ -70,6 +70,8 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 
 	info->iSpaceObjId = spaceObjId;
 
+	pub::SpaceObj::SetRelativeHealth(spaceObjId, info->percentageHp);
+    
 	if (!info->destObj || !info->destSystem)
 	{
 		return;

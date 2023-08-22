@@ -16,8 +16,8 @@
 #include <string>
 #include <time.h>
 #include <math.h>
-#include <list>
 #include <map>
+#include <unordered_set>
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
@@ -65,7 +65,8 @@ EXPORT PLUGIN_RETURNCODE Get_PluginReturnCode()
 vector<const char*> listgraphs;
 
 vector<uint> npcnames;
-list<uint> npcs;
+unordered_set<uint> npcs;
+map<wstring, vector<uint>> npcsGroups;
 
 int ailoot = 0;
 
@@ -85,8 +86,15 @@ struct NPC_FLEETSTRUCT
 	map<wstring, int> fleetmember;
 };
 
+struct COORDS
+{
+	Vector pos;
+	Matrix ori;
+};
+
 static map<wstring, NPC_ARCHTYPESSTRUCT> mapNPCArchtypes;
 static map<wstring, NPC_FLEETSTRUCT> mapNPCFleets;
+static map<wstring, COORDS> coordList;
 
 pub::AI::SetPersonalityParams HkMakePersonality(int graphid)
 {
@@ -406,32 +414,35 @@ bool IsFLHookNPC(CShip* ship)
 	// if it's a player do nothing
 	if (ship->is_player() == true)
 	{
-		//HkMsgU(L"Death: was a player");
 		return false;
 	}
 
+	uint shipID = ship->get_id();
 	// is it an flhook npc
-	list<uint>::iterator iter = npcs.begin();
-	while (iter != npcs.end())
+	const auto& foundNPC = npcs.find(shipID);
+	if(foundNPC != npcs.end())
 	{
-		if (*iter == ship->get_id())
+		ship->clear_equip_and_cargo();
+		npcs.erase(foundNPC);
+		for (auto& npcGroup : npcsGroups)
 		{
-			ship->clear_equip_and_cargo();
-			//ConPrint(L"Death: FLHook NPC\n");
-			npcs.erase(iter);
-
-			return true;
-			break;
+			auto& groupList = npcGroup.second;
+			for (auto& i = groupList.begin(); i != groupList.end(); i++)
+			{
+				if (*i == shipID)
+				{
+					npcGroup.second.erase(i);
+					return true;
+				}
+			}
 		}
-		iter++;
 	}
 
-	//ConPrint(L"Death: was not an FLHook NPC\n");
 	return false;
 }
 
 
-void Log_CreateNPC(wstring name)
+void Log_CreateNPC(const wstring& name)
 {
 	//internal log
 	wstring wscMsgLog = L"created <%name>";
@@ -439,33 +450,6 @@ void Log_CreateNPC(wstring name)
 	string scText = wstos(wscMsgLog);
 	Logging("%s", scText.c_str());
 }
-
-/*
-void Notify_TradeEvent_Exit(uint iClientID, string eventname, string reason)
-{
-	//internal log
-	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	wstring wscMsgLog = L"<%player> has been unregistered from the event <%eventname>, reason: <%reason>";
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%player", wscCharname.c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%eventname", stows(eventname).c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%reason", stows(reason).c_str());
-	string scText = wstos(wscMsgLog);
-	Logging("%s", scText.c_str());
-}
-
-void Notify_TradeEvent_Completed(uint iClientID, string eventname, int iCargoCount, int iBonus)
-{
-	//internal log
-	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	wstring wscMsgLog = L"<%player> has completed the event <%eventname> and delivered <%units> for a bonus of <%bonus> credits";
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%player", wscCharname.c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%eventname", stows(eventname).c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%units", stows(itos(iCargoCount)).c_str());
-	wscMsgLog = ReplaceStr(wscMsgLog, L"%bonus", stows(itos(iBonus)).c_str());
-	string scText = wstos(wscMsgLog);
-	Logging("%s", scText.c_str());
-}
-*/
 
 void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 {
@@ -477,7 +461,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 	}
 }
 
-void CreateNPC(wstring name, Vector pos, Matrix rot, uint iSystem)
+void CreateNPC(const wstring& name, Vector pos, Matrix& rot, uint iSystem, const wstring& fleetName)
 {
 	NPC_ARCHTYPESSTRUCT arch = mapNPCArchtypes[name];
 
@@ -532,7 +516,8 @@ void CreateNPC(wstring name, Vector pos, Matrix rot, uint iSystem)
 	pub::AI::SetPersonalityParams pers = HkMakePersonality(arch.Graph);
 	pub::AI::SubmitState(iSpaceObj, &pers);
 
-	npcs.push_back(iSpaceObj);
+	npcs.insert(iSpaceObj);
+	npcsGroups[fleetName].push_back(iSpaceObj);
 
 	return;
 }
@@ -541,7 +526,7 @@ void CreateNPC(wstring name, Vector pos, Matrix rot, uint iSystem)
 //Client command processing
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void AdminCmd_AIMake(CCmds* cmds, int Amount, wstring NpcType)
+void AdminCmd_AIMake(CCmds* cmds, int Amount, const wstring& NpcType, const wstring& fleetName)
 {
 	RIGHT_CHECK(RIGHT_AICONTROL)
 
@@ -577,48 +562,65 @@ void AdminCmd_AIMake(CCmds* cmds, int Amount, wstring NpcType)
 	//Creation counter
 	for (int i = 0; i < Amount; i++)
 	{
-		CreateNPC(NpcType, pos, rot, iSystem);
+		CreateNPC(NpcType, pos, rot, iSystem, fleetName);
 		Log_CreateNPC(NpcType);
 	}
 
 	return;
 }
 
-void AdminCmd_AIKill(CCmds* cmds, int loot)
+void AdminCmd_AIKill(CCmds* cmds, const wstring& groupName)
 {
 	RIGHT_CHECK(RIGHT_AICONTROL)
 
-	int num = loot;
-	if (num >= 2)
-		num = 0;
-
-	foreach(npcs, uint, iShipIter)
+	if (groupName == L"all")
 	{
-		pub::SpaceObj::Destroy(*iShipIter, DestroyType::VANISH);
+		for(uint npc : npcs)
+		{
+			pub::SpaceObj::Destroy(npc, DestroyType::VANISH);
+		}
+		npcs.clear();
+		cmds->Print(L"OK\n");
 	}
-	npcs.clear();
-	cmds->Print(L"OK\n");
+	else if(npcsGroups.count(groupName))
+	{
+		const auto& fleet = npcsGroups.at(groupName);
+		for (uint npc : fleet)
+		{
+			pub::SpaceObj::Destroy(npc, DestroyType::VANISH);
+			npcs.erase(npc);
+		}
+		npcsGroups.erase(groupName);
+	}
+	else
+	{
+		cmds->Print(L"Invalid group name provided\n");
+	}
 
 	return;
 }
 
 /* Make AI come to your position */
-void AdminCmd_AICome(CCmds* cmds)
+void AdminCmd_AICome(CCmds* cmds, const wstring& groupName)
 {
 	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	uint iShip1;
 	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
-	if (iShip1)
+	if (!iShip1)
 	{
-		Vector pos;
-		Matrix rot;
-		pub::SpaceObj::GetLocation(iShip1, pos, rot);
+		return;
+	}
+	Vector pos;
+	Matrix rot;
+	pub::SpaceObj::GetLocation(iShip1, pos, rot);
 
-		foreach(npcs, uint, iShipIter)
+	if (groupName == L"all")
+	{
+		for(uint ship : npcs)
 		{
 			pub::AI::DirectiveCancelOp cancelOP;
-			pub::AI::SubmitDirective(*iShipIter, &cancelOP);
+			pub::AI::SubmitDirective(ship, &cancelOP);
 
 			pub::AI::DirectiveGotoOp go;
 			go.iGotoType = 1;
@@ -627,71 +629,208 @@ void AdminCmd_AICome(CCmds* cmds)
 			go.vPos.y = pos.y + rand_FloatRange(0, 500);
 			go.vPos.z = pos.z + rand_FloatRange(0, 500);
 			go.fRange = 0;
-			pub::AI::SubmitDirective(*iShipIter, &go);
+			pub::AI::SubmitDirective(ship, &go);
 		}
+		cmds->Print(L"OK\n");
 	}
-	cmds->Print(L"OK\n");
+	else if (npcsGroups.count(groupName))
+	{
+		const auto& fleet = npcsGroups.at(groupName);
+		for (uint ship : fleet)
+		{
+			pub::AI::DirectiveCancelOp cancelOP;
+			pub::AI::SubmitDirective(ship, &cancelOP);
+
+			pub::AI::DirectiveGotoOp go;
+			go.iGotoType = 1;
+			go.vPos = pos;
+			go.vPos.x = pos.x + rand_FloatRange(0, 500);
+			go.vPos.y = pos.y + rand_FloatRange(0, 500);
+			go.vPos.z = pos.z + rand_FloatRange(0, 500);
+			go.fRange = 0;
+			pub::AI::SubmitDirective(ship, &go);
+		}
+		cmds->Print(L"OK\n");
+	}
+	else
+	{
+		cmds->Print(L"Invalid group name provided\n");
+	}
 	return;
 }
 
 /* Make AI follow you until death */
-void AdminCmd_AIFollow(CCmds* cmds, wstring &wscCharname)
+void AdminCmd_AIFollow(CCmds* cmds, const wstring& wscCharname, const wstring& groupName)
 {
 	RIGHT_CHECK(RIGHT_AICONTROL)
 
-	// If no player specified follow the admin
-	uint iClientId;
-	if (wscCharname == L"") {
-		iClientId = HkGetClientIdFromCharname(cmds->GetAdminName());
-		wscCharname = cmds->GetAdminName();
+	HKPLAYERINFO info;
+	if (HkGetPlayerInfo(wscCharname, info, false) != HKE_OK)
+	{
+		cmds->Print(L"ERR Player not found\n");
+		return;
 	}
-	// Follow the player specified
-	else {
-		iClientId = HkGetClientIdFromCharname(wscCharname);
+
+	uint iShip1;
+	pub::Player::GetShip(info.iClientID, iShip1);
+	if (!iShip1)
+	{
+		cmds->Print(L"ERR Player not in space\n");
+		return;
 	}
-	if (iClientId == -1) {
-		cmds->Print(L"%s is not online\n", wscCharname.c_str());
-	}
-	else {
-		uint iShip1;
-		pub::Player::GetShip(iClientId, iShip1);
-		if (iShip1)
+	
+	if (groupName == L"all")
+	{
+		for(uint npc : npcs)
 		{
-			foreach(npcs, uint, iShipIter)
-			{
-				pub::AI::DirectiveCancelOp cancelOP;
-				pub::AI::SubmitDirective(*iShipIter, &cancelOP);
-				pub::AI::DirectiveFollowOp testOP;
-				testOP.leader = iShip1;
-				testOP.max_distance = 100;
-				pub::AI::SubmitDirective(*iShipIter, &testOP);
-			}
-			cmds->Print(L"Following %s\n", wscCharname.c_str());
+			pub::AI::DirectiveCancelOp cancelOP;
+			pub::AI::SubmitDirective(npc, &cancelOP);
+			pub::AI::DirectiveFollowOp testOP;
+			testOP.leader = iShip1;
+			testOP.max_distance = 100;
+			pub::AI::SubmitDirective(npc, &testOP);
 		}
-		else {
-			cmds->Print(L"%s is not in space\n", wscCharname.c_str());
+		cmds->Print(L"Following %s\n", info.wscCharname.c_str());
+	}
+	else if (npcsGroups.count(groupName))
+	{
+		const auto& fleet = npcsGroups.at(groupName);
+		for (uint npc : fleet)
+		{
+			pub::AI::DirectiveCancelOp cancelOP;
+			pub::AI::SubmitDirective(npc, &cancelOP);
+			pub::AI::DirectiveFollowOp testOP;
+			testOP.leader = iShip1;
+			testOP.max_distance = 100;
+			pub::AI::SubmitDirective(npc, &testOP);
 		}
+		cmds->Print(L"Following %s\n", info.wscCharname.c_str());
+	}
+	else
+	{
+		cmds->Print(L"Invalid group name provided\n");
 	}
 	return;
 }
 
 /* Cancel the current operation */
-void AdminCmd_AICancel(CCmds* cmds)
+void AdminCmd_AICancel(CCmds* cmds, const wstring& groupName)
 {
 	RIGHT_CHECK(RIGHT_AICONTROL)
 
 	uint iShip1;
 	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
-	if (iShip1)
+	if (!iShip1)
 	{
-		foreach(npcs, uint, iShipIter)
+		return;
+	}
+
+	if (groupName == L"all")
+	{
+		for (uint npc : npcs)
 		{
 			pub::AI::DirectiveCancelOp testOP;
-			pub::AI::SubmitDirective(*iShipIter, &testOP);
+			pub::AI::SubmitDirective(npc, &testOP);
 		}
+		cmds->Print(L"OK\n");
 	}
-	cmds->Print(L"OK\n");
+	else if (npcsGroups.count(groupName))
+	{
+		const auto& fleet = npcsGroups.at(groupName);
+		for (uint npc : fleet)
+		{
+			pub::AI::DirectiveCancelOp testOP;
+			pub::AI::SubmitDirective(npc, &testOP);
+		}
+		cmds->Print(L"OK\n");
+	}
+	else
+	{
+		cmds->Print(L"Invalid group name provided\n");
+	}
+
 	return;
+}
+
+void AdminCmd_AIGoto(CCmds* cmds, const wstring& groupName, const wstring& coordName, bool useCruise)
+{
+	RIGHT_CHECK(RIGHT_AICONTROL)
+
+	const auto& coords = coordList.find(coordName);
+	if(coords == coordList.end())
+	{
+		cmds->Print(L"Coordinates not provided\n");
+		return;
+	}
+
+	if (groupName == L"all")
+	{
+		for (uint npc : npcs)
+		{
+			pub::AI::DirectiveCancelOp cancelOP;
+			pub::AI::SubmitDirective(npc, &cancelOP);
+
+			pub::AI::DirectiveGotoOp go;
+			go.iGotoType = 1;
+			go.vPos = coords->second.pos;
+			go.vPos.x += rand_FloatRange(-500, 500);
+			go.vPos.y += rand_FloatRange(-500, 500);
+			go.vPos.z += rand_FloatRange(-500, 500);
+			go.fRange = 0;
+			if (useCruise)
+			{
+				go.goto_cruise = true;
+			}
+			else
+			{
+				go.goto_no_cruise = true;
+			}
+			pub::AI::SubmitDirective(npc, &go);
+		}
+		cmds->Print(L"OK\n");
+	}
+	else if (npcsGroups.count(groupName))
+	{
+		const auto& fleet = npcsGroups.at(groupName);
+		for (uint npc : fleet)
+		{
+			pub::AI::DirectiveCancelOp cancelOP;
+			pub::AI::SubmitDirective(npc, &cancelOP);
+
+			pub::AI::DirectiveGotoOp go;
+			go.iGotoType = 1;
+			go.vPos = coords->second.pos;
+			go.vPos.x += rand_FloatRange(-500, 500);
+			go.vPos.y += rand_FloatRange(-500, 500);
+			go.vPos.z += rand_FloatRange(-500, 500);
+			go.fRange = 0;
+			if (useCruise)
+			{
+				go.goto_cruise = true;
+			}
+			else
+			{
+				go.goto_no_cruise = true;
+			}
+			pub::AI::SubmitDirective(npc, &go);
+		}
+		cmds->Print(L"OK\n");
+	}
+	else
+	{
+		cmds->Print(L"Invalid group name provided\n");
+	}
+}
+
+void AdminCmd_ListNPCGroups(CCmds* cmds)
+{
+	RIGHT_CHECK(RIGHT_AICONTROL)
+
+	cmds->Print(L"Fleets spawned: %u\n", npcsGroups.size());
+	for (const auto& npcGroup : npcsGroups)
+	{
+		cmds->Print(L"%ls: %u ships\n", npcGroup.first.c_str(), npcGroup.second.size());
+	}
 }
 
 /** List npc fleets */
@@ -712,11 +851,9 @@ void AdminCmd_ListNPCFleets(CCmds* cmds)
 
 
 /* Spawn a Fleet */
-void AdminCmd_AIFleet(CCmds* cmds, wstring FleetName)
+void AdminCmd_AIFleet(CCmds* cmds, const wstring& FleetName)
 {
 	RIGHT_CHECK(RIGHT_AICONTROL)
-
-	int wrongnpcname = 0;
 
 	map<wstring, NPC_FLEETSTRUCT>::iterator iter = mapNPCFleets.find(FleetName);
 	if (iter != mapNPCFleets.end())
@@ -727,85 +864,70 @@ void AdminCmd_AIFleet(CCmds* cmds, wstring FleetName)
 			wstring membername = i->first;
 			int amount = i->second;
 
-			AdminCmd_AIMake(cmds, amount, membername);
+			AdminCmd_AIMake(cmds, amount, membername, FleetName);
 		}
+		cmds->Print(L"OK fleet spawned\n");
 	}
 	else
 	{
-		wrongnpcname = 1;
-	}
-
-	if (wrongnpcname == 1)
-	{
 		cmds->Print(L"ERR Wrong Fleet name\n");
+	}
+}
+
+void AdminCmd_SetCoordsHere(CCmds* cmds, const wstring& coordName)
+{
+	RIGHT_CHECK(RIGHT_AICONTROL)
+
+	if (coordList.count(coordName))
+	{
+		cmds->Print(L"Coordinates already defined!\n");
 		return;
 	}
 
-	cmds->Print(L"OK fleet spawned\n");
-	return;
-}
-
-/*
-typedef bool(*_UserCmdProc)(uint, const wstring &, const wstring &, const wchar_t*);
-
-struct USERCMD
-{
-	wchar_t *wszCmd;
-	_UserCmdProc proc;
-	wchar_t *usage;
-};
-
-USERCMD UserCmds[] =
-{
-	{ L"/autobuy", UserCmd_AutoBuy, L"Usage: /autobuy" },
-	{ L"/autobuy*", UserCmd_AutoBuy, L"Usage: /autobuy" },
-};
-*/
-
-/*
-This function is called by FLHook when a user types a chat string. We look at the
-string they've typed and see if it starts with one of the above commands. If it
-does we try to process it.
-*/
-
-/*
-bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
-{
-	returncode = DEFAULT_RETURNCODE;
-
-	wstring wscCmdLineLower = ToLower(wscCmd);
-
-	// If the chat string does not match the USER_CMD then we do not handle the
-	// command, so let other plugins or FLHook kick in. We require an exact match
-	for (uint i = 0; (i < sizeof(UserCmds) / sizeof(USERCMD)); i++)
+	uint iShip1;
+	pub::Player::GetShip(HkGetClientIdFromCharname(cmds->GetAdminName()), iShip1);
+	if (!iShip1)
 	{
-
-		if (wscCmdLineLower.find(UserCmds[i].wszCmd) == 0)
-		{
-			// Extract the parameters string from the chat string. It should
-			// be immediately after the command and a space.
-			wstring wscParam = L"";
-			if (wscCmd.length() > wcslen(UserCmds[i].wszCmd))
-			{
-				if (wscCmd[wcslen(UserCmds[i].wszCmd)] != ' ')
-					continue;
-				wscParam = wscCmd.substr(wcslen(UserCmds[i].wszCmd) + 1);
-			}
-
-			// Dispatch the command to the appropriate processing function.
-			if (UserCmds[i].proc(iClientID, wscCmd, wscParam, UserCmds[i].usage))
-			{
-				// We handled the command tell FL hook to stop processing this
-				// chat string.
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL; // we handled the command, return immediatly
-				return true;
-			}
-		}
+		cmds->Print(L"Not in space!\n");
+		return;
 	}
-	return false;
+	Vector pos;
+	Matrix rot;
+	pub::SpaceObj::GetLocation(iShip1, pos, rot);
+
+	COORDS newCoords{ pos, rot };
+	coordList[coordName] = newCoords;
 }
 
-*/
+void AdminCmd_SetCoords(CCmds* cmds, const wstring& coordName, Vector& pos, Vector& ori)
+{
+	RIGHT_CHECK(RIGHT_AICONTROL)
+
+	if (coordList.count(coordName))
+	{
+		cmds->Print(L"Coordinates already defined!\n");
+		return;
+	}
+
+	Matrix rot = EulerMatrix(ori);
+
+	COORDS newCoords{ pos, rot };
+	coordList[coordName] = newCoords;
+}
+
+void AdminCmd_ClearCoords(CCmds* cmds, const wstring& coordName)
+{
+	RIGHT_CHECK(RIGHT_AICONTROL)
+
+	if (coordList.count(coordName))
+	{
+		coordList.erase(coordName);
+	}
+	else
+	{
+		cmds->Print(L"Coordinates not defined!\n");
+	}
+}
 
 #define IS_CMD(a) !wscCmd.compare(L##a)
 
@@ -815,43 +937,69 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 	if (IS_CMD("aicreate"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		AdminCmd_AIMake(cmds, cmds->ArgInt(1), cmds->ArgStr(2));
+		AdminCmd_AIMake(cmds, cmds->ArgInt(1), cmds->ArgStr(2), cmds->ArgStr(3));
 		return true;
 	}
 	else if (IS_CMD("aidestroy"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		AdminCmd_AIKill(cmds, cmds->ArgInt(1));
+		AdminCmd_AIKill(cmds, cmds->ArgStr(1));
 		return true;
 	}
 	else if (IS_CMD("aicancel"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		AdminCmd_AICancel(cmds);
+		AdminCmd_AICancel(cmds, cmds->ArgStr(1));
 		return true;
 	}
 	else if (IS_CMD("aifollow"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		AdminCmd_AIFollow(cmds, cmds->ArgCharname(1));
+		AdminCmd_AIFollow(cmds, cmds->ArgCharname(1), cmds->ArgStr(2));
 		return true;
 	}
 	else if (IS_CMD("aicome"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		AdminCmd_AICome(cmds);
+		AdminCmd_AICome(cmds, cmds->ArgStr(1));
 		return true;
 	}
-	else if (IS_CMD("aifleet"))
+	else if (IS_CMD("aigoto"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		AdminCmd_AIFleet(cmds, cmds->ArgStr(1));
+		AdminCmd_AIGoto(cmds, cmds->ArgStr(1), cmds->ArgStr(2), cmds->ArgInt(3));
+		return true;
+	}
+	else if (IS_CMD("listgroup"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_ListNPCGroups(cmds);
 		return true;
 	}
 	else if (IS_CMD("fleetlist"))
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		AdminCmd_ListNPCFleets(cmds);
+		return true;
+	}
+	else if (IS_CMD("aisetcoordshere"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_SetCoordsHere(cmds, cmds->ArgStr(1));
+		return true;
+	}
+	else if (IS_CMD("aisetcoords"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		Vector pos{ cmds->ArgFloat(2), cmds->ArgFloat(3), cmds->ArgFloat(4) };
+		Vector ori{ cmds->ArgFloat(5), cmds->ArgFloat(6), cmds->ArgFloat(7) };
+		AdminCmd_SetCoords(cmds, cmds->ArgStr(1), pos, ori);
+		return true;
+	}
+	else if (IS_CMD("aiclearcoords"))
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		AdminCmd_ClearCoords(cmds, cmds->ArgStr(1));
 		return true;
 	}
 	return false;

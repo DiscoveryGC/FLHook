@@ -4,7 +4,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -38,8 +38,8 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
-	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0),
+	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules
@@ -338,6 +338,10 @@ void PlayerBase::Load()
 						}
 						passwords.push_back(bp);
 					}
+					else if (ini.is_value("crew_supplied"))
+					{
+						isCrewSupplied = ini.get_value_bool(0);
+					}
 				}
 				if (basetype.empty())
 				{
@@ -408,6 +412,7 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
+		fprintf(file, "crew_supplied = %u\n", isCrewSupplied);
 		fprintf(file, "shieldstrength = %f\n", shield_strength_multiplier);
 		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 
@@ -506,7 +511,8 @@ bool PlayerBase::AddMarketGood(uint good, uint quantity)
 	float vol, mass;
 	pub::GetGoodProperties(good, vol, mass);
 
-	if (GetRemainingCargoSpace() < (quantity * vol))
+	if (GetRemainingCargoSpace() < (quantity * vol)
+	|| (market_items.count(good) && market_items[good].max_stock < market_items[good].quantity + quantity))
 		return false;
 
 	market_items[good].quantity += quantity;

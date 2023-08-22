@@ -20,8 +20,149 @@
 
 constexpr uint ITEMS_PER_PAGE = 40;
 
+// Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
+const uint numPages = 4;
+const wstring pages[numPages] = {
+L"<TRA bold=\"true\"/><TEXT>/base help [page]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Show this help page. Specify the page number to see the next page.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base login [password]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Login as base administrator. The following commands are only available if you are logged in as a base administrator.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addpwd [password] [viewshop], /base rmpwd [password], /base lstpwd</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list administrator passwords for the base. Add 'viewshop' to addpwd to only allow the password to view the shop.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addtag [tag], /base rmtag [tag], /base lsttag</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list ally tags for the base.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addhostile [tag], /base rmhostile [tag], /base lsthostile</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list blacklisted tags for the base. They will be shot on sight so use complete tags like =LSF= or IMG| or a shipname like Crunchy_Salad.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base setmasterpwd [old password] [new password]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set the master password for the base.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT>",
+
+L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price]</TEXT><TRA bold=\"false\"/><PARA/>" 
+L"<TEXT>Set the [price] of [item].</TEXT><PARA/><PARA/>" 
+
+L"<TRA bold=\"true\"/><TEXT>/shop stock [item] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>" 
+L"<TEXT>Set the [min stock] and [max stock] of [item]. If the current stock is less than [min stock]" 
+L" then the item cannot be bought by docked ships. If the current stock is more or equal" 
+L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>" 
+L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0." 
+L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>" 
+
+L"<TRA bold=\"true\"/><TEXT>/shop remove [item]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/shop [page]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT>",
+
+L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
+L"<TEXT>Defense Mode 1 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 2 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 3 - Logic: Blacklist > Whitelist > Faction Whitelist > Hostile</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 4 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
+L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
+L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set the base's infocard description.</TEXT>",
+
+
+L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
+			
+L"<TRA bold=\"true\"/><TEXT>/base supplies</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>"
+
+L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base shieldmod</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control shield modules.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addfac [aff tag], /base rmfac [aff tag], /base lstfac, /base myfac</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list ally factions for the base. Show your affiliation ID and all available.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/base addhfac [aff tag], /base rmhfac [aff tag], /base lsthfac</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Add, remove and list hostile factions for the base.</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/build</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Control the construction and destruction of base modules and upgrades.</TEXT>"
+};
+
 namespace PlayerCommands
 {
+	static map<wstring, vector<wstring>> modules_recipe_map;
+	static map<wstring, vector<wstring>> factory_recipe_map;
+
+	//pre-generating crafting lists as they will probably be used quite a bit.
+	//paying with memory to save on processing.
+	vector<wstring> GenerateModuleHelpMenu(wstring buildType)
+	{
+		vector<wstring> generatedHelpStringList;
+		for (const auto& recipe : craftListNumberModuleMap[buildType])
+		{
+			wstring currentString = L"|    ";
+			currentString += stows(itos(recipe.first));
+			currentString += L" = ";
+			currentString += recipe.second.infotext.c_str();
+			generatedHelpStringList.push_back(currentString);
+		}
+		return generatedHelpStringList;
+	}
+	vector<wstring> GenerateFactoryHelpMenu(wstring craftType)
+	{
+		vector<wstring> generatedHelpStringList;
+		for (const auto& recipe : recipeCraftTypeNumberMap[craftType]) {
+			wstring currentString = L"|     ";
+			currentString += stows(itos(recipe.second.shortcut_number));
+			currentString += L" = ";
+			currentString += recipe.second.infotext.c_str();
+			generatedHelpStringList.push_back(currentString.c_str());
+		}
+		return generatedHelpStringList;
+	}
+
+	void PopulateHelpMenus() {
+		for (const auto& buildType : buildingCraftLists)
+		{
+			modules_recipe_map[buildType] = GenerateModuleHelpMenu(buildType);
+		}
+		for (const auto& craftType : recipeCraftTypeNameMap) {
+			factory_recipe_map[craftType.first] = GenerateFactoryHelpMenu(craftType.first);
+		}
+	}
+
+	bool checkBaseAdminAccess(PlayerBase *base, uint client) {
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return false;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return false;
+		}
+		return true;
+	}
+
 	void BaseHelp(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
@@ -31,85 +172,6 @@ namespace PlayerCommands
 			return;
 		}
 
-		// Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
-		const uint numPages = 4;
-		wstring pages[numPages];
-		pages[0] = L"<TRA bold=\"true\"/><TEXT>/base help [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show this help page. Specify the page number to see the next page.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base login [password]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Login as base administrator. The following commands are only available if you are logged in as a base administrator.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addpwd [password] [viewshop], /base rmpwd [password], /base lstpwd</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list administrator passwords for the base. Add 'viewshop' to addpwd to only allow the password to view the shop.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addtag [tag], /base rmtag [tag], /base lsttag</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list ally tags for the base.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addhostile [tag], /base rmhostile [tag], /base lsthostile</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list blacklisted tags for the base. They will be shot on sight so use complete tags like =LSF= or IMG| or a shipname like Crunchy_Salad.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base setmasterpwd [old password] [new password]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the master password for the base.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
-			
-			L"<TRA bold=\"true\"/><TEXT>/base supplies</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>";
-
-		pages[1] = L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the [price] of [item].</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop stock [item] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the [min stock] and [max stock] of [item]. If the current stock is less than [min stock]"
-			L" then the item cannot be bought by docked ships. If the current stock is more or equal"
-			L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
-			L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
-			L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop remove [item]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/shop [page]</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Show the shop stock list for [page]. There are a maximum of 40 items shown per page.</TEXT>";
-
-		pages[2] = L"<TRA bold=\"true\"/><TEXT>/base defensemode</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control the defense mode for the base.</TEXT><PARA/>"
-			L"<TEXT>Defense Mode 1 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 2 - Logic: Blacklist > Whitelist > Faction Whitelist > IFF Standing.</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 3 - Logic: Blacklist > Whitelist > Faction Whitelist > Hostile</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 4 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Anyone with good standing.</TEXT><PARA/><PARA/>"
-			L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neutral</TEXT><PARA/>"
-			L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Set the base's infocard description.</TEXT>";
-
-		pages[3] = L"<TRA bold=\"true\"/><TEXT>/base facmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control factory modules.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base shieldmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control shield modules.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addfac [aff tag], /base rmfac [aff tag], /base lstfac, /base myfac</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list ally factions for the base. Show your affiliation ID and all available.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base addhfac [aff tag], /base rmhfac [aff tag], /base lsthfac</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Add, remove and list hostile factions for the base.</TEXT><PARA/><PARA/>"
-
-			L"<TRA bold=\"true\"/><TEXT>/base buildmod</TEXT><TRA bold=\"false\"/><PARA/>"
-			L"<TEXT>Control the construction and destruction of base modules and upgrades.</TEXT>";
 
 		uint page = 0;
 		wstring pageNum = GetParam(args, ' ', 2);
@@ -1074,177 +1136,143 @@ namespace PlayerCommands
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 2);
+		const wstring &cmd = GetParam(args, ' ', 1);
 		if (cmd == L"list")
 		{
-			PrintUserCmdText(client, L"Modules:");
-			for (uint index = 1; index < base->modules.size(); index++)
+			PrintUserCmdText(client, L"Available building lists:");
+			for (const auto& buildType : buildingCraftLists)
 			{
-				if (base->modules[index])
+				PrintUserCmdText(client, L"|   %ls", buildType.c_str());
+			}
+		}
+		else if (buildingCraftLists.find(cmd) != buildingCraftLists.end())
+		{
+			const wstring &cmd2 = GetParam(args, ' ', 2);
+			const wstring &recipeName = GetParamToEnd(args, ' ', 3);
+
+			if (cmd2 == L"list")
+			{
+				PrintUserCmdText(client, L"Modules available in %ls category:", cmd.c_str());
+				for (const auto& infoString : modules_recipe_map[cmd])
 				{
-					Module *mod = (Module*)base->modules[index];
-					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
+					PrintUserCmdText(client, infoString);
 				}
-				else
+				return;
+			}
+
+			RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
+			if (!buildRecipe)
+			{
+				PrintUserCmdText(client, L"ERR Invalid module selected");
+				return;
+			}
+
+			if (cmd2 == L"info")
+			{
+				PrintUserCmdText(client, L"Construction materials for %ls", buildRecipe->infotext.c_str());
+				for (const auto& material : buildRecipe->consumed_items)
 				{
-					PrintUserCmdText(client, L"%u: Empty - available for new module", index);
+					const GoodInfo *gi = GoodList::find_by_id(material.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), material.second);
 				}
 			}
-			PrintUserCmdText(client, L"OK");
-		}
-		else if (cmd == L"destroy")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			else if (cmd2 == L"start")
 			{
-				PrintUserCmdText(client, L"ERR Module not found");
-				return;
-			}
-
-			if (base->modules[index]->type == Module::TYPE_STORAGE && base->GetRemainingCargoSpace() < STORAGE_MODULE_CAPACITY)
-			{
-				PrintUserCmdText(client, L"ERR Need %d free space to destroy a storage module", STORAGE_MODULE_CAPACITY);
-
-				wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
-				pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-				wstring wscMsgU = L"KITTY ALERT: Possible type 5 POB cheating by %name (Index = %index, RemainingSpace = %space)\n";
-				wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
-				wscMsgU = ReplaceStr(wscMsgU, L"%index", stows(itos(index)).c_str());
-				wscMsgU = ReplaceStr(wscMsgU, L"%space", stows(itos((int)base->GetRemainingCargoSpace())).c_str());
-
-				ConPrint(wscMsgU);
-				LogCheater(client, wscMsgU);
-
-				return;
-			}
-
-			delete base->modules[index];
-			base->modules[index] = 0;
-			base->Save();
-			PrintUserCmdText(client, L"OK Module destroyed");
-		}
-		else if (cmd == L"pause")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module not found");
-				return;
-			}
-
-			if (base->modules[index]->type != Module::TYPE_BUILD)
-			{
-				PrintUserCmdText(client, L"ERR This module is not in building stage");
-				return;
-			}
-
-			BuildModule *mod = (BuildModule*)base->modules[index];
-
-			if (mod->Paused)
-			{
-				PrintUserCmdText(client, L"ERR Module is already paused");
-			}
-			else
-			{
-				mod->Paused = true;
-				PrintUserCmdText(client, L"OK Module construction paused");
-			}
-
-			base->Save();
-			
-		}
-		else if (cmd == L"resume")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module not found");
-				return;
-			}
-
-			if (base->modules[index]->type != Module::TYPE_BUILD)
-			{
-				PrintUserCmdText(client, L"ERR This module is not in building stage");
-				return;
-			}
-
-			BuildModule *mod = (BuildModule*)base->modules[index];
-
-			if (mod->Paused)
-			{
-				mod->Paused = false;
-				PrintUserCmdText(client, L"OK Module construction resumed");
-			}
-			else
-			{
-				PrintUserCmdText(client, L"ERR Module construction is not paused");
-			}
-
-			base->Save();
-
-		}
-		else if (cmd == L"construct")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
-			if (index < 1 || index >= base->modules.size() || base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (type < Module::TYPE_CORE || type > Module::TYPE_LAST)
-			{
-				PrintUserCmdText(client, L"ERR Module type not available");
-				return;
-			}
-
-			if (type == Module::TYPE_CORE)
-			{
-				if (base->base_level >= 4)
+				if (buildRecipe->shortcut_number == Module::TYPE_CORE && base->base_level >= 4)
 				{
 					PrintUserCmdText(client, L"ERR Upgrade not available");
 					return;
 				}
+
+				for (const auto& module : base->modules)
+				{
+					BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
+					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname && factoryNicknameToCraftTypeMap.count(buildmod->active_recipe.nickname))
+					{
+						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
+						return;
+					}
+					
+					FactoryModule* facmod = dynamic_cast<FactoryModule*>(module);
+					if (facmod && facmod->factoryNickname == buildRecipe->nickname)
+					{
+						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
+						return;
+					}
+				}
+
+				for (auto& modSlot : base->modules) {
+					if (modSlot == nullptr)
+					{
+						modSlot = new BuildModule(base, buildRecipe);
+						base->Save();
+						PrintUserCmdText(client, L"Construction started");
+						return;
+					}
+				}
+				PrintUserCmdText(client, L"ERR No free module slots!");
 			}
-
-			//make the nickname for inspection
-			uint module_nickname = CreateID(MODULE_TYPE_NICKNAMES[type]);
-
-			if (recipes[module_nickname].reqlevel > base->base_level)
+			else if (cmd2 == L"resume")
 			{
-				PrintUserCmdText(client, L"ERR Insufficient Core Level");
-				return;
+				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
+				{
+					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
+					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					{
+						if (buildmod->Paused)
+						{
+							buildmod->Paused = false;
+							PrintUserCmdText(client, L"Module construction resumed");
+						}
+						else
+						{
+							PrintUserCmdText(client, L"ERR Module construction already ongoing");
+						}
+						return;
+					}
+				}
+				PrintUserCmdText(client, L"ERR Selected module is not being built");
 			}
-
-			base->modules[index] = new BuildModule(base, type);
-			base->Save();
-			PrintUserCmdText(client, L"OK Module construction started");
+			else if (cmd2 == L"pause")
+			{
+				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
+				{
+					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
+					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					{
+						if (!buildmod->Paused)
+						{
+							buildmod->Paused = true;
+							PrintUserCmdText(client, L"Module construction paused");
+						}
+						else
+						{
+							PrintUserCmdText(client, L"ERR Module construction already paused");
+						}
+						return;
+					}
+				}
+				PrintUserCmdText(client, L"ERR Selected module is not being built");
+			}
+			else
+			{
+				PrintUserCmdText(client, L"ERR Invalid command");
+			}
 		}
 		else
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base buildmod [list|construct|destroy|pause|resume]");
-			PrintUserCmdText(client, L"|  list - show modules and build status");
-			PrintUserCmdText(client, L"|  destroy <index> - destroy module at <index>");
-			PrintUserCmdText(client, L"|  construct <index> <type> - start building module <type> at <index>");
-			PrintUserCmdText(client, L"|  pause <index> - pauses building at <index>");
-			PrintUserCmdText(client, L"|  resume <index> - resumes building at <index>");
-			PrintUserCmdText(client, L"|     <type> = 1 - core upgrade");
-			PrintUserCmdText(client, L"|     <type> = 2 - shield generator");
-			PrintUserCmdText(client, L"|     <type> = 3 - cargo storage");
-			PrintUserCmdText(client, L"|     <type> = 4 - defense platform array type 1");
-			PrintUserCmdText(client, L"|     <type> = 5 - docking module factory");
-			PrintUserCmdText(client, L"|     <type> = 6 - jumpdrive manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 7 - hyperspace survey manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - cloaking device manufacturing factory");
-			PrintUserCmdText(client, L"|     <type> = 9 - defense platform array type 2");
-			PrintUserCmdText(client, L"|     <type> = 10 - defense platform array type 3");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloak Disruptor Factory");
+			PrintUserCmdText(client, L"/build <list|buildlist> <list|start|resume|pause|info> <moduleName/Nr");
+			PrintUserCmdText(client, L"|  list - lists available module lists");
+			PrintUserCmdText(client, L"|  buildlist list - lists modules available on the selected module list");
+			PrintUserCmdText(client, L"|  buildlist start - starts constructon of selected module");
+			PrintUserCmdText(client, L"|  buildlist resume - pauses selected module construction");
+			PrintUserCmdText(client, L"|  buildlist pause - resumes selected module construction");
+			PrintUserCmdText(client, L"|  buildlist info - provides construction material info for selected module");
 		}
 	}
 
-	void BaseFacMod(uint client, const wstring &args)
+	void BaseSwapModule(uint client, const wstring &args)
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 		if (!base)
@@ -1259,192 +1287,210 @@ namespace PlayerCommands
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 2);
+		const uint index1 = ToUInt(GetParam(args, ' ', 1));
+		const uint index2 = ToUInt(GetParam(args, ' ', 2));
+		if (index1 == 0 || index2 == 0)
+		{
+			PrintUserCmdText(client, L"ERR Invalid module indexes");
+			return;
+		}
+		if (index1 == index2)
+		{
+			PrintUserCmdText(client, L"ERR Can't swap a module with itself");
+			return;
+		}
+
+		Module* tempModulePtr = base->modules[index1];
+		base->modules[index1] = base->modules[index2];
+		base->modules[index2] = tempModulePtr;
+		base->Save();
+	}
+
+	void BaseBuildModDestroy(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!clients[client].admin)
+		{
+			PrintUserCmdText(client, L"ERR Access denied");
+			return;
+		}
+
+		uint index = ToInt(GetParam(args, ' ', 1));
+		if (index < 1 || index >= base->modules.size() || !base->modules[index])
+		{
+			PrintUserCmdText(client, L"ERR Module not found");
+			return;
+		}
+
+		if (base->modules[index]->type == Module::TYPE_STORAGE && base->GetRemainingCargoSpace() < STORAGE_MODULE_CAPACITY)
+		{
+			PrintUserCmdText(client, L"ERR Need %d free space to destroy a storage module", STORAGE_MODULE_CAPACITY);
+
+			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
+			wstring wscMsgU = L"KITTY ALERT: Possible type 5 POB cheating by %name (Index = %index, RemainingSpace = %space)\n";
+			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%index", stows(itos(index)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%space", stows(itos((int)base->GetRemainingCargoSpace())).c_str());
+
+			ConPrint(wscMsgU);
+			LogCheater(client, wscMsgU);
+
+			return;
+		}
+
+		if (base->modules[index]->type == Module::TYPE_FACTORY) {
+			FactoryModule* facMod = dynamic_cast<FactoryModule*>(base->modules[index]);
+			for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname]) {
+				base->availableCraftList.erase(craftType);
+			}
+		}
+		delete base->modules[index];
+		base->modules[index] = nullptr;
+		base->Save();
+		PrintUserCmdText(client, L"OK Module destroyed");
+	}
+
+	void BaseFacMod(uint client, const wstring &args)
+	{
+		PlayerBase *base = GetPlayerBaseForClient(client);
+
+		if (!checkBaseAdminAccess(base, client)) {
+			return;
+		}
+
+		if (base->availableCraftList.empty()) {
+			PrintUserCmdText(client, L"ERR no factories found");
+			return;
+		}
+
+		const wstring &craftType = GetParam(args, ' ', 1);
+		if (craftType == L"list")
+		{
+			PrintUserCmdText(client, L"Available crafting lists:");
+			for (wstring craftType : base->availableCraftList) {
+				PrintUserCmdText(client, L"|   %ls", craftType.c_str());
+			}
+			return;
+		}
+		else if (craftType == L"stopall")
+		{
+			FactoryModule::StopAllProduction(base);
+			PrintUserCmdText(client, L"OK Factories stopped");
+			return;
+		}
+		else if (!base->availableCraftList.count(craftType)) {
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
+			return;
+		}
+
+		const wstring cmd = GetParam(args, ' ', 2);
+		const wstring param = GetParamToEnd(args, ' ', 3);
+		if (cmd.empty()) {
+			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
+			return;
+		}
+
+		RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
+
 		if (cmd == L"list")
 		{
-			PrintUserCmdText(client, L"Factory Modules:");
-			for (uint index = 1; index < base->modules.size(); index++)
-			{
-				if (base->modules[index] &&
-					(base->modules[index]->type == Module::TYPE_M_CLOAK
-						|| base->modules[index]->type == Module::TYPE_M_HYPERSPACE_SCANNER
-						|| base->modules[index]->type == Module::TYPE_M_JUMPDRIVES
-						|| base->modules[index]->type == Module::TYPE_M_DOCKING
-						|| base->modules[index]->type == Module::TYPE_M_CLOAKDISRUPTOR))
-				{
-					FactoryModule *mod = (FactoryModule*)base->modules[index];
-					PrintUserCmdText(client, L"%u: %s", index, mod->GetInfo(false).c_str());
+			if (param.empty()) {
+				PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
+				for (wstring& infoLine : factory_recipe_map[craftType]) {
+					PrintUserCmdText(client, infoLine);
 				}
+				return;
 			}
-			PrintUserCmdText(client, L"OK");
+			else if(recipe)
+			{
+				PrintUserCmdText(client, L"Construction materials for %ls x%u:", recipe->infotext.c_str(), recipe->produced_amount);
+				for (const auto& item : recipe->consumed_items) {
+					const GoodInfo *gi = GoodList::find_by_id(item.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
+				}
+				for (const auto& rep : recipe->affiliationBonus)
+				{
+					PrintUserCmdText(client, L"|   %ls - +%u%% bonus",
+						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), ((1.0f - rep.second) * 100));
+				}
+				return;
+			}
 		}
-		else if (cmd == L"clear")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
 
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ClearQueue())
-				PrintUserCmdText(client, L"OK Build queue cleared");
-			else
-				PrintUserCmdText(client, L"ERR Build queue clear failed");
-			base->Save();
+		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume")) {
+			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>]");
+			PrintUserCmdText(client, L"|  list - show available lists of craftble items");
+			PrintUserCmdText(client, L"|  stopall - stops all production on the base");
+			PrintUserCmdText(client, L"|  <craftList> start <name/itemNr> - adds selected item into the crafting queue");
+			PrintUserCmdText(client, L"|  <craftList> stop <name/itemNr> - stops crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftList> pause <name/itemNr> - pauses crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftList> resume <name/itemNr> - resumes crafting of selected item");
+			PrintUserCmdText(client, L"|  <craftList> list - list item recipes available for this crafting list");
+			PrintUserCmdText(client, L"|  <craftList> list <name/itemNr> - list materials necessary for selected item");
+			return;
 		}
-		else if (cmd == L"cancel")
+
+		if (cmd == L"start")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
+			if (base->availableCraftList.find(recipe->craft_type) == base->availableCraftList.end())
 			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
+				PrintUserCmdText(client, L"ERR incorrect craftlist");
 				return;
 			}
-
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
+			FactoryModule* factory = base->craftTypeTofactoryModuleMap[recipe->craft_type];
+			if (!factory)
 			{
-				PrintUserCmdText(client, L"ERR Not factory module");
+				PrintUserCmdText(client, L"ERR Impossible factory error, contact staff");
 				return;
 			}
+			factory->AddToQueue(recipe->nickname);
+			PrintUserCmdText(client, L"OK Item added to build queue");
+			return;
+		}
 
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			mod->ClearRecipe();
-			PrintUserCmdText(client, L"OK Active recipe is canceled");
-			base->Save();
+		FactoryModule *factory;
+		factory = FactoryModule::FindModuleByProductInProduction(base, recipe->nickname);
+		if (!factory)
+		{
+			PrintUserCmdText(client, L"ERR item is not being produced");
+			return;
+		}
+
+		if (cmd == L"stop")
+		{
+			factory->ClearQueue();
+			factory->ClearRecipe();
+			PrintUserCmdText(client, L"OK Factory stopped");
 		}
 		else if (cmd == L"pause")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(true))
-				PrintUserCmdText(client, L"ERR Build queue is already paused");
+			if (factory->ToggleQueuePaused(true))
+				PrintUserCmdText(client, L"OK Build queue resumed");
 			else
-				PrintUserCmdText(client, L"OK Build queue paused");
-			base->Save();
+			{
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
+				return;
+			}
 		}
 		else if (cmd == L"resume")
 		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
-			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
-				return;
-			}
-
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->ToggleQueuePaused(false))
+			if (factory->ToggleQueuePaused(false))
 				PrintUserCmdText(client, L"OK Build queue resumed");
 			else
-				PrintUserCmdText(client, L"ERR Build queue is not paused");
-			base->Save();
-		}
-		else if (cmd == L"add")
-		{
-			uint index = ToInt(GetParam(args, ' ', 3));
-			uint type = ToInt(GetParam(args, ' ', 4));
-			if (index < 1 || index >= base->modules.size() || !base->modules[index])
 			{
-				PrintUserCmdText(client, L"ERR Module index not valid");
+				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
 				return;
 			}
-
-			if (!base->modules[index] ||
-				(base->modules[index]->type != Module::TYPE_M_CLOAK
-					&& base->modules[index]->type != Module::TYPE_M_HYPERSPACE_SCANNER
-					&& base->modules[index]->type != Module::TYPE_M_JUMPDRIVES
-					&& base->modules[index]->type != Module::TYPE_M_DOCKING
-					&& base->modules[index]->type != Module::TYPE_M_CLOAKDISRUPTOR))
-			{
-				PrintUserCmdText(client, L"ERR Not factory module");
-				return;
-			}
-
-			FactoryModule *mod = (FactoryModule*)base->modules[index];
-			if (mod->AddToQueue(type))
-				PrintUserCmdText(client, L"OK Item added to build queue");
-			else
-				PrintUserCmdText(client, L"ERR Item add to build queue failed");
-			base->Save();
 		}
-		else
-		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base facmod [list|clear|cancel|add|pause|resume]");
-			PrintUserCmdText(client, L"|  list - show factory modules and build status");
-			PrintUserCmdText(client, L"|  clear <index> - clear queue, which starts from the second item in the building queue for the factory module at <index>");
-
-			PrintUserCmdText(client, L"|  cancel <index> - clear only active recipe, which is the first item in the building queue for the factory module at <index>");
-			
-			PrintUserCmdText(client, L"|  add <index> <type> - add item <type> to build queue for factory module at <index>");
-			PrintUserCmdText(client, L"|     For Docking Module Factory:");
-			PrintUserCmdText(client, L"|     <type> = 1 - docking module type 1");
-			PrintUserCmdText(client, L"|     For Hyperspace Jumpdrive Factory");
-			PrintUserCmdText(client, L"|     <type> = 2 - Jump Drive Series II");
-			PrintUserCmdText(client, L"|     <type> = 3 - Jump Drive Series III");
-			PrintUserCmdText(client, L"|     <type> = 4 - Jump Drive Series IV");
-			PrintUserCmdText(client, L"|     For Hyperspace Survey Factory");
-			PrintUserCmdText(client, L"|     <type> = 5 - Hyperspace Survey Module Mk1");
-			PrintUserCmdText(client, L"|     <type> = 6 - Hyperspace Survey Module Mk2");
-			PrintUserCmdText(client, L"|     <type> = 7 - Hyperspace Survey Module Mk3");
-			PrintUserCmdText(client, L"|     <type> = 15 - Hyperspace Matrix Mk1");
-			PrintUserCmdText(client, L"|     For Cloaking Device Factory");
-			PrintUserCmdText(client, L"|     <type> = 8 - Cloaking Device MK1 (small)");
-			PrintUserCmdText(client, L"|     <type> = 9 - Cloaking Device MK2 (medium)");
-			PrintUserCmdText(client, L"|     <type> = 10 - Cloaking Device MK2 Advanced (large)");
-			PrintUserCmdText(client, L"|     <type> = 11 - Cloaking Device MK3 (transport)");
-			PrintUserCmdText(client, L"|     For Cloak Disruptor Factory");
-			PrintUserCmdText(client, L"|     <type> = 12 - Cloak Disruptor Type-1");
-			PrintUserCmdText(client, L"|     <type> = 13 - Cloak Disruptor Type-2");
-			PrintUserCmdText(client, L"|     <type> = 14 - Cloak Disruptor Type-3");
-			PrintUserCmdText(client, L"|  pause <index> - pause factory module at <index>");
-			PrintUserCmdText(client, L"|  resume <index> - resume factory module at <index>");
-		}
+		base->Save();
 	}
 
 	void BaseDefMod(uint client, const wstring &args)
@@ -2344,6 +2390,7 @@ namespace PlayerCommands
 		newbase->basesolar = "legacy";
 		newbase->baseloadout = "legacy";
 		newbase->defense_mode = 1;
+		newbase->isCrewSupplied = true;
 
 		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
 		newbase->logic = mapArchs[newbase->basetype].logic;

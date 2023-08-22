@@ -8,14 +8,6 @@
 
 // includes 
 
-#include <windows.h>
-#include <stdio.h>
-#include <string>
-#include <time.h>
-#include <math.h>
-#include <list>
-#include <map>
-#include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
@@ -72,14 +64,28 @@ list<REPAIR_ITEM> set_base_repair_items;
 map<uint, uint> set_base_crew_consumption_items;
 map<uint, uint> set_base_crew_food_items;
 
+uint set_crew_check_frequency = 43200;
+
 /// The commodity used as crew for the base
 uint set_base_crew_type;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
 
-/// Map of item nickname hash to recipes to construct item.
-map<uint, RECIPE> recipes;
+/// Global recipe map
+map<uint, RECIPE> recipeMap;
+
+/// Maps of shortcut numbers to recipes to construct item.
+map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+map<wstring, RECIPE> moduleNameRecipeMap;
+map<uint, RECIPE> moduleNumberRecipeMap;
+map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+set<wstring> buildingCraftLists;
+
+void AddFactoryRecipeToMaps(RECIPE recipe, wstring recipe_type);
+void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number);
 
 /// Map of item nickname hash to recipes to operate shield.
 map<uint, uint> shield_power_items;
@@ -448,12 +454,17 @@ void LoadSettingsActual()
 		delete base->second;
 	}
 
-	recipes.clear();
 	construction_items.clear();
 	set_base_repair_items.clear();
 	set_base_crew_consumption_items.clear();
 	set_base_crew_food_items.clear();
 	shield_power_items.clear();
+	recipeCraftTypeNumberMap.clear();
+	recipeCraftTypeNameMap.clear();
+	factoryNicknameToCraftTypeMap.clear();
+	moduleNameRecipeMap.clear();
+	moduleNumberRecipeMap.clear();
+	craftListNumberModuleMap.clear();
 
 	HookExt::ClearMiningObjData();
 
@@ -578,6 +589,10 @@ void LoadSettingsActual()
 						uint quantity = ini.get_value_int(1);
 						set_base_crew_food_items[good] = quantity;
 					}
+					else if (ini.is_value("set_crew_check_frequency"))
+					{
+						set_crew_check_frequency = ini.get_value_int(0);
+					}
 					else if (ini.is_value("shield_power_item"))
 					{
 						uint good = CreateID(ini.get_value_string(0));
@@ -601,6 +616,10 @@ void LoadSettingsActual()
 						uint c = CreateID(ini.get_value_string());
 						listCommodities[c] = stows(ini.get_value_string());
 
+					}
+					else if (ini.is_value("enable_hyperspace_hub_bitmap"))
+					{
+						bmapLoadHyperspaceHubConfig = ini.get_value_int(0);
 					}
 					else if (ini.is_value("min_mining_distance"))
 					{
@@ -642,7 +661,7 @@ void LoadSettingsActual()
 					{
 						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
 					}
-					else if (ini.is_value("enable_hyperspace_hub_bitmap"))
+					else if (ini.is_value("siege_gun"))
 					{
 						bmapLoadHyperspaceHubConfig = ini.get_value_int(0);
           }
@@ -656,46 +675,6 @@ void LoadSettingsActual()
 		ini.close();
 	}
 
-	if (ini.open(cfg_fileitems.c_str(), false))
-	{
-		while (ini.read_header())
-		{
-			if (ini.is_header("recipe"))
-			{
-				RECIPE recipe;
-				while (ini.read_value())
-				{
-					if (ini.is_value("nickname"))
-					{
-						recipe.nickname = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("produced_item"))
-					{
-						recipe.produced_item = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("infotext"))
-					{
-						recipe.infotext = stows(ini.get_value_string());
-					}
-					else if (ini.is_value("cooking_rate"))
-					{
-						recipe.cooking_rate = ini.get_value_int(0);
-					}
-					else if (ini.is_value("consumed"))
-					{
-						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
-					}
-					else if (ini.is_value("reqlevel"))
-					{
-						recipe.reqlevel = ini.get_value_int(0);
-					}
-				}
-				recipes[recipe.nickname] = recipe;
-			}
-		}
-		ini.close();
-	}
-
 	if (ini.open(cfg_filemodules.c_str(), false))
 	{
 		while (ini.read_header())
@@ -703,6 +682,66 @@ void LoadSettingsActual()
 			if (ini.is_header("recipe"))
 			{
 				RECIPE recipe;
+				vector<wstring> craft_types;
+				wstring build_type;
+				uint recipe_number;
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						recipe.nickname = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("infotext"))
+					{
+						recipe.infotext = stows(ini.get_value_string(0));
+					}
+					else if (ini.is_value("craft_list"))
+					{
+						craft_types.push_back(stows(ToLower(ini.get_value_string(0))));
+					}
+					else if (ini.is_value("build_type"))
+					{
+						build_type = stows(ToLower(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("recipe_number"))
+					{
+						recipe_number = ini.get_value_int(0);
+					}
+					else if (ini.is_value("shortcut_number"))
+					{
+						recipe.shortcut_number = ini.get_value_int(0);
+					}
+					else if (ini.is_value("cooking_rate"))
+					{
+						recipe.cooking_rate = ini.get_value_int(0);
+					}
+					else if (ini.is_value("credit_cost"))
+					{
+						recipe.credit_cost = ini.get_value_int(0);
+					}
+					else if (ini.is_value("consumed"))
+					{
+						recipe.consumed_items.push_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
+					}
+					else if (ini.is_value("reqlevel"))
+					{
+						recipe.reqlevel = ini.get_value_int(0);
+					}
+				}
+				AddModuleRecipeToMaps(recipe, craft_types, build_type, recipe_number);
+			}
+		}
+		ini.close();
+	}
+
+	if (ini.open(cfg_fileitems.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("recipe"))
+			{
+				RECIPE recipe;
+				wstring craft_type;
 				while (ini.read_value())
 				{
 					if (ini.is_value("nickname"))
@@ -713,6 +752,22 @@ void LoadSettingsActual()
 					{
 						recipe.produced_item = CreateID(ini.get_value_string(0));
 					}
+					else if (ini.is_value("produced_amount"))
+					{
+						recipe.produced_amount = ini.get_value_int(0);
+					}
+					else if (ini.is_value("loop_production"))
+					{
+						recipe.loop_production = ini.get_value_int(0);
+					}
+					else if (ini.is_value("shortcut_number"))
+					{
+						recipe.shortcut_number = ini.get_value_int(0);
+					}
+					else if (ini.is_value("craft_type"))
+					{
+						craft_type = stows(ToLower(ini.get_value_string(0)));
+					}
 					else if (ini.is_value("infotext"))
 					{
 						recipe.infotext = stows(ini.get_value_string());
@@ -721,16 +776,28 @@ void LoadSettingsActual()
 					{
 						recipe.cooking_rate = ini.get_value_int(0);
 					}
+					else if (ini.is_value("credit_cost"))
+					{
+						recipe.credit_cost = ini.get_value_int(0);
+					}
 					else if (ini.is_value("consumed"))
 					{
-						recipe.consumed_items[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
+						recipe.consumed_items.push_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
+					}
+					else if (ini.is_value("catalyst"))
+					{
+						recipe.catalyst_items.push_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("reqlevel"))
 					{
 						recipe.reqlevel = ini.get_value_int(0);
 					}
+					else if (ini.is_value("affiliation_bonus"))
+					{
+						recipe.affiliationBonus[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+					}
 				}
-				recipes[recipe.nickname] = recipe;
+				AddFactoryRecipeToMaps(recipe, craft_type);
 			}
 		}
 		ini.close();
@@ -805,6 +872,8 @@ void LoadSettingsActual()
 		ini.close();
 	}
 
+	PlayerCommands::PopulateHelpMenus();
+  
 	if (ini.open(cfg_fileforbiddencommodities.c_str(), false))
 	{
 		while (ini.read_header())
@@ -1024,10 +1093,22 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 			if (clients[client].player_base)
 				return true;
 
+			// Check if ships is currently docked on a docking module
+			CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+			mobileCheck.iClientID = client;
+			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+			
+			// If player is mobile docking, do nothing.
+			if (mobileCheck.isMobileDocked)
+			{
+				clients[client].player_base = 0;
+				return true;
+			}
 			// If we're not docking at a player base then clear 
 			// the last base flag
 			clients[client].last_player_base = 0;
 			clients[client].player_base = 0;
+
 			if (base == 0)
 			{
 				char szSystem[1024];
@@ -1336,7 +1417,7 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::GetNecessitiesStatus(client, args);
 		return true;
 	}
-	else if (args.find(L"/base facmod") == 0)
+	else if (args.find(L"/craft") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);
@@ -1354,10 +1435,22 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseShieldMod(client, args);
 		return true;
 	}
-	else if (args.find(L"/base buildmod") == 0)
+	else if (args.find(L"/build") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseBuildMod(client, args);
+		return true;
+	}
+	else if (args.find(L"/destroy") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseBuildModDestroy(client, args);
+		return true;
+	}
+	else if (args.find(L"/base swap") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseSwapModule(client, args);
 		return true;
 	}
 	else if (args.find(L"/base") == 0)
@@ -1369,7 +1462,41 @@ bool UserCmd_Process(uint client, const wstring &args)
 	return false;
 }
 
+static void ForcePlayerBaseDock(uint client, PlayerBase *base)
+{
+	char system_nick[1024];
+	pub::GetSystemNickname(system_nick, sizeof(system_nick), base->system);
 
+	char proxy_base_nick[1024];
+	sprintf(proxy_base_nick, "%s_proxy_base", system_nick);
+
+	uint proxy_base_id = CreateID(proxy_base_nick);
+
+	clients[client].player_base = base->base;
+	clients[client].last_player_base = base->base;
+
+	if (set_plugin_debug > 1)
+		ConPrint(L"ForcePlayerBaseDock client=%u player_base=%u\n", client, clients[client].player_base);
+
+	uint system;
+	pub::Player::GetSystem(client, system);
+
+	pub::Player::ForceLand(client, proxy_base_id);
+	if (system != base->system)
+	{
+		Server.BaseEnter(proxy_base_id, client);
+		Server.BaseExit(proxy_base_id, client);
+
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		wstring charfilename;
+		HkGetCharFileName(charname, charfilename);
+		charfilename += L".fl";
+		CHARACTER_ID charid;
+		strcpy(charid.szCharFilename, wstos(charname.substr(0, 14)).c_str());
+
+		Server.CharacterSelect(charid, client); \
+	}
+}
 
 static bool IsDockingAllowed(PlayerBase *base, uint client)
 {
@@ -1486,7 +1613,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
 						iCancel = -1;
-						response = ACCESS_DENIED;
+						response = DOCK_DENIED;
 						return 0;
 					}
 				}
@@ -1576,6 +1703,17 @@ void __stdcall BaseEnter(uint base, uint client)
 	clients[client].admin = false;
 	clients[client].viewshop = false;
 
+	// Check if ships is currently docked on a docking module
+	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+	mobileCheck.iClientID = client;
+	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+
+	// skip processing in case of having docked on player ship to avoid overwriting F9 menu.
+	if (mobileCheck.isMobileDocked)
+	{
+		return;
+	}
+
 	// If the last player base is set then we have not docked at a non player base yet.
 	if (clients[client].last_player_base)
 	{
@@ -1621,14 +1759,23 @@ void __stdcall BaseExit(uint base, uint client)
 	// Reset client state and save it retaining the last player base ID to deal with respawn.
 	clients[client].admin = false;
 	clients[client].viewshop = false;
-	if (clients[client].player_base)
+
+	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+	mobileCheck.iClientID = client;
+	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+
+	if (clients[client].player_base || mobileCheck.isMobileDocked)
 	{
 		if (set_plugin_debug)
+		{
 			ConPrint(L"BaseExit base=%u client=%u player_base=%u\n", base, client, clients[client].player_base);
+		}
 
-		clients[client].last_player_base = clients[client].player_base;
-		clients[client].player_base = 0;
-		SaveDockState(client);
+		if (clients[client].player_base) {
+			clients[client].last_player_base = clients[client].player_base;
+			clients[client].player_base = 0;
+			SaveDockState(client);
+		}
 	}
 	else
 	{
@@ -1676,13 +1823,14 @@ void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigne
 
 /// The base the player is launching from.
 PlayerBase* player_launch_base = 0;
+bool system_match = true;
 
 /// If the ship is launching from a player base record this so that
 /// override the launch location.
 bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Matrix &rot, int dock_mode)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (player_launch_base)
+	if (player_launch_base && system_match)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		pos = player_launch_base->position;
@@ -1703,7 +1851,23 @@ void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
-	player_launch_base = GetPlayerBase(clients[client].last_player_base);
+
+	if (!clients[client].last_player_base)
+		return;
+
+	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
+	mobileCheck.iClientID = client;
+	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
+	if (!mobileCheck.isMobileDocked)
+		player_launch_base = GetPlayerBase(clients[client].last_player_base);
+
+	if (player_launch_base)
+	{
+		uint systemID;
+		pub::Player::GetSystem(client, systemID);
+		// in case of system mismatch, skip LaunchPos hook and instead perform a jump callout in PlayerLaunch_AFTER
+		system_match = (systemID == player_launch_base->system);
+	}
 }
 
 
@@ -1711,6 +1875,11 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 	SyncReputationForClientShip(ship, client);
+
+	if (player_launch_base && !system_match)
+	{
+		ForcePlayerBaseDock(client, player_launch_base);
+	}
 }
 
 void __stdcall JumpInComplete(unsigned int system, unsigned int ship)
@@ -2131,7 +2300,9 @@ void BaseDestroyed(uint space_obj, uint client)
 	{
 		returncode = SKIPPLUGINS;
 		i->second->SpaceObjDestroyed(space_obj);
+		return;
 	}
+	customSolarList.erase(space_obj);
 }
 
 void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate& fate)
@@ -2208,42 +2379,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	}
 }
 
-static void ForcePlayerBaseDock(uint client, PlayerBase *base)
-{
-	char system_nick[1024];
-	pub::GetSystemNickname(system_nick, sizeof(system_nick), base->system);
-
-	char proxy_base_nick[1024];
-	sprintf(proxy_base_nick, "%s_proxy_base", system_nick);
-
-	uint proxy_base_id = CreateID(proxy_base_nick);
-
-	clients[client].player_base = base->base;
-	clients[client].last_player_base = base->base;
-
-	if (set_plugin_debug > 1)
-		ConPrint(L"ForcePlayerBaseDock client=%u player_base=%u\n", client, clients[client].player_base);
-
-	uint system;
-	pub::Player::GetSystem(client, system);
-
-	pub::Player::ForceLand(client, proxy_base_id);
-	if (system != base->system)
-	{
-		Server.BaseEnter(proxy_base_id, client);
-		Server.BaseExit(proxy_base_id, client);
-
-		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		wstring charfilename;
-		HkGetCharFileName(charname, charfilename);
-		charfilename += L".fl";
-		CHARACTER_ID charid;
-		strcpy(charid.szCharFilename, wstos(charname.substr(0, 14)).c_str());
-
-		Server.CharacterSelect(charid, client); \
-	}
-}
-
 #define IS_CMD(a) !args.compare(L##a)
 #define RIGHT_CHECK(a) if(!(cmd->rights & a)) { cmd->Print(L"ERR No permission\n"); return true; }
 bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
@@ -2291,7 +2426,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		return true;
 	}*/
 
-	if (args.find(L"testrecipe") == 0)
+	if (args.find(L"testmodulerecipe") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
@@ -2305,10 +2440,38 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			return true;
 		}
 
-		uint recipe_name = CreateID(wstos(cmd->ArgStr(1)).c_str());
+		const wchar_t* recipe_name = cmd->ArgStr(1).c_str();
 
-		RECIPE recipe = recipes[recipe_name];
-		for (map<uint, uint>::iterator i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
+		RECIPE recipe = moduleNameRecipeMap[recipe_name];
+		for (auto& i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
+		{
+			base->market_items[i->first].quantity += i->second;
+			SendMarketGoodUpdated(base, i->first, base->market_items[i->first]);
+			cmd->Print(L"Added %ux %08x", i->second, i->first);
+		}
+		base->Save();
+		cmd->Print(L"OK");
+		return true;
+	}
+	else if (args.find(L"testfacrecipe") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		PlayerBase *base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			cmd->Print(L"ERR Not in player base");
+			return true;
+		}
+
+		const wchar_t* craft_type = cmd->ArgStr(1).c_str();
+		const wchar_t* recipe_name = cmd->ArgStr(2).c_str();
+
+		RECIPE recipe = recipeCraftTypeNameMap[craft_type][recipe_name];
+		for (auto& i = recipe.consumed_items.begin(); i != recipe.consumed_items.end(); ++i)
 		{
 			base->market_items[i->first].quantity += i->second;
 			SendMarketGoodUpdated(base, i->first, base->market_items[i->first]);
@@ -2898,6 +3061,33 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		returncode = SKIPPLUGINS;
 	}
 	return;
+}
+
+void AddFactoryRecipeToMaps(RECIPE recipe, wstring craft_type){
+
+	wstring recipeNameKey = recipe.infotext;
+	//convert to lowercase
+	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
+	transform(craft_type.begin(), craft_type.end(), craft_type.begin(), ::tolower);
+	recipeMap[recipe.nickname] = recipe;
+	recipeCraftTypeNumberMap[craft_type][recipe.shortcut_number] = recipe;
+	recipeCraftTypeNameMap[craft_type][recipeNameKey] = recipe;
+}
+
+void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number) {
+
+	wstring recipeNameKey = recipe.infotext;
+	//convert to lowercase
+	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
+
+	for (wstring craftType : craft_types) {
+		factoryNicknameToCraftTypeMap[recipe.nickname].push_back(craftType);
+	}
+	recipeMap[recipe.nickname] = recipe;
+	moduleNameRecipeMap[recipeNameKey] = recipe;
+	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
+	craftListNumberModuleMap[build_type][recipe_number] = recipe;
+	buildingCraftLists.insert(build_type);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

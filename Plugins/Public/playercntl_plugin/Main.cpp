@@ -1755,16 +1755,11 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			SystemSensor::JumpInComplete(info->iSystemID, info->iShipID, iClientID);
 		}
 	}
-	}
-		checkData->inWarp = AntiJumpDisconnect::IsInWarp(checkData->clientId);
-		CUSTOM_IN_WARP_CHECK_STRUCT* checkData = reinterpret_cast<CUSTOM_IN_WARP_CHECK_STRUCT*>(data);
-	{
 	else if (msg == CUSTOM_IN_WARP_CHECK)
-	else if (msg == CUSTOM_JUMP_CALLOUT)
 	{
-		CUSTOM_JUMP_CALLOUT_STRUCT* jumpData = reinterpret_cast<CUSTOM_JUMP_CALLOUT_STRUCT*>(data);
+		CUSTOM_IN_WARP_CHECK_STRUCT* checkData = reinterpret_cast<CUSTOM_IN_WARP_CHECK_STRUCT*>(data);
+		checkData->inWarp = AntiJumpDisconnect::IsInWarp(checkData->clientId);
 	}
-		HyperJump::ForceJump(*jumpData);
 	return;
 }
 

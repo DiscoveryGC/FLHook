@@ -117,7 +117,7 @@ void LoadSettings()
 					{
 						overridenMobileDockingProxyBase = CreateID(ini.get_value_string(0));
 					}
-					else if(ini.is_value("disable_docking_repairs"))
+					else if (ini.is_value("disable_docking_repairs"))
 					{
 						disableRegensOnDockAttempt = ini.get_value_bool(0);
 					}
@@ -157,10 +157,12 @@ void LoadSettings()
 					else if (ini.is_value("lastLogin"))
 					{
 						if (forgetCarrierDataInSeconds != 0
-							&& (curTime - forgetCarrierDataInSeconds > ini.get_value_int(0))) {
+							&& (curTime - forgetCarrierDataInSeconds > ini.get_value_int(0)))
+						{
 							doLoad = false;
 						}
-						else {
+						else
+						{
 							ci.lastCarrierLogin = ini.get_value_int(0);
 						}
 					}
@@ -169,7 +171,7 @@ void LoadSettings()
 						wstring& dockedShipName = stows(ini.get_value_string(0));
 						const auto& accData = HkGetAccountByCharname(dockedShipName);
 						// skip loading renamed/deleted docked ships
-						if(!accData)
+						if (!accData)
 						{
 							continue;
 						}
@@ -445,7 +447,8 @@ bool RemoveShipFromLists(const wstring& dockedShipName, boolean isForced)
 	if (nameToCarrierInfoMap.count(carrierName))
 	{
 		auto& dockedList = nameToCarrierInfoMap[carrierName].dockedShipList;
-		for (auto& iter = dockedList.begin(); iter != dockedList.end(); iter++) {
+		for (auto& iter = dockedList.begin(); iter != dockedList.end(); iter++)
+		{
 			if (*iter == dockedShipName)
 			{
 				std::lock_guard<std::mutex> saveLock(saveMutex);
@@ -873,7 +876,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 	}
 	else if (wscCmd.find(L"/dockmode") == 0)
 	{
-		if(mobiledockClients[client].iDockingModulesInstalled == 0)
+		if (mobiledockClients[client].iDockingModulesInstalled == 0)
 		{
 			PrintUserCmdText(client, L"ERR No docking modules installed");
 			return true;
@@ -913,7 +916,7 @@ void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 		for (const auto& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(dockedPlayer.c_str());
-			if(dockedClientID != -1)
+			if (dockedClientID != -1)
 			{
 				wstring& lastBaseName = GetLastBaseName(dockedClientID);
 				PrintUserCmdText(dockedClientID, L"Carrier logged off, redirecting undock to %ls", lastBaseName);

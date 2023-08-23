@@ -255,9 +255,11 @@ HK_ERROR HkBeam(const wstring &wscCharname, const wstring &wscBasename)
 
 HK_ERROR HkBeamById(const uint clientId, const uint baseId)
 {
-	auto baseInfo = Universe::get_base(baseId);
+	uint systemId;
+	pub::Player::GetSystem(clientId, systemId);
+	Universe::IBase* baseInfo = Universe::get_base(baseId);
 	pub::Player::ForceLand(clientId, baseId);
-	if (Players[clientId].iSystemID != baseInfo->iSystemID)
+	if (systemId != baseInfo->iSystemID)
 	{
 		auto charName = (const wchar_t*)Players.GetActiveCharacterName(clientId);
 		Server.BaseEnter(baseInfo->iBaseID, clientId);

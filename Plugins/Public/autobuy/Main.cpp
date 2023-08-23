@@ -935,7 +935,7 @@ bool SetShipArch(uint iClientID, uint ship)
 			}
 			counter++;
 		}
-		if (eq.iArchID == battArch)
+		else if (eq.iArchID == battArch)
 		{
 			if (eq.iCount > shipData->iMaxShieldBats)
 			{
@@ -946,7 +946,7 @@ bool SetShipArch(uint iClientID, uint ship)
 			}
 			counter++;
 		}
-		if (counter == 2)
+		if (counter == 2) // both bots and batts processed, early exit
 		{
 			break;
 		}

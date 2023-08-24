@@ -86,6 +86,7 @@ namespace HyperJump
 		boolean isEntrance;
 		uint pairedJH;
 		set<uint> dockingQueue;
+		uint remainingCapacity = UINT_MAX; // if undefined, unlimited jumps allowed
 	};
 	static unordered_map<uint, JD_JUMPHOLE> jumpObjMap;
 	static unordered_map<uint, uint> shipToJumpObjMap;
@@ -118,6 +119,7 @@ namespace HyperJump
 		vector<uint> charge_fuse;
 		uint jump_fuse;
 		uint jump_range;
+		uint jump_capacity;
 		map<uint, vector<uint>> mapFuelToUsagePerDistance;
 		float power;
 		boolean cd_disrupts_charge;
@@ -378,6 +380,10 @@ namespace HyperJump
 						{
 							jd.jump_fuse = CreateID(ini.get_value_string(0));
 						}
+						else if (ini.is_value("jump_capacity"))
+						{
+							jd.jump_capacity = ini.get_value_int(0);
+						}
 						else if (ini.is_value("jump_range"))
 						{
 							jd.jump_range = ini.get_value_int(0);
@@ -386,8 +392,7 @@ namespace HyperJump
 						{
 							uint fuel = CreateValidID(ini.get_value_string(0));
 							int rate;
-							int i = 0;
-							for(int i = 0; i <= set_maxJumpRange; ++i)
+							for (uint i = 0; i <= set_maxJumpRange; ++i)
 							{
 								rate = ini.get_value_int(i);
 								jd.mapFuelToUsagePerDistance[fuel].push_back(rate);
@@ -678,8 +683,8 @@ namespace HyperJump
 			ConPrint(L"exit bugged out\n");
 		}
 
-		jumpObjMap[exitSolar.iSpaceObjId] = { exitSolar.iSpaceObjId, 0, 0, false, entrySolar.iSpaceObjId, {} };
-		jumpObjMap[entrySolar.iSpaceObjId] = { entrySolar.iSpaceObjId, entrySolar.destSystem, now + set_iJumpHoleDuration, true, exitSolar.iSpaceObjId, {} };
+		jumpObjMap[exitSolar.iSpaceObjId] = { exitSolar.iSpaceObjId, 0, 0, false, entrySolar.iSpaceObjId, {}, 0 };
+		jumpObjMap[entrySolar.iSpaceObjId] = { entrySolar.iSpaceObjId, entrySolar.destSystem, now + set_iJumpHoleDuration, true, exitSolar.iSpaceObjId, {}, jd.arch->jump_capacity };
 
 		ClearJumpDriveInfo(iClientID, true);
 	}
@@ -712,6 +717,12 @@ namespace HyperJump
 			return false;
 		}
 
+		if (!jumpObj.remainingCapacity)
+		{
+			PrintUserCmdText(client, L"ERR Jump Hole is too unstable to proceed!");
+			return false;
+		}
+
 		time_t now = time(0);
 		if (now - 1 > jumpObj.timeout)
 		{
@@ -724,6 +735,7 @@ namespace HyperJump
 			return false;
 		}
 
+		jumpObj.remainingCapacity--;
 		jumpObj.dockingQueue.insert(iShip);
 		shipToJumpObjMap[iShip] = iDockTarget;
 		SendJumpObjOverride(client, jumpObj);
@@ -772,9 +784,10 @@ namespace HyperJump
 
 	void HyperJump::RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4)
 	{
-		if (iType == 0 && jumpObjMap.count(p3))
+		if (iType == 0 && jumpObjMap.count(p3)) // dock type request, p3 represents the docked-onto object ID
 		{
 			jumpObjMap.at(p3).dockingQueue.erase(iShip);
+			jumpObjMap.at(p3).remainingCapacity++;
 			shipToJumpObjMap.erase(iShip);
 		}
 	}
@@ -1018,7 +1031,7 @@ namespace HyperJump
 
 		auto &jd = mapJumpDrives[iClientID];
 		uint index = ToUInt(GetParam(wscParam, ' ', 0));
-		if (index == 0 || mapSystemJumps[jd.iTargetSystem].size() < index )
+		if (index == 0 || mapSystemJumps[jd.iTargetSystem].size() < index)
 		{
 			PrintUserCmdText(iClientID, L"ERR invalid selection");
 			return true;
@@ -1201,13 +1214,13 @@ namespace HyperJump
 				{
 					iter++;
 				}
-				else if(jh.dockingQueue.empty())
+				else if (jh.dockingQueue.empty())
 				{
 					if (jh.isEntrance)
 					{
 						jumpObjMap.at(jh.pairedJH).timeout = now + set_iJumpHoleDuration;
 					}
-					else if(!jh.timeout)
+					else if (!jh.timeout)
 					{
 						iter++;
 						continue;
@@ -1663,7 +1676,7 @@ namespace HyperJump
 
 		const auto& beaconRequestsInfo = mapBeaconJumpRequests.find(iTargetClientID);
 		if (beaconRequestsInfo == mapBeaconJumpRequests.end()
-		|| beaconRequestsInfo->second != iClientID)
+			|| beaconRequestsInfo->second != iClientID)
 		{
 			PrintUserCmdText(iClientID, L"ERR No pending jump requests from this player!");
 			return true;
@@ -1749,7 +1762,7 @@ namespace HyperJump
 		}
 
 		auto canJump = CanBeaconJumpToPlayer(iClientID, iTargetClientID);
-		if(!canJump.first)
+		if (!canJump.first)
 		{
 			PrintUserCmdText(iClientID, L"ERR Can't beacon jump to selected player.");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_not_ready"));

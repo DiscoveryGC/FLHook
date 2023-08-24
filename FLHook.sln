@@ -90,8 +90,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MunitionCntl", "Plugins\Pub
 		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kill_tracker", "Plugins\Public\kill_tracker\kill_tracker.vcxproj", "{91E8438D-F413-4A2C-8A9B-6CE3544116DB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		DebugDONOTUSE|Win32 = DebugDONOTUSE|Win32

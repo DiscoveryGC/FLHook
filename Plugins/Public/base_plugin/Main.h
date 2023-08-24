@@ -14,12 +14,20 @@
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
+#include <unordered_map>
 
 using namespace std;
 
 static uint STORAGE_MODULE_CAPACITY = 40000;
 void LogCheater(uint client, const wstring &reason);
 uint GetAffliationFromClient(uint client);
+
+struct AICONFIG
+{
+	pub::AI::Personality::GunUseStruct gunUse;
+	pub::AI::Personality::MissileUseStruct missileUse;
+	pub::AI::Personality::JobStruct job;
+};
 
 struct RECIPE
 {
@@ -220,6 +228,8 @@ public:
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
 	void Reset();
+
+	static void LoadSettings(const string& path);
 };
 
 class BuildModule : public Module

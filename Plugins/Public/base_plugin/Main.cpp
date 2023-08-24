@@ -445,6 +445,7 @@ void LoadSettingsActual()
 	shield_power_items.clear();
 
 	HookExt::ClearMiningObjData();
+	DefenseModule::LoadSettings(string(szCurDir) + "\\flhook_plugins\\base_wp_ai.cfg");
 
 	INI_Reader ini;
 	if (ini.open(cfg_file.c_str(), false))
@@ -636,6 +637,215 @@ void LoadSettingsActual()
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
 					}
 				}
+			}
+			else if (ini.is_header("PlatformAI"))
+			{
+				AICONFIG configAI;
+				pub::AI::Personality::GunUseStruct gunUse;
+				pub::AI::Personality::MissileUseStruct missileUse;
+				pub::AI::Personality::JobStruct job;
+				uint attack_subtarget_counter = 0;
+
+				uint platformType;
+
+				while (ini.read_value())
+				{
+					if (ini.is_value("type"))
+					{
+						platformType = ini.get_value_int(0);
+					}
+
+					//GunUse
+					else if (ini.is_value("gun_fire_interval_time"))
+					{
+						gunUse.gun_fire_interval_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_fire_interval_variance_percent"))
+					{
+						gunUse.gun_fire_interval_variance_percent = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_fire_burst_interval_time"))
+					{
+						gunUse.gun_fire_burst_interval_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_fire_burst_interval_variance_percent"))
+					{
+						gunUse.gun_fire_burst_interval_variance_percent = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_fire_no_burst_interval_time"))
+					{
+						gunUse.gun_fire_no_burst_interval_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_fire_accuracy_cone_angle"))
+					{
+						gunUse.gun_fire_accuracy_cone_angle = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_fire_accuracy_power"))
+					{
+						gunUse.gun_fire_accuracy_power = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_range_threshold"))
+					{
+						gunUse.gun_range_threshold = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_target_point_switch_time"))
+					{
+						gunUse.gun_target_point_switch_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("fire_style"))
+					{
+						gunUse.fire_style = ToLower(ini.get_value_string(0)) == "multiple" ? 0 : 1;
+					}
+					else if (ini.is_value("auto_turret_interval_time"))
+					{
+						gunUse.auto_turret_interval_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("auto_turret_burst_interval_time"))
+					{
+						gunUse.auto_turret_burst_interval_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("auto_turret_no_burst_interval_time"))
+					{
+						gunUse.auto_turret_no_burst_interval_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("auto_turret_burst_interval_variance_percent"))
+					{
+						gunUse.auto_turret_burst_interval_variance_percent = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_range_threshold_variance_percent"))
+					{
+						gunUse.gun_range_threshold_variance_percent = ini.get_value_float(0);
+					}
+					else if (ini.is_value("gun_fire_accuracy_power_npc"))
+					{
+						gunUse.gun_fire_accuracy_power_npc = ini.get_value_float(0);
+					}
+
+					//MissileUse
+					else if (ini.is_value("missile_launch_interval_time"))
+					{
+						missileUse.missile_launch_interval_time = ini.get_value_float(0);
+					}
+					else if (ini.is_value("missile_launch_interval_variance_percent"))
+					{
+						missileUse.missile_launch_interval_variance_percent = ini.get_value_float(0);
+					}
+					else if (ini.is_value("missile_launch_range"))
+					{
+						missileUse.missile_launch_range = ini.get_value_float(0);
+					}
+					else if (ini.is_value("missile_launch_cone_angle"))
+					{
+						missileUse.missile_launch_cone_angle = ini.get_value_float(0);
+					}
+					else if (ini.is_value("missile_launch_interval_time"))
+					{
+						missileUse.missile_launch_allow_out_of_range = ini.get_value_bool(0);
+					}
+
+					//Job
+					else if (ini.is_value("wait_for_leader_target"))
+					{
+						job.wait_for_leader_target = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("maximum_leader_target_distance"))
+					{
+						job.maximum_leader_target_distance = ini.get_value_float(0);
+					}
+					else if (ini.is_value("flee_when_leader_flees_style"))
+					{
+						job.flee_when_leader_flees_style = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("scene_toughness_threshold"))
+					{
+						job.scene_toughness_threshold = ini.get_value_int(0);
+					}
+					else if (ini.is_value("flee_scene_threat_style"))
+					{
+						job.flee_scene_threat_style = ini.get_value_int(0);
+					}
+					else if (ini.is_value("flee_when_hull_damaged_percent"))
+					{
+						job.flee_when_hull_damaged_percent = ini.get_value_float(0);
+					}
+					else if (ini.is_value("flee_no_weapons_style"))
+					{
+						job.flee_no_weapons_style = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("loot_flee_threshold"))
+					{
+						job.loot_flee_threshold = ini.get_value_int(0);
+					}
+					else if (ini.is_value("field_targeting"))
+					{
+						job.field_targeting = ini.get_value_int(0);
+					}
+					else if (ini.is_value("loot_preference"))
+					{
+						job.loot_preference = ini.get_value_int(0);
+					}
+					else if (ini.is_value("combat_drift_distance"))
+					{
+						job.combat_drift_distance = ini.get_value_float(0);
+					}
+					else if (ini.is_value("attack_subtarget_order"))
+					{
+						job.attack_subtarget_order[attack_subtarget_counter] = ini.get_value_int(0);
+						attack_subtarget_counter++;
+					}
+					else if (ini.is_value("attack_preference"))
+					{
+						string shipType = ToLower(ini.get_value_string(0));
+						uint shipIndex = 0;
+						if (shipType == "fighter")
+							shipIndex = 0;
+						else if (shipType == "freighter")
+							shipIndex = 1;
+						else if (shipType == "transport")
+							shipIndex = 2;
+						else if (shipType == "gunboat")
+							shipIndex = 3;
+						else if (shipType == "cruiser")
+							shipIndex = 4;
+						else if (shipType == "capital")
+							shipIndex = 5;
+						else if (shipType == "weapons_platform")
+							shipIndex = 8;
+						else if (shipType == "solar")
+							shipIndex = 10;
+						else if (shipType == "anything")
+							shipIndex = 11;
+
+						int flag = 0;
+						string flagText = ToLower(ini.get_value_string(2));
+						if (flagText.find("guns") != string::npos)
+						{
+							flag += 1;
+						}
+						if (flagText.find("guided") != string::npos)
+						{
+							flag += 2;
+						}
+						if (flagText.find("unguided") != string::npos)
+						{
+							flag += 4;
+						}
+						if (flagText.find("torpedo") != string::npos)
+						{
+							flag += 8;
+						}
+
+						pub::AI::Personality::JobStruct::Tattack_order& atkOrder = job.attack_order[shipIndex];
+						atkOrder.distance = ini.get_value_float(1);
+						atkOrder.flag = flag;
+						atkOrder.type = shipIndex;
+					}
+				}
+
+				configAI.gunUse = gunUse;
+				configAI.missileUse = missileUse;
+				configAI.job = job;
+				defPlatformAIConfig[platformType] = configAI;
 			}
 		}
 		ini.close();

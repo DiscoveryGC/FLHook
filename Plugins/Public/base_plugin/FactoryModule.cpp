@@ -296,7 +296,13 @@ void FactoryModule::SetActiveRecipe(uint product)
 {
 	active_recipe = recipeMap[product];
 	if (active_recipe.affiliationBonus.count(base->affiliation))
-		active_recipe.produced_amount *= active_recipe.affiliationBonus.at(base->affiliation);
+	{
+		float productionModifier = active_recipe.affiliationBonus.at(base->affiliation);
+		for (auto& item : active_recipe.consumed_items)
+		{
+			item.second = static_cast<uint>(ceil(static_cast<float>(item.second) * productionModifier));
+		}
+	}
 }
 
 void FactoryModule::AddToQueue(uint product)

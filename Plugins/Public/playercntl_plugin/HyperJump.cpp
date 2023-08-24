@@ -63,9 +63,6 @@ namespace HyperJump
 
 	static int JumpSystemListEnabled = 0;
 	static uint BeaconCommodity = 0;
-	static int BeaconTime = 120;
-	static int BeaconCooldown = 300;
-	static uint BeaconFuse = 0;
 	static float JumpCargoSizeRestriction = 7000;
 	static uint set_blindJumpOverrideSystem = 0;
 	static boolean set_canJumpWithCommodities = true;
@@ -155,6 +152,8 @@ namespace HyperJump
 		uint range;
 		uint item;
 		int itemcount;
+		uint beaconFuse = CreateID("fuse_jumpdrive_charge_5");
+		float beaconLifetime;
 	};
 
 	//There is only one kind of Matrix right now, but this might change later on
@@ -300,18 +299,6 @@ namespace HyperJump
 						{
 							BeaconCommodity = CreateID(ini.get_value_string());
 						}
-						else if (ini.is_value("BeaconTime"))
-						{
-							BeaconTime = ini.get_value_int(0);
-						}
-						else if (ini.is_value("BeaconFuse"))
-						{
-							BeaconFuse = CreateID(ini.get_value_string());
-						}
-						else if (ini.is_value("BeaconCooldown"))
-						{
-							BeaconCooldown = ini.get_value_int(0);
-						}
 						else if (ini.is_value("BlindJumpOverrideSystem"))
 						{
 							set_blindJumpOverrideSystem = CreateID(ini.get_value_string());
@@ -435,6 +422,14 @@ namespace HyperJump
 						{
 							bm.range = ini.get_value_int(0);
 						}
+						else if (ini.is_value("BeaconTime"))
+						{
+							bm.beaconLifetime = ini.get_value_float(0);
+						}
+						else if (ini.is_value("BeaconFuse"))
+						{
+							bm.beaconFuse = CreateID(ini.get_value_string());
+						}
 					}
 					mapBeaconMatrix[bm.nickname] = bm;
 				}
@@ -442,10 +437,6 @@ namespace HyperJump
 			if (BeaconCommodity == 0)
 			{
 				BeaconCommodity = CreateID("commodity_event_04");
-			}
-			if (BeaconFuse == 0)
-			{
-				BeaconFuse = CreateID("fuse_jumpdrive_charge_5");
 			}
 			ini.close();
 		}
@@ -540,6 +531,8 @@ namespace HyperJump
 				if (*iter == iClientID)
 				{
 					beaconData.erase(iter);
+					auto incomingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+					PrintUserCmdText(jd.targetClient, L"%s jump drive charging was aborted", incomingName);
 					break;
 				}
 			}
@@ -655,7 +648,7 @@ namespace HyperJump
 		exitSolar.solar_ids = set_IDSNamespaceStart;
 		exitSolar.overwrittenName = L"Collapsing Hyperspace Breach";
 		exitSolar.creatorSystem = Players[iClientID].iSystemID;
-		exitSolar.nickname = "custom_jump_hole_exit_" + to_string(jd.targetClient) + "_" + to_string(timestamp);
+		exitSolar.nickname = "custom_jump_hole_exit_" + to_string(iClientID) + "_" + to_string(timestamp);
 
 
 		//beacon jump
@@ -1088,6 +1081,15 @@ namespace HyperJump
 						jd.charging_on = false;
 						SetFuse(iClientID, jd.arch->jump_fuse);
 						pub::Audio::PlaySoundEffect(iClientID, CreateID("dsy_jumpdrive_activate"));
+
+						if (jd.targetClient)
+						{
+							SetFuse(jd.targetClient, mapPlayerBeaconMatrix[jd.targetClient].arch->beaconFuse, mapPlayerBeaconMatrix[jd.targetClient].arch->beaconLifetime, 0);
+							wstring beaconPlayer = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(jd.targetClient));
+							wstring playerName = L"Hyperspace breach is forming around %player!";
+							playerName = ReplaceStr(playerName, L"%player", beaconPlayer);
+							PrintLocalUserCmdText(jd.targetClient, playerName, 10000);
+						}
 					}
 					// Execute the jump and do the pop sound
 					else if (jd.jump_timer == 0)

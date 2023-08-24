@@ -150,8 +150,8 @@ namespace HyperJump
 		uint nickname;
 		int inaccuracy;
 		uint range;
-		uint item;
-		int itemcount;
+		uint fuel;
+		uint fuel_amount;
 		uint beaconFuse = CreateID("fuse_jumpdrive_charge_5");
 		float beaconLifetime;
 	};
@@ -413,10 +413,10 @@ namespace HyperJump
 						{
 							bm.inaccuracy = ini.get_value_int(0);
 						}
-						else if (ini.is_value("item"))
+						else if (ini.is_value("fuel"))
 						{
-							bm.item = CreateValidID(ini.get_value_string(0));
-							bm.itemcount = ini.get_value_int(0);
+							bm.fuel = CreateValidID(ini.get_value_string(0));
+							bm.fuel_amount = ini.get_value_int(1);
 						}
 						else if (ini.is_value("range"))
 						{
@@ -514,6 +514,37 @@ namespace HyperJump
 				HkUnLightFuse((IObjRW*)obj, *fuse, 0);
 			mapJumpDrives[iClientID].active_charge_fuse.clear();
 		}
+	}
+
+	bool CheckBeaconFuel(const uint clientId, bool consumeFuel)
+	{
+		if (!mapPlayerBeaconMatrix.count(clientId))
+		{
+			return false;
+		}
+		const BEACONMATRIX* beacon = mapPlayerBeaconMatrix.at(clientId).arch;
+		if (!beacon->fuel)
+		{
+			return true;
+		}
+		for (const auto& eq : Players[clientId].equipDescList.equip)
+		{
+			if (eq.iArchID == beacon->fuel)
+			{
+				if (eq.iCount < beacon->fuel_amount)
+				{
+					return false;
+				}
+
+				if (consumeFuel)
+				{
+					pub::Player::RemoveCargo(clientId, eq.sID, beacon->fuel_amount);
+				}
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	void ShutdownJumpDrive(uint iClientID)
@@ -1084,6 +1115,13 @@ namespace HyperJump
 
 						if (jd.targetClient)
 						{
+							if (!CheckBeaconFuel(jd.targetClient, true))
+							{
+								PrintUserCmdText(jd.targetClient, L"ERR insufficient fuel!");
+								PrintUserCmdText(iClientID, L"ERR Beacon ship is out of fuel!");
+								ShutdownJumpDrive(iClientID);
+								continue;
+							}
 							SetFuse(jd.targetClient, mapPlayerBeaconMatrix[jd.targetClient].arch->beaconFuse, mapPlayerBeaconMatrix[jd.targetClient].arch->beaconLifetime, 0);
 							wstring beaconPlayer = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(jd.targetClient));
 							wstring playerName = L"Hyperspace breach is forming around %player!";
@@ -1696,6 +1734,14 @@ namespace HyperJump
 		{
 			PrintUserCmdText(iClientID, L"ERR You're out of range for this jump request");
 			PrintUserCmdText(iTargetClientID, L"ERR Beacon jump request accepted, but you're out of range");
+			ShutdownJumpDrive(iTargetClientID);
+			return true;
+		}
+
+		if (!CheckBeaconFuel(iClientID, false))
+		{
+			PrintUserCmdText(iClientID, L"ERR Insufficient fuel");
+			PrintUserCmdText(iTargetClientID, L"ERR Beacon jump request accepted, but it's out of fuel");
 			ShutdownJumpDrive(iTargetClientID);
 			return true;
 		}

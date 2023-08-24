@@ -74,7 +74,6 @@ namespace HyperJump
 	static uint set_exitJumpHoleArchetype = CreateID("jumphole_noentry");
 	static uint set_entryJumpHoleLoadout = CreateID("wormhole_unstable");
 	static uint set_entryJumpHoleArchetype = CreateID("flhook_jumphole");
-	static uint set_iJumpHoleDuration = 30;
 	static uint set_IDSNamespaceStart = 267200;
 	static uint set_maxJumpRange = 0;
 
@@ -119,7 +118,8 @@ namespace HyperJump
 		vector<uint> charge_fuse;
 		uint jump_fuse;
 		uint jump_range;
-		uint jump_capacity;
+		uint jump_hole_capacity;
+		uint jump_hole_duration;
 		map<uint, vector<uint>> mapFuelToUsagePerDistance;
 		float power;
 		boolean cd_disrupts_charge;
@@ -380,9 +380,13 @@ namespace HyperJump
 						{
 							jd.jump_fuse = CreateID(ini.get_value_string(0));
 						}
-						else if (ini.is_value("jump_capacity"))
+						else if (ini.is_value("jump_hole_capacity"))
 						{
-							jd.jump_capacity = ini.get_value_int(0);
+							jd.jump_hole_capacity = ini.get_value_int(0);
+						}
+						else if (ini.is_value("jump_hole_duration"))
+						{
+							jd.jump_hole_duration = ini.get_value_int(0);
 						}
 						else if (ini.is_value("jump_range"))
 						{
@@ -684,7 +688,7 @@ namespace HyperJump
 		}
 
 		jumpObjMap[exitSolar.iSpaceObjId] = { exitSolar.iSpaceObjId, 0, 0, false, entrySolar.iSpaceObjId, {}, 0 };
-		jumpObjMap[entrySolar.iSpaceObjId] = { entrySolar.iSpaceObjId, entrySolar.destSystem, now + set_iJumpHoleDuration, true, exitSolar.iSpaceObjId, {}, jd.arch->jump_capacity };
+		jumpObjMap[entrySolar.iSpaceObjId] = { entrySolar.iSpaceObjId, entrySolar.destSystem, now + jd.arch->jump_hole_duration, true, exitSolar.iSpaceObjId, {}, jd.arch->jump_hole_capacity };
 
 		ClearJumpDriveInfo(iClientID, true);
 	}
@@ -1207,41 +1211,42 @@ namespace HyperJump
 		if (!jumpObjMap.empty())
 		{
 			time_t now = time(0);
-			for (auto iter = jumpObjMap.begin(); iter != jumpObjMap.end();)
+			static vector<uint> JumpHoleExitsToClose;
+			for (auto& iter : jumpObjMap)
 			{
-				JD_JUMPHOLE& jh = iter->second;
-				if (jh.timeout >= now)
+				JD_JUMPHOLE& jh = iter.second;
+				if (jh.timeout >= now || !jh.isEntrance)
 				{
-					iter++;
+					continue;
 				}
 				else if (jh.dockingQueue.empty())
 				{
-					if (jh.isEntrance)
-					{
-						jumpObjMap.at(jh.pairedJH).timeout = now + set_iJumpHoleDuration;
-					}
-					else if (!jh.timeout)
-					{
-						iter++;
-						continue;
-					}
-					DESPAWN_SOLAR_STRUCT info;
-					info.destroyType = FUSE;
-					info.spaceObjId = iter->first;
-					Plugin_Communication(CUSTOM_DESPAWN_SOLAR, &info);
-					iter = jumpObjMap.erase(iter);
+					JumpHoleExitsToClose.emplace_back(jh.pairedJH);
+					JumpHoleExitsToClose.emplace_back(jh.objId);
 				}
 				else
 				{
 					for (uint ship : jh.dockingQueue)
 					{
+						//check if a ship still exists (could be disconnected)
 						if (pub::SpaceObj::ExistsAndAlive(ship) == -2)
 						{
 							jh.dockingQueue.erase(ship);
 						}
 					}
-					iter++;
 				}
+			}
+			if (!JumpHoleExitsToClose.empty())
+			{
+				for (uint jumpHoleID : JumpHoleExitsToClose)
+				{
+					jumpObjMap.erase(jumpHoleID);
+					DESPAWN_SOLAR_STRUCT info;
+					info.destroyType = FUSE;
+					info.spaceObjId = jumpHoleID;
+					Plugin_Communication(CUSTOM_DESPAWN_SOLAR, &info);
+				}
+				JumpHoleExitsToClose.clear();
 			}
 		}
 

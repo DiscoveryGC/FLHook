@@ -4,7 +4,7 @@ extern bool set_new_spawn;
 
 unordered_map<uint, AICONFIG> defPlatformAIConfig;
 
-static void LoadSettings(const string& path)
+void DefenseModule::LoadSettings(const string& path)
 {
 	INI_Reader ini;
 	if (ini.open(path.c_str(), false))

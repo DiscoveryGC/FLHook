@@ -533,6 +533,7 @@ namespace HyperJump
 	void InitJumpHole(uint baseId, uint destSystem, uint destObject);
 	void LoadHyperspaceHubConfig(const string& configPath);
 	void InitJumpHoleConfig();
+	void CheckForDisconnectedUnchartedLogin(uint ship, uint client);
 }
 
 namespace PlayerCommands

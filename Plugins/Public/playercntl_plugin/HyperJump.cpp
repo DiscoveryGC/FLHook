@@ -758,6 +758,12 @@ namespace HyperJump
 		}
 
 		jumpObj.remainingCapacity--;
+
+		if (!jumpObj.remainingCapacity)
+		{
+			jumpObj.timeout = 0; // set the JH to collapse immediately upon the last person's arrival at the end system
+		}
+
 		jumpObj.dockingQueue.insert(iShip);
 		shipToJumpObjMap[iShip] = iDockTarget;
 		SendJumpObjOverride(client, jumpObj);

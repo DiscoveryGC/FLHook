@@ -976,14 +976,18 @@ void HkTimerCheckKick()
 		// Dispatch timer but we can safely ignore the return
 		base->Timer(curr_time);
 	}
-	if (!player_bases.empty() && !set_holiday_mode) {
-		if (baseSaveIterator == player_bases.end()) {
+	if (!player_bases.empty() && !set_holiday_mode)
+	{
+		if (baseSaveIterator == player_bases.end())
+		{
 			baseSaveIterator = player_bases.begin();
 		}
 		bool saveSuccessful = false;
-		while (!saveSuccessful && baseSaveIterator != player_bases.end()) {
+		while (!saveSuccessful && baseSaveIterator != player_bases.end())
+		{
 			auto& pb = baseSaveIterator->second;
-			if (pb->logic == 1 || pb->invulnerable == 0) {
+			if (pb->logic == 1 || pb->invulnerable == 0)
+			{
 				pb->Save();
 				saveSuccessful = true;
 			}
@@ -1792,8 +1796,8 @@ uint lastTransactionArchID = 0;
 int lastTransactionCount = 0;
 uint lastTransactionClientID = 0;
 
-bool checkIfCommodityForbidden(uint goodId) {
-	
+bool CheckIfCommodityForbidden(uint goodId)
+{
 	return forbidden_player_base_commodity_set.find(goodId) != forbidden_player_base_commodity_set.end();
 }
 
@@ -1816,7 +1820,8 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 			return;
 		}
 
-		if (checkIfCommodityForbidden(gsi.iArchID)) {
+		if (CheckIfCommodityForbidden(gsi.iArchID))
+		{
 
 			PrintUserCmdText(client, L"ERR: Cargo is not allowed on Player Bases");
 			clients[client].reverse_sell = true;
@@ -2202,12 +2207,14 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 		return;
 	}
 	
-	if (!spaceobj_modules.count(iDmgToSpaceID)) {
+	if (!spaceobj_modules.count(iDmgToSpaceID))
+	{
 		return;
 	}
 
 	Module* damagedModule = spaceobj_modules[iDmgToSpaceID];
-	if(damagedModule->mining){
+	if(damagedModule->mining)
+	{
 		return;
 	}
 	
@@ -2249,7 +2256,8 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	// This call is for us, skip all plugins.
 	iDmgToSpaceID = 0;
 	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
-	if (newHealth == curr) {
+	if (newHealth == curr)
+	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		return;
 	}
@@ -2964,7 +2972,8 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		if (lastTransactionBase)
 		{
 			CUSTOM_REVERSE_TRANSACTION_STRUCT* info = reinterpret_cast<CUSTOM_REVERSE_TRANSACTION_STRUCT*>(data);
-			if (info->iClientID != lastTransactionClientID) {
+			if (info->iClientID != lastTransactionClientID)
+			{
 				ConPrint(L"base: CUSTOM_REVERSE_TRANSACTION: Something is very wrong! Expected client ID %d but got %d\n", lastTransactionClientID, info->iClientID);
 				return;
 			}
@@ -2983,7 +2992,8 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	return;
 }
 
-void AddFactoryRecipeToMaps(RECIPE recipe, wstring craft_type){
+void AddFactoryRecipeToMaps(RECIPE recipe, wstring craft_type)
+{
 
 	wstring recipeNameKey = recipe.infotext;
 	//convert to lowercase
@@ -2994,13 +3004,15 @@ void AddFactoryRecipeToMaps(RECIPE recipe, wstring craft_type){
 	recipeCraftTypeNameMap[craft_type][recipeNameKey] = recipe;
 }
 
-void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number) {
+void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number)
+{
 
 	wstring recipeNameKey = recipe.infotext;
 	//convert to lowercase
 	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
 
-	for (wstring craftType : craft_types) {
+	for (wstring craftType : craft_types)
+	{
 		factoryNicknameToCraftTypeMap[recipe.nickname].push_back(craftType);
 	}
 	recipeMap[recipe.nickname] = recipe;
@@ -3058,8 +3070,10 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	return p_PI;
 }
 
-void ResetAllBasesShieldStrength() {
-	for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i) {
+void ResetAllBasesShieldStrength()
+{
+	for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
+	{
 		i->second->shield_strength_multiplier = base_shield_strength;
 		i->second->damage_taken_since_last_threshold = 0;
 	}
@@ -3067,9 +3081,11 @@ void ResetAllBasesShieldStrength() {
 
 //return value:
 // false = all bases vulnerable, true = invulnerable
-bool checkBaseVulnerabilityStatus() {
+bool checkBaseVulnerabilityStatus()
+{
 
-	if (baseVulnerabilityWindows.empty()) {
+	if (baseVulnerabilityWindows.empty())
+	{
 		return false;
 	}
 
@@ -3079,13 +3095,16 @@ bool checkBaseVulnerabilityStatus() {
 	// iterate over configured vulnerability periods to check if we're in one.
 	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
 	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
-	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i){
+	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i)
+	{
 		if((i->start < i->end 
 			&& i->start <= currHour && i->end > currHour)
 		|| (i->start > i->end
-			&& (i->start <= currHour || i->end > currHour))) {
+			&& (i->start <= currHour || i->end > currHour)))
+		{
 			// if bases are going vulnerable in this tick, reset their damage resistance to default
-			if (isGlobalBaseInvulnerabilityActive) {
+			if (isGlobalBaseInvulnerabilityActive)
+			{
 				ResetAllBasesShieldStrength();
 			}
 			return false;

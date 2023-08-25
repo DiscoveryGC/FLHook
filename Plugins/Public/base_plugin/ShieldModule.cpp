@@ -2,7 +2,7 @@
 
 static uint shield_fuse = 0;
 
-ShieldModule::ShieldModule(PlayerBase *the_base)
+ShieldModule::ShieldModule(PlayerBase* the_base)
 	: Module(TYPE_SHIELDGEN), base(the_base), reset_needed(false)
 {
 	shield_fuse = CreateID("player_base_shield");
@@ -33,7 +33,7 @@ wstring ShieldModule::GetInfo(bool xml)
 }
 
 // Load module state from ini file.
-void ShieldModule::LoadState(INI_Reader &ini)
+void ShieldModule::LoadState(INI_Reader& ini)
 {
 	while (ini.read_value())
 	{
@@ -41,7 +41,7 @@ void ShieldModule::LoadState(INI_Reader &ini)
 }
 
 // Append module state to the ini file.
-void ShieldModule::SaveState(FILE *file)
+void ShieldModule::SaveState(FILE* file)
 {
 	fprintf(file, "[ShieldModule]\n");
 }
@@ -86,7 +86,7 @@ bool ShieldModule::Timer(uint time)
 	}
 
 	// If the shield is active then use fuel every 10 seconds
-	if (base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE && (time%set_tick_time) == 0)
+	if (base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE && (time % set_tick_time) == 0)
 	{
 		for (map<uint, uint>::iterator i = shield_power_items.begin();
 			i != shield_power_items.end(); ++i)
@@ -105,11 +105,11 @@ bool ShieldModule::Timer(uint time)
 	if (base->shield_state != old_shield_state || reset_needed)
 	{
 		reset_needed = false;
-		CoreModule *core = (CoreModule*)base->modules[0];
+		CoreModule* core = (CoreModule*)base->modules[0];
 		if (core && core->space_obj)
 		{
 			uint dunno;
-			IObjInspectImpl *inspect;
+			IObjInspectImpl* inspect;
 			if (GetShipInspect(core->space_obj, inspect, dunno))
 			{
 				HkUnLightFuse((IObjRW*)inspect, shield_fuse, 0);

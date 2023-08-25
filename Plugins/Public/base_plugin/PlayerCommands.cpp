@@ -18,6 +18,7 @@
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
+constexpr uint ITEMS_PER_PAGE = 40;
 
 // Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
 const uint numPages = 4;
@@ -73,8 +74,7 @@ L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neut
 L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
 
 L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Set the base's infocard description.</TEXT>",
-
+L"<TEXT>Set the base's infocard description.</TEXT>"
 
 L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
@@ -83,7 +83,7 @@ L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>
 L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
 			
 L"<TRA bold=\"true\"/><TEXT>/base supplies</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>";
+L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>",
 
 L"<TRA bold=\"true\"/><TEXT>/base defmod</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Control defense modules.</TEXT><PARA/><PARA/>"
@@ -124,7 +124,8 @@ namespace PlayerCommands
 	vector<wstring> GenerateFactoryHelpMenu(wstring craftType)
 	{
 		vector<wstring> generatedHelpStringList;
-		for (const auto& recipe : recipeCraftTypeNumberMap[craftType]) {
+		for (const auto& recipe : recipeCraftTypeNumberMap[craftType])
+		{
 			wstring currentString = L"|     ";
 			currentString += stows(itos(recipe.second.shortcut_number));
 			currentString += L" = ";
@@ -134,17 +135,20 @@ namespace PlayerCommands
 		return generatedHelpStringList;
 	}
 
-	void PopulateHelpMenus() {
+	void PopulateHelpMenus()
+	{
 		for (const auto& buildType : buildingCraftLists)
 		{
 			modules_recipe_map[buildType] = GenerateModuleHelpMenu(buildType);
 		}
-		for (const auto& craftType : recipeCraftTypeNameMap) {
+		for (const auto& craftType : recipeCraftTypeNameMap)
+		{
 			factory_recipe_map[craftType.first] = GenerateFactoryHelpMenu(craftType.first);
 		}
 	}
 
-	bool checkBaseAdminAccess(PlayerBase *base, uint client) {
+	bool checkBaseAdminAccess(PlayerBase *base, uint client)
+	{
 		if (!base)
 		{
 			PrintUserCmdText(client, L"ERR Not in player base");
@@ -174,7 +178,8 @@ namespace PlayerCommands
 		if (pageNum.length())
 		{
 			page = ToUInt(pageNum) - 1;
-			if (page < 0 || page > numPages - 1) {
+			if (page < 0 || page > numPages - 1)
+			{
 				page = 0;
 			}
 		}
@@ -831,7 +836,7 @@ namespace PlayerCommands
 			return;
 		}
 
-		bool isServerAdmin;
+		bool isServerAdmin = false;
 
 		wstring rights;
 		if (HkGetAdmin((const wchar_t*)Players.GetActiveCharacterName(client), rights) == HKE_OK && rights.find(L"superadmin") != -1)
@@ -849,7 +854,8 @@ namespace PlayerCommands
 		wstring arg = GetParam(args, ' ', 2);
 		if (arg == L"clear")
 		{
-			if (isServerAdmin) {
+			if (isServerAdmin)
+			{
 				base->affiliation = 0;
 				base->Save();
 				PrintUserCmdText(client, L"OK cleared base reputation");
@@ -1132,7 +1138,7 @@ namespace PlayerCommands
 			return;
 		}
 
-		const wstring &cmd = GetParam(args, ' ', 1);
+		wstring &cmd = GetParam(args, ' ', 1);
 		if (cmd == L"list")
 		{
 			PrintUserCmdText(client, L"Available building lists:");
@@ -1143,8 +1149,8 @@ namespace PlayerCommands
 		}
 		else if (buildingCraftLists.find(cmd) != buildingCraftLists.end())
 		{
-			const wstring &cmd2 = GetParam(args, ' ', 2);
-			const wstring &recipeName = GetParamToEnd(args, ' ', 3);
+			wstring &cmd2 = GetParam(args, ' ', 2);
+			wstring &recipeName = GetParamToEnd(args, ' ', 3);
 
 			if (cmd2 == L"list")
 			{
@@ -1156,7 +1162,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
+			const RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
 			if (!buildRecipe)
 			{
 				PrintUserCmdText(client, L"ERR Invalid module selected");
@@ -1197,7 +1203,8 @@ namespace PlayerCommands
 					}
 				}
 
-				for (auto& modSlot : base->modules) {
+				for (auto& modSlot : base->modules)
+				{
 					if (modSlot == nullptr)
 					{
 						modSlot = new BuildModule(base, buildRecipe);
@@ -1341,9 +1348,11 @@ namespace PlayerCommands
 			return;
 		}
 
-		if (base->modules[index]->type == Module::TYPE_FACTORY) {
+		if (base->modules[index]->type == Module::TYPE_FACTORY)
+		{
 			FactoryModule* facMod = dynamic_cast<FactoryModule*>(base->modules[index]);
-			for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname]) {
+			for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname])
+			{
 				base->availableCraftList.erase(craftType);
 			}
 		}
@@ -1357,20 +1366,23 @@ namespace PlayerCommands
 	{
 		PlayerBase *base = GetPlayerBaseForClient(client);
 
-		if (!checkBaseAdminAccess(base, client)) {
+		if (!checkBaseAdminAccess(base, client))
+		{
 			return;
 		}
 
-		if (base->availableCraftList.empty()) {
+		if (base->availableCraftList.empty())
+		{
 			PrintUserCmdText(client, L"ERR no factories found");
 			return;
 		}
 
-		const wstring &craftType = GetParam(args, ' ', 1);
+		wstring &craftType = GetParam(args, ' ', 1);
 		if (craftType == L"list")
 		{
 			PrintUserCmdText(client, L"Available crafting lists:");
-			for (wstring craftType : base->availableCraftList) {
+			for (wstring craftType : base->availableCraftList)
+			{
 				PrintUserCmdText(client, L"|   %ls", craftType.c_str());
 			}
 			return;
@@ -1381,25 +1393,29 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"OK Factories stopped");
 			return;
 		}
-		else if (!base->availableCraftList.count(craftType)) {
+		else if (!base->availableCraftList.count(craftType))
+		{
 			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
 			return;
 		}
 
-		const wstring cmd = GetParam(args, ' ', 2);
-		const wstring param = GetParamToEnd(args, ' ', 3);
-		if (cmd.empty()) {
+		wstring cmd = GetParam(args, ' ', 2);
+		wstring param = GetParamToEnd(args, ' ', 3);
+		if (cmd.empty())
+		{
 			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
 			return;
 		}
 
-		RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
+		const RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
 
 		if (cmd == L"list")
 		{
-			if (param.empty()) {
+			if (param.empty())
+			{
 				PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
-				for (wstring& infoLine : factory_recipe_map[craftType]) {
+				for (wstring& infoLine : factory_recipe_map[craftType])
+				{
 					PrintUserCmdText(client, infoLine);
 				}
 				return;
@@ -1407,7 +1423,8 @@ namespace PlayerCommands
 			else if(recipe)
 			{
 				PrintUserCmdText(client, L"Construction materials for %ls x%u:", recipe->infotext.c_str(), recipe->produced_amount);
-				for (const auto& item : recipe->consumed_items) {
+				for (const auto& item : recipe->consumed_items)
+				{
 					const GoodInfo *gi = GoodList::find_by_id(item.first);
 					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
 				}
@@ -1420,7 +1437,8 @@ namespace PlayerCommands
 			}
 		}
 
-		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume")) {
+		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume"))
+		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
 			PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>]");
 			PrintUserCmdText(client, L"|  list - show available lists of craftble items");
@@ -1724,17 +1742,21 @@ namespace PlayerCommands
 				continue;
 
 			wstring name = HkGetWStringFromIDS(gi->iIDSName);
-			if (ToLower(name).find(substring) != std::wstring::npos) {
+			if (ToLower(name).find(substring) != std::wstring::npos)
+			{
 				matchingItems++;
 			}
 		}
 
 		int pages = (matchingItems / ITEMS_PER_PAGE) + 1;
 		if (page > pages)
+		{
 			page = pages;
+		}
 		else if (page < 1)
+		{
 			page = 1;
-
+		}
 		wchar_t buf[1000];
 		_snwprintf(buf, sizeof(buf), L"Shop Management : Page %d/%d", page, pages);
 		wstring title = buf;
@@ -1761,14 +1783,17 @@ namespace PlayerCommands
 				break;
 
 			const GoodInfo *gi = GoodList::find_by_id(i->first);
-			if (!gi) {
+			if (!gi)
+			{
 				item++;
 				continue;
 			}
 
 			wstring name = HkGetWStringFromIDS(gi->iIDSName);
-			if (ToLower(name).find(substring) != std::wstring::npos) {
-				if (item < start_item) {
+			if (ToLower(name).find(substring) != std::wstring::npos)
+			{
+				if (item < start_item)
+				{
 					item++;
 					continue;
 				}
@@ -1936,7 +1961,8 @@ namespace PlayerCommands
 		}
 	}
 
-	void GetNecessitiesStatus(uint client, const wstring &args) {
+	void GetNecessitiesStatus(uint client, const wstring &args)
+	{
 		// Check that this player is in a player controlled base
 		PlayerBase *base = GetPlayerBaseForClient(client);
 		if (!base)
@@ -1953,7 +1979,8 @@ namespace PlayerCommands
 
 		uint crewItemCount = base->HasMarketItem(set_base_crew_type);
 		uint crewItemNeed = base->base_level * 200;
-		if (crewItemCount < crewItemNeed) {
+		if (crewItemCount < crewItemNeed)
+		{
 			PrintUserCmdText(client, L"WARNING, CREW COUNT TOO LOW");
 		}
 		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);

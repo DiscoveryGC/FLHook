@@ -27,12 +27,12 @@
 
 namespace Log
 {
-	void Logging(string basename, const char *szString, ...)
+	void Logging(string basename, const char* szString, ...)
 	{
 
 	}
 
-	void LogBaseAction(string basename, const char *message)
+	void LogBaseAction(string basename, const char* message)
 	{
 		char szBufString[1024];
 		va_list marker;
@@ -41,11 +41,11 @@ namespace Log
 
 		char szBuf[64];
 		time_t tNow = time(0);
-		struct tm *t = localtime(&tNow);
+		struct tm* t = localtime(&tNow);
 		strftime(szBuf, sizeof(szBuf), "%d/%m/%Y %H:%M:%S", t);
 
 		string BuildFilePath = "./flhook_logs/pob/" + basename + ".log";
-		FILE *Logfile = fopen((BuildFilePath.c_str()), "at");
+		FILE* Logfile = fopen((BuildFilePath.c_str()), "at");
 
 		if (Logfile)
 		{

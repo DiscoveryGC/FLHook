@@ -1,17 +1,17 @@
 #include "main.h"
 
 /// Send a command to the client at destination ID 0x9999
-void SendCommand(uint client, const wstring &message)
+void SendCommand(uint client, const wstring& message)
 {
 	HkFMsg(client, L"<TEXT>" + XMLText(message) + L"</TEXT>");
 }
 
-void SendSetBaseInfoText(uint client, const wstring &message)
+void SendSetBaseInfoText(uint client, const wstring& message)
 {
 	SendCommand(client, wstring(L" SetBaseInfoText ") + message);
 }
 
-void SendSetBaseInfoText2(uint client, const wstring &message)
+void SendSetBaseInfoText2(uint client, const wstring& message)
 {
 	SendCommand(client, wstring(L" SetBaseInfoText2 ") + message);
 }
@@ -22,9 +22,9 @@ void SendResetMarketOverride(uint client)
 }
 
 // Send a price update to all clients in the player base for a single good
-void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item)
+void SendMarketGoodUpdated(PlayerBase* base, uint good, MARKET_ITEM& item)
 {
-	struct PlayerData *pd = 0;
+	struct PlayerData* pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		uint client = pd->iOnlineID;
@@ -60,7 +60,7 @@ void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item)
 }
 
 // Send a price update to a single client for all goods in the base
-void SendMarketGoodSync(PlayerBase *base, uint client)
+void SendMarketGoodSync(PlayerBase* base, uint client)
 {
 	// Reset the client's market
 	SendResetMarketOverride(client);
@@ -74,7 +74,7 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 		i != base->market_items.end(); i++)
 	{
 		uint good = i->first;
-		MARKET_ITEM &item = i->second;
+		MARKET_ITEM& item = i->second;
 		wchar_t buf[200];
 		// If the base has none of the item then it is buy-only at the client.
 		if (item.quantity == 0)
@@ -125,9 +125,9 @@ static wstring IntToStr(uint iValue)
 	return	buf;
 }
 
-void SendBaseStatus(uint client, PlayerBase *base)
+void SendBaseStatus(uint client, PlayerBase* base)
 {
-	const Universe::ISystem *sys = Universe::get_system(base->system);
+	const Universe::ISystem* sys = Universe::get_system(base->system);
 
 	wstring base_status = L"<RDL><PUSH/>";
 	base_status += L"<TEXT>" + XMLText(base->basename) + L", " + HkGetWStringFromIDS(sys->strid_name) + L"</TEXT><PARA/><PARA/>";
@@ -192,7 +192,7 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	for (uint i = 1; i < base->modules.size(); i++)
 	{
 		base_status += L"<TEXT>  " + stows(itos(i)) + L": ";
-		Module *module = base->modules[i];
+		Module* module = base->modules[i];
 		if (module)
 		{
 			base_status += module->GetInfo(true);
@@ -210,9 +210,9 @@ void SendBaseStatus(uint client, PlayerBase *base)
 }
 
 // Update the base status and send it to all clients in the base
-void SendBaseStatus(PlayerBase *base)
+void SendBaseStatus(PlayerBase* base)
 {
-	struct PlayerData *pd = 0;
+	struct PlayerData* pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		if (!HkIsInCharSelectMenu(pd->iOnlineID))

@@ -21,7 +21,7 @@ namespace pt = boost::posix_time;
 
 void ExportData::ToHTML()
 {
-	FILE *file = fopen(set_status_path_html.c_str(), "w");
+	FILE* file = fopen(set_status_path_html.c_str(), "w");
 	if (file)
 	{
 		fprintf(file, "<html>\n<head><title>Player Base Status</title><style type=text/css>\n");
@@ -49,7 +49,7 @@ void ExportData::ToHTML()
 		map<uint, PlayerBase*>::iterator iter = player_bases.begin();
 		while (iter != player_bases.end())
 		{
-			PlayerBase *base = iter->second;
+			PlayerBase* base = iter->second;
 
 			//do nothing if it's something we don't care about
 			if (mapArchs[base->basetype].display == false)
@@ -81,7 +81,7 @@ void ExportData::ToHTML()
 				fprintf(file, "<td class=\"column0\">%d</td>", base->base_level);
 				fprintf(file, "<td class=\"column0\">%d</td>", base->defense_mode);
 
-				const Universe::ISystem *iSys = Universe::get_system(base->system);
+				const Universe::ISystem* iSys = Universe::get_system(base->system);
 				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
 				fprintf(file, "<td class=\"column0\">%s</td>", wstos(wscSysName).c_str());
 				fprintf(file, "<td class=\"column0\">%0.0f %0.0f %0.0f</td>", base->position.x, base->position.y, base->position.z);
@@ -125,7 +125,7 @@ void ExportData::ToJSON()
 	map<uint, PlayerBase*>::iterator iter = player_bases.begin();
 	while (iter != player_bases.end())
 	{
-		PlayerBase *base = iter->second;
+		PlayerBase* base = iter->second;
 
 		//do nothing if it's something we don't care about
 		//if ((base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock") || (base->basetype == "solar") || (base->basetype == "invinciblesolar"))
@@ -167,17 +167,19 @@ void ExportData::ToJSON()
 				item.write("min_stock", i->second.min_stock);
 				item.write("max_stock", i->second.max_stock);
 				item.write("is_public", i->second.is_public);
-				
+
 				const GoodInfo* gi = GoodList::find_by_id(i->first);
-				
+
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);
 				item.write("name", wstos(name).c_str());
 				item.write("name_id", gi->iIDSName);
 				item.write("id", i->first);
 				item.write("nickname", EquipmentUtilities::FindNickname(i->first));
 				item.close();
-				
-			} catch (...) {
+
+			}
+			catch (...)
+			{
 				ConPrint(L"WARN: failed to output to json object with id %u\n", i->first);
 			}
 		}
@@ -204,7 +206,7 @@ void ExportData::ToJSON()
 	writer.close();
 
 	//dump to a file
-	FILE *file = fopen(set_status_path_json.c_str(), "w");
+	FILE* file = fopen(set_status_path_json.c_str(), "w");
 	if (file)
 	{
 		fprintf(file, stream.str().c_str());

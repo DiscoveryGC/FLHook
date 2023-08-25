@@ -1,17 +1,18 @@
 #include "Main.h"
 
-FactoryModule::FactoryModule(PlayerBase *the_base)
+FactoryModule::FactoryModule(PlayerBase* the_base)
 	: Module(0), base(the_base)
 {
 	active_recipe.nickname = 0;
 }
 
 // Find the recipe for this building_type and start construction.
-FactoryModule::FactoryModule(PlayerBase *the_base, uint nickname)
+FactoryModule::FactoryModule(PlayerBase* the_base, uint nickname)
 	: Module(Module::TYPE_FACTORY), factoryNickname(nickname), base(the_base)
 {
 	active_recipe.nickname = 0;
-	for (wstring& craftType : factoryNicknameToCraftTypeMap[factoryNickname]) {
+	for (wstring& craftType : factoryNicknameToCraftTypeMap[factoryNickname])
+	{
 		base->availableCraftList.insert(craftType);
 	}
 }
@@ -39,7 +40,7 @@ wstring FactoryModule::GetInfo(bool xml)
 				uint good = i->first;
 				uint quantity = i->second;
 
-				const GoodInfo *gi = GoodList::find_by_id(good);
+				const GoodInfo* gi = GoodList::find_by_id(good);
 				if (gi)
 				{
 					info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
@@ -90,7 +91,7 @@ wstring FactoryModule::GetInfo(bool xml)
 				uint good = i->first;
 				uint quantity = i->second;
 
-				const GoodInfo *gi = GoodList::find_by_id(good);
+				const GoodInfo* gi = GoodList::find_by_id(good);
 				if (gi)
 				{
 					info += stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
@@ -139,7 +140,7 @@ wstring FactoryModule::GetInfo(bool xml)
 bool FactoryModule::Timer(uint time)
 {
 
-	if ((time%set_tick_time) != 0)
+	if ((time % set_tick_time) != 0)
 		return false;
 
 	// Get the next item to make from the build queue.
@@ -170,7 +171,7 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	if(active_recipe.credit_cost)
+	if (active_recipe.credit_cost)
 	{
 		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
 		if (base->money >= moneyToRemove)
@@ -178,7 +179,8 @@ bool FactoryModule::Timer(uint time)
 			base->money -= moneyToRemove;
 			active_recipe.credit_cost -= moneyToRemove;
 		}
-		if (active_recipe.credit_cost) {
+		if (active_recipe.credit_cost)
+		{
 			cooked = false;
 		}
 	}
@@ -232,15 +234,17 @@ bool FactoryModule::Timer(uint time)
 	return false;
 }
 
-void FactoryModule::LoadState(INI_Reader &ini)
+void FactoryModule::LoadState(INI_Reader& ini)
 {
 	active_recipe.nickname = 0;
 	RECIPE foundRecipe;
 	while (ini.read_value())
 	{
-		if (ini.is_value("type")) {
+		if (ini.is_value("type"))
+		{
 			factoryNickname = moduleNumberRecipeMap[ini.get_value_int(0)].nickname;
-			for (auto& craftType : factoryNicknameToCraftTypeMap[factoryNickname]) {
+			for (auto& craftType : factoryNicknameToCraftTypeMap[factoryNickname])
+			{
 				base->availableCraftList.insert(craftType);
 				base->craftTypeTofactoryModuleMap[craftType] = this;
 			}
@@ -270,13 +274,14 @@ void FactoryModule::LoadState(INI_Reader &ini)
 	}
 }
 
-void FactoryModule::SaveState(FILE *file)
+void FactoryModule::SaveState(FILE* file)
 {
 	fprintf(file, "[FactoryModule]\n");
 	fprintf(file, "type = %u\n", recipeMap[factoryNickname].shortcut_number);
 	fprintf(file, "nickname = %u\n", active_recipe.nickname);
 	fprintf(file, "paused = %d\n", Paused);
-	if (active_recipe.nickname) {
+	if (active_recipe.nickname)
+	{
 		if (active_recipe.credit_cost)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (auto& i = active_recipe.consumed_items.begin();
@@ -336,37 +341,47 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 	return RememberState != NewState;
 }
 
-FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct) {
-	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct)
+{
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i)
+	{
 		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(*i);
-		if(facModPtr && facModPtr->active_recipe.nickname == searchedProduct){
+		if (facModPtr && facModPtr->active_recipe.nickname == searchedProduct)
+		{
 			return facModPtr;
 		}
 	}
 	return nullptr;
 }
 
-void FactoryModule::StopAllProduction(PlayerBase* pb) {
-	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i) {
+void FactoryModule::StopAllProduction(PlayerBase* pb)
+{
+	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i)
+	{
 		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(*i);
-		if (facModPtr){
+		if (facModPtr)
+		{
 			facModPtr->ClearQueue();
 			facModPtr->ClearRecipe();
 		}
 	}
 }
 
-bool FactoryModule::IsFactoryModule(Module* module) {
+bool FactoryModule::IsFactoryModule(Module* module)
+{
 	return module->type == Module::TYPE_FACTORY;
 }
 
-RECIPE* FactoryModule::GetFactoryProductRecipe(wstring craftType, wstring product) {
-	transform(product.begin(), product.end(), product.begin(), ::tolower);
+const RECIPE* FactoryModule::GetFactoryProductRecipe(wstring& craftType, wstring& product)
+{
+	product = ToLower(product);
 	int shortcut_number = ToInt(product);
-	if (recipeCraftTypeNumberMap[craftType].count(shortcut_number)) {
+	if (recipeCraftTypeNumberMap[craftType].count(shortcut_number))
+	{
 		return &recipeCraftTypeNumberMap[craftType][shortcut_number];
 	}
-	else if (recipeCraftTypeNameMap[craftType].count(product)){
+	else if (recipeCraftTypeNameMap[craftType].count(product))
+	{
 		return &recipeCraftTypeNameMap[craftType][product];
 	}
 	return nullptr;

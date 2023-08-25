@@ -250,7 +250,7 @@ static uint CreateWPlatformNPC(uint iSystem, Vector position, Matrix rotation, u
 }
 
 
-static void SpawnSolar(unsigned int & spaceID, pub::SpaceObj::SolarInfo const & solarInfo)
+static void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo)
 {
 	// hack server.dll so it does not call create solar packet send
 	char* serverHackAddress = (char*)hModServer + 0x2A62A;
@@ -292,7 +292,7 @@ static void SpawnSolar(unsigned int & spaceID, pub::SpaceObj::SolarInfo const & 
 			popad
 		}
 
-		struct PlayerData *pPD = 0;
+		struct PlayerData* pPD = 0;
 		while (pPD = Players.traverse_active(pPD))
 		{
 			if (pPD->iSystemID == solarInfo.iSystemID)
@@ -306,7 +306,7 @@ static void SpawnSolar(unsigned int & spaceID, pub::SpaceObj::SolarInfo const & 
 }
 
 
-static uint CreateWPlatformSolar(PlayerBase *base, uint iSystem, Vector position, Matrix rotation, uint solar_ids, uint type)
+static uint CreateWPlatformSolar(PlayerBase* base, uint iSystem, Vector position, Matrix rotation, uint solar_ids, uint type)
 {
 	pub::SpaceObj::SolarInfo si;
 	memset(&si, 0, sizeof(si));
@@ -368,7 +368,7 @@ static uint CreateWPlatformSolar(PlayerBase *base, uint iSystem, Vector position
 	return space_obj;
 }
 
-DefenseModule::DefenseModule(PlayerBase *the_base)
+DefenseModule::DefenseModule(PlayerBase* the_base)
 	: Module(Module::TYPE_DEFENSE_1), base(the_base), space_obj(0)
 {
 	pos = base->position;
@@ -376,7 +376,7 @@ DefenseModule::DefenseModule(PlayerBase *the_base)
 	TranslateY(pos, base->rotation, 200);
 }
 
-DefenseModule::DefenseModule(PlayerBase *the_base, uint the_type)
+DefenseModule::DefenseModule(PlayerBase* the_base, uint the_type)
 	: Module(the_type), base(the_base), space_obj(0)
 {
 	pos = base->position;
@@ -420,7 +420,7 @@ wstring DefenseModule::GetInfo(bool xml)
 }
 
 // Load module state from ini file.
-void DefenseModule::LoadState(INI_Reader &ini)
+void DefenseModule::LoadState(INI_Reader& ini)
 {
 	while (ini.read_value())
 	{
@@ -444,7 +444,7 @@ void DefenseModule::LoadState(INI_Reader &ini)
 }
 
 // Append module state to the ini file.
-void DefenseModule::SaveState(FILE *file)
+void DefenseModule::SaveState(FILE* file)
 {
 	fprintf(file, "[DefenseModule]\n");
 	fprintf(file, "type = %u\n", type);
@@ -454,7 +454,7 @@ void DefenseModule::SaveState(FILE *file)
 
 bool DefenseModule::Timer(uint time)
 {
-	if ((time%set_tick_time) != 0)
+	if ((time % set_tick_time) != 0)
 		return false;
 
 	if (!space_obj)

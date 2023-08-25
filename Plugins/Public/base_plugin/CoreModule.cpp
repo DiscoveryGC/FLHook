@@ -12,7 +12,7 @@
 #include "Main.h"
 #include <hookext_exports.h>
 
-CoreModule::CoreModule(PlayerBase *the_base) : Module(TYPE_CORE), base(the_base), space_obj(0), dont_eat(false), 
+CoreModule::CoreModule(PlayerBase* the_base) : Module(TYPE_CORE), base(the_base), space_obj(0), dont_eat(false),
 dont_rust(false)
 {
 }
@@ -209,7 +209,7 @@ static pub::AI::SetPersonalityParams MakePersonality()
 	return p;
 }
 
-static void SpawnSolar(unsigned int & spaceID, pub::SpaceObj::SolarInfo const & solarInfo)
+static void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo)
 {
 	// hack server.dll so it does not call create solar packet send
 	char* serverHackAddress = (char*)hModServer + 0x2A62A;
@@ -251,7 +251,7 @@ static void SpawnSolar(unsigned int & spaceID, pub::SpaceObj::SolarInfo const & 
 			popad
 		}
 
-		struct PlayerData *pPD = 0;
+		struct PlayerData* pPD = 0;
 		while (pPD = Players.traverse_active(pPD))
 		{
 			if (pPD->iSystemID == solarInfo.iSystemID)
@@ -325,7 +325,7 @@ void CoreModule::Spawn()
 		//	basename = HkGetWStringFromIDS(Reputation::get_name(base->affiliation)) + L" - " + base->basename;
 		//}
 
-		struct PlayerData *pd = 0;
+		struct PlayerData* pd = 0;
 		while (pd = Players.traverse_active(pd))
 		{
 			HkChangeIDSString(pd->iOnlineID, base->solar_ids, basename);
@@ -386,7 +386,7 @@ wstring CoreModule::GetInfo(bool xml)
 	return L"Core";
 }
 
-void CoreModule::LoadState(INI_Reader &ini)
+void CoreModule::LoadState(INI_Reader& ini)
 {
 	while (ini.read_value())
 	{
@@ -401,7 +401,7 @@ void CoreModule::LoadState(INI_Reader &ini)
 	}
 }
 
-void CoreModule::SaveState(FILE *file)
+void CoreModule::SaveState(FILE* file)
 {
 	fprintf(file, "[CoreModule]\n");
 	fprintf(file, "dont_eat = %d\n", dont_eat);
@@ -411,7 +411,7 @@ void CoreModule::SaveState(FILE *file)
 void CoreModule::RepairDamage(float max_base_health)
 {
 	// no food & no water & no oxygen = RIOTS
-	if(!base->isCrewSupplied)
+	if (!base->isCrewSupplied)
 	{
 		return;
 	}
@@ -419,7 +419,7 @@ void CoreModule::RepairDamage(float max_base_health)
 	// The bigger the base the more damage can be repaired.
 	for (uint repair_cycles = 0; repair_cycles < base->base_level; ++repair_cycles)
 	{
-		for(REPAIR_ITEM& item : set_base_repair_items)
+		for (REPAIR_ITEM& item : set_base_repair_items)
 		{
 			if (base->base_health >= max_base_health)
 				return;
@@ -436,7 +436,8 @@ void CoreModule::RepairDamage(float max_base_health)
 bool CoreModule::Timer(uint time)
 {
 
-	if ((time%set_tick_time) != 0 || set_holiday_mode) {
+	if ((time % set_tick_time) != 0 || set_holiday_mode)
+	{
 		return false;
 	}
 
@@ -449,7 +450,7 @@ bool CoreModule::Timer(uint time)
 			bool isCrewSufficient = number_of_crew >= (base->base_level * 200);
 			pub::SpaceObj::GetHealth(space_obj, base->base_health, base->max_base_health);
 
-			if (!dont_rust && ((time%set_damage_tick_time) == 0))
+			if (!dont_rust && ((time % set_damage_tick_time) == 0))
 			{
 				float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
 				float wear_n_tear_modifier = FindWearNTearModifier(base->base_health / base->max_base_health);
@@ -461,9 +462,11 @@ bool CoreModule::Timer(uint time)
 
 			// Repair damage if we have sufficient crew on the base.
 
-			if (isCrewSufficient) {
+			if (isCrewSufficient)
+			{
 				RepairDamage(base->max_base_health);
-				if (dont_eat) {
+				if (dont_eat)
+				{
 					// We won't save base health below, so do it here
 					float rhealth = base->base_health / base->max_base_health;
 					pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
@@ -550,8 +553,8 @@ bool CoreModule::Timer(uint time)
 float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
-	
-	if(base->shield_state == PlayerBase::SHIELD_STATE_OFFLINE)
+
+	if (base->shield_state == PlayerBase::SHIELD_STATE_OFFLINE)
 	{
 		// shield offline, return expected damage without modifications
 		return new_hitpoints;
@@ -589,7 +592,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		base->damage_taken_since_last_threshold -= base->base_shield_reinforcement_threshold;
 		base->shield_strength_multiplier += shield_reinforcement_increment;
 	}
-	
+
 	return curr_hitpoints - damageTaken;
 }
 
@@ -609,13 +612,13 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj)
 
 		//List all players in the system at the time
 		list<string> CharsInSystem;
-		struct PlayerData *pd = 0;
+		struct PlayerData* pd = 0;
 		while (pd = Players.traverse_active(pd))
 		{
 			PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
 			if (pd->iSystemID == base->system)
 			{
-				const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(pd->iOnlineID);
+				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(pd->iOnlineID);
 				CharsInSystem.push_back(wstos(charname));
 			}
 		}
@@ -665,9 +668,12 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 	}
 }
 
-float CoreModule::FindWearNTearModifier(float currHpPercentage) {
-	for (list<WEAR_N_TEAR_MODIFIER>::iterator i = wear_n_tear_mod_list.begin(); i != wear_n_tear_mod_list.end(); ++i) {
-		if (i->fromHP < currHpPercentage && i->toHP >= currHpPercentage) {
+float CoreModule::FindWearNTearModifier(float currHpPercentage)
+{
+	for (list<WEAR_N_TEAR_MODIFIER>::iterator i = wear_n_tear_mod_list.begin(); i != wear_n_tear_mod_list.end(); ++i)
+	{
+		if (i->fromHP < currHpPercentage && i->toHP >= currHpPercentage)
+		{
 			return i->modifier;
 		}
 	}

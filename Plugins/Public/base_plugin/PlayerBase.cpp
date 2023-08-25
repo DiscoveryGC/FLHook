@@ -1,6 +1,6 @@
 #include "Main.h"
 
-PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_basename)
+PlayerBase::PlayerBase(uint client, const wstring& password, const wstring& the_basename)
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
@@ -36,7 +36,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	save_timer = rand() % 60;
 }
 
-PlayerBase::PlayerBase(const string &the_path)
+PlayerBase::PlayerBase(const string& the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0),
 	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false),
@@ -57,7 +57,7 @@ PlayerBase::~PlayerBase()
 	{
 		if (*i)
 		{
-			delete *i;
+			delete* i;
 		}
 	}
 }
@@ -81,7 +81,7 @@ bool PlayerBase::Timer(uint curr_time)
 {
 	for (uint i = 0; i < modules.size(); i++)
 	{
-		Module *module = modules[i];
+		Module* module = modules[i];
 		if (module)
 		{
 			bool is_deleted = module->Timer(curr_time);
@@ -337,37 +337,37 @@ void PlayerBase::Load()
 			}
 			else if (ini.is_header("CoreModule"))
 			{
-				CoreModule *mod = new CoreModule(this);
+				CoreModule* mod = new CoreModule(this);
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
 			else if (ini.is_header("BuildModule"))
 			{
-				BuildModule *mod = new BuildModule(this);
+				BuildModule* mod = new BuildModule(this);
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
 			else if (ini.is_header("ShieldModule"))
 			{
-				ShieldModule *mod = new ShieldModule(this);
+				ShieldModule* mod = new ShieldModule(this);
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
 			else if (ini.is_header("StorageModule"))
 			{
-				StorageModule *mod = new StorageModule(this);
+				StorageModule* mod = new StorageModule(this);
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
 			else if (ini.is_header("DefenseModule"))
 			{
-				DefenseModule *mod = new DefenseModule(this);
+				DefenseModule* mod = new DefenseModule(this);
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
 			else if (ini.is_header("FactoryModule"))
 			{
-				FactoryModule *mod = new FactoryModule(this);
+				FactoryModule* mod = new FactoryModule(this);
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
@@ -378,7 +378,7 @@ void PlayerBase::Load()
 
 void PlayerBase::Save()
 {
-	FILE *file = fopen(path.c_str(), "w");
+	FILE* file = fopen(path.c_str(), "w");
 	if (file)
 	{
 		fprintf(file, "[Base]\n");
@@ -408,7 +408,7 @@ void PlayerBase::Save()
 		for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 		{
 			ini_write_wstring(file, "infocardpara", infocard_para[i].substr(0, 252));
-			if(infocard_para[i].length() >= 252)
+			if (infocard_para[i].length() >= 252)
 				ini_write_wstring(file, "infocardpara2", infocard_para[i].substr(252, 252));
 		}
 		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
@@ -423,7 +423,7 @@ void PlayerBase::Save()
 		{
 			ini_write_wstring(file, "ally_tag", *i);
 		}
-		for(auto i : ally_factions)
+		for (auto i : ally_factions)
 		{
 			fprintf(file, "faction_ally_tag = %d\n", i);
 		}
@@ -444,7 +444,8 @@ void PlayerBase::Save()
 		{
 			BasePassword bp = *i;
 			wstring l = bp.pass;
-			if (!bp.admin && bp.viewshop) {
+			if (!bp.admin && bp.viewshop)
+			{
 				l += L" viewshop";
 			}
 			ini_write_wstring(file, "passwd", l);
@@ -472,7 +473,7 @@ bool PlayerBase::AddMarketGood(uint good, uint quantity)
 	pub::GetGoodProperties(good, vol, mass);
 
 	if (GetRemainingCargoSpace() < (quantity * vol)
-	|| (market_items.count(good) && market_items[good].max_stock < market_items[good].quantity + quantity))
+		|| (market_items.count(good) && market_items[good].max_stock < market_items[good].quantity + quantity))
 		return false;
 
 	market_items[good].quantity += quantity;
@@ -529,7 +530,7 @@ uint PlayerBase::GetMaxCargoSpace()
 	return max_capacity;
 }
 
-string PlayerBase::CreateBaseNickname(const string &basename)
+string PlayerBase::CreateBaseNickname(const string& basename)
 {
 	return string("pb_") + basename;
 }
@@ -549,7 +550,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 	float attitude = -1.0;
 	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 
-	
+
 	// Make base hostile if player is on the perma hostile list. First check so it overrides everything.
 	if (siege_mode || emulated_siege_mode)
 		for (std::list<wstring>::const_iterator i = perma_hostile_tags.begin(); i != perma_hostile_tags.end(); ++i)
@@ -620,7 +621,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 // of this base.
 void PlayerBase::SyncReputationForBase()
 {
-	struct PlayerData *pd = 0;
+	struct PlayerData* pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		if (pd->iShipID && pd->iSystemID == system)
@@ -731,7 +732,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	uint client = HkGetClientIDByShip(attacking_space_obj);
 	if (client)
 	{
-		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		last_attacker = charname;
 
 		if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
@@ -782,7 +783,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	// to request that it is activated.
 	if (!this->shield_active_time && this->shield_state == SHIELD_STATE_ONLINE)
 	{
-		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		ReportAttack(this->basename, charname, this->system);
 		this->shield_active_time = 60 + (rand() % 512);
 		if (set_plugin_debug > 1)

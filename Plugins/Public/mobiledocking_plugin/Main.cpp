@@ -269,7 +269,7 @@ wstring GetLastBaseName(uint client)
 	{
 		LAST_PLAYER_BASE_NAME_STRUCT pobName;
 		pobName.clientID = client;
-		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_GET_NAME, &pobName);
+		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_LAST_DOCKED, &pobName);
 		baseName = L"Player base " + pobName.lastBaseName;
 	}
 	else

@@ -1337,38 +1337,14 @@ bool UserCmd_Process(uint client, const wstring &args)
 
 static void ForcePlayerBaseDock(uint client, PlayerBase *base)
 {
-	char system_nick[1024];
-	pub::GetSystemNickname(system_nick, sizeof(system_nick), base->system);
-
-	char proxy_base_nick[1024];
-	sprintf(proxy_base_nick, "%s_proxy_base", system_nick);
-
-	uint proxy_base_id = CreateID(proxy_base_nick);
-
 	clients[client].player_base = base->base;
 	clients[client].last_player_base = base->base;
 
 	if (set_plugin_debug > 1)
-		ConPrint(L"ForcePlayerBaseDock client=%u player_base=%u\n", client, clients[client].player_base);
-
-	uint system;
-	pub::Player::GetSystem(client, system);
-
-	pub::Player::ForceLand(client, proxy_base_id);
-	if (system != base->system)
 	{
-		Server.BaseEnter(proxy_base_id, client);
-		Server.BaseExit(proxy_base_id, client);
-
-		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		wstring charfilename;
-		HkGetCharFileName(charname, charfilename);
-		charfilename += L".fl";
-		CHARACTER_ID charid;
-		strcpy(charid.szCharFilename, wstos(charname.substr(0, 14)).c_str());
-
-		Server.CharacterSelect(charid, client); \
+		ConPrint(L"ForcePlayerBaseDock client=%u player_base=%u\n", client, clients[client].player_base);
 	}
+	HkBeamById(client, base->proxy_base);
 }
 
 static bool IsDockingAllowed(PlayerBase *base, uint client)
@@ -2861,7 +2837,8 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 
 	if (msg == CUSTOM_BASE_BEAM)
 	{
-		CUSTOM_BASE_BEAM_STRUCT* info = reinterpret_cast<CUSTOM_BASE_BEAM_STRUCT*>(data); \
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		CUSTOM_BASE_BEAM_STRUCT* info = reinterpret_cast<CUSTOM_BASE_BEAM_STRUCT*>(data);
 			PlayerBase *base = GetPlayerBase(info->iTargetBaseID);
 		if (base)
 		{
@@ -2872,6 +2849,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	}
 	if (msg == CUSTOM_IS_IT_POB)
 	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		CUSTOM_BASE_IS_IT_POB_STRUCT* info = reinterpret_cast<CUSTOM_BASE_IS_IT_POB_STRUCT*>(data);
 		PlayerBase *base = GetPlayerBase(info->iBase);
 		returncode = SKIPPLUGINS;
@@ -2882,22 +2860,13 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	}
 	else if (msg == CUSTOM_BASE_IS_DOCKED)
 	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		CUSTOM_BASE_IS_DOCKED_STRUCT* info = reinterpret_cast<CUSTOM_BASE_IS_DOCKED_STRUCT*>(data);
 		PlayerBase *base = GetPlayerBaseForClient(info->iClientID);
 		if (base)
 		{
 			returncode = SKIPPLUGINS;
 			info->iDockedBaseID = base->base;
-		}
-	}
-	else if (msg == CUSTOM_BASE_LAST_DOCKED)
-	{
-		CUSTOM_BASE_LAST_DOCKED_STRUCT* info = reinterpret_cast<CUSTOM_BASE_LAST_DOCKED_STRUCT*>(data);
-		PlayerBase *base = GetLastPlayerBaseForClient(info->iClientID);
-		if (base)
-		{
-			returncode = SKIPPLUGINS;
-			info->iLastDockedBaseID = base->base;
 		}
 	}
 	else if (msg == CUSTOM_JUMP)
@@ -2929,26 +2898,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	}
 	else if (msg == CUSTOM_BASE_LAST_DOCKED)
 	{
-		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
-		if (clients.count(info->clientID))
-		{
-			uint lastBaseID = clients[info->clientID].last_player_base;
-			if (player_bases.count(lastBaseID))
-			{
-				info->lastBaseName = player_bases[lastBaseID]->basename;
-			}
-			else
-			{
-				info->lastBaseName = L"Destroyed Player Base";
-			}
-		}
-		else
-		{
-			info->lastBaseName = L"Object Unknown";
-		}
-	}
-	else if (msg == CUSTOM_BASE_GET_NAME)
-	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
 		if (clients.count(info->clientID))
 		{

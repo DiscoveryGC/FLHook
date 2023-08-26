@@ -24,11 +24,10 @@ uint GetAffliationFromClient(uint client);
 
 struct RECIPE
 {
-	RECIPE() : produced_item(0), cooking_rate(0), credit_cost(0) {}
+	RECIPE() : cooking_rate(0), credit_cost(0) {}
 	uint nickname;
-	uint produced_item;
+	vector<pair<uint, uint>> produced_items;
 	uint shortcut_number;
-	uint produced_amount;
 	bool loop_production;
 	wstring infotext;
 	wstring craft_type;

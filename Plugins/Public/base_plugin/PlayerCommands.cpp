@@ -117,7 +117,7 @@ namespace PlayerCommands
 			currentString += stows(itos(recipe.first));
 			currentString += L" = ";
 			currentString += recipe.second.infotext.c_str();
-			generatedHelpStringList.push_back(currentString);
+			generatedHelpStringList.emplace_back(currentString);
 		}
 		return generatedHelpStringList;
 	}
@@ -130,7 +130,7 @@ namespace PlayerCommands
 			currentString += stows(itos(recipe.second.shortcut_number));
 			currentString += L" = ";
 			currentString += recipe.second.infotext.c_str();
-			generatedHelpStringList.push_back(currentString.c_str());
+			generatedHelpStringList.emplace_back(currentString.c_str());
 		}
 		return generatedHelpStringList;
 	}
@@ -337,7 +337,7 @@ namespace PlayerCommands
 			bp.admin = true;
 		}
 
-		base->passwords.push_back(bp);
+		base->passwords.emplace_back(bp);
 		base->Save();
 		PrintUserCmdText(client, L"OK");
 	}
@@ -500,7 +500,7 @@ namespace PlayerCommands
 			return;
 		}
 
-		base->ally_tags.push_back(tag);
+		base->ally_tags.emplace_back(tag);
 
 		// Logging
 		wstring thecharname = (const wchar_t*)Players.GetActiveCharacterName(client);
@@ -920,7 +920,7 @@ namespace PlayerCommands
 		}
 
 
-		base->perma_hostile_tags.push_back(tag);
+		base->perma_hostile_tags.emplace_back(tag);
 
 		// Logging
 		wstring thecharname = (const wchar_t*)Players.GetActiveCharacterName(client);
@@ -1422,7 +1422,7 @@ namespace PlayerCommands
 			}
 			else if(recipe)
 			{
-				PrintUserCmdText(client, L"Construction materials for %ls x%u:", recipe->infotext.c_str(), recipe->produced_amount);
+				PrintUserCmdText(client, L"Construction materials for %ls:", recipe->infotext.c_str());
 				for (const auto& item : recipe->consumed_items)
 				{
 					const GoodInfo *gi = GoodList::find_by_id(item.first);

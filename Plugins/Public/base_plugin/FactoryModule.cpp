@@ -32,7 +32,7 @@ wstring FactoryModule::GetInfo(bool xml)
 		info += L"</TEXT><PARA/><TEXT>      Pending " + stows(itos(build_queue.size())) + L" items</TEXT>";
 		if (active_recipe.nickname)
 		{
-			info += L"<PARA/><TEXT>      Crafting " + Status + active_recipe.infotext + (active_recipe.produced_amount ? L" x%u" + active_recipe.produced_amount : L"") + L". Waiting for:</TEXT>";
+			info += L"<PARA/><TEXT>      Crafting " + Status + active_recipe.infotext + L". Waiting for:</TEXT>";
 
 			for (auto& i = active_recipe.consumed_items.begin();
 				i != active_recipe.consumed_items.end(); ++i)
@@ -212,8 +212,17 @@ bool FactoryModule::Timer(uint time)
 
 	// Add the newly produced item to the market. If there is insufficient space
 	// to add the item, wait until there is space.
-	if (!base->AddMarketGood(active_recipe.produced_item, active_recipe.produced_amount))
-		return false;
+	for (auto& item : active_recipe.produced_items)
+	{
+		if (!base->AddMarketGood(item.first, item.second))
+		{
+			return false;
+		}
+		else
+		{
+			item.second = 0;
+		}
+	}
 
 	if (active_recipe.loop_production)
 	{
@@ -261,7 +270,7 @@ void FactoryModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			active_recipe.consumed_items.push_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+			active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
 		}
 		else if (ini.is_value("credit_cost"))
 		{
@@ -269,7 +278,7 @@ void FactoryModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("build_queue"))
 		{
-			build_queue.push_back(ini.get_value_int(0));
+			build_queue.emplace_back(ini.get_value_int(0));
 		}
 	}
 }
@@ -299,7 +308,7 @@ void FactoryModule::SaveState(FILE* file)
 
 void FactoryModule::SetActiveRecipe(uint product)
 {
-	active_recipe = recipeMap[product];
+	active_recipe = RECIPE(recipeMap[product]);
 	if (active_recipe.affiliationBonus.count(base->affiliation))
 	{
 		float productionModifier = active_recipe.affiliationBonus.at(base->affiliation);
@@ -318,7 +327,7 @@ void FactoryModule::AddToQueue(uint product)
 	}
 	else
 	{
-		build_queue.push_back(product);
+		build_queue.emplace_back(product);
 	}
 }
 

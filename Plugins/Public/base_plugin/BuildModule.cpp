@@ -199,7 +199,7 @@ void BuildModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			active_recipe.consumed_items.push_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+			active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
 		}
 		else if (ini.is_value("credit_cost"))
 		{

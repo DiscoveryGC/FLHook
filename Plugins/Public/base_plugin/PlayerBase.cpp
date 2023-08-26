@@ -14,8 +14,8 @@ PlayerBase::PlayerBase(uint client, const wstring& password, const wstring& the_
 	BasePassword bp;
 	bp.pass = password;
 	bp.admin = true;
-	passwords.push_back(bp);
-	ally_tags.push_back((const wchar_t*)Players.GetActiveCharacterName(client));
+	passwords.emplace_back(bp);
+	ally_tags.emplace_back((const wchar_t*)Players.GetActiveCharacterName(client));
 
 	// Setup the base in the current system and at the location 
 	// of the player. Rotate the base so that the docking ports
@@ -28,7 +28,7 @@ PlayerBase::PlayerBase(uint client, const wstring& password, const wstring& the_
 	TranslateX(position, rotation, 1000);
 
 	// Create the default module and spawn space obj.
-	modules.push_back((Module*)new CoreModule(this));
+	modules.emplace_back((Module*)new CoreModule(this));
 
 	// Setup derived fields
 	SetupDefaults();
@@ -278,7 +278,7 @@ void PlayerBase::Load()
 					{
 						wstring tag;
 						ini_get_wstring(ini, tag);
-						ally_tags.push_back(tag);
+						ally_tags.emplace_back(tag);
 					}
 					else if (ini.is_value("hostile_tag"))
 					{
@@ -291,7 +291,7 @@ void PlayerBase::Load()
 					{
 						wstring tag;
 						ini_get_wstring(ini, tag);
-						perma_hostile_tags.push_back(tag);
+						perma_hostile_tags.emplace_back(tag);
 					}
 					else if (ini.is_value("faction_ally_tag"))
 					{
@@ -314,7 +314,7 @@ void PlayerBase::Load()
 						else {
 							bp.admin = true;
 						}
-						passwords.push_back(bp);
+						passwords.emplace_back(bp);
 					}
 					else if (ini.is_value("crew_supplied"))
 					{
@@ -339,37 +339,37 @@ void PlayerBase::Load()
 			{
 				CoreModule* mod = new CoreModule(this);
 				mod->LoadState(ini);
-				modules.push_back(mod);
+				modules.emplace_back(mod);
 			}
 			else if (ini.is_header("BuildModule"))
 			{
 				BuildModule* mod = new BuildModule(this);
 				mod->LoadState(ini);
-				modules.push_back(mod);
+				modules.emplace_back(mod);
 			}
 			else if (ini.is_header("ShieldModule"))
 			{
 				ShieldModule* mod = new ShieldModule(this);
 				mod->LoadState(ini);
-				modules.push_back(mod);
+				modules.emplace_back(mod);
 			}
 			else if (ini.is_header("StorageModule"))
 			{
 				StorageModule* mod = new StorageModule(this);
 				mod->LoadState(ini);
-				modules.push_back(mod);
+				modules.emplace_back(mod);
 			}
 			else if (ini.is_header("DefenseModule"))
 			{
 				DefenseModule* mod = new DefenseModule(this);
 				mod->LoadState(ini);
-				modules.push_back(mod);
+				modules.emplace_back(mod);
 			}
 			else if (ini.is_header("FactoryModule"))
 			{
 				FactoryModule* mod = new FactoryModule(this);
 				mod->LoadState(ini);
-				modules.push_back(mod);
+				modules.emplace_back(mod);
 			}
 		}
 		ini.close();
@@ -469,12 +469,19 @@ void PlayerBase::Save()
 
 bool PlayerBase::AddMarketGood(uint good, uint quantity)
 {
+	if (quantity == 0)
+	{
+		return true;
+	}
+
 	float vol, mass;
 	pub::GetGoodProperties(good, vol, mass);
 
 	if (GetRemainingCargoSpace() < (quantity * vol)
 		|| (market_items.count(good) && market_items[good].max_stock < market_items[good].quantity + quantity))
+	{
 		return false;
+	}
 
 	market_items[good].quantity += quantity;
 	SendMarketGoodUpdated(this, good, market_items[good]);

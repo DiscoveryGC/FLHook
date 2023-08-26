@@ -619,7 +619,7 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj)
 			if (pd->iSystemID == base->system)
 			{
 				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(pd->iOnlineID);
-				CharsInSystem.push_back(wstos(charname));
+				CharsInSystem.emplace_back(wstos(charname));
 			}
 		}
 

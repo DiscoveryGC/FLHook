@@ -428,12 +428,15 @@ namespace HkIServerImpl
 	{
 		uint clientID = HkGetClientIDByShip(createGuidedPacket.iOwner);
 		if (!clientID)
+		{
 			return;
+		}
 		uint targetId;
 		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
 		if (targetId)
+		{
 			return;
-
+		}
 		const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
 		projectile->set_target(nullptr);
 	}

@@ -1121,7 +1121,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			int isAlive = pub::SpaceObj::ExistsAndAlive(customSolar);
 			if(isAlive)
-				pub::SpaceObj::Destroy(customSolar, DestroyType::VANISH);
+				pub::SpaceObj::Destroy(customSolar, DestroyType::FUSE);
 		}
 		customSolarList.clear();
 

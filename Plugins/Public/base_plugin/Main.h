@@ -567,12 +567,14 @@ namespace PlayerCommands
 	void Aff_initer();
 }
 
-namespace Log {
+namespace Log
+{
 	void LogBaseAction(string basename, const char *message);
 	void LogGenericAction(string message);
 }
 
-namespace CreateSolar {
+namespace CreateSolar
+{
 	pub::AI::SetPersonalityParams MakePersonality();
 	void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo);
 	void CreateSolarCallout(SPAWN_SOLAR_STRUCT* info);

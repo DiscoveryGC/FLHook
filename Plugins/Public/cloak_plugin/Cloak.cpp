@@ -78,6 +78,7 @@ struct CLOAK_INFO
 	bool bCanCloak;
 	mstime tmCloakTime;
 	uint iState;
+	float fuelUsageCounter;
 	bool bAdmin;
 	int DisruptTime;
 
@@ -333,8 +334,10 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 				currFuelUsage += fuelUsage.usageLinear * vecLength;
 				currFuelUsage += fuelUsage.usageSquare * vecLength * vecLength;
 			}
-			uint totalFuelUsage = static_cast<uint>(max(currFuelUsage, 0.0f));
-			if (item->iCount >= totalFuelUsage)
+			info.fuelUsageCounter += currFuelUsage;
+			uint totalFuelUsage = static_cast<uint>(max(info.fuelUsageCounter, 0.0f));
+			info.fuelUsageCounter -= static_cast<float>(totalFuelUsage);
+			if (totalFuelUsage && item->iCount >= totalFuelUsage)
 			{
 				pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);
 				return true;
@@ -355,10 +358,6 @@ void InitCloakInfo(uint client, uint distance)
 
 void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 {
-	mapClientsCloak[iClientID].bCanCloak = false;
-	mapClientsCloak[iClientID].bAdmin = false;
-
-
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (mapCloakDisruptors.find(item->iArchID) != mapCloakDisruptors.end())
@@ -388,46 +387,42 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
 
 		CEquipManager* eqmanager = (CEquipManager*)((char*)cship + 0xE4);
-		CEquipTraverser tr(-1);
+		CEquipTraverser tr(4096); // 1 << 12, a type value for cloaking equipment, allows us to iterate over those exclusively
 		CEquip *equip = eqmanager->Traverse(tr);
 
-		while (equip)
+		//We only care about the first one we find.
+		if (!equip)
 		{
-			if (CECloakingDevice::cast(equip))
-			{
-				auto& cloakInfo = mapClientsCloak[iClientID];
-				cloakInfo.iCloakSlot = equip->GetID();
+			mapClientsCloak[iClientID].bCanCloak = false;
+			return;
+		}
+		auto& cloakInfo = mapClientsCloak[iClientID];
+		cloakInfo.iCloakSlot = equip->GetID();
 
-				if (mapCloakingDevices.find(equip->EquipArch()->iArchID) != mapCloakingDevices.end())
-				{
-					// Otherwise set the fuel usage and warm up time
-					cloakInfo.arch = mapCloakingDevices[equip->EquipArch()->iArchID];
-				}
-				// If this cloaking device does not appear in the cloaking device list
-				// then warming up and fuel usage is zero and it may be used by any
-				// ship.
-				else
-				{
-					cloakInfo.arch.bDropShieldsOnUncloak = false;
-					cloakInfo.arch.iCooldownTime = 0;
-					cloakInfo.arch.iHoldSizeLimit = 0;
-					cloakInfo.arch.iWarmupTime = 0;
-					cloakInfo.arch.mapFuelToUsage.clear();
-				}
+		if (mapCloakingDevices.find(equip->EquipArch()->iArchID) != mapCloakingDevices.end())
+		{
+			// Otherwise set the fuel usage and warm up time
+			cloakInfo.arch = mapCloakingDevices[equip->EquipArch()->iArchID];
+		}
+		// If this cloaking device does not appear in the cloaking device list
+		// then warming up and fuel usage is zero and it may be used by any
+		// ship.
+		else
+		{
+			cloakInfo.arch.bDropShieldsOnUncloak = false;
+			cloakInfo.arch.iCooldownTime = 0;
+			cloakInfo.arch.iHoldSizeLimit = 0;
+			cloakInfo.arch.iWarmupTime = 0;
+			cloakInfo.arch.mapFuelToUsage.clear();
+		}
 
-				cloakInfo.DisruptTime = 0;
-				cloakInfo.bCanCloak = true;
-				cloakInfo.iState = STATE_CLOAK_INVALID;
-				SetState(iClientID, iShip, STATE_CLOAK_OFF);
-				if (cloakInfo.arch.bBreakOnProximity)
-				{
-					InitCloakInfo(iClientID, (uint)mapClientsCloak[iClientID].arch.fRange);
-				}
-				return;
-			}
-
-			equip = eqmanager->Traverse(tr);
-
+		cloakInfo.DisruptTime = 0;
+		cloakInfo.bCanCloak = true;
+		cloakInfo.iState = STATE_CLOAK_INVALID;
+		SetState(iClientID, iShip, STATE_CLOAK_OFF);
+		if (cloakInfo.arch.bBreakOnProximity)
+		{
+			InitCloakInfo(iClientID, (uint)mapClientsCloak[iClientID].arch.fRange);
 		}
 	}
 }
@@ -644,6 +639,8 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 				SetState(iClientID, iShip, STATE_CLOAK_OFF);
 				return true;
 			}
+
+			mapClientsCloak[iClientID].bAdmin = false;
 
 			switch (mapClientsCloak[iClientID].iState)
 			{

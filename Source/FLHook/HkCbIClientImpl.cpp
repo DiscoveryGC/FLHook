@@ -995,6 +995,8 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_SETSHIPARCH(uint iClientID, uint iShipA
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
 
+	CALL_PLUGINS(PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SETSHIPARCH, bool, , (uint, uint), (iClientID, iShipArch));
+
 	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_SETSHIPARCH(iClientID, iShipArch));
 	return reinterpret_cast<bool>(vRet);
 }

@@ -34,11 +34,10 @@ wstring FactoryModule::GetInfo(bool xml)
 		{
 			info += L"<PARA/><TEXT>      Crafting " + Status + active_recipe.infotext + L". Waiting for:</TEXT>";
 
-			for (auto& i = active_recipe.consumed_items.begin();
-				i != active_recipe.consumed_items.end(); ++i)
+			for (auto& i : active_recipe.consumed_items)
 			{
-				uint good = i->first;
-				uint quantity = i->second;
+				uint good = i.first;
+				uint quantity = i.second;
 
 				const GoodInfo* gi = GoodList::find_by_id(good);
 				if (gi)
@@ -85,11 +84,10 @@ wstring FactoryModule::GetInfo(bool xml)
 		{
 			info += L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
 
-			for (auto& i = active_recipe.consumed_items.begin();
-				i != active_recipe.consumed_items.end(); ++i)
+			for (auto& i : active_recipe.consumed_items)
 			{
-				uint good = i->first;
-				uint quantity = i->second;
+				uint good = i.first;
+				uint quantity = i.second;
 
 				const GoodInfo* gi = GoodList::find_by_id(good);
 				if (gi)
@@ -120,7 +118,9 @@ wstring FactoryModule::GetInfo(bool xml)
 							info += L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
 							uint presentAmount = base->HasMarketItem(good);
 							if (presentAmount < quantity)
+							{
 								info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
+							}
 						}
 					}
 				}
@@ -185,30 +185,30 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	for (auto& i = active_recipe.consumed_items.begin();
-		i != active_recipe.consumed_items.end(); ++i)
+	for (auto& i : active_recipe.consumed_items)
 	{
-		uint good = i->first;
-		uint quantity = i->second > active_recipe.cooking_rate ? active_recipe.cooking_rate : i->second;
-		if (quantity)
+		uint good = i.first;
+		uint quantity = min(active_recipe.cooking_rate, i.second);
+		if (!quantity)
 		{
-			cooked = false;
-			map<uint, MARKET_ITEM>::iterator market_item = base->market_items.find(good);
-			if (market_item != base->market_items.end())
-			{
-				if (market_item->second.quantity >= quantity)
-				{
-					i->second -= quantity;
-					base->RemoveMarketGood(good, quantity);
-					return false;
-				}
-			}
+			continue;
+		}
+		cooked = false;
+		map<uint, MARKET_ITEM>::iterator market_item = base->market_items.find(good);
+		if (market_item != base->market_items.end()
+			&& market_item->second.quantity >= quantity)
+		{
+			i.second -= quantity;
+			base->RemoveMarketGood(good, quantity);
+			return false;
 		}
 	}
 
 	// Do nothing if cooking is not finished
 	if (!cooked)
+	{
 		return false;
+	}
 
 	// Add the newly produced item to the market. If there is insufficient space
 	// to add the item, wait until there is space.
@@ -293,16 +293,14 @@ void FactoryModule::SaveState(FILE* file)
 	{
 		if (active_recipe.credit_cost)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
-		for (auto& i = active_recipe.consumed_items.begin();
-			i != active_recipe.consumed_items.end(); ++i)
+		for (auto& i : active_recipe.consumed_items)
 		{
-			fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+			fprintf(file, "consumed = %u, %u\n", i.first, i.second);
 		}
 	}
-	for (list<uint>::iterator i = build_queue.begin();
-		i != build_queue.end(); ++i)
+	for (uint i : build_queue)
 	{
-		fprintf(file, "build_queue = %u\n", *i);
+		fprintf(file, "build_queue = %u\n", i);
 	}
 }
 
@@ -352,9 +350,9 @@ bool FactoryModule::ToggleQueuePaused(bool NewState)
 
 FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct)
 {
-	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i)
+	for (auto& module : pb->modules)
 	{
-		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(*i);
+		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(module);
 		if (facModPtr && facModPtr->active_recipe.nickname == searchedProduct)
 		{
 			return facModPtr;
@@ -365,9 +363,9 @@ FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, ui
 
 void FactoryModule::StopAllProduction(PlayerBase* pb)
 {
-	for (std::vector<Module*>::iterator i = pb->modules.begin(); i < pb->modules.end(); ++i)
+	for (auto& i : pb->modules)
 	{
-		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(*i);
+		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(i);
 		if (facModPtr)
 		{
 			facModPtr->ClearQueue();

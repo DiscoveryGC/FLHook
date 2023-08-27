@@ -192,22 +192,28 @@ void DefenseModule::LoadSettings(const string& path)
 						shipIndex = 11;
 
 					int flag = 0;
-					string flagText = ToLower(ini.get_value_string(2));
-					if (flagText.find("guns") != string::npos)
+					int index = 2;
+					string flagText = ToLower(ini.get_value_string(index));
+					while (!flagText.empty())
 					{
-						flag += 1;
-					}
-					if (flagText.find("guided") != string::npos)
-					{
-						flag += 2;
-					}
-					if (flagText.find("unguided") != string::npos)
-					{
-						flag += 4;
-					}
-					if (flagText.find("torpedo") != string::npos)
-					{
-						flag += 8;
+						if (flagText.find("guns") != string::npos)
+						{
+							flag += 1;
+						}
+						if (flagText.find("guided") != string::npos)
+						{
+							flag += 2;
+						}
+						if (flagText.find("unguided") != string::npos)
+						{
+							flag += 4;
+						}
+						if (flagText.find("torpedo") != string::npos)
+						{
+							flag += 8;
+						}
+						index++;
+						flagText = ToLower(ini.get_value_string(index));
 					}
 
 					pub::AI::Personality::JobStruct::Tattack_order& atkOrder = job.attack_order[shipIndex];

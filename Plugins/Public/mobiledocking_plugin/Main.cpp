@@ -151,7 +151,7 @@ void LoadSettings()
 				CARRIERINFO ci;
 				wstring carrierName;
 				boolean doLoad = true;
-				while (ini.read_value() && doLoad)
+				while (ini.read_value())
 				{
 					if (ini.is_value("carrier"))
 					{
@@ -369,6 +369,7 @@ void DockShipOnCarrier(uint dockingID, uint carrierID)
 		if (!shipAlreadyDocked)
 		{
 			PrintUserCmdText(dockingID, L"Carrier has no free docking capacity");
+			pub::Player::SendNNMessage(dockingID, pub::GetNicknameId("info_access_denied"));
 			return;
 		}
 	}
@@ -394,7 +395,7 @@ void DockShipOnCarrier(uint dockingID, uint carrierID)
 
 	// Land the ship on the designated base
 	HkBeamById(dockingID, mobileDockingProxyBase);
-	PrintUserCmdText(carrierID, L"Ship docked");
+	PrintUserCmdText(carrierID, L"%ls successfully docked", dockingName);
 }
 
 void HkTimerCheckKick()
@@ -436,8 +437,8 @@ void HkTimerCheckKick()
 		if (!dd.timeLeft)
 		{
 			Vector pos;
-			Matrix _;
-			pub::SpaceObj::GetLocation(dockingShipID, pos, _);
+			Matrix dummy;
+			pub::SpaceObj::GetLocation(dockingShipID, pos, dummy);
 			float distance = HkDistance3D(pos, dd.startPosition);
 			if (distance > maxDockingDistanceTolerance)
 			{
@@ -512,8 +513,8 @@ void StartDockingProcedure(uint dockingID, uint carrierID)
 		}
 
 		Vector pos;
-		Matrix _;
-		pub::SpaceObj::GetLocation(shipId, pos, _);
+		Matrix dummy;
+		pub::SpaceObj::GetLocation(shipId, pos, dummy);
 
 		DELAYEDDOCK dd;
 		dd.carrierID = carrierID;

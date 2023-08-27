@@ -1714,14 +1714,7 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 	SyncReputationForClientShip(ship, client);
 
-	if (player_launch_base && !system_match)
-	{
-		ForcePlayerBaseDock(client, player_launch_base);
-	}
-	else
-	{
-		HyperJump::CheckForDisconnectedUnchartedLogin(ship, client);
-	}
+	HyperJump::CheckForDisconnectedUnchartedLogin(ship, client);
 }
 
 void __stdcall JumpInComplete(unsigned int system, unsigned int ship)

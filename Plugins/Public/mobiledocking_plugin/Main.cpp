@@ -412,8 +412,9 @@ void HkTimerCheckKick()
 		pub::SpaceObj::GetMotion(dockingShipID, V1mov, V1rot);
 		if (V1mov.x > 5 || V1mov.y > 5 || V1mov.z > 5)
 		{
-			PrintUserCmdText(dd.dockingID, L"Docking aborted due to craft movement");
-			PrintUserCmdText(dd.carrierID, L"Docking aborted due to craft movement");
+			auto dockingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dd.dockingID));
+			PrintUserCmdText(dd.dockingID, L"Docking aborted due to %ls's movement", dockingName);
+			PrintUserCmdText(dd.carrierID, L"Docking aborted due to %ls's movement", dockingName);
 			dockdata = dockingInProgress.erase(dockdata);
 			continue;
 		}
@@ -438,8 +439,9 @@ void HkTimerCheckKick()
 			float distance = HkDistance3D(pos, dd.startPosition);
 			if (distance > maxDockingDistanceTolerance)
 			{
-				PrintUserCmdText(dd.dockingID, L"Docking aborted due to craft movement");
-				PrintUserCmdText(dd.carrierID, L"Docking aborted due to craft movement");
+				auto dockingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dd.dockingID));
+				PrintUserCmdText(dd.dockingID, L"Docking aborted due to %ls's movement", dockingName);
+				PrintUserCmdText(dd.carrierID, L"Docking aborted due to %ls's movement", dockingName);
 				dockdata = dockingInProgress.erase(dockdata);
 				continue;
 			}
@@ -1068,7 +1070,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 		{
 			const auto& shipInfo = Archetype::GetShip(Players[iClientID].iShipArchetype);
 			wstring& shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
-			PrintUserCmdText(carrierClientID, L"INFO: Docked %ls, %ls is standing by for launch", shipName.c_str(), charname);
+			PrintUserCmdText(carrierClientID, L"INFO: %ls, %ls is standing by for launch", shipName.c_str(), charname);
 
 			const auto& carrierInfo = Players[carrierClientID];
 			const auto& sysInfo = Universe::get_system(carrierInfo.iSystemID);

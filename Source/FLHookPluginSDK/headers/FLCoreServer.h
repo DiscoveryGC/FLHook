@@ -944,7 +944,7 @@ namespace pub
 		IMPORT  int DockRequest(unsigned int const &, unsigned int const &);
 		IMPORT  int DrainShields(unsigned int);
 		IMPORT  int EnumerateCargo(unsigned int const &, struct pub::CargoEnumerator &);
-		IMPORT  int ExistsAndAlive(unsigned int);
+		IMPORT  int ExistsAndAlive(unsigned int); // returns 0 for alive, -2 for dead
 		IMPORT  int FormationResponse(unsigned int const &, enum FORMATION_RTYPE);
 		IMPORT  int GetArchetypeID(unsigned int const &, unsigned int &);
 		IMPORT  int GetAtmosphereRange(unsigned int const &, float &);

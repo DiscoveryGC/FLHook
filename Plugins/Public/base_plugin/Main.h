@@ -10,11 +10,11 @@
 #include <set>
 #include <map>
 #include <algorithm>
-#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace std;
 
@@ -701,7 +701,7 @@ extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
 
-extern set<uint> customSolarList;
+extern unordered_set<uint> customSolarList;
 
 extern unordered_map<uint, float> siegeWeaponryMap;
 

@@ -301,6 +301,11 @@ EXPORT void LoadSettings()
 						wstring replacementLootName = stows(ini.get_value_string(2));
 						float rechargeRate = ini.get_value_float(3);
 						float maxReserve = ini.get_value_float(4);
+						if (zoneName.empty() || bonus <= 0.0f || maxReserve <= 0.0f)
+						{
+							ConPrint(L"Incorrectly setup Zone Bonus entry!\n");
+							continue;
+						}
 						set_mapZoneBonus[zoneID].scZone = zoneName;
 						set_mapZoneBonus[zoneID].fMultiplier = bonus;
 						set_mapZoneBonus[zoneID].iReplacementLootID = replacementLootID;
@@ -331,7 +336,13 @@ EXPORT void LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					uint zoneID = CreateID(ini.get_value_string(0));
+					string zoneName = ini.get_value_string(0);
+					if (zoneName.empty())
+					{
+						ConPrint(L"Incorrect entry in mining stats file!\n");
+						continue;
+					}
+					uint zoneID = CreateID(zoneName.c_str());
 					auto& zoneData = set_mapZoneBonus[zoneID];
 					zoneData.fCurrReserve = ini.get_value_float(1);
 					zoneData.fMined = ini.get_value_float(2);
@@ -382,12 +393,14 @@ bool UserCmd_Process(uint client, const wstring& args)
 	uint shipId;
 	pub::Player::GetShip(client, shipId);
 	pub::SpaceObj::GetTarget(shipId, targetId);
-	if (!targetId) {
+	if (!targetId)
+	{
 		PrintUserCmdText(client, L"ERR Mining container not selected");
 		return true;
 	}
 	const auto& container = mapMiningContainers.find(targetId);
-	if (container == mapMiningContainers.end()) {
+	if (container == mapMiningContainers.end())
+	{
 		PrintUserCmdText(client, L"ERR Mining container not selected");
 		return true;
 	}

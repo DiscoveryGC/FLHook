@@ -22,7 +22,6 @@
 #include "Main.h"
 #include <sstream>
 #include <hookext_exports.h>
-#include <unordered_map>
 
 // Clients
 map<uint, CLIENT_DATA> clients;
@@ -156,7 +155,7 @@ float siege_mode_damage_trigger_level = 8000000;
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
 
-set<uint> customSolarList;
+unordered_set<uint> customSolarList;
 
 //siege weaponry definitions
 unordered_map<uint, float> siegeWeaponryMap;
@@ -1119,9 +1118,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 		for (uint customSolar : customSolarList)
 		{
-			int isAlive = pub::SpaceObj::ExistsAndAlive(customSolar);
-			if(isAlive)
+			if (pub::SpaceObj::ExistsAndAlive(customSolar) == 0) // this method returns -2 for dead, 0 for alive
+			{
 				pub::SpaceObj::Destroy(customSolar, DestroyType::FUSE);
+			}
 		}
 		customSolarList.clear();
 

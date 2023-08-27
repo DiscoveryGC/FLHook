@@ -312,11 +312,7 @@ JettisonResult RemoveShipFromLists(const wstring& dockedShipName, bool forcedLau
 	else
 	{
 		//player offline, edit their character file to put them on last docked solar
-		CAccount* acc = HkGetAccountByCharname(dockedShipName);
-		if (acc)
-		{
-			MoveOfflineShipToLastDockedSolar(dockedShipName);
-		}
+		MoveOfflineShipToLastDockedSolar(dockedShipName);
 	}
 
 	wstring& carrierName = nameToDockedInfoMap[dockedShipName].carrierName;
@@ -507,6 +503,12 @@ void StartDockingProcedure(uint dockingID, uint carrierID)
 	if (dockingPeriod)
 	{
 		uint shipId = Players[dockingID].iShipID;
+		if (!shipId)
+		{
+			PrintUserCmdText(carrierID, L"ERR Docking procedure impossible, target ship is docked");
+			PrintUserCmdText(dockingID, L"ERR Carrier docking procedure aborted, you're already docked");
+			return;
+		}
 		if (disableShieldsOnDockAttempt)
 		{
 			pub::SpaceObj::DrainShields(shipId);
@@ -522,8 +524,9 @@ void StartDockingProcedure(uint dockingID, uint carrierID)
 		dd.timeLeft = dockingPeriod;
 		dd.startPosition = pos;
 		dockingInProgress[dockingID] = dd;
-		PrintUserCmdText(carrierID, L"Docking procedure in progress", dockingPeriod);
-		PrintUserCmdText(dockingID, L"Dock request accepted, stand still for %u second(s)", dockingPeriod);
+		auto dockingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dockingID));
+		PrintUserCmdText(carrierID, L"%ls docking procedure is in progress", dockingName);
+		PrintUserCmdText(dockingID, L"Dock request accepted, hold position for %u second(s)", dockingPeriod);
 	}
 	else
 	{

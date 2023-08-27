@@ -417,18 +417,15 @@ void CoreModule::RepairDamage(float max_base_health)
 	}
 
 	// The bigger the base the more damage can be repaired.
-	for (uint repair_cycles = 0; repair_cycles < base->base_level; ++repair_cycles)
+	for (REPAIR_ITEM& item : set_base_repair_items)
 	{
-		for (REPAIR_ITEM& item : set_base_repair_items)
-		{
-			if (base->base_health >= max_base_health)
-				return;
+		if (base->base_health >= max_base_health)
+			return;
 
-			if (base->HasMarketItem(item.good) >= item.quantity)
-			{
-				base->RemoveMarketGood(item.good, item.quantity);
-				base->base_health += repair_per_repair_cycle;
-			}
+		if (base->HasMarketItem(item.good) >= item.quantity * base->base_level)
+		{
+			base->RemoveMarketGood(item.good, item.quantity * base->base_level);
+			base->base_health += repair_per_repair_cycle * base->base_level;
 		}
 	}
 }
@@ -441,110 +438,109 @@ bool CoreModule::Timer(uint time)
 		return false;
 	}
 
-	if (space_obj)
+	if (!space_obj)
 	{
-		if ((base->logic == 1) || (base->invulnerable == 0))
+		return false;
+	}
+
+	float rhealth = base->base_health / base->max_base_health;
+	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+
+	// if health is 0 then the object will be destroyed but we won't
+	// receive a notification of this so emulate it.
+	if (base->base_health < 1)
+		return SpaceObjDestroyed(space_obj);
+
+	if ((base->logic == 0) && (base->invulnerable == 1))
+	{
+		return false;
+	}
+
+	uint number_of_crew = base->HasMarketItem(set_base_crew_type);
+	bool isCrewSufficient = number_of_crew >= (base->base_level * 200);
+	pub::SpaceObj::GetHealth(space_obj, base->base_health, base->max_base_health);
+
+	if (!dont_rust && ((time % set_damage_tick_time) == 0))
+	{
+		float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
+		float wear_n_tear_modifier = FindWearNTearModifier(base->base_health / base->max_base_health);
+		// Reduce hitpoints to reflect wear and tear. This will eventually
+		// destroy the base unless it is able to repair itself.
+		float damage_taken = (set_damage_per_tick + (set_damage_per_tick * base->base_level)) * wear_n_tear_modifier * no_crew_penalty;
+		base->base_health -= damage_taken;
+	}
+
+	// Repair damage if we have sufficient crew on the base.
+
+	if (isCrewSufficient)
+	{
+		RepairDamage(base->max_base_health);
+		if (dont_eat)
 		{
-
-			uint number_of_crew = base->HasMarketItem(set_base_crew_type);
-			bool isCrewSufficient = number_of_crew >= (base->base_level * 200);
-			pub::SpaceObj::GetHealth(space_obj, base->base_health, base->max_base_health);
-
-			if (!dont_rust && ((time % set_damage_tick_time) == 0))
-			{
-				float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
-				float wear_n_tear_modifier = FindWearNTearModifier(base->base_health / base->max_base_health);
-				// Reduce hitpoints to reflect wear and tear. This will eventually
-				// destroy the base unless it is able to repair itself.
-				float damage_taken = (set_damage_per_tick + (set_damage_per_tick * base->base_level)) * wear_n_tear_modifier * no_crew_penalty;
-				base->base_health -= damage_taken;
-			}
-
-			// Repair damage if we have sufficient crew on the base.
-
-			if (isCrewSufficient)
-			{
-				RepairDamage(base->max_base_health);
-				if (dont_eat)
-				{
-					// We won't save base health below, so do it here
-					float rhealth = base->base_health / base->max_base_health;
-					pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-				}
-			}
-
-			if (base->base_health > base->max_base_health)
-				base->base_health = base->max_base_health;
-			else if (base->base_health <= 0)
-				base->base_health = 0;
-
-			if (!dont_eat)
-			{
-				// Humans use commodity_oxygen, commodity_water. Consume these for
-				// the crew or kill 10 crew off and repeat this every 12 hours.
-				if (time % set_crew_check_frequency == 0)
-				{
-					bool passedCheck = true;
-					for (map<uint, uint>::iterator i = set_base_crew_consumption_items.begin();
-						i != set_base_crew_consumption_items.end(); ++i)
-					{
-						// Use water and oxygen.
-						if (base->HasMarketItem(i->first) >= number_of_crew)
-						{
-							base->RemoveMarketGood(i->first, number_of_crew);
-						}
-						else {
-							base->RemoveMarketGood(i->first, base->HasMarketItem(i->first));
-							passedCheck = false;
-						}
-					}
-
-					// Humans use food but may eat one of a number of types.
-					uint crew_to_feed = number_of_crew;
-					for (map<uint, uint>::iterator i = set_base_crew_food_items.begin();
-						i != set_base_crew_food_items.end(); ++i)
-					{
-						if (!crew_to_feed)
-							break;
-
-						uint food_available = base->HasMarketItem(i->first);
-						if (food_available)
-						{
-							uint food_to_use = (food_available >= crew_to_feed) ? crew_to_feed : food_available;
-							base->RemoveMarketGood(i->first, food_to_use);
-							crew_to_feed -= food_to_use;
-						}
-					}
-
-					// Insufficent food so kill crew.
-					if (crew_to_feed)
-					{
-						passedCheck = false;
-					}
-
-					base->isCrewSupplied = passedCheck;
-				}
-
-				// Save the new base health
-				float rhealth = base->base_health / base->max_base_health;
-				pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-				if (set_plugin_debug > 1)
-					ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
-
-			}
-		}
-		//else we do not change health, but we still need to send an update to fix the undockable problem. The base either has no logic or is invulnerable, so processing changes is useless.
-		else
-		{
+			// We won't save base health below, so do it here
 			float rhealth = base->base_health / base->max_base_health;
 			pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-			//ConPrint(L"CoreModule::timer space_obj=%u health=%f\n", space_obj, base->base_health);
+		}
+	}
+
+	if (base->base_health > base->max_base_health)
+	{
+		base->base_health = base->max_base_health;
+	}
+	else if (base->base_health <= 0)
+	{
+		base->base_health = 0;
+	}
+
+	// Humans use commodity_oxygen, commodity_water. Consume these for
+	// the crew or kill 10 crew off and repeat this every 12 hours.
+	if (!dont_eat && time % set_crew_check_frequency == 0)
+	{
+		bool passedCheck = true;
+
+		uint number_of_people = 0;
+		for (uint humanCargoType : humanCargoList)
+		{
+			number_of_people += base->HasMarketItem(humanCargoType);
 		}
 
-		// if health is 0 then the object will be destroyed but we won't
-		// receive a notification of this so emulate it.
-		if (base->base_health < 1)
-			return SpaceObjDestroyed(space_obj);
+		for (auto i : set_base_crew_consumption_items)
+		{
+			// Use water and oxygen.
+			if (base->HasMarketItem(i.first) >= number_of_people)
+			{
+				base->RemoveMarketGood(i.first, number_of_people);
+			}
+			else {
+				base->RemoveMarketGood(i.first, base->HasMarketItem(i.first));
+				passedCheck = false;
+			}
+		}
+
+		// Humans use food but may eat one of a number of types.
+
+		for (auto& i : set_base_crew_food_items)
+		{
+			if (!number_of_people)
+				break;
+
+			uint food_available = base->HasMarketItem(i.first);
+			if (food_available)
+			{
+				uint food_to_use = min(food_available, number_of_people);
+				base->RemoveMarketGood(i.first, food_to_use);
+				number_of_people -= food_to_use;
+			}
+		}
+
+		// Insufficent food so fail check
+		if (number_of_people)
+		{
+			passedCheck = false;
+		}
+
+		base->isCrewSupplied = passedCheck;
+		
 	}
 
 	return false;
@@ -670,11 +666,11 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 
 float CoreModule::FindWearNTearModifier(float currHpPercentage)
 {
-	for (list<WEAR_N_TEAR_MODIFIER>::iterator i = wear_n_tear_mod_list.begin(); i != wear_n_tear_mod_list.end(); ++i)
+	for (auto& i : wear_n_tear_mod_list)
 	{
-		if (i->fromHP < currHpPercentage && i->toHP >= currHpPercentage)
+		if (i.fromHP < currHpPercentage && i.toHP >= currHpPercentage)
 		{
-			return i->modifier;
+			return i.modifier;
 		}
 	}
 	return 1.0;

@@ -14,16 +14,13 @@
 #include "Main.h"
 #include <sstream>
 #include <hookext_exports.h>
-#include <unordered_map>
 
 // Clients
-map<uint, CLIENT_DATA> clients;
+unordered_map<uint, CLIENT_DATA> clients;
 
 // Bases
-map<uint, PlayerBase*> player_bases;
-map<uint, PlayerBase*>::iterator baseSaveIterator = player_bases.begin();
-
-map<uint, bool> mapPOBShipPurchases;
+unordered_map<uint, PlayerBase*> player_bases;
+unordered_map<uint, PlayerBase*>::iterator baseSaveIterator = player_bases.begin();
 
 /// 0 = HTML, 1 = JSON, 2 = Both
 int ExportType = 0;
@@ -32,7 +29,7 @@ int ExportType = 0;
 int set_plugin_debug = 0;
 
 /// List of banned systems
-set<uint> bannedSystemList;
+unordered_set<uint> bannedSystemList;
 
 /// The ship used to construct and upgrade bases
 uint set_construction_shiparch = 0;
@@ -69,6 +66,8 @@ uint set_crew_check_frequency = 43200;
 /// The commodity used as crew for the base
 uint set_base_crew_type;
 
+unordered_set<uint> humanCargoList;
+
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
 
@@ -104,7 +103,7 @@ uint set_damage_per_tick = 600;
 
 /// Damage multiplier for damaged/abandoned stations
 /// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-list<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
+vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
 
 /// Additional damage penalty for stations without proper crew
 float no_crew_damage_multiplier = 1;
@@ -180,24 +179,29 @@ uint GetAffliationFromClient(uint client)
 
 PlayerBase *GetPlayerBase(uint base)
 {
-	map<uint, PlayerBase*>::iterator i = player_bases.find(base);
+	const auto& i = player_bases.find(base);
 	if (i != player_bases.end())
+	{
 		return i->second;
-	return 0;
+	}
+	return nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PlayerBase *GetPlayerBaseForClient(uint client)
 {
-	map<uint, CLIENT_DATA>::iterator j = clients.find(client);
+	auto& j = clients.find(client);
 	if (j == clients.end())
-		return 0;
+	{
+		return nullptr;
+	}
 
-	map<uint, PlayerBase*>::iterator i = player_bases.find(j->second.player_base);
+	auto i = player_bases.find(j->second.player_base);
 	if (i == player_bases.end())
-		return 0;
-
+	{
+		return nullptr;
+	}
 	return i->second;
 }
 
@@ -205,14 +209,16 @@ PlayerBase *GetPlayerBaseForClient(uint client)
 
 PlayerBase *GetLastPlayerBaseForClient(uint client)
 {
-	map<uint, CLIENT_DATA>::iterator j = clients.find(client);
+	auto& j = clients.find(client);
 	if (j == clients.end())
-		return 0;
-
-	map<uint, PlayerBase*>::iterator i = player_bases.find(j->second.last_player_base);
+	{
+		return nullptr;
+	}
+	auto& i = player_bases.find(j->second.last_player_base);
 	if (i == player_bases.end())
-		return 0;
-
+	{
+		return nullptr;
+	}
 	return i->second;
 }
 
@@ -341,20 +347,18 @@ void SyncReputationForClientShip(uint ship, uint client)
 	uint system;
 	pub::SpaceObj::GetSystem(ship, system);
 
-	map<uint, PlayerBase*>::iterator base = player_bases.begin();
-	for (; base != player_bases.end(); base++)
+	for (auto& base : player_bases)
 	{
-		if (base->second->system == system)
+		if (base.second->system == system)
 		{
-			float attitude = base->second->GetAttitudeTowardsClient(client);
+			float attitude = base.second->GetAttitudeTowardsClient(client);
 			if (set_plugin_debug > 1)
-				ConPrint(L"SyncReputationForClientShip:: ship=%u attitude=%f base=%08x\n", ship, attitude, base->first);
-			for (vector<Module*>::iterator module = base->second->modules.begin();
-				module != base->second->modules.end(); ++module)
+				ConPrint(L"SyncReputationForClientShip:: ship=%u attitude=%f base=%08x\n", ship, attitude, base.first);
+			for (auto module : base.second->modules)
 			{
-				if (*module)
+				if (module)
 				{
-					(*module)->SetReputation(player_rep, attitude);
+					module->SetReputation(player_rep, attitude);
 				}
 			}
 		}
@@ -429,18 +433,18 @@ void LoadSettingsActual()
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string cfg_file = string(szCurDir) + "\\flhook_plugins\\base.cfg";
-	string cfg_fileitems = string(szCurDir) + "\\flhook_plugins\\base_recipe_items.cfg";
-	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
-	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
-	string cfg_fileforbiddencommodities = string(szCurDir) + "\\flhook_plugins\\base_forbidden_cargo.cfg";
+	string cfg_file = string(szCurDir) + R"(flhook_plugins\base.cfg)";
+	string cfg_fileitems = string(szCurDir) + R"(\flhook_plugins\base_recipe_items.cfg)";
+	string cfg_filemodules = string(szCurDir) + R"(\flhook_plugins\base_recipe_modules.cfg)";
+	string cfg_filearch = string(szCurDir) + R"(\flhook_plugins\base_archtypes.cfg)";
+	string cfg_fileforbiddencommodities = string(szCurDir) + R"(\flhook_plugins\base_forbidden_cargo.cfg)";
 
-	map<uint, PlayerBase*>::iterator base = player_bases.begin();
-	for (; base != player_bases.end(); base++)
+	for (auto base : player_bases)
 	{
-		delete base->second;
+		delete base.second;
 	}
 
+	player_bases.clear();
 	construction_items.clear();
 	set_base_repair_items.clear();
 	set_base_crew_consumption_items.clear();
@@ -556,6 +560,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("base_crew_item"))
 					{
 						set_base_crew_type = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("human_cargo_item"))
+					{
+						humanCargoList.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("base_repair_item"))
 					{
@@ -963,13 +971,9 @@ void HkTimerCheckKick()
 
 	uint curr_time = (uint)time(0);
 	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
-	map<uint, PlayerBase*>::iterator iter = player_bases.begin();
-	while (iter != player_bases.end())
+	for(auto& iter : player_bases)
 	{
-		PlayerBase *base = iter->second;
-		// Advance to next base in case base is deleted in timer dispatcher
-		++iter;
-		// Dispatch timer but we can safely ignore the return
+		PlayerBase *base = iter.second;
 		base->Timer(curr_time);
 	}
 	if (!player_bases.empty() && !set_holiday_mode)
@@ -1173,10 +1177,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			}
 		}
 
-		map<uint, PlayerBase*>::iterator base = player_bases.begin();
-		for (; base != player_bases.end(); base++)
+		for (auto& base : player_bases)
 		{
-			delete base->second;
+			delete base.second;
 		}
 
 		HkUnloadStringDLLs();
@@ -1583,11 +1586,10 @@ void __stdcall CharacterSelect(struct CHARACTER_ID const &cId, unsigned int clie
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	// Sync base names for the 
-	map<uint, PlayerBase*>::iterator base = player_bases.begin();
-	for (; base != player_bases.end(); base++)
+	// Sync base names for the new player
+	for (auto& base : player_bases)
 	{
-		HkChangeIDSString(client, base->second->solar_ids, base->second->basename);
+		HkChangeIDSString(client, base.second->solar_ids, base.second->basename);
 	}
 }
 
@@ -2457,24 +2459,24 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		}
 
 		// Search for an match at the start of the name
-		for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
+		for (auto& i : player_bases)
 		{
-			if (ToLower(i->second->basename).find(ToLower(basename)) == 0)
+			if (ToLower(i.second->basename).find(ToLower(basename)) == 0)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				ForcePlayerBaseDock(info.iClientID, i->second);
+				ForcePlayerBaseDock(info.iClientID, i.second);
 				cmd->Print(L"OK");
 				return true;
 			}
 		}
 
 		// Exact match failed, try a for an partial match
-		for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
+		for (auto& i : player_bases)
 		{
-			if (ToLower(i->second->basename).find(ToLower(basename)) != -1)
+			if (ToLower(i.second->basename).find(ToLower(basename)) != -1)
 			{
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				ForcePlayerBaseDock(info.iClientID, i->second);
+				ForcePlayerBaseDock(info.iClientID, i.second);
 				cmd->Print(L"OK");
 				return true;
 			}
@@ -2491,15 +2493,13 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
-		//return SpaceObjDestroyed(space_obj);
-		//alleynote1
 		int billythecat = 0;
 		PlayerBase *base;
-		for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
+		for (auto& i : player_bases)
 		{
-			if (i->second->basename == cmd->ArgStrToEnd(1))
+			if (i.second->basename == cmd->ArgStrToEnd(1))
 			{
-				base = i->second;
+				base = i.second;
 				billythecat = 1;
 			}
 		}
@@ -2533,11 +2533,11 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		//alleynote1
 		int billythecat = 0;
 		PlayerBase *base;
-		for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
+		for (auto& i : player_bases)
 		{
-			if (i->second->basename == cmd->ArgStrToEnd(2))
+			if (i.second->basename == cmd->ArgStrToEnd(2))
 			{
-				base = i->second;
+				base = i.second;
 				billythecat = 1;
 				break;
 			}
@@ -3068,10 +3068,10 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 
 void ResetAllBasesShieldStrength()
 {
-	for (map<uint, PlayerBase*>::iterator i = player_bases.begin(); i != player_bases.end(); ++i)
+	for (auto& i : player_bases)
 	{
-		i->second->shield_strength_multiplier = base_shield_strength;
-		i->second->damage_taken_since_last_threshold = 0;
+		i.second->shield_strength_multiplier = base_shield_strength;
+		i.second->damage_taken_since_last_threshold = 0;
 	}
 }
 

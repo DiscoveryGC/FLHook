@@ -452,20 +452,21 @@ namespace PlayerCommands
 
 		// Do not display the first password.
 		bool first = true;
-		foreach(base->passwords, BasePassword, bpi)
+		for(auto& bp : base->passwords)
 		{
 			if (first)
+			{
 				first = false;
-			else {
-				BasePassword bp = *bpi;
-				wstring* p = &(bp.pass);
+			}
+			else
+			{
 				if (bp.admin)
 				{
-					PrintUserCmdText(client, L"%s - admin", p->c_str());
+					PrintUserCmdText(client, L"%s - admin", bp.pass.c_str());
 				}
 				if (bp.viewshop)
 				{
-					PrintUserCmdText(client, L"%s - viewshop", p->c_str());
+					PrintUserCmdText(client, L"%s - viewshop", bp.pass.c_str());
 				}
 			}
 		}
@@ -573,8 +574,10 @@ namespace PlayerCommands
 			return;
 		}
 
-		foreach(base->ally_tags, wstring, i)
-			PrintUserCmdText(client, L"%s", i->c_str());
+		for(auto& i : base->ally_tags)
+		{
+			PrintUserCmdText(client, L"%s", i.c_str());
+		}
 		PrintUserCmdText(client, L"OK");
 	}
 
@@ -599,7 +602,7 @@ namespace PlayerCommands
 		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
 
-		set<uint>* list;
+		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
@@ -637,7 +640,7 @@ namespace PlayerCommands
 		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
 
-		set<uint>* list;
+		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
@@ -651,7 +654,7 @@ namespace PlayerCommands
 		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
 
-		set<uint>* list;
+		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
@@ -804,13 +807,13 @@ namespace PlayerCommands
 		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (CheckForBase(base, client)) return;
 
-		set<uint>* list;
+		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
 		else list = &(base->hostile_factions);
 
-		for (set<uint>::iterator it = (*list).begin(); it != (*list).end(); ++it)
+		for (auto it : *list)
 		{
-			A.FindAndPrintOneAffiliation(client, *it);
+			A.FindAndPrintOneAffiliation(client, it);
 		}
 		PrintUserCmdText(client, L"OK");
 	}
@@ -1928,7 +1931,7 @@ namespace PlayerCommands
 		}
 		else if (cmd == L"public" || cmd == L"private")
 		{
-			int item = ToInt(GetParam(args, ' ', 2));
+			uint item = ToUInt(GetParam(args, ' ', 2));
 
 			if (item < 1 || item > base->market_items.size())
 			{
@@ -1936,7 +1939,7 @@ namespace PlayerCommands
 				return;
 			}
 
-			map<UINT, MARKET_ITEM>::iterator i = std::next(base->market_items.begin(), item - 1);
+			auto i = std::next(base->market_items.begin(), item - 1);
 
 			if (cmd == L"public")
 				i->second.is_public = true;
@@ -2273,7 +2276,7 @@ namespace PlayerCommands
 
 		uint systemId;
 		pub::Player::GetSystem(client, systemId);
-		if (bannedSystemList.find(systemId) != bannedSystemList.end())
+		if (bannedSystemList.count(systemId))
 		{
 			PrintUserCmdText(client, L"ERR Deploying base in this system is not possible");
 			return;

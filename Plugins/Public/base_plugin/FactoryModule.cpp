@@ -27,108 +27,93 @@ wstring FactoryModule::GetInfo(bool xml)
 
 	info += recipeMap[factoryNickname].infotext;
 
+	wstring openLine;
+	wstring closeLine;
 	if (xml)
 	{
-		info += L"</TEXT><PARA/><TEXT>      Pending " + stows(itos(build_queue.size())) + L" items</TEXT>";
-		if (active_recipe.nickname)
-		{
-			info += L"<PARA/><TEXT>      Crafting " + Status + active_recipe.infotext + L". Waiting for:</TEXT>";
-
-			for (auto& i : active_recipe.consumed_items)
-			{
-				uint good = i.first;
-				uint quantity = i.second;
-
-				const GoodInfo* gi = GoodList::find_by_id(good);
-				if (gi)
-				{
-					info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					if (quantity > 0 && base->HasMarketItem(good) < active_recipe.cooking_rate)
-						info += L" [Out of stock]";
-					info += L"</TEXT>";
-				}
-			}
-			if (active_recipe.credit_cost)
-			{
-				info += L"<PARA/><TEXT>      - Credits x" + stows(itos(active_recipe.credit_cost));
-				if (base->money < active_recipe.credit_cost)
-				{
-					info += L" [Insufficient cash]";
-				}
-				info += L"</TEXT>";
-			}
-			if (!active_recipe.catalyst_items.empty())
-			{
-				info += L"<PARA/><TEXT>      Needed catalysts:</TEXT>";
-				for (const auto& catalyst : active_recipe.catalyst_items)
-				{
-					uint good = catalyst.first;
-					uint quantity = catalyst.second;
-
-					const GoodInfo* gi = GoodList::find_by_id(good);
-					if (gi)
-					{
-						info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-						uint presentAmount = base->HasMarketItem(good);
-						if (presentAmount < quantity)
-							info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-						info += L"</TEXT>";
-					}
-				}
-			}
-		}
+		openLine = L"</TEXT><PARA/><TEXT>      ";
+		closeLine = L"</TEXT>";
 	}
 	else
 	{
-		if (active_recipe.nickname)
-		{
-			info += L" - Building " + Status + active_recipe.infotext + L". Waiting for:";
+		openLine = L" - ";
+		closeLine = L"\n";
+	}
+	info += openLine + L"Pending " + stows(itos(build_queue.size())) + L" items";
+	if (active_recipe.nickname)
+	{
+		info += openLine + L"Crafting " + Status + active_recipe.infotext + L". Waiting for:";
 
-			for (auto& i : active_recipe.consumed_items)
+		for (auto& i : active_recipe.consumed_items)
+		{
+			uint good = i.first;
+			uint quantity = i.second;
+
+			const GoodInfo* gi = GoodList::find_by_id(good);
+			if (gi)
 			{
-				uint good = i.first;
-				uint quantity = i.second;
+				info += openLine + L"- " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+				if (quantity > 0 && base->HasMarketItem(good) < active_recipe.cooking_rate)
+				{
+					info += L" [Out of stock]";
+				}
+			}
+		}
+		if (active_recipe.credit_cost)
+		{
+			info += openLine + L" - Credits x" + stows(itos(active_recipe.credit_cost));
+			if (base->money < active_recipe.credit_cost)
+			{
+				info += L" [Insufficient cash]";
+			}
+		}
+		vector<pair<uint, uint>> neededWorkforce;
+		if (!active_recipe.catalyst_items.empty())
+		{
+			info += openLine + L"Needed catalysts:";
+			for (const auto& catalyst : active_recipe.catalyst_items)
+			{
+				if (humanCargoList.count(catalyst.first))
+				{
+					neededWorkforce.emplace_back(catalyst);
+					continue;
+				}
+				uint good = catalyst.first;
+				uint quantity = catalyst.second;
 
 				const GoodInfo* gi = GoodList::find_by_id(good);
 				if (gi)
 				{
-					info += stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					if (base->HasMarketItem(good) < quantity)
-						info += L" [Out of stock]";
-				}
-				if (active_recipe.credit_cost)
-				{
-					info += L"Credits x" + stows(itos(active_recipe.credit_cost));
-					if (base->money < active_recipe.credit_cost)
+					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+					uint presentAmount = base->HasMarketItem(good);
+					if (presentAmount < quantity)
 					{
-						info += L" [Insufficient cash]";
-					}
-				}
-				if (!active_recipe.catalyst_items.empty())
-				{
-					info += L"Needed catalysts:";
-					for (const auto& catalyst : active_recipe.catalyst_items)
-					{
-						uint good = catalyst.first;
-						uint quantity = catalyst.second;
-
-						const GoodInfo* gi = GoodList::find_by_id(good);
-						if (gi)
-						{
-							info += L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-							uint presentAmount = base->HasMarketItem(good);
-							if (presentAmount < quantity)
-							{
-								info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-							}
-						}
+						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
 					}
 				}
 			}
 		}
-		else {
-			info += L" - Pending " + stows(itos(build_queue.size())) + L" items ";
+		if (!neededWorkforce.empty())
+		{
+			info += openLine + L"Needed workforce:";
+			for (const auto& worker : neededWorkforce)
+			{
+				uint good = worker.first;
+				uint quantity = worker.second;
+
+				const GoodInfo* gi = GoodList::find_by_id(good);
+				if (gi)
+				{
+					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+					uint presentAmount = base->HasMarketItem(good);
+					if (presentAmount < quantity)
+					{
+						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
+					}
+				}
+			}
 		}
+		info += closeLine; 
 	}
 
 	return info;
@@ -141,7 +126,9 @@ bool FactoryModule::Timer(uint time)
 {
 
 	if ((time % set_tick_time) != 0)
+	{
 		return false;
+	}
 
 	// Get the next item to make from the build queue.
 	if (!active_recipe.nickname && !build_queue.empty())
@@ -152,7 +139,9 @@ bool FactoryModule::Timer(uint time)
 
 	// Nothing to do.
 	if (!active_recipe.nickname || !base->isCrewSupplied || Paused)
+	{
 		return false;
+	}
 
 	// Consume goods at the cooking rate.
 	bool cooked = true;
@@ -160,15 +149,14 @@ bool FactoryModule::Timer(uint time)
 	for (const auto& catalyst : active_recipe.catalyst_items)
 	{
 		uint good = catalyst.first;
-		uint quantity = catalyst.second;
+		uint quantityNeeded = catalyst.second;
 
-		const GoodInfo* gi = GoodList::find_by_id(good);
-		if (gi)
+		uint presentAmount = base->HasMarketItem(good);
+		if ((presentAmount - base->reservedCatalystMap[good]) < quantityNeeded)
 		{
-			uint presentAmount = base->HasMarketItem(good);
-			if (presentAmount < quantity)
-				return false;
+			return false;
 		}
+		base->reservedCatalystMap[good] += quantityNeeded;
 	}
 
 	if (active_recipe.credit_cost)
@@ -194,7 +182,7 @@ bool FactoryModule::Timer(uint time)
 			continue;
 		}
 		cooked = false;
-		map<uint, MARKET_ITEM>::iterator market_item = base->market_items.find(good);
+		auto market_item = base->market_items.find(good);
 		if (market_item != base->market_items.end()
 			&& market_item->second.quantity >= quantity)
 		{

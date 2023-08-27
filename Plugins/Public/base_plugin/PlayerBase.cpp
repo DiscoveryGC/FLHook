@@ -79,9 +79,14 @@ void PlayerBase::Spawn()
 // that this base has been deleted.
 bool PlayerBase::Timer(uint curr_time)
 {
-	for (uint i = 0; i < modules.size(); i++)
+	if ((curr_time % set_tick_time) != 0 &&
+		logic)
 	{
-		Module* module = modules[i];
+		reservedCatalystMap.clear();
+		reservedCatalystMap[set_base_crew_type] = base_level * 200;
+	}
+	for (auto module : modules)
+	{
 		if (module)
 		{
 			bool is_deleted = module->Timer(curr_time);
@@ -411,17 +416,16 @@ void PlayerBase::Save()
 			if (infocard_para[i].length() >= 252)
 				ini_write_wstring(file, "infocardpara2", infocard_para[i].substr(252, 252));
 		}
-		for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin();
-			i != market_items.end(); ++i)
+		for (auto i : market_items)
 		{
 			fprintf(file, "commodity = %u, %u, %f, %u, %u, %u\n",
-				i->first, i->second.quantity, i->second.price, i->second.min_stock, i->second.max_stock, int(i->second.is_public));
+				i.first, i.second.quantity, i.second.price, i.second.min_stock, i.second.max_stock, int(i.second.is_public));
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);
-		foreach(ally_tags, wstring, i)
+		for(auto& i : ally_tags)
 		{
-			ini_write_wstring(file, "ally_tag", *i);
+			ini_write_wstring(file, "ally_tag", i);
 		}
 		for (auto i : ally_factions)
 		{
@@ -431,14 +435,13 @@ void PlayerBase::Save()
 		{
 			fprintf(file, "faction_hostile_tag = %d\n", i);
 		}
-		for (map<wstring, wstring>::iterator i = hostile_tags.begin();
-			i != hostile_tags.end(); ++i)
+		for (auto& i : hostile_tags)
 		{
-			ini_write_wstring(file, "hostile_tag", (wstring&)i->first);
+			ini_write_wstring(file, "hostile_tag", const_cast<wstring&>(i.first));
 		}
-		foreach(perma_hostile_tags, wstring, i)
+		for(auto& i : perma_hostile_tags)
 		{
-			ini_write_wstring(file, "perma_hostile_tag", *i);
+			ini_write_wstring(file, "perma_hostile_tag", i);
 		}
 		foreach(passwords, BasePassword, i)
 		{
@@ -490,13 +493,10 @@ bool PlayerBase::AddMarketGood(uint good, uint quantity)
 
 void PlayerBase::RemoveMarketGood(uint good, uint quantity)
 {
-	map<uint, MARKET_ITEM>::iterator iter = market_items.find(good);
+	auto iter = market_items.find(good);
 	if (iter != market_items.end())
 	{
-		if (iter->second.quantity <= quantity)
-			iter->second.quantity = 0;
-		else
-			iter->second.quantity -= quantity;
+		iter->second.quantity = max(0, iter->second.quantity - quantity);
 		SendMarketGoodUpdated(this, good, iter->second);
 	}
 }
@@ -505,13 +505,15 @@ void PlayerBase::ChangeMoney(INT64 the_money)
 {
 	money += the_money;
 	if (money < 0)
+	{
 		money = 0;
+	}
 }
 
 uint PlayerBase::GetRemainingCargoSpace()
 {
 	uint used = 0;
-	for (map<UINT, MARKET_ITEM>::iterator i = market_items.begin(); i != market_items.end(); ++i)
+	for (auto i = market_items.begin(); i != market_items.end(); ++i)
 	{
 		float vol, mass;
 		pub::GetGoodProperties(i->first, vol, mass);
@@ -519,22 +521,23 @@ uint PlayerBase::GetRemainingCargoSpace()
 	}
 
 	if (used > GetMaxCargoSpace())
+	{
 		return 0;
-
+	}
 	return GetMaxCargoSpace() - used;
 }
 
 uint PlayerBase::GetMaxCargoSpace()
 {
-	uint max_capacity = 30000;
-	for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i)
+	uint base_max_capacity = 30000;
+	for (auto i : modules)
 	{
-		if ((*i) && (*i)->type == Module::TYPE_STORAGE)
+		if (i && i->type == Module::TYPE_STORAGE)
 		{
-			max_capacity += STORAGE_MODULE_CAPACITY;
+			base_max_capacity += STORAGE_MODULE_CAPACITY;
 		}
 	}
-	return max_capacity;
+	return base_max_capacity;
 }
 
 string PlayerBase::CreateBaseNickname(const string& basename)
@@ -544,9 +547,11 @@ string PlayerBase::CreateBaseNickname(const string& basename)
 
 uint PlayerBase::HasMarketItem(uint good)
 {
-	map<UINT, MARKET_ITEM>::iterator i = market_items.find(good);
+	auto i = market_items.find(good);
 	if (i != market_items.end())
+	{
 		return i->second.quantity;
+	}
 	return 0;
 }
 
@@ -557,21 +562,20 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 	float attitude = -1.0;
 	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 
-
 	// Make base hostile if player is on the perma hostile list. First check so it overrides everything.
 	if (siege_mode || emulated_siege_mode)
-		for (std::list<wstring>::const_iterator i = perma_hostile_tags.begin(); i != perma_hostile_tags.end(); ++i)
+		for (auto& i : perma_hostile_tags)
 		{
-			if (charname.find(*i) == 0)
+			if (charname.find(i) == 0)
 			{
 				return -1.0;
 			}
 		}
 
 	// Make base friendly if player is on the friendly list.
-	for (std::list<wstring>::const_iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
+	for (auto& i : ally_tags)
 	{
-		if (charname.find(*i) == 0)
+		if (charname.find(i) == 0)
 		{
 			return 1.0;
 		}
@@ -614,9 +618,13 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 
 			// if in siege mode, return true affiliation, otherwise clamp to minimum neutralNoDock rep
 			if (siege_mode || emulated_siege_mode)
+			{
 				return attitude;
+			}
 			else
+			{
 				return max(-0.59f, attitude);
+			}
 		}
 	}
 
@@ -628,7 +636,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 // of this base.
 void PlayerBase::SyncReputationForBase()
 {
-	struct PlayerData* pd = 0;
+	struct PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
 		if (pd->iShipID && pd->iSystemID == system)
@@ -636,11 +644,11 @@ void PlayerBase::SyncReputationForBase()
 			int player_rep;
 			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
 			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
-			for (vector<Module*>::iterator i = modules.begin(); i != modules.end(); ++i)
+			for (auto& i : modules)
 			{
-				if (*i)
+				if (i)
 				{
-					(*i)->SetReputation(player_rep, attitude);
+					i->SetReputation(player_rep, attitude);
 				}
 			}
 		}
@@ -685,19 +693,6 @@ void ReportAttack(wstring basename, wstring charname, uint system, wstring alert
 	string scText = wstos(wscMsgLog);
 	BaseLogging("%s", scText.c_str());
 
-	/*
-
-	struct PlayerData *pPD = 0;
-	while(pPD = Players.traverse_active(pPD))
-	{
-	uint iClientsID = HkGetClientIdFromPD(pPD);
-
-	//HkFMsg(iClientsID, wscMsg);
-
-	//wstring msg = L"%base% is under attack!";
-	//msg = ReplaceStr(msg, L"%base%", this->basename.c_str());
-	}
-	*/
 	return;
 }
 
@@ -705,27 +700,22 @@ void ReportAttack(wstring basename, wstring charname, uint system, wstring alert
 // of this base.
 void PlayerBase::SiegeModChainReaction(uint client)
 {
-	map<uint, PlayerBase*>::iterator it;
-	for (it = player_bases.begin(); it != player_bases.end(); it++)
+	for (auto& it : player_bases)
 	{
-		if (it->second->system == this->system)
+		if (it.second->system != this->system || it.second->siege_mode || 
+			HkDistance3D(it.second->position, this->position) >= siege_mode_chain_reaction_trigger_distance)
 		{
-			if (HkDistance3D(it->second->position, this->position) < siege_mode_chain_reaction_trigger_distance)
-			{
-				if (!(it->second->siege_mode))
-				{
-					float attitude = it->second->GetAttitudeTowardsClient(client, true);
-					if (attitude < -0.55f)
-					{
-						it->second->siege_mode = true;
+			continue;
+		}
+		float attitude = it.second->GetAttitudeTowardsClient(client, true);
+		if (attitude < -0.55f)
+		{
+			it.second->siege_mode = true;
 
-						const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-						ReportAttack(it->second->basename, charname, it->second->system, L"has detected hostile activity at a nearby base by");
+			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			ReportAttack(it.second->basename, charname, it.second->system, L"has detected hostile activity at a nearby base by");
 
-						it->second->SyncReputationForBase();
-					}
-				}
-			}
+			it.second->SyncReputationForBase();
 		}
 	}
 }

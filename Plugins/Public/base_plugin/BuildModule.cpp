@@ -115,15 +115,13 @@ bool BuildModule::Timer(uint time)
 		if (quantity)
 		{
 			cooked = false;
-			map<uint, MARKET_ITEM>::iterator market_item = base->market_items.find(good);
-			if (market_item != base->market_items.end())
+			auto market_item = base->market_items.find(good);
+			if (market_item != base->market_items.end()
+			&& (market_item->second.quantity >= quantity))
 			{
-				if (market_item->second.quantity >= quantity)
-				{
-					i->second -= quantity;
-					base->RemoveMarketGood(good, quantity);
-					return false;
-				}
+				i->second -= quantity;
+				base->RemoveMarketGood(good, quantity);
+				return false;
 			}
 		}
 	}

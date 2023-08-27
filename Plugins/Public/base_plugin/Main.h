@@ -10,11 +10,11 @@
 #include <set>
 #include <map>
 #include <algorithm>
-#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace std;
 
@@ -360,7 +360,7 @@ public:
 	uint base_level;
 
 	// The commodities carried by this base->
-	map<uint, MARKET_ITEM> market_items;
+	unordered_map<uint, MARKET_ITEM> market_items;
 
 	// The money this base has
 	INT64 money;
@@ -377,8 +377,8 @@ public:
 	// The ingame hash of the nickname
 	uint base;
 
-	map<wstring, uint> last_login_attempt_time;
-	map<wstring, uint> unsuccessful_logins_in_a_row;
+	unordered_map<wstring, uint> last_login_attempt_time;
+	unordered_map<wstring, uint> unsuccessful_logins_in_a_row;
 
 	// The list of administration passwords
 	list<BasePassword> passwords;
@@ -400,24 +400,24 @@ public:
 	list<wstring> ally_tags;
 
 	//List of allied factions
-	set<uint> ally_factions;
+	unordered_set<uint> ally_factions;
 
 	//List of hostile factions
-	set<uint> hostile_factions;
+	unordered_set<uint> hostile_factions;
 
 	// List of ships that are hostile to this base
-	map<wstring, wstring> hostile_tags;
-	map<wstring, float> hostile_tags_damage;
+	unordered_map<wstring, wstring> hostile_tags;
+	unordered_map<wstring, float> hostile_tags_damage;
 
 	// List of ships that are permanently hostile to this base
 	list<wstring> perma_hostile_tags;
 
 	// Modules for base
 	vector<Module*> modules;
-	map<wstring, FactoryModule*> craftTypeTofactoryModuleMap;
+	unordered_map<wstring, FactoryModule*> craftTypeTofactoryModuleMap;
 
 	// Available crafting types
-	set<wstring> availableCraftList;
+	unordered_set<wstring> availableCraftList;
 
 	// Path to base ini file.
 	string path;
@@ -427,6 +427,8 @@ public:
 
 	// if true, the base was repaired or is able to be repaired
 	bool isCrewSupplied;
+
+	map<uint, uint> reservedCatalystMap;
 
 	// The state of the shield
 	static const int SHIELD_STATE_OFFLINE = 0;
@@ -577,13 +579,13 @@ namespace Log {
 	void LogGenericAction(string message);
 }
 
-extern map<uint, CLIENT_DATA> clients;
+extern unordered_map<uint, CLIENT_DATA> clients;
 
 extern unordered_map<uint, Module*> spaceobj_modules;
 
 // Map of ingame hash to info
-extern map<uint, class PlayerBase*> player_bases;
-extern map<uint, PlayerBase*>::iterator baseSaveIterator;
+extern unordered_map<uint, class PlayerBase*> player_bases;
+extern unordered_map<uint, PlayerBase*>::iterator baseSaveIterator;
 
 struct POBSOUNDS
 {
@@ -631,7 +633,7 @@ extern uint set_crew_check_frequency;
 extern map<string, ARCHTYPE_STRUCT> mapArchs;
 
 /// List of banned systems
-extern set<uint> bannedSystemList;
+extern unordered_set<uint> bannedSystemList;
 
 /// The ship used to construct and upgrade bases
 extern uint set_construction_shiparch;
@@ -667,7 +669,7 @@ extern uint set_damage_per_tick;
 
 /// Damage multiplier for damaged/abandoned stations
 /// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-extern list<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
+extern vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
 
 /// Additional damage penalty for stations without proper crew
 extern float no_crew_damage_multiplier;
@@ -708,6 +710,8 @@ extern float siege_mode_damage_trigger_level;
 extern float siege_mode_chain_reaction_trigger_distance;
 
 extern unordered_map<uint, float> siegeWeaponryMap;
+
+extern unordered_set<uint> humanCargoList;
 
 // From EquipmentUtilities.cpp
 namespace EquipmentUtilities

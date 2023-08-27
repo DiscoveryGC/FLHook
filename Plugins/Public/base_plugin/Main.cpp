@@ -867,11 +867,13 @@ void LoadSettingsActual()
 
 	// loadHyperspaceHubConfig is weekday where 0 = sunday, 6 = saturday
 	// if it's today, randomize appropriate 'jump hole' POBs
-	if (bmapLoadHyperspaceHubConfig) {
+	if (bmapLoadHyperspaceHubConfig)
+	{
 		time_t tNow = time(0);
 		struct tm *t = localtime(&tNow);
 		uint currWeekday = (t->tm_wday + 6)%7; // conversion from sunday-week-start to monday-start
-		if (bmapLoadHyperspaceHubConfig & (1 << currWeekday)) {
+		if (bmapLoadHyperspaceHubConfig & (1 << currWeekday))
+		{
 			HyperJump::LoadHyperspaceHubConfig(string(szCurDir));
 		}
 	}
@@ -1711,6 +1713,15 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 	SyncReputationForClientShip(ship, client);
+
+	if (player_launch_base && !system_match)
+	{
+		ForcePlayerBaseDock(client, player_launch_base);
+	}
+	else
+	{
+		HyperJump::CheckForDisconnectedUnchartedLogin(ship, client);
+	}
 }
 
 void __stdcall JumpInComplete(unsigned int system, unsigned int ship)

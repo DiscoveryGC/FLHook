@@ -19,7 +19,7 @@
 #include <FLHook.h>
 #include <plugin.h>
 #include <list>
-#include <set>
+#include <unordered_set>
 
 #include <PluginUtilities.h>
 #include "Main.h"
@@ -28,6 +28,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Structures and shit yo
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+unordered_set<uint>disconnectedUnchartedSystems;
 
 struct SYSTEMJUMPCOORDS
 {
@@ -38,9 +40,13 @@ struct SYSTEMJUMPCOORDS
 
 void SetReturnHole(PlayerBase* originBase);
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Settings Loading
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void HyperJump::CheckForDisconnectedUnchartedLogin(uint ship, uint client)
+{
+	if (disconnectedUnchartedSystems.count(Players[client].iSystemID))
+	{
+		pub::SpaceObj::SetRelativeHealth(ship, 0.0f);
+	}
+}
 
 void HyperJump::InitJumpHole(uint baseId, uint destSystem, uint destObject)
 {
@@ -126,6 +132,8 @@ void HyperJump::InitJumpHoleConfig()
 			continue;
 		}
 
+		disconnectedUnchartedSystems.erase(base.second->destSystem);
+
 		if (mapArchs[pbase->basetype].ishubreturn)
 		{
 			SYSTEMJUMPCOORDS coords = { pbase->destSystem, pbase->destPos, pbase->destOri };
@@ -191,6 +199,16 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 					if (ini.is_value("randomizationCooldown"))
 					{
 						randomizationCooldown = ini.get_value_int(0);
+					}
+				}
+			}
+			else if (ini.is_header("uncharted_systems"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("system"))
+					{
+						disconnectedUnchartedSystems.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}

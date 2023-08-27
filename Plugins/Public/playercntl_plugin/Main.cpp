@@ -437,6 +437,16 @@ namespace HkIServerImpl
 		}
 	}
 
+	void __stdcall RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4, unsigned int iClientID)
+	{
+		returncode = DEFAULT_RETURNCODE;
+
+		if (!iClientID)
+			return;
+
+		HyperJump::RequestCancel(iType, iShip, p3, p4);
+	}
+
 	void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)
 	{
 		const static uint NANOBOT_ARCH_ID = CreateID("ge_s_repair_01");

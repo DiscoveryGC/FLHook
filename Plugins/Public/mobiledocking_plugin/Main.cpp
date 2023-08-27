@@ -643,7 +643,8 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 
 	// If not docked on another ship, skip processing.
-	if (!idToDockedInfoMap.count(client) && !jettisonedShipsQueue.count(client))
+	if (Players[client].iLastBaseID != mobileDockingProxyBase || 
+		(!idToDockedInfoMap.count(client) && !jettisonedShipsQueue.count(client)))
 	{
 		return;
 	}
@@ -824,7 +825,7 @@ void __stdcall BaseEnter(uint iBaseID, uint client)
 			wstring& systemName = HkGetWStringFromIDS(sysInfo->strid_name);
 			status += L", " + systemName;
 		}
-		status += L"</TEXT><PARA/><PARA/>";
+		status += L"</TEXT>";
 		status += L"<POP/></RDL>";
 		SendSetBaseInfoText2(client, status);
 	}
@@ -909,20 +910,12 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 			PrintUserCmdText(client, L"Usage: /jettisonship <charName/charNr>");
 			return true;
 		}
-		uint charNumber = ToInt(selectedShip);
+		uint charNumber = ToUInt(selectedShip);
 		const auto& dockedShipList = idToCarrierInfoMap[client]->dockedShipList;
 
-		if (charNumber > 0)
+		if (charNumber != 0 && charNumber <= dockedShipList.size())
 		{
-			if (charNumber <= dockedShipList.size())
-			{
-				selectedShip = dockedShipList.at(charNumber - 1);
-			}
-			else
-			{
-				PrintUserCmdText(client, L"Invalid ship index selected");
-				return true;
-			}
+			selectedShip = dockedShipList.at(charNumber - 1);
 		}
 		JettisonResult jettisonResult = RemoveShipFromLists(selectedShip, true);
 		switch (jettisonResult)

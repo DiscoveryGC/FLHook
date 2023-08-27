@@ -1104,13 +1104,12 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (disableRegensOnDockAttempt && !dockingInProgress.count(iClientID))
+	if (disableRegensOnDockAttempt && dockingInProgress.count(iClientID))
 	{
-		return;
+		static uint rejectSound = CreateID("ui_select_reject");
+		pub::Audio::PlaySoundEffect(iClientID, rejectSound);
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	}
-	static uint rejectSound = CreateID("ui_select_reject");
-	pub::Audio::PlaySoundEffect(iClientID, rejectSound);
-	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 }
 
 void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)

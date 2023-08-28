@@ -413,7 +413,7 @@ void HkTimerCheckKick()
 		if (V1mov.x > 5 || V1mov.y > 5 || V1mov.z > 5)
 		{
 			auto dockingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dd.dockingID));
-			PrintUserCmdText(dd.dockingID, L"Docking aborted due to %ls's movement", dockingName);
+			PrintUserCmdText(dd.dockingID, L"Docking aborted due to your movement");
 			PrintUserCmdText(dd.carrierID, L"Docking aborted due to %ls's movement", dockingName);
 			dockdata = dockingInProgress.erase(dockdata);
 			continue;
@@ -440,7 +440,7 @@ void HkTimerCheckKick()
 			if (distance > maxDockingDistanceTolerance)
 			{
 				auto dockingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dd.dockingID));
-				PrintUserCmdText(dd.dockingID, L"Docking aborted due to %ls's movement", dockingName);
+				PrintUserCmdText(dd.dockingID, L"Docking aborted due to your movement");
 				PrintUserCmdText(dd.carrierID, L"Docking aborted due to %ls's movement", dockingName);
 				dockdata = dockingInProgress.erase(dockdata);
 				continue;

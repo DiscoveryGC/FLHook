@@ -1347,9 +1347,9 @@ namespace Universe
 	{
 		uint iDunno1;
 		uint iBaseID;
-		uint iDunno2;
+		char* cNickname;
 		uint iBaseIDS;
-		uint iDunno3;
+		char* cFilepath;
 		uint iSystemID;
 		uint iDunno4[4];
 		ulong lSpaceObjID;

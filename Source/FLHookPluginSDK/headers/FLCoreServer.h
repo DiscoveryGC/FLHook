@@ -390,7 +390,7 @@ struct PlayerData {
 	long x240, x244, x248, x24C, x250, x254, x258, x25C, x260;
 	uint iShipArchetype;
 	float fRelativeHealth;
-	CollisionGroupDescList collisionGroupDesc;
+	st6::list<CollisionGroupDesc> collisionGroupDesc;
 	EquipDescList equipDescList;
 	int iRank;
 	int iMoneyNeededToNextRank;

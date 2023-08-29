@@ -515,8 +515,12 @@ void CheckforStackables(uint iClientID)
 
 void PlayerAutorepair(uint iClientID)
 {
-	// Magic factor of 0.33
-	int repairCost = (int)floor(Archetype::GetShip(Players[iClientID].iShipArchetype)->fHitPoints * (1 - Players[iClientID].fRelativeHealth) / 100 * 33);
+	const static float hullRepairFactor = (float)(DWORD(GetModuleHandleA("common.dll")) + 0x4A28);
+	const static float colGrpRepairFactor = (float)(DWORD(GetModuleHandleA("common.dll")) + 0x57FA);
+	ConPrint(L"Hull: %f, colgrp: %f\n", hullRepairFactor, colGrpRepairFactor);
+
+	const Archetype::Ship* shipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
+	int repairCost = (int)floor(shipArch->fHitPoints * (1 - Players[iClientID].fRelativeHealth) * hullRepairFactor);
 
 	set<ushort> eqToFix;
 	list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
@@ -534,9 +538,25 @@ void PlayerAutorepair(uint iClientID)
 		eqToFix.insert(item->sID);
 	}
 
+
+	st6::list<XCollisionGroup> componentList;
+	auto& playerCollision = Players[iClientID].collisionGroupDesc;
+	if (!playerCollision.empty())
+	{
+		st6::list<XCollisionGroup> componentList;
+		Archetype::CollisionGroup* cg = shipArch->collisiongroup;
+		for (auto& colGrp : playerCollision)
+		{
+			auto newColGrp = reinterpret_cast<XCollisionGroup*>(&colGrp);
+			repairCost += static_cast<int>((1.0f - colGrp.health) * static_cast<float>(cg->hitPts) * colGrpRepairFactor);
+			newColGrp->fHealth = 1.0f;
+			componentList.push_back(*newColGrp);
+			cg = cg->next;
+		}
+	}
+
 	int iCash = 0;
-	wstring wscCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	HkGetCash(wscCharName, iCash);
+	pub::Player::InspectCash(iClientID, iCash);
 
 	if (iCash < repairCost)
 	{
@@ -544,7 +564,7 @@ void PlayerAutorepair(uint iClientID)
 		return;
 	}
 
-	HkAddCash(wscCharName, -repairCost);
+	pub::Player::AdjustCash(iClientID, repairCost);
 
 	if (!eqToFix.empty())
 	{
@@ -569,16 +589,9 @@ void PlayerAutorepair(uint iClientID)
 
 		HookClient->Send_FLPACKET_SERVER_SETEQUIPMENT(iClientID, eqVector);
 	}
-	auto& playerCollision = Players[iClientID].collisionGroupDesc.data;
-	if (!playerCollision.empty())
+
+	if (!componentList.empty())
 	{
-		st6::list<XCollisionGroup> componentList;
-		for (auto& colGrp : playerCollision)
-		{
-			auto* newColGrp = reinterpret_cast<XCollisionGroup*>(colGrp.data);
-			newColGrp->fHealth = 1.0f;
-			componentList.push_back(*newColGrp);
-		}
 		HookClient->Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(iClientID, componentList);
 	}
 

@@ -100,12 +100,6 @@ struct XActivateThrusters
 	bool	bActivate;
 };
 
-struct XCollisionGroup
-{
-	ushort sId;
-	float fHealth;
-};
-
 struct XTractorObjects
 {
 	int iDunno[3];

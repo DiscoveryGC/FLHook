@@ -23,6 +23,7 @@ IMPORT st6_free_t st6_free;
 #define ADDR_COMMON_VFTABLE_GUN 0x139C38
 
 static int set_iPluginDebug = 0;
+static float repairFactor;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -90,6 +91,8 @@ bool bPluginEnabled = true;
 
 void LoadSettings()
 {
+	//pull the repair factor directly from where the game uses it
+	repairFactor = *(PFLOAT(DWORD(GetModuleHandleA("common.dll")) + 0x4A28));
 	returncode = DEFAULT_RETURNCODE;
 
 	//Load ammo limit data from FL
@@ -515,42 +518,43 @@ void CheckforStackables(uint iClientID)
 
 void PlayerAutorepair(uint iClientID)
 {
-	const static float hullRepairFactor = (float)(DWORD(GetModuleHandleA("common.dll")) + 0x4A28);
-	const static float colGrpRepairFactor = (float)(DWORD(GetModuleHandleA("common.dll")) + 0x57FA);
-	ConPrint(L"Hull: %f, colgrp: %f\n", hullRepairFactor, colGrpRepairFactor);
 
 	const Archetype::Ship* shipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
-	int repairCost = (int)floor(shipArch->fHitPoints * (1 - Players[iClientID].fRelativeHealth) * hullRepairFactor);
+	int repairCost = (int)floor(shipArch->fHitPoints * (1 - Players[iClientID].fRelativeHealth) * repairFactor);
 
 	set<ushort> eqToFix;
 	list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
 	for (list<EquipDesc>::iterator item = equip.begin(); item != equip.end(); item++)
 	{
-		if (!item->bMounted || item->fHealth == 1)
+		if (!item->bMounted || item->fHealth == 1.0f)
+		{
 			continue;
+		}
 
 		const GoodInfo *info = GoodList_get()->find_by_archetype(item->iArchID);
 		if (info == nullptr)
+		{
 			continue;
+		}
 
 		// Magic factor of 0.3
-		repairCost += (int)floor(info->fPrice * (1 - item->fHealth) / 10 * 3);
+		repairCost += (int)floor(info->fPrice * (1.0f - item->fHealth) *  repairFactor);
 		eqToFix.insert(item->sID);
 	}
 
-
-	st6::list<XCollisionGroup> componentList;
 	auto& playerCollision = Players[iClientID].collisionGroupDesc;
+	bool repairColGrp = false;
 	if (!playerCollision.empty())
 	{
-		st6::list<XCollisionGroup> componentList;
 		Archetype::CollisionGroup* cg = shipArch->collisiongroup;
 		for (auto& colGrp : playerCollision)
 		{
-			auto newColGrp = reinterpret_cast<XCollisionGroup*>(&colGrp);
-			repairCost += static_cast<int>((1.0f - colGrp.health) * static_cast<float>(cg->hitPts) * colGrpRepairFactor);
-			newColGrp->fHealth = 1.0f;
-			componentList.push_back(*newColGrp);
+			if (colGrp.health != 1.0f)
+			{
+				repairColGrp = true;
+				repairCost += static_cast<int>((1.0f - colGrp.health) * static_cast<float>(cg->hitPts) * repairFactor);
+				colGrp.health = 1.0f;
+			}
 			cg = cg->next;
 		}
 	}
@@ -583,16 +587,18 @@ void PlayerAutorepair(uint iClientID)
 		for (auto& eq : equip)
 		{
 			if (eq.bMounted)
+			{
 				eq.fHealth = 1.0f;
+			}
 			eqVector.push_back(eq);
 		}
 
 		HookClient->Send_FLPACKET_SERVER_SETEQUIPMENT(iClientID, eqVector);
 	}
 
-	if (!componentList.empty())
+	if (repairColGrp)
 	{
-		HookClient->Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(iClientID, componentList);
+		HookClient->Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(iClientID, playerCollision);
 	}
 
 	if (Players[iClientID].fRelativeHealth < 1.0f)
@@ -602,7 +608,9 @@ void PlayerAutorepair(uint iClientID)
 	}
 
 	if (repairCost)
+	{
 		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): Cost %s$", ToMoneyStr(repairCost).c_str());
+	}
 
 	return;
 }

@@ -611,9 +611,15 @@ namespace HkIServerImpl
 		// Make player invincible to fix JHs/JGs near mine fields sometimes
 		// exploding player while jumping (in jump tunnel)
 		pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-		AntiJumpDisconnect::SystemSwitchOutComplete(iShip, iClientID);
-		if (HyperJump::SystemSwitchOutComplete(iShip, iClientID))
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::SystemSwitchOutComplete(iShip, iClientID);
+	}
+
+	void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
+	{
+		// in case of SERVER_PACKET hooks, first argument is junk data before it gets processed by the server.
+		uint packetClient = HkGetClientIDByShip(switchOutPacket.shipId);
+		if(packetClient)
+			AntiJumpDisconnect::SystemSwitchOut(packetClient);
 	}
 
 	void __stdcall SPObjCollision(struct SSPObjCollisionInfo const &ci, unsigned int iClientID)
@@ -1757,6 +1763,11 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			SystemSensor::JumpInComplete(info->iSystemID, info->iShipID, iClientID);
 		}
 	}
+	else if (msg == CUSTOM_IN_WARP_CHECK)
+	{
+		CUSTOM_IN_WARP_CHECK_STRUCT* checkData = reinterpret_cast<CUSTOM_IN_WARP_CHECK_STRUCT*>(data);
+		checkData->inWarp = AntiJumpDisconnect::IsInWarp(checkData->clientId);
+	}
 	return;
 }
 
@@ -1788,6 +1799,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::JumpInComplete_AFTER, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SystemSwitchOut, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SPObjCollision, PLUGIN_HkIServerImpl_SPObjCollision, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));

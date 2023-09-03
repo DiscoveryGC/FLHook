@@ -271,6 +271,7 @@ namespace AntiJumpDisconnect
 	void JumpInComplete(unsigned int iSystem, unsigned int iShip, unsigned int iClientID);
 	void SystemSwitchOut(uint iClientID);
 	void CharacterInfoReq(unsigned int iClientID, bool p2);
+	bool IsInWarp(uint iClientID);
 }
 
 

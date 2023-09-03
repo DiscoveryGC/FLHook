@@ -18,12 +18,10 @@ using st6_malloc_t = void* (*)(size_t);
 using st6_free_t = void(*)(void*);
 IMPORT st6_malloc_t st6_malloc;
 IMPORT st6_free_t st6_free;
-#define ADDR_COMMON_VFTABLE_MINE 0x139C64
-#define ADDR_COMMON_VFTABLE_CM 0x139C90
-#define ADDR_COMMON_VFTABLE_GUN 0x139C38
 
 static int set_iPluginDebug = 0;
-static float repairFactor;
+static float hullRepairFactor = 0.33f;
+static float equipmentRepairFactor = 0.3f;
 
 /// A return code to indicate to FLHook if we want the hook processing to continue.
 PLUGIN_RETURNCODE returncode;
@@ -91,8 +89,9 @@ bool bPluginEnabled = true;
 
 void LoadSettings()
 {
-	//pull the repair factor directly from where the game uses it
-	repairFactor = *(PFLOAT(DWORD(GetModuleHandleA("common.dll")) + 0x4A28));
+	//pull the repair factors directly from where the game uses it
+	hullRepairFactor = *(PFLOAT(DWORD(GetModuleHandleA("common.dll")) + 0x4A28));
+	equipmentRepairFactor = *(PFLOAT(DWORD(GetModuleHandleA("server.dll")) + 0x8AE7C));
 	returncode = DEFAULT_RETURNCODE;
 
 	//Load ammo limit data from FL
@@ -520,7 +519,7 @@ void PlayerAutorepair(uint iClientID)
 {
 
 	const Archetype::Ship* shipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);
-	int repairCost = (int)floor(shipArch->fHitPoints * (1 - Players[iClientID].fRelativeHealth) * repairFactor);
+	int repairCost = (int)floor(shipArch->fHitPoints * (1.0f - Players[iClientID].fRelativeHealth) * hullRepairFactor);
 
 	set<ushort> eqToFix;
 	list<EquipDesc> &equip = Players[iClientID].equipDescList.equip;
@@ -537,8 +536,7 @@ void PlayerAutorepair(uint iClientID)
 			continue;
 		}
 
-		// Magic factor of 0.3
-		repairCost += (int)floor(info->fPrice * (1.0f - item->fHealth) *  repairFactor);
+		repairCost += (int)floor(info->fPrice * (1.0f - item->fHealth) *  equipmentRepairFactor);
 		eqToFix.insert(item->sID);
 	}
 
@@ -552,7 +550,7 @@ void PlayerAutorepair(uint iClientID)
 			if (colGrp.health != 1.0f)
 			{
 				repairColGrp = true;
-				repairCost += static_cast<int>((1.0f - colGrp.health) * static_cast<float>(cg->hitPts) * repairFactor);
+				repairCost += static_cast<int>((1.0f - colGrp.health) * static_cast<float>(cg->hitPts) * hullRepairFactor);
 				colGrp.health = 1.0f;
 			}
 			cg = cg->next;
@@ -593,7 +591,10 @@ void PlayerAutorepair(uint iClientID)
 			eqVector.push_back(eq);
 		}
 
-		HookClient->Send_FLPACKET_SERVER_SETEQUIPMENT(iClientID, eqVector);
+		if (!eqVector.empty())
+		{
+			HookClient->Send_FLPACKET_SERVER_SETEQUIPMENT(iClientID, eqVector);
+		}
 	}
 
 	if (repairColGrp)
@@ -703,10 +704,6 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 			if (!bFound)
 				lstMounted.push_back(*it);
 		}
-
-		uint iVFTableMines = (uint)hModCommon + ADDR_COMMON_VFTABLE_MINE;
-		uint iVFTableCM = (uint)hModCommon + ADDR_COMMON_VFTABLE_CM;
-		uint iVFTableGun = (uint)hModCommon + ADDR_COMMON_VFTABLE_GUN;
 
 		map <uint, wstring> mapAutobuyFLHookExtras;
 		// check mounted equip

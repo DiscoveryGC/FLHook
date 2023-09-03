@@ -608,6 +608,10 @@ namespace HkIServerImpl
 	void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
+		if (iClientID != HkGetClientIDByShip(iShip))
+		{
+			return;
+		}
 		// Make player invincible to fix JHs/JGs near mine fields sometimes
 		// exploding player while jumping (in jump tunnel)
 		pub::SpaceObj::SetInvincible(iShip, true, true, 0);

@@ -39,7 +39,7 @@ wstring BuildModule::GetInfo(bool xml)
 		}
 		if (active_recipe.credit_cost)
 		{
-			info += L"<PARA/><TEXT>      - Credits x" + stows(itos(active_recipe.credit_cost));
+			info += L"<PARA/><TEXT>      - Credits $" + UIntToPrettyStr(active_recipe.credit_cost);
 			if (base->money < active_recipe.credit_cost)
 			{
 				info += L" [Insufficient cash]";
@@ -67,7 +67,7 @@ wstring BuildModule::GetInfo(bool xml)
 		}
 		if (active_recipe.credit_cost)
 		{
-			info += L"Credits x" + stows(itos(active_recipe.credit_cost));
+			info += L"Credits $" + UIntToPrettyStr(active_recipe.credit_cost);
 			if (base->money < active_recipe.credit_cost)
 			{
 				info += L" [Insufficient cash]";
@@ -117,7 +117,7 @@ bool BuildModule::Timer(uint time)
 			cooked = false;
 			auto market_item = base->market_items.find(good);
 			if (market_item != base->market_items.end()
-			&& (market_item->second.quantity >= quantity))
+				&& (market_item->second.quantity >= quantity))
 			{
 				i->second -= quantity;
 				base->RemoveMarketGood(good, quantity);

@@ -36,7 +36,7 @@ wstring FactoryModule::GetInfo(bool xml)
 	}
 	else
 	{
-		openLine = L" - ";
+		openLine = L"\n - ";
 		closeLine = L"\n";
 	}
 	info += openLine + L"Pending " + stows(itos(build_queue.size())) + L" items";
@@ -61,7 +61,7 @@ wstring FactoryModule::GetInfo(bool xml)
 		}
 		if (active_recipe.credit_cost)
 		{
-			info += openLine + L" - Credits x" + stows(itos(active_recipe.credit_cost));
+			info += openLine + L" - Credits $" + UIntToPrettyStr(active_recipe.credit_cost);
 			if (base->money < active_recipe.credit_cost)
 			{
 				info += L" [Insufficient cash]";

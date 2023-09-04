@@ -443,13 +443,17 @@ bool CoreModule::Timer(uint time)
 		return false;
 	}
 
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
 	float rhealth = base->base_health / base->max_base_health;
 	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 
 	// if health is 0 then the object will be destroyed but we won't
 	// receive a notification of this so emulate it.
 	if (base->base_health < 1)
+	{
 		return SpaceObjDestroyed(space_obj);
+	}
 
 	if ((base->logic == 0) && (base->invulnerable == 1))
 	{
@@ -496,24 +500,25 @@ bool CoreModule::Timer(uint time)
 	// the crew or kill 10 crew off and repeat this every 12 hours.
 	if (!dont_eat && time % set_crew_check_frequency == 0)
 	{
-		bool passedCheck = true;
+		bool passedFoodCheck = true;
 
-		uint number_of_people = 0;
+		uint peopleToFeed = 0;
 		for (uint humanCargoType : humanCargoList)
 		{
-			number_of_people += base->HasMarketItem(humanCargoType);
+			peopleToFeed += base->HasMarketItem(humanCargoType);
 		}
 
 		for (auto i : set_base_crew_consumption_items)
 		{
 			// Use water and oxygen.
-			if (base->HasMarketItem(i.first) >= number_of_people)
+			if (base->HasMarketItem(i.first) >= peopleToFeed)
 			{
-				base->RemoveMarketGood(i.first, number_of_people);
+				base->RemoveMarketGood(i.first, peopleToFeed);
 			}
-			else {
+			else
+			{
 				base->RemoveMarketGood(i.first, base->HasMarketItem(i.first));
-				passedCheck = false;
+				passedFoodCheck = false;
 			}
 		}
 
@@ -521,25 +526,27 @@ bool CoreModule::Timer(uint time)
 
 		for (auto& i : set_base_crew_food_items)
 		{
-			if (!number_of_people)
+			if (!peopleToFeed)
+			{
 				break;
+			}
 
 			uint food_available = base->HasMarketItem(i.first);
 			if (food_available)
 			{
-				uint food_to_use = min(food_available, number_of_people);
+				uint food_to_use = min(food_available, peopleToFeed);
 				base->RemoveMarketGood(i.first, food_to_use);
-				number_of_people -= food_to_use;
+				peopleToFeed -= food_to_use;
 			}
 		}
 
 		// Insufficent food so fail check
-		if (number_of_people)
+		if (peopleToFeed)
 		{
-			passedCheck = false;
+			passedFoodCheck = false;
 		}
 
-		base->isCrewSupplied = passedCheck;
+		base->isCrewSupplied = passedFoodCheck;
 		
 	}
 

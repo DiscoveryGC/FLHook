@@ -99,6 +99,25 @@ void SendMarketGoodSync(PlayerBase* base, uint client)
 	}
 }
 
+wstring UIntToPrettyStr(uint value)
+{
+	wchar_t buf[1000];
+	swprintf(buf, _countof(buf), L"%u", value);
+	int len = wcslen(buf);
+
+	wstring wscBuf;
+	for (int i = len - 1, j = 0; i >= 0; i--, j++)
+	{
+		if (j == 3)
+		{
+			j = 0;
+			wscBuf.insert(0, L".");
+		}
+		wscBuf.insert(0, wstring(1, buf[i]));
+	}
+	return wscBuf;
+}
+
 static wstring Int64ToPrettyStr(INT64 iValue)
 {
 	wchar_t buf[1000];

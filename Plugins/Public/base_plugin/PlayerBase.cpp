@@ -1,11 +1,11 @@
 #include "Main.h"
 
 PlayerBase::PlayerBase(uint client, const wstring& password, const wstring& the_basename)
-	: basename(the_basename),
-	base(0), money(0), base_health(0),
-	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false),
-	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
+	: affiliation(0),
+	basename(the_basename), base_level(1), money(0),
+	base_health(0), base(0), defense_mode(0), siege_mode(false), shield_strength_multiplier(base_shield_strength),
+	damage_taken_since_last_threshold(0), proxy_base(0), isCrewSupplied(false),
+	shield_state(PlayerBase::SHIELD_STATE_OFFLINE), shield_active_time(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
 	base = CreateID(nickname.c_str());
@@ -37,10 +37,11 @@ PlayerBase::PlayerBase(uint client, const wstring& password, const wstring& the_
 }
 
 PlayerBase::PlayerBase(const string& the_path)
-	: path(the_path), base(0), money(0),
-	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0),
-	shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE), isCrewSupplied(false),
-	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
+	: affiliation(0), base_level(0), money(0),
+	base_health(0), base(0), defense_mode(0), siege_mode(false), 
+	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0),
+	path(the_path), proxy_base(0), isCrewSupplied(false),
+	shield_state(PlayerBase::SHIELD_STATE_OFFLINE), shield_active_time(0)
 {
 	// Load and spawn base modules
 	Load();

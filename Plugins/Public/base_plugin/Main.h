@@ -478,6 +478,7 @@ void SendSetBaseInfoText2(uint client, const wstring& message);
 void SendResetMarketOverride(uint client);
 void SendMarketGoodUpdated(PlayerBase* base, uint good, MARKET_ITEM& item);
 void SendMarketGoodSync(PlayerBase* base, uint client);
+wstring UIntToPrettyStr(uint value);
 void SendBaseStatus(uint client, PlayerBase* base);
 void SendBaseStatus(PlayerBase* base);
 void ForceLaunch(uint client);

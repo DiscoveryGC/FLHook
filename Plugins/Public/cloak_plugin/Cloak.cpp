@@ -415,7 +415,7 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 		cloakInfo.bCanCloak = true;
 		cloakInfo.iState = STATE_CLOAK_INVALID;
 		SetState(iClientID, iShip, STATE_CLOAK_OFF);
-		if (cloakInfo.arch->bBreakOnProximity)
+		if (cloakInfo.arch && cloakInfo.arch->bBreakOnProximity)
 		{
 			InitCloakInfo(iClientID, static_cast<uint>(mapClientsCloak[iClientID].arch->fRange));
 		}

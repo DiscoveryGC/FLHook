@@ -60,7 +60,7 @@ void __stdcall LoadSettings()
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	srand(time(nullptr));
+	srand(static_cast<uint>(time(nullptr)));
 
 	for (auto& subArray : damageArray)
 	{
@@ -395,20 +395,6 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 void __stdcall Disconnect(uint client, enum EFLConnection conn)
 {
 	returncode = DEFAULT_RETURNCODE;
-	uint shipId;
-	pub::Player::GetShip(client, shipId);
-	if (shipId)
-	{
-		PlayerData* pd = nullptr;
-		wstring victimName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(client));
-		while (pd = Players.traverse_active(pd))
-		{
-			if (GetDamageDone(damageArray[pd->iOnlineID][client]) != 0.0f)
-			{
-				PrintUserCmdText(pd->iOnlineID, L"%ls : Damaged player %ls has disconnected in space", GetTimeString(false).c_str(), victimName.c_str());
-			}
-		}
-	}
 	ClearDamageTaken(client);
 	ClearDamageDone(client, true);
 }
@@ -440,6 +426,26 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 	return true;
 }
 
+// we want to notify
+void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (msg == EARLY_DISCONNECT_NOTIFICATION)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		auto info = reinterpret_cast<DISCONNECT_NOTIFICATION_STRUCT*>(data);
+
+		PlayerData* pd = nullptr;
+		wstring victimName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(info->clientId));
+		while (pd = Players.traverse_active(pd))
+		{
+			if (GetDamageDone(damageArray[pd->iOnlineID][info->clientId]) != 0.0f)
+			{
+				PrintUserCmdText(pd->iOnlineID, L"%ls: Damaged player %ls is disconnecting in space", GetTimeString(false).c_str(), victimName.c_str());
+			}
+		}
+	}
+}
 
 EXPORT PLUGIN_INFO* Get_PluginInfo()
 {
@@ -457,6 +463,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Disconnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 0));
 
 	return p_PI;
 }

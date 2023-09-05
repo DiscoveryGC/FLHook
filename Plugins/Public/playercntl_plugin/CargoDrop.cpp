@@ -121,6 +121,8 @@ namespace CargoDrop
 
 				if (!iter->second.bF1DisconnectProcessed)
 				{
+					DISCONNECT_NOTIFICATION_STRUCT data = { iter->first };
+					Plugin_Communication(EARLY_DISCONNECT_NOTIFICATION, &data);
 					iter->second.bF1DisconnectProcessed = true;
 
 					// Send disconnect report to all ships in scanner range.

@@ -48,7 +48,7 @@ struct CLOAK_ARCH
 {
 	string scNickName;
 	int iWarmupTime;
-	int iCooldownTime;
+	int activationPeriod;
 	int iHoldSizeLimit;
 	map<uint, CLOAK_FUEL_USAGE> mapFuelToUsage;
 	bool bDropShieldsOnUncloak;
@@ -67,11 +67,7 @@ struct CLOAK_INFO
 		iState = STATE_CLOAK_INVALID;
 		bAdmin = false;
 
-		arch.iWarmupTime = 0;
-		arch.iCooldownTime = 0;
-		arch.iHoldSizeLimit = 0;
-		arch.mapFuelToUsage.clear();
-		arch.bDropShieldsOnUncloak = false;
+		arch = nullptr;
 	}
 
 	ushort iCloakSlot;
@@ -82,7 +78,7 @@ struct CLOAK_INFO
 	bool bAdmin;
 	int DisruptTime;
 
-	CLOAK_ARCH arch;
+	CLOAK_ARCH* arch;
 };
 
 struct CDSTRUCT
@@ -159,10 +155,6 @@ void LoadSettings()
 					{
 						device.iWarmupTime = ini.get_value_int(0);
 					}
-					else if (ini.is_value("cooldown_time"))
-					{
-						device.iCooldownTime = ini.get_value_int(0);
-					}
 					else if (ini.is_value("hold_size_limit"))
 					{
 						device.iHoldSizeLimit = ini.get_value_int(0);
@@ -188,6 +180,13 @@ void LoadSettings()
 						device.fRange = ini.get_value_float(0);
 					}
 				}
+				auto cloakArch = reinterpret_cast<Archetype::CloakingDevice*>(Archetype::GetEquipment(CreateID(device.scNickName.c_str())));
+				if (!cloakArch)
+				{
+					ConPrint(L"Problem loading config for cloak %ls", stows(device.scNickName).c_str());
+					break;
+				}
+				device.activationPeriod = static_cast<int>(ceil(cloakArch->fCloakinTime * 1000));
 				mapCloakingDevices[CreateID(device.scNickName.c_str())] = device;
 				++cloakamt;
 			}
@@ -321,9 +320,9 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
-		if (info.arch.mapFuelToUsage.find(item->iArchID) != info.arch.mapFuelToUsage.end())
+		if (info.arch->mapFuelToUsage.find(item->iArchID) != info.arch->mapFuelToUsage.end())
 		{
-			const auto& fuelUsage = info.arch.mapFuelToUsage[item->iArchID];
+			const auto& fuelUsage = info.arch->mapFuelToUsage[item->iArchID];
 			float currFuelUsage = fuelUsage.usageStatic;
 			if (fuelUsage.usageLinear != 0.0f || fuelUsage.usageSquare != 0.0f) {
 				Vector dir1;
@@ -342,7 +341,7 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 				pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);
 				return true;
 			}
-			if(info.arch.mapFuelToUsage.size() == 1)
+			if(info.arch->mapFuelToUsage.size() == 1)
 				break;
 		}
 	}
@@ -402,27 +401,23 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 		if (mapCloakingDevices.find(equip->EquipArch()->iArchID) != mapCloakingDevices.end())
 		{
 			// Otherwise set the fuel usage and warm up time
-			cloakInfo.arch = mapCloakingDevices[equip->EquipArch()->iArchID];
+			cloakInfo.arch = &mapCloakingDevices[equip->EquipArch()->iArchID];
 		}
 		// If this cloaking device does not appear in the cloaking device list
 		// then warming up and fuel usage is zero and it may be used by any
 		// ship.
 		else
 		{
-			cloakInfo.arch.bDropShieldsOnUncloak = false;
-			cloakInfo.arch.iCooldownTime = 0;
-			cloakInfo.arch.iHoldSizeLimit = 0;
-			cloakInfo.arch.iWarmupTime = 0;
-			cloakInfo.arch.mapFuelToUsage.clear();
+			cloakInfo.arch = nullptr;
 		}
 
 		cloakInfo.DisruptTime = 0;
 		cloakInfo.bCanCloak = true;
 		cloakInfo.iState = STATE_CLOAK_INVALID;
 		SetState(iClientID, iShip, STATE_CLOAK_OFF);
-		if (cloakInfo.arch.bBreakOnProximity)
+		if (cloakInfo.arch->bBreakOnProximity)
 		{
-			InitCloakInfo(iClientID, (uint)mapClientsCloak[iClientID].arch.fRange);
+			InitCloakInfo(iClientID, static_cast<uint>(mapClientsCloak[iClientID].arch->fRange));
 		}
 	}
 }
@@ -488,23 +483,23 @@ void HkTimerCheckKick()
 					wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
 					HkAddCheaterLog(wscCharname, L"Attempting to cloak charge while on list of clients currently jumping");
 				}
-				else if ((info.tmCloakTime + info.arch.iWarmupTime) < now)
+				else if ((info.tmCloakTime + info.arch->iWarmupTime) < now)
 				{
 					SetState(iClientID, iShipID, STATE_CLOAK_ON);
 				}
-				else if (info.arch.bDropShieldsOnUncloak && !info.bAdmin)
+				else if (info.arch->bDropShieldsOnUncloak && !info.bAdmin)
 				{
 					pub::SpaceObj::DrainShields(iShipID);
 				}
 				break;
 
 			case STATE_CLOAK_ON:
-				if (!ProcessFuel(iClientID, info, iShipID))
+				if (!ProcessFuel(iClientID, info, iShipID) && info.tmCloakTime + info.arch->activationPeriod < now)
 				{
 					PrintUserCmdText(iClientID, L"Cloaking device shutdown, no fuel");
 					SetState(iClientID, iShipID, STATE_CLOAK_OFF);
 				}
-				else if (info.arch.bDropShieldsOnUncloak && !info.bAdmin)
+				else if (info.arch->bDropShieldsOnUncloak && !info.bAdmin)
 				{
 					pub::SpaceObj::DrainShields(iShipID);
 				}
@@ -611,15 +606,16 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 		return true;
 	}
 
-	if (!mapClientsCloak[iClientID].bCanCloak)
+	auto& info = mapClientsCloak[iClientID];
+	if (!info.bCanCloak)
 	{
 		PrintUserCmdText(iClientID, L"Cloaking device not available");
 		return true;
 	}
 
-	if (mapClientsCloak[iClientID].DisruptTime != 0)
+	if (info.DisruptTime != 0)
 	{
-		PrintUserCmdText(iClientID, L"Cloaking Device Disrupted. Please wait %d seconds", mapClientsCloak[iClientID].DisruptTime);
+		PrintUserCmdText(iClientID, L"Cloaking Device Disrupted. Please wait %d seconds", info.DisruptTime);
 		return true;
 	}
 
@@ -631,8 +627,8 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
 		if (cship)
 		{
-			if (mapClientsCloak[iClientID].arch.iHoldSizeLimit != 0
-				&& mapClientsCloak[iClientID].arch.iHoldSizeLimit < cship->shiparch()->fHoldSize)
+			if (info.arch->iHoldSizeLimit != 0
+				&& info.arch->iHoldSizeLimit < cship->shiparch()->fHoldSize)
 			{
 				PrintUserCmdText(iClientID, L"Cloaking device will not function on this ship type");
 				mapClientsCloak[iClientID].iState = STATE_CLOAK_INVALID;
@@ -647,8 +643,20 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 			case STATE_CLOAK_OFF:
 				SetState(iClientID, iShip, STATE_CLOAK_CHARGING);
 				break;
-			case STATE_CLOAK_CHARGING:
 			case STATE_CLOAK_ON:
+			{
+				mstime now = timeInMS();
+				if ((info.tmCloakTime + info.arch->activationPeriod) < now)
+				{
+					SetState(iClientID, iShip, STATE_CLOAK_OFF);
+				}
+				else
+				{
+					PrintUserCmdText(iClientID, L"ERR Device must fully activate before deactivation.");
+				}
+				break;
+			}
+			case STATE_CLOAK_CHARGING:
 				SetState(iClientID, iShip, STATE_CLOAK_OFF);
 				break;
 			}

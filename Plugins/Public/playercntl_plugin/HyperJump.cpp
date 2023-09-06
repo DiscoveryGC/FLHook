@@ -888,10 +888,10 @@ namespace HyperJump
 			return;
 		}
 
-		PrintUserCmdText(iClientID, L"You are allowed to jump to:");
 		auto& systemRangeList = mapAvailableJumpSystems[iSystemID];
 		for (uint depth = 1; depth <= playerJumpDrive.arch->jump_range; depth++)
 		{
+			PrintUserCmdText(iClientID, L"Systems %u jump connections away:", depth);
 			for (uint &allowed_sys : systemRangeList[depth])
 			{
 				const Universe::ISystem *systemData = Universe::get_system(allowed_sys);

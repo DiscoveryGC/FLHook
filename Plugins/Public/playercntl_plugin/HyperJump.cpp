@@ -891,7 +891,7 @@ namespace HyperJump
 		auto& systemRangeList = mapAvailableJumpSystems[iSystemID];
 		for (uint depth = 1; depth <= playerJumpDrive.arch->jump_range; depth++)
 		{
-			PrintUserCmdText(iClientID, L"Systems %u jump connections away:", depth);
+			PrintUserCmdText(iClientID, L"Systems %u jumps away:", depth);
 			for (uint &allowed_sys : systemRangeList[depth])
 			{
 				const Universe::ISystem *systemData = Universe::get_system(allowed_sys);
@@ -941,7 +941,7 @@ namespace HyperJump
 		return true;
 	}
 	
-	bool SetJumpSystem(const uint iClientID, JUMPDRIVE& jd, wstring& targetSystem)
+	bool SetJumpSystem(const uint iClientID, JUMPDRIVE& jd, wstring& targetSystem, const wchar_t* usage)
 	{
 		if (!InitJumpDriveInfo(iClientID))
 		{
@@ -971,8 +971,32 @@ namespace HyperJump
 			}
 			else
 			{
-				//TODO: implement nonoverride blind jump within range.
-				return false;
+				uint entrySystem = Players[iClientID].iSystemID;
+				vector<uint> viableTargets;
+				for (int i = 1; i <= jd.arch->jump_range ; i++)
+				{
+					auto& systems = mapAvailableJumpSystems[entrySystem][i];
+					viableTargets.reserve(viableTargets.size() + systems.size());
+					viableTargets.insert(viableTargets.end(), systems.begin(), systems.end());
+				}
+				if (viableTargets.empty())
+				{
+					return false;
+				}
+				else
+				{
+					uint system = viableTargets.at(rand() % viableTargets.size());
+					auto& jumpCoordList = mapSystemJumps[system];
+					auto& coords = jumpCoordList.at(rand() % jumpCoordList.size());
+
+					jd.iTargetSystem = system;
+					jd.jumpDistance = 1;
+					jd.vTargetPosition = coords.pos;
+					jd.matTargetOrient = coords.ornt;
+
+					PrintUserCmdText(iClientID, L"Blind jump charging...");
+					return true;
+				}
 			}
 			return true;
 		}
@@ -997,15 +1021,16 @@ namespace HyperJump
 			}
 			if (mapSystemJumps.count(iTargetSystemID) == 0)
 			{
-				PrintUserCmdText(iClientID, L"ERR Jumps to selected system not configured, please report the issue to the staff");
+				PrintUserCmdText(iClientID, L"ERR Unable to lock onto the target system, too much interference");
 				return false;
 			}
 			auto& jumpCoordList = mapSystemJumps[iTargetSystemID];
+
 			uint sectorSelectedIndex = rand() % jumpCoordList.size();
 			auto& jumpCoords = jumpCoordList.at(sectorSelectedIndex);
-			mapJumpDrives[iClientID].iTargetSystem = iTargetSystemID;
-			mapJumpDrives[iClientID].vTargetPosition = jumpCoords.pos;
-			mapJumpDrives[iClientID].matTargetOrient = jumpCoords.ornt;
+			jd.iTargetSystem = iTargetSystemID;
+			jd.vTargetPosition = jumpCoords.pos;
+			jd.matTargetOrient = jumpCoords.ornt;
 
 			jd.jumpDistance = canJump.second;
 
@@ -1030,6 +1055,8 @@ namespace HyperJump
 			}
 			return true;
 		}
+		PrintUserCmdText(iClientID, usage);
+		PrintUserCmdText(iClientID, L"ERR Command or system name unrecognized");
 		return false;
 	}
 
@@ -1607,10 +1634,8 @@ namespace HyperJump
 			return true;
 		}
 
-		if (!SetJumpSystem(iClientID, jd, input))
+		if (!SetJumpSystem(iClientID, jd, input, usage))
 		{
-			PrintUserCmdText(iClientID, L"ERR Command or system name unrecognized");
-			PrintUserCmdText(iClientID, usage);
 			return true;
 		}
 

@@ -199,7 +199,7 @@ void __stdcall ReqRemoveItem_AFTER(unsigned short iID, int count, unsigned int c
 
 	pub::Player::AdjustCash(client, -(static_cast<int>(price) * count));
 	wstring clientName = (const wchar_t*)Players.GetActiveCharacterName(client);
-	auto result = HkAddCargo(clientName, goodId, count, false);
+	HkAddCargo(clientName, goodId, count, false);
 	
 	sellSuppressionMap.erase(client);
 	returncode = SKIPPLUGINS;

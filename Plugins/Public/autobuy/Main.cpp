@@ -97,6 +97,7 @@ void LoadSettings()
 	//Load ammo limit data from FL
 	string File_Misc = "..\\data\\equipment\\misc_equip.ini";
 	string File_Weapon = "..\\data\\equipment\\weapon_equip.ini";
+	string File_Special = "..\\data\\equipment\\special_equip.ini";
 	string File_FLHook = "..\\exe\\flhook_plugins\\autobuy.cfg";
 	int iLoaded = 0;
 	int iLoaded2 = 0;
@@ -166,6 +167,40 @@ void LoadSettings()
 				}
 			}
 			else if (ini.is_header("Mine"))
+			{
+				uint itemname;
+				int itemlimit;
+				bool valid = false;
+
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						itemname = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("ammo_limit"))
+					{
+						valid = true;
+						itemlimit = ini.get_value_int(0);
+					}
+				}
+
+				if (valid == true)
+				{
+					mapAmmolimits[itemname] = itemlimit;
+					++iLoaded;
+				}
+			}
+		}
+		ini.close();
+	}
+
+	if (ini.open(File_Special.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+
+			if (ini.is_header("Munition"))
 			{
 				uint itemname;
 				int itemlimit;

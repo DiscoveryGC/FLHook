@@ -633,7 +633,7 @@ namespace HyperJump
 		return make_pair(false, 0);
 	}
 
-	bool CheckForCommodities(uint iClientID)
+	bool CheckForCommodities(uint iClientID, bool removeIfFound)
 	{
 		int iRemHoldSize;
 		std::list<CARGO_INFO> lstCargo;
@@ -642,8 +642,18 @@ namespace HyperJump
 		{
 			bool flag = false;
 			pub::IsCommodity(cargo.iArchID, flag);
-			if (flag)
+			if (!flag)
+			{
+				continue;
+			}
+			if (removeIfFound)
+			{
+				pub::Player::RemoveCargo(iClientID, (short)cargo.iID, cargo.iCount);
+			}
+			else
+			{
 				return true;
+			}
 		}
 		return false;
 	}
@@ -751,7 +761,7 @@ namespace HyperJump
 			return false;
 		}
 
-		if (!set_canJumpWithCommodities && CheckForCommodities(client))
+		if (!set_canJumpWithCommodities && CheckForCommodities(client, false))
 		{
 			PrintUserCmdText(client, L"ERR can't jump with commodities onboard.");
 			return false;
@@ -783,31 +793,6 @@ namespace HyperJump
 		}
 		jumpObjMap.at(dockObj).dockingQueue.erase(ship);
 		shipToJumpObjMap.erase(ship);
-
-		if (set_canJumpWithCommodities)
-		{
-			return;
-		}
-		uint client = HkGetClientIDByShip(ship);
-		int iRemHoldSize;
-		std::list<CARGO_INFO> lstCargo;
-		HkEnumCargo(ARG_CLIENTID(client), lstCargo, iRemHoldSize);
-		bool cargoFound = false;
-		for (const auto& cargo : lstCargo)
-		{
-			bool flag = false;
-			pub::IsCommodity(cargo.iArchID, flag);
-			if (flag)
-			{
-				cargoFound = true;
-				pub::Player::RemoveCargo(client, (short)cargo.iID, cargo.iCount);
-			}
-		}
-		if (cargoFound)
-		{
-			pub::SpaceObj::SetRelativeHealth(ship, 0.0f);
-			PrintUserCmdText(client, L"Commodities not allowed during jumps");
-		}
 	}
 
 	void HyperJump::RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4)
@@ -973,7 +958,7 @@ namespace HyperJump
 			{
 				uint entrySystem = Players[iClientID].iSystemID;
 				vector<uint> viableTargets;
-				for (int i = 1; i <= jd.arch->jump_range ; i++)
+				for (uint i = 1; i <= jd.arch->jump_range ; i++)
 				{
 					auto& systems = mapAvailableJumpSystems[entrySystem][i];
 					viableTargets.reserve(viableTargets.size() + systems.size());
@@ -1323,12 +1308,18 @@ namespace HyperJump
 		}
 	}
 
-	void HyperJump::SystemSwitchOut(uint clientId)
+	void HyperJump::SystemSwitchOut(uint clientId, uint spaceObjId)
 	{
 		if (mapJumpDrives[clientId].charging_on)
 		{
 			PrintUserCmdText(clientId, L"Entering jump anomaly. Discharging jump drive.");
 			ShutdownJumpDrive(clientId);
+		}
+
+
+		if (!set_canJumpWithCommodities && jumpObjMap.count(spaceObjId))
+		{
+			CheckForCommodities(clientId, true);
 		}
 	}
 
@@ -1607,7 +1598,7 @@ namespace HyperJump
 			return true;
 		}
 
-		if (!set_canJumpWithCommodities && CheckForCommodities(iClientID))
+		if (!set_canJumpWithCommodities && CheckForCommodities(iClientID, false))
 		{
 			PrintUserCmdText(iClientID, L"Warning! You cannot jump without clearing your cargo hold!");
 		}

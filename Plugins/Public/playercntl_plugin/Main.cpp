@@ -650,7 +650,7 @@ namespace HkIServerImpl
 		{
 			return;
 		}
-		HyperJump::SystemSwitchOut(iClientID);
+		HyperJump::SystemSwitchOut(iClientID, switchOutPacket.jumpObjectId);
 		AntiJumpDisconnect::SystemSwitchOut(iClientID);
 	}
 

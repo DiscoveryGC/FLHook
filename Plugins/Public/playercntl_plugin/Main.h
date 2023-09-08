@@ -135,7 +135,7 @@ namespace HyperJump
 {
 	void LoadSettings(const string &scPluginCfgFile);
 	void Timer();
-	void SystemSwitchOut(uint clientId);
+	void SystemSwitchOut(uint clientId, uint spaceObjId);
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
 	void ClearClientInfo(uint iClientID);
 	void PlayerLaunch(unsigned int iShip, unsigned int iClientID);

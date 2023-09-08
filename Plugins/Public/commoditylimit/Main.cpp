@@ -179,8 +179,8 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const& gsi, unsigned int client
 	{
 		return;
 	}
-
-	pub::Player::SendNNMessage(client, CreateID("not_interested"));
+	static uint voiceDealerNotInterested = CreateID("not_interested");
+	pub::Player::SendNNMessage(client, voiceDealerNotInterested);
 	sellSuppressionMap[client] = gsi.iArchID;
 	returncode = SKIPPLUGINS;
 }

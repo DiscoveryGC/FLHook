@@ -68,13 +68,6 @@ struct CommodityLimitStruct
 	//list<uint> ShipClassRestrictions;
 };
 
-struct SellReverse
-{
-	uint archId;
-	float status;
-
-};
-
 unordered_map<uint, CommodityLimitStruct> mapCommodityRestrictions;
 map<uint, bool> mapBuySuppression;
 unordered_map<uint, unordered_set<uint>> mapProducers;
@@ -284,7 +277,6 @@ void __stdcall ReqChangeCash(int iMoneyDiff, unsigned int iClientID)
 	{
 		mapBuySuppression[iClientID] = false;
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		return;
 	}
 }
 

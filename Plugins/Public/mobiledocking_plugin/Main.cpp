@@ -766,10 +766,10 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 			return 0;
 		}
 
-		CUSTOM_CLOAK_CHECK_STRUCT* cloakCheck;
-		cloakCheck->clientId = client;
+		CUSTOM_CLOAK_CHECK_STRUCT cloakCheck;
+		cloakCheck.clientId = client;
 		Plugin_Communication(CUSTOM_CLOAK_CHECK, &cloakCheck);
-		if (cloakCheck->isCloaked)
+		if (cloakCheck.isCloaked)
 		{
 			PrintUserCmdText(client, L"Cannot dock while cloaked!");
 			dockPort = -1;

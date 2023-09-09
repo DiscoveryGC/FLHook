@@ -260,6 +260,7 @@ enum PLUGIN_MESSAGE
 	CUSTOM_IS_IT_POB = 50,
 	CUSTOM_MOBILE_DOCK_CHECK = 53,
 	CUSTOM_IN_WARP_CHECK = 54,
+	CUSTOM_CLOAK_CHECK = 56,
 	CUSTOM_CLOAK_ALERT = 60
 };
 
@@ -403,6 +404,12 @@ struct CUSTOM_IN_WARP_CHECK_STRUCT
 struct CUSTOM_CLOAK_ALERT_STRUCT
 {
 	vector<uint> alertedGroupMembers;
+};
+
+struct CUSTOM_CLOAK_CHECK_STRUCT
+{
+	uint clientId;
+	bool isCloaked = false;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

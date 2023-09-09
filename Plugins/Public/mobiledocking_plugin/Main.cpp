@@ -766,6 +766,17 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 			return 0;
 		}
 
+		CUSTOM_CLOAK_CHECK_STRUCT* cloakCheck;
+		cloakCheck->clientId = client;
+		Plugin_Communication(CUSTOM_CLOAK_CHECK, &cloakCheck);
+		if (cloakCheck->isCloaked)
+		{
+			PrintUserCmdText(client, L"Cannot dock while cloaked!");
+			dockPort = -1;
+			response = DOCK_DENIED;
+			return 0;
+		}
+
 		// If ship is already registered as 'docked' on this carrier, proceed and ignore the capacity.
 		if (idToDockedInfoMap.count(client))
 		{

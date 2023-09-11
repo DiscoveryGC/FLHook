@@ -876,13 +876,13 @@ namespace HyperJump
 		auto& systemRangeList = mapAvailableJumpSystems[iSystemID];
 		for (uint depth = 1; depth <= playerJumpDrive.arch->jump_range; depth++)
 		{
-			PrintUserCmdText(iClientID, L"Systems %u jumps away:", depth);
+			wstring sysList = L"Systems " + stows(itos(depth)) + L" jumps away:";
 			for (uint &allowed_sys : systemRangeList[depth])
 			{
 				const Universe::ISystem *systemData = Universe::get_system(allowed_sys);
-				wstring wscSysNameList = HkGetWStringFromIDS(systemData->strid_name);
-				PrintUserCmdText(iClientID, L"|     %s", wscSysNameList.c_str());
+				sysList += L" [" + HkGetWStringFromIDS(systemData->strid_name) + L"]";
 			}
+			PrintUserCmdText(iClientID, sysList.c_str());
 		}
 		
 	}

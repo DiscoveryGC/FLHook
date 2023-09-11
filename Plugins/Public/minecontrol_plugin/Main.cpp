@@ -42,6 +42,7 @@
 #include <plugin.h>
 #include <PluginUtilities.h>
 #include <unordered_map>
+#include <array>
 
 static int set_iPluginDebug = 0;
 static string set_scStatsPath;
@@ -50,6 +51,7 @@ static uint set_miningMunition = CreateID("mining_gun_ammo");
 static uint set_deployableContainerCommodity = CreateID("commodity_deployable_container");
 static float set_globalModifier = 1.0f;
 static float set_containerModifier = 1.05f;
+static array<float, 25> set_shipClassModifiers; // using a simple array for optimization purposes
 static uint set_containerJettisonCount = 5000;
 static uint set_containerLootCrateID = CreateID("lootcrate_ast_loot_metal");
 static uint set_containerSolarArchetypeID = CreateID("dsy_playerbase_01");
@@ -234,6 +236,8 @@ EXPORT void LoadSettings()
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\minecontrol.cfg";
 
+	set_shipClassModifiers.fill(1.0f);
+
 	// Load generic settings
 	set_iPluginDebug = IniGetI(scPluginCfgFile, "MiningGeneral", "Debug", 0);
 	set_scStatsPath = IniGetS(scPluginCfgFile, "MiningGeneral", "StatsPath", "");
@@ -317,6 +321,16 @@ EXPORT void LoadSettings()
 							ConPrint(L"NOTICE: zone bonus %s bonus=%2.2f replacementLootID=%s(%u) rechargeRate=%0.0f maxReserve=%0.0f\n",
 								zoneName.c_str(), bonus, replacementLootName.c_str(), replacementLootID, rechargeRate, maxReserve);
 						}
+					}
+				}
+			}
+			else if (ini.is_header("ShipTypeBonus"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("ship_class_bonus"))
+					{
+						set_shipClassModifiers[ini.get_value_int(0)] = ini.get_value_float(1);
 					}
 				}
 			}
@@ -436,7 +450,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 	}
 
 	// use floats to ensure precision when applying various minor modifiers.
-	float itemCount = static_cast<float>(cd.itemCount);
+	float miningYield = static_cast<float>(cd.itemCount);
 	uint lootId = cd.lootID;
 	cd.itemCount = 0;
 	cd.lootID = 0;
@@ -470,6 +484,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		}
 
 		const auto& zoneBonusData = set_mapZoneBonus.find(zone->iZoneID);
+		ZONE_BONUS* finalZone = nullptr;
 		if(zoneBonusData != set_mapZoneBonus.end())
 		{
 			auto& zoneData = zoneBonusData->second;
@@ -482,16 +497,21 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 			{
 				lootId = zoneData.iReplacementLootID;
 			}
-			itemCount *= zoneData.fMultiplier;
+			miningYield *= zoneData.fMultiplier;
 
-			itemCount = max(itemCount, zoneData.fCurrReserve);
-			zoneData.fCurrReserve -= itemCount;
-			zoneData.fMined += itemCount;
+			miningYield = max(miningYield, zoneData.fCurrReserve);
+			finalZone = &zoneData; // save ZONE_BONUS ref to update AFTER all the bonuses are applied
 		}
+		uint type;
+		pub::SpaceObj::GetType(iShip, type);
+		miningYield *= GetMiningYieldBonus(cd.equippedID, lootId) * set_globalModifier * set_shipClassModifiers[type];
+		miningYield += cd.overminedFraction; // add the decimal remainder from last mining event.
 
-		itemCount *= GetMiningYieldBonus(cd.equippedID, lootId) * set_globalModifier;
-		itemCount += cd.overminedFraction; // add the decimal remainder from last mining eevnt.
-
+		if (finalZone)
+		{
+			finalZone->fCurrReserve -= miningYield;
+			finalZone->fMined += miningYield;
+		}
 		// If this ship is has another ship targetted then send the ore into the cargo
 		// hold of the other ship.
 		uint iSendToClientID = iClientID;
@@ -513,7 +533,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 				if (container != mapMiningContainers.end() && container->second.lootId == lootId)
 				{
 					foundContainer = true;
-					container->second.lootCount += static_cast<uint>(itemCount * set_containerModifier);
+					container->second.lootCount += static_cast<uint>(miningYield * set_containerModifier);
 
 					if (container->second.lootCount >= set_containerJettisonCount)
 					{
@@ -524,8 +544,8 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 			}
 		}
 
-		uint itemCountInt = static_cast<uint>(itemCount);
-		cd.overminedFraction = itemCount - itemCountInt; // save the unused decimal portion for the next mining event.
+		uint miningYieldInt = static_cast<uint>(miningYield);
+		cd.overminedFraction = miningYield - miningYieldInt; // save the unused decimal portion for the next mining event.
 
 		if (cd.miningSampleStart < time(nullptr))
 		{
@@ -548,12 +568,12 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 
 		float fHoldRemaining;
 		pub::Player::GetRemainingHoldSize(iSendToClientID, fHoldRemaining);
-		if (fHoldRemaining < static_cast<float>(itemCountInt) * lootInfo->fVolume)
+		if (fHoldRemaining < static_cast<float>(miningYieldInt) * lootInfo->fVolume)
 		{
-			itemCountInt = static_cast<uint>(fHoldRemaining / lootInfo->fVolume);
+			miningYieldInt = static_cast<uint>(fHoldRemaining / lootInfo->fVolume);
 		}
 
-		if (!itemCountInt)
+		if (!miningYieldInt)
 		{
 			if (((uint)time(nullptr) - mapClients[iClientID].LastTimeMessageAboutBeingFull) > 1)
 			{
@@ -569,7 +589,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		}
 		else
 		{
-			pub::Player::AddCargo(iSendToClientID, lootId, itemCountInt, 1.0, false);
+			pub::Player::AddCargo(iSendToClientID, lootId, miningYieldInt, 1.0, false);
 		}
 		return;
 	}

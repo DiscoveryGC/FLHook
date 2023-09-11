@@ -298,6 +298,8 @@ void FactoryModule::SetActiveRecipe(uint product)
 	if (active_recipe.affiliationBonus.count(base->affiliation))
 	{
 		float productionModifier = active_recipe.affiliationBonus.at(base->affiliation);
+		active_recipe.credit_cost = static_cast<uint>(ceil(static_cast<float>(active_recipe.credit_cost) * productionModifier));
+		active_recipe.cooking_rate = static_cast<uint>(ceil(static_cast<float>(active_recipe.cooking_rate) * productionModifier));
 		for (auto& item : active_recipe.consumed_items)
 		{
 			item.second = static_cast<uint>(ceil(static_cast<float>(item.second) * productionModifier));

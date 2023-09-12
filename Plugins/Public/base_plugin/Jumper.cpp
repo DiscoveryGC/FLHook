@@ -38,8 +38,6 @@ struct SYSTEMJUMPCOORDS
 	Matrix ornt;
 };
 
-void SetReturnHole(PlayerBase* originBase);
-
 void HyperJump::CheckForDisconnectedUnchartedLogin(uint ship, uint client)
 {
 	if (disconnectedUnchartedSystems.count(Players[client].iSystemID))
@@ -64,8 +62,8 @@ void HyperJump::InitJumpHole(uint baseId, uint destSystem, uint destObject)
 		ConPrint(L"Something went very wrong!\n");
 	}
 
-	memcpy((char*)solar + (0x6d * 4), &destSystem, 4);
-	memcpy((char*)solar + (0x6e * 4), &destObject, 4);
+	memcpy((uint*)solar + 0x6d, &destSystem, 4);
+	memcpy((uint*)solar + 0x6e, &destObject, 4);
 }
 
 bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
@@ -92,7 +90,7 @@ bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpH
 	info.nickname = baseNickName;
 	info.loadoutArchetypeId = exitJumpHoleLoadout;
 	info.solarArchetypeId = exitJumpHoleArchetype;
-	info.solar_ids = 0;
+	info.solar_ids = 267199;
 
 	CreateSolar::CreateSolarCallout(&info);
 
@@ -105,8 +103,8 @@ bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpH
 	GetShipInspect(info.iSpaceObjId, inspect, dunno);
 	const CObject* solar = inspect->cobject();
 
-	memcpy((char*)solar + (0x6d * 4), &pb->destSystem, 4);
-	memcpy((char*)solar + (0x6e * 4), &pb->destObject, 4);
+	memcpy((uint*)solar + 0x6d, &pb->destSystem, 4);
+	memcpy((uint*)solar + 0x6e, &pb->destObject, 4);
 
 	customSolarList.insert(info.iSpaceObjId);
 	return true;
@@ -331,7 +329,8 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 
 		PlayerBase* pb = player_bases[returnJH];
 		uint index = rand() % legalReturnSystems.size();
-		if (mapSystemJumps.count(legalReturnSystems.at(index)) == 0) {
+		if (mapSystemJumps.count(legalReturnSystems.at(index)) == 0)
+		{
 			ConPrint(L"HYPERSPACE HUB: Jump Point data for return system not found, aborting randomization!\n");
 			continue;
 		}
@@ -365,7 +364,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 
 		targetJumpHole->destObject = unchartedJH;
 
-		auto originSystemInfo = Universe::get_system(targetJumpHole->system);
+		auto originSystemInfo = Universe::get_system(pb->system);
 		targetJumpHole->basename = L"Unstable " + HkGetWStringFromIDS(originSystemInfo->strid_name) + L" Jump Hole";
 
 

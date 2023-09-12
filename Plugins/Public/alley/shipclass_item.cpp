@@ -20,6 +20,8 @@
 #include <plugin.h>
 #include <list>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <PluginUtilities.h>
 #include "PlayerRestrictions.h"
@@ -34,12 +36,12 @@ struct scistruct
 	list<uint> nomount;
 };
 
-map <uint, wstring> shipclassnames;
-map <uint, wstring> itemnames;
-map <uint, scistruct> shipclassitems;
-map <uint, wstring> owned;
+unordered_map <uint, wstring> shipclassnames;
+unordered_map <uint, wstring> itemnames;
+unordered_map <uint, scistruct> shipclassitems;
+unordered_map <uint, wstring> owned;
 
-map<uint, uint> mapIDs;
+unordered_map<uint, uint> mapIDs;
 
 //we store these here as it's more efficient than constantly requested what id the player is flying with.
 struct pinfo
@@ -64,6 +66,8 @@ struct iddockinfo
 map <uint, iddockinfo> iddock;
 
 map<uint, uint> player_last_base;
+
+unordered_map<uint, unordered_set<uint>> mapProducers;
 
 void SCI::LoadSettings()
 {
@@ -148,6 +152,23 @@ void SCI::LoadSettings()
 				}
 				iddock[id] = info;
 			}
+			else if (ini.is_header("producer_base_restrict"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("producer"))
+					{
+						auto& bannedGoodList = mapProducers[CreateID(ini.get_value_string(0))];
+						int i = 0;
+						string goodName = ini.get_value_string(++i);
+						while (!goodName.empty())
+						{
+							bannedGoodList.insert(CreateID(goodName.c_str()));
+							goodName = ini.get_value_string(++i);
+						}
+					}
+				}
+			}
 		}
 		ini.close();
 	}
@@ -195,7 +216,7 @@ void SCI::CheckItems(unsigned int iClientID)
 			if (item->bMounted)
 			{
 				//more efficent to find out if the item we want is mounted first, then we get the data for the error message if necessary.
-				for (map<uint, scistruct>::iterator iter = shipclassitems.begin(); iter != shipclassitems.end(); iter++)
+				for (auto& iter = shipclassitems.begin(); iter != shipclassitems.end(); iter++)
 				{
 					if (iter->first == item->iArchID)
 					{
@@ -281,6 +302,11 @@ void SCI::CheckItems(unsigned int iClientID)
 
 bool SCI::CanBuyItem(uint iArchID, uint iClientID) {
 
+	const uint& baseId = Players[iClientID].iBaseID;
+	if (mapProducers.count(baseId) && mapProducers.at(baseId).count(iArchID))
+	{
+		return false;
+	}
 	auto foundItem = shipclassitems.find(iArchID);
 	if (foundItem != shipclassitems.end()) {
 		Archetype::Ship* shipArch = Archetype::GetShip(Players[iClientID].iShipArchetype);

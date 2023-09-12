@@ -1329,6 +1329,8 @@ void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int client)
 				PrintUserCmdText(client, L"ERR You can't buy this");
 		}
 
+		static uint voiceDealerNotInterested = CreateID("not_interested");
+		pub::Player::SendNNMessage(client, voiceDealerNotInterested);
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		reverseTrade[client] = true;
 		return;

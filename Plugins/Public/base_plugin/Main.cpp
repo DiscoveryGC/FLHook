@@ -2888,7 +2888,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			base->Save();
 		}
 	}
-	else if (msg == CUSTOM_BASE_GET_NAME)
+	else if (msg == CUSTOM_BASE_LAST_DOCKED)
 	{
 		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
 		if (clients.count(info->clientID))

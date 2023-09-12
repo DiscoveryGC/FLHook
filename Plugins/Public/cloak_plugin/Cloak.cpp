@@ -184,7 +184,7 @@ void LoadSettings()
 				if (!cloakArch)
 				{
 					ConPrint(L"Problem loading config for cloak %ls", stows(device.scNickName).c_str());
-					break;
+					continue;
 				}
 				device.activationPeriod = static_cast<int>(ceil(cloakArch->fCloakinTime * 1000));
 				mapCloakingDevices[CreateID(device.scNickName.c_str())] = device;

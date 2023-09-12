@@ -41,45 +41,36 @@
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
+#include <unordered_map>
+#include <array>
 
-static float set_fGenericFactor = 1.0f;
 static int set_iPluginDebug = 0;
 static string set_scStatsPath;
+static float set_miningCheatLogThreshold = 2.0f;
+static uint set_miningMunition = CreateID("mining_gun_ammo");
+static uint set_deployableContainerCommodity = CreateID("commodity_deployable_container");
+static float set_globalModifier = 1.0f;
+static float set_containerModifier = 1.05f;
+static array<float, 25> set_shipClassModifiers; // using a simple array for optimization purposes
+static uint set_containerJettisonCount = 5000;
+static uint set_containerLootCrateID = CreateID("lootcrate_ast_loot_metal");
+static uint set_containerSolarArchetypeID = CreateID("dsy_playerbase_01");
+static uint set_containerLoadoutArchetypeID = CreateID("dsy_playerbase_01");
+
+const uint insufficientCargoSoundId = CreateID("insufficient_cargo_space");
 
 extern void PrintZones();
 
-struct PLAYER_BONUS
-{
-	PLAYER_BONUS() : iLootID(0), fBonus(0.0f), iRep(-1) {}
-
-	// The loot commodity id this configuration applies to.
-	uint iLootID;
-
-	// The loot bonus multiplier.
-	float fBonus;
-
-	// The affiliation/reputation of the player
-	uint iRep;
-
-	// The list of ships that this bonus applies to
-	list<uint> lstShips;
-
-	// The list of equipment items that the ship must carry
-	list<uint> lstItems;
-
-	// The list of ammo arch ids for mining guns
-	list<uint> lstAmmo;
-};
-multimap<uint, PLAYER_BONUS> set_mmapPlayerBonus;
+unordered_map<uint, map<uint, float>> idBonusMap;
 
 struct ZONE_BONUS
 {
-	ZONE_BONUS() : fBonus(0.0f), iReplacementLootID(0), fRechargeRate(0), fCurrReserve(100000), fMaxReserve(50000), fMined(0) {}
+	ZONE_BONUS() : fMultiplier(0.0f), iReplacementLootID(0), fRechargeRate(0), fCurrReserve(100000), fMaxReserve(50000), fMined(0) {}
 
-	string scZone;
+	wstring scZone;
 
 	// The loot bonus multiplier.
-	float fBonus;
+	float fMultiplier;
 
 	// The hash of the item to replace the dropped 
 	uint iReplacementLootID;
@@ -98,200 +89,128 @@ struct ZONE_BONUS
 	// The amount of ore that has been mined.
 	float fMined;
 };
-map<uint, ZONE_BONUS> set_mapZoneBonus;
-
+unordered_map<uint, ZONE_BONUS> set_mapZoneBonus;
 
 struct CLIENT_DATA
 {
-	CLIENT_DATA() : bSetup(false), iDebug(0),
-		iPendingMineAsteroidEvents(0), iMineAsteroidEvents(0) {}
+	CLIENT_DATA() = default;
 
-	bool bSetup;
-	map<uint, float> mapLootBonus;
-	map<uint, list<uint> > mapLootAmmoLst;
-	map<uint, list<uint> > mapLootShipLst;
-	int iDebug;
+	uint equippedID = 0;
+	uint lootID = 0;
+	uint itemCount = 0;
+	uint miningEvents = 0;
+	uint miningSampleStart = 0;
+	float overminedFraction = 0;
+	uint deployedContainerId = 0;
 
-	int iPendingMineAsteroidEvents;
-	int iMineAsteroidEvents;
-	time_t tmMineAsteroidSampleStart;
-
-	uint LastTimeMessageAboutBeingFull;
+	uint LastTimeMessageAboutBeingFull = 0;
 };
-map<uint, CLIENT_DATA> mapClients;
 
-
+struct CONTAINER_DATA
+{
+	uint lootId = 0;
+	uint lootCount = 0;
+	uint nameIDS = 0;
+	wstring solarName;
+	uint systemId = 0;
+	Vector jettisonPos;
+	uint clientId = 0;
+	uint lootCrateId = 0;
+};
+unordered_map<uint, CLIENT_DATA> mapClients;
+unordered_map<uint, CONTAINER_DATA> mapMiningContainers;
 
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Return the string parameter at position iPos from the ini line. The
-/// delimiter is a ',' character. A chunk of code is from Motah's Flak.
-static string GetTrimParam(const string &scLine, uint iPos)
+static float GetMiningYieldBonus(const uint id, const uint lootId)
 {
-	string scOut = "";
-	for (uint i = 0, j = 0; (i <= iPos) && (j < scLine.length()); j++)
+	const auto& bonusForId = idBonusMap.find(id);
+	if (bonusForId != idBonusMap.end())
 	{
-		if (scLine[j] == ',')
-			i++;
-		else if (i == iPos)
-			scOut += scLine[j];
-		else if (i > iPos)
-			break;
+		const auto& bonusForLoot = bonusForId->second.find(lootId);
+		if (bonusForLoot != bonusForId->second.end()) {
+			return bonusForLoot->second;
+		}
 	}
 
-	while (scOut.size() && (scOut[0] == L' ' || scOut[0] == L'\t' || scOut[0] == L'\n' || scOut[0] == L'\r'))
-	{
-		scOut = scOut.substr(1);
-	}
-	while (scOut.size() && (scOut[scOut.size() - 1] == L' ' || scOut[scOut.size() - 1] == L'\t'
-		|| scOut[scOut.size() - 1] == L'\n' || scOut[scOut.size() - 1] == L'\r'))
-	{
-		scOut = scOut.substr(0, scOut.length() - 1);
-	}
-	return scOut;
+	return 1.0f;
 }
 
-/// Return true if the cargo list contains the specified good.
-static bool ContainsEquipment(list<CARGO_INFO> &lstCargo, uint iArchID)
+void CheckClientSetup(const uint iClientID)
 {
-	foreach(lstCargo, CARGO_INFO, c)
-		if (c->bMounted && c->iArchID == iArchID)
-			return true;
-	return false;
-}
-
-/// Return the factor to modify a mining loot drop by.
-static float GetBonus(uint iRep, uint iShipID, list<CARGO_INFO> lstCargo, uint iLootID)
-{
-	if (!set_mmapPlayerBonus.size())
-		return 0.0f;
-
-	// Get all player bonuses for this commodity.
-	multimap<uint, PLAYER_BONUS>::iterator start = set_mmapPlayerBonus.lower_bound(iLootID);
-	multimap<uint, PLAYER_BONUS>::iterator end = set_mmapPlayerBonus.upper_bound(iLootID);
-	for (; start != end; start++)
+	const auto& equipDesc = Players[iClientID].equipDescList.equip;
+	for (auto& equip : equipDesc)
 	{
-		// Check for matching reputation if reputation is required.
-		if (start->second.iRep != -1 && iRep != start->second.iRep)
+		if (!equip.bMounted)
+		{
 			continue;
-
-		// Check for matching ship.
-		if (find(start->second.lstShips.begin(), start->second.lstShips.end(), iShipID) == start->second.lstShips.end())
-			continue;
-
-		// Check that every simple item in the equipment list is present and mounted.
-		bool bEquipMatch = true;
-		for (list<uint>::iterator item = start->second.lstItems.begin(); item != start->second.lstItems.end(); item++)
-		{
-			if (!ContainsEquipment(lstCargo, *item))
-			{
-				bEquipMatch = false;
-				break;
-			}
 		}
-
-		// This is a match.
-		if (bEquipMatch)
-			return start->second.fBonus;
+		const Archetype::Tractor* itemPtr = dynamic_cast<Archetype::Tractor*>(Archetype::GetEquipment(equip.iArchID));
+		if (itemPtr)
+		{
+			mapClients[iClientID].equippedID = equip.iArchID;
+			return;
+		}
 	}
-
-	return 0.0f;
+	mapClients[iClientID].equippedID = 0;
 }
 
-void CheckClientSetup(uint iClientID)
+void DestroyContainer(const uint clientID)
 {
-	if (!mapClients[iClientID].bSetup)
+	const auto& iter = mapClients.find(clientID);
+	if (iter != mapClients.end())
 	{
-		if (set_iPluginDebug > 1)
-			ConPrint(L"NOTICE: iClientID=%d setup bonuses\n", iClientID);
-		mapClients[iClientID].bSetup = true;
-		mapClients[iClientID].LastTimeMessageAboutBeingFull = 0;
-
-		// Get the player affiliation
-		uint iRepGroupID = -1;
-		IObjInspectImpl* oship = HkGetInspect(iClientID);
-		if (oship)
-			oship->get_affiliation(iRepGroupID);
-
-		// Get the ship type
-		uint iShipID;
-		pub::Player::GetShipID(iClientID, iShipID);
-
-		// Get the ship cargo so that we can check ids, guns, etc.
-		list<CARGO_INFO> lstCargo;
-		int remainingHoldSize = 0;
-		HkEnumCargo((const wchar_t*)Players.GetActiveCharacterName(iClientID), lstCargo, remainingHoldSize);
-		if (set_iPluginDebug > 1)
+		if (iter->second.deployedContainerId)
 		{
-			ConPrint(L"NOTICE: iClientID=%d iRepGroupID=%u iShipID=%u lstCargo=", iClientID, iRepGroupID, iShipID);
-			foreach(lstCargo, CARGO_INFO, ci)
+			const auto& cd = mapMiningContainers[iter->second.deployedContainerId];
+			if (cd.lootCount)
 			{
-				ConPrint(L"%u ", ci->iArchID);
+				Server.MineAsteroid(cd.systemId, cd.jettisonPos, cd.lootCrateId, cd.lootId, cd.lootCount, cd.clientId);
 			}
-			ConPrint(L"\n");
+			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
+			pub::SpaceObj::Destroy(iter->second.deployedContainerId, DestroyType::FUSE);
+			mapMiningContainers.erase(iter->second.deployedContainerId);
 		}
-
-		// Check the player bonus list and if this player has the right ship and equipment
-		// then record the bonus and the weapon types that can be used to gather the ore.
-		mapClients[iClientID].mapLootBonus.clear();
-		mapClients[iClientID].mapLootAmmoLst.clear();
-		mapClients[iClientID].mapLootShipLst.clear();
-		for (multimap<uint, PLAYER_BONUS>::iterator i = set_mmapPlayerBonus.begin(); i != set_mmapPlayerBonus.end(); i++)
-		{
-			uint iLootID = i->first;
-			float fBonus = GetBonus(iRepGroupID, iShipID, lstCargo, iLootID);
-			if (fBonus > 0.0f)
-			{
-				mapClients[iClientID].mapLootBonus[iLootID] = fBonus;
-				mapClients[iClientID].mapLootAmmoLst[iLootID] = i->second.lstAmmo;
-				mapClients[iClientID].mapLootShipLst[iLootID] = i->second.lstShips;
-				if (set_iPluginDebug > 1)
-				{
-					ConPrint(L"NOTICE: iClientID=%d iLootID=%08x fBonus=%2.2f\n", iClientID, iLootID, fBonus);
-				}
-			}
-		}
-
-		wstring wscRights;
-		HkGetAdmin((const wchar_t*)Players.GetActiveCharacterName(iClientID), wscRights);
-		if (wscRights.size())
-			mapClients[iClientID].iDebug = set_iPluginDebug;
+		mapClients[clientID].deployedContainerId = 0;
 	}
 }
 
 EXPORT void HkTimerCheckKick()
 {
 	returncode = DEFAULT_RETURNCODE;
-
-	// Perform 60 second tasks. 
-	if ((time(0) % 60) == 0)
+	uint currTime = static_cast<uint>(time(nullptr));
+	// Perform 120 second tasks. 
+	if (currTime % 120 == 0)
 	{
-		// Recharge the fields
-		for (map<uint, ZONE_BONUS>::iterator i = set_mapZoneBonus.begin(); i != set_mapZoneBonus.end(); i++)
+		uint playerCount = 0;
+		PlayerData* pd = nullptr;
+		while (pd = Players.traverse_active(pd))
 		{
-			i->second.fCurrReserve += i->second.fRechargeRate;
-			if (i->second.fCurrReserve > i->second.fMaxReserve)
-				i->second.fCurrReserve = i->second.fMaxReserve;
+			playerCount++;
 		}
 
-		// Save the zone status to disk
 		char szDataPath[MAX_PATH];
 		GetUserDataPath(szDataPath);
-		string scStatsPath = string(szDataPath) + "\\Accts\\MultiPlayer\\mining_stats.txt";
-		FILE *file = fopen(scStatsPath.c_str(), "w");
+		string scStatsPath = string(szDataPath) + R"(\Accts\MultiPlayer\mining_stats.txt)";
+		FILE* file = fopen(scStatsPath.c_str(), "w");
+		if (file)
+			fprintf(file, "[Zones]\n");
+
+		// Recharge the fields
+		for (auto& i = set_mapZoneBonus.begin(); i != set_mapZoneBonus.end(); i++)
+		{
+			auto& zone = i->second;
+			zone.fCurrReserve = min(zone.fCurrReserve + (zone.fRechargeRate * playerCount), zone.fMaxReserve);
+
+			if (file && !zone.scZone.empty() && zone.fMaxReserve > 0 && zone.fMaxReserve != zone.fCurrReserve)
+			{
+				fprintf(file, "%ls, %0.0f, %0.0f\n", zone.scZone.c_str(), zone.fCurrReserve, zone.fMined);
+			}
+		}
+
 		if (file)
 		{
-			fprintf(file, "[Zones]\n");
-			for (map<uint, ZONE_BONUS>::iterator i = set_mapZoneBonus.begin(); i != set_mapZoneBonus.end(); i++)
-			{
-				if (i->second.scZone.size())
-				{
-					fprintf(file, "%s, %0.0f, %0.0f\n", i->second.scZone.c_str(), i->second.fCurrReserve, i->second.fMined);
-				}
-			}
 			fclose(file);
 		}
 	}
@@ -300,13 +219,11 @@ EXPORT void HkTimerCheckKick()
 /// Clear client info when a client connects.
 EXPORT void ClearClientInfo(uint iClientID)
 {
-	mapClients[iClientID].bSetup = false;
-	mapClients[iClientID].mapLootBonus.clear();
-	mapClients[iClientID].mapLootAmmoLst.clear();
-	mapClients[iClientID].iDebug = 0;
-	mapClients[iClientID].iPendingMineAsteroidEvents = 0;
-	mapClients[iClientID].iMineAsteroidEvents = 0;
-	mapClients[iClientID].tmMineAsteroidSampleStart = 0;
+	auto& cd = mapClients[iClientID];
+	cd.equippedID = 0;
+	cd.itemCount = 0;
+	cd.lootID = 0;
+	DestroyContainer(iClientID);
 }
 
 /// Load the configuration
@@ -319,19 +236,26 @@ EXPORT void LoadSettings()
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\minecontrol.cfg";
 
+	set_shipClassModifiers.fill(1.0f);
+
 	// Load generic settings
-	set_fGenericFactor = IniGetF(scPluginCfgFile, "MiningGeneral", "GenericFactor", 1.0);
 	set_iPluginDebug = IniGetI(scPluginCfgFile, "MiningGeneral", "Debug", 0);
 	set_scStatsPath = IniGetS(scPluginCfgFile, "MiningGeneral", "StatsPath", "");
+	set_globalModifier = IniGetF(scPluginCfgFile, "MiningGeneral", "GlobalModifier", set_globalModifier);
+	set_containerModifier = IniGetF(scPluginCfgFile, "MiningGeneral", "ContainerModifier", set_containerModifier);
+	set_containerJettisonCount = IniGetI(scPluginCfgFile, "MiningGeneral", "ContainerJettisonCount", set_containerJettisonCount);
+	set_containerSolarArchetypeID = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerSolarArchetype", "dsy_playerbase_01").c_str());
+	set_containerLoadoutArchetypeID = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerLoadoutArchetype", "dsy_playerbase_01").c_str());
+	set_deployableContainerCommodity = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerCommodity", "commodity_scrap_metal").c_str());
+	set_miningMunition = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "MiningMunition", "mining_gun_ammo").c_str());
+	set_miningCheatLogThreshold = IniGetF(scPluginCfgFile, "MiningGeneral", "MiningCheatLogThreshold", set_miningCheatLogThreshold);
+
+	set_containerLootCrateID = Archetype::GetEquipment(set_deployableContainerCommodity)->get_loot_appearance()->iArchID;
 
 	if (set_iPluginDebug)
-		ConPrint(L"NOTICE: generic_factor=%0.0f debug=%d\n", set_fGenericFactor, set_iPluginDebug);
-
-	// Patch Archetype::GetEquipment & Archetype::GetShip to suppress annoying warnings flserver-errors.log
-	unsigned char patch1[] = { 0x90, 0x90 };
-	WriteProcMem((char*)0x62F327E, &patch1, 2);
-	WriteProcMem((char*)0x62F944E, &patch1, 2);
-	WriteProcMem((char*)0x62F123E, &patch1, 2);
+	{
+		ConPrint(L"NOTICE: debug=%d\n", set_iPluginDebug);
+	}
 
 	// Load the player bonus list and the field bonus list.
 	// To receive the bonus for the particular commodity the player has to have 
@@ -342,7 +266,6 @@ EXPORT void LoadSettings()
 	// The [FieldBonus] section has the following format:
 	// Field, Bonus, Replacement Commodity
 	set_mapZoneBonus.clear();
-	set_mmapPlayerBonus.clear();
 	INI_Reader ini;
 	if (ini.open(scPluginCfgFile.c_str(), false))
 	{
@@ -352,77 +275,20 @@ EXPORT void LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					string scLine = ini.get_name_ptr();
-
-					PLAYER_BONUS pb;
-					pb.iLootID = CreateID(GetTrimParam(scLine, 0).c_str());
-					if (!Archetype::GetEquipment(pb.iLootID) && !Archetype::GetSimple(pb.iLootID))
+					if (ini.is_value("pb"))
 					{
-						ConPrint(L"ERROR: %s:%d: item '%s' not valid\n", stows(ini.get_file_name()).c_str(), ini.get_line_num(),
-							stows(GetTrimParam(scLine, 0)).c_str());
-						continue;
-					}
-
-					pb.fBonus = (float)atof(GetTrimParam(scLine, 1).c_str());
-					if (pb.fBonus <= 0.0f)
-					{
-						ConPrint(L"ERROR: %s:%d: bonus not valid\n", stows(ini.get_file_name()).c_str(), ini.get_line_num());
-						continue;
-					}
-
-					pb.iRep = -1;
-					if (GetTrimParam(scLine, 2) != "*")
-					{
-						pub::Reputation::GetReputationGroup(pb.iRep, GetTrimParam(scLine, 2).c_str());
-						if (pb.iRep == -1)
+						uint licenceId = CreateID(ini.get_value_string(0));
+						wstring licenceName = stows(ini.get_value_string(0));
+						uint lootId = CreateID(ini.get_value_string(1));
+						wstring lootName = stows(ini.get_value_string(1));
+						float bonus = ini.get_value_float(2);
+						if (set_iPluginDebug)
 						{
-							ConPrint(L"ERROR: %s:%d: reputation not valid\n", stows(ini.get_file_name()).c_str(), ini.get_line_num());
-							continue;
-						}
-					}
-
-					int i = 3;
-					string scShipOrEquip = GetTrimParam(scLine, i++);
-					while (scShipOrEquip.size())
-					{
-						uint iItemID = CreateID(scShipOrEquip.c_str());
-						if (Archetype::GetShip(iItemID))
-						{
-							pb.lstShips.push_back(iItemID);
-						}
-						else if (Archetype::GetEquipment(iItemID))
-						{
-							Archetype::Equipment *eq = Archetype::GetEquipment(iItemID);
-							if (eq->get_class_type() == Archetype::GUN)
-							{
-								Archetype::Gun* gun = (Archetype::Gun*) eq;
-								if (gun->iProjectileArchID && gun->iProjectileArchID != 0xBAADF00D && gun->iProjectileArchID != 0x3E07E70)
-								{
-									pb.lstAmmo.push_back(gun->iProjectileArchID);
-								}
-							}
-							else
-							{
-								pb.lstItems.push_back(iItemID);
-							}
-						}
-						else if (Archetype::GetSimple(iItemID))
-						{
-							pb.lstItems.push_back(iItemID);
-						}
-						else
-						{
-							ConPrint(L"ERROR: %s:%d: item '%s' not valid\n", stows(ini.get_file_name()).c_str(), ini.get_line_num(), stows(scShipOrEquip).c_str());
+							ConPrint(L"NOTICE: licence %ls bonus=%2.2f loot=%s(%u)\n",
+								licenceName.c_str(), bonus, lootName.c_str(), lootId);
 						}
 
-						scShipOrEquip = GetTrimParam(scLine, i++);
-					}
-
-					set_mmapPlayerBonus.insert(multimap<uint, PLAYER_BONUS>::value_type(pb.iLootID, pb));
-					if (set_iPluginDebug)
-					{
-						ConPrint(L"NOTICE: mining player bonus %s(%u) %2.2f %s(%u)\n",
-							stows(GetTrimParam(scLine, 0)).c_str(), pb.iLootID, pb.fBonus, stows(GetTrimParam(scLine, 2)).c_str(), pb.iRep);
+						idBonusMap[licenceId][lootId] = bonus;
 					}
 				}
 			}
@@ -430,54 +296,41 @@ EXPORT void LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					string scLine = ini.get_name_ptr();
-
-					string scZone = GetTrimParam(scLine, 0);
-					if (!scZone.size())
+					if (ini.is_value("zb"))
 					{
-						ConPrint(L"ERROR: %s:%d: zone not valid\n", stows(ini.get_file_name()).c_str(), ini.get_line_num());
-						continue;
+						uint zoneID = CreateID(ini.get_value_string(0));
+						wstring zoneName = stows(ini.get_value_string(0));
+						float bonus = ini.get_value_float(1);
+						uint replacementLootID = CreateID(ini.get_value_string(2));
+						wstring replacementLootName = stows(ini.get_value_string(2));
+						float rechargeRate = ini.get_value_float(3);
+						float maxReserve = ini.get_value_float(4);
+						if (zoneName.empty() || bonus <= 0.0f || maxReserve <= 0.0f)
+						{
+							ConPrint(L"Incorrectly setup Zone Bonus entry!\n");
+							continue;
+						}
+						set_mapZoneBonus[zoneID].scZone = zoneName;
+						set_mapZoneBonus[zoneID].fMultiplier = bonus;
+						set_mapZoneBonus[zoneID].iReplacementLootID = replacementLootID;
+						set_mapZoneBonus[zoneID].fRechargeRate = rechargeRate;
+						set_mapZoneBonus[zoneID].fCurrReserve = maxReserve;
+						set_mapZoneBonus[zoneID].fMaxReserve = maxReserve;
+						if (set_iPluginDebug)
+						{
+							ConPrint(L"NOTICE: zone bonus %s bonus=%2.2f replacementLootID=%s(%u) rechargeRate=%0.0f maxReserve=%0.0f\n",
+								zoneName.c_str(), bonus, replacementLootName.c_str(), replacementLootID, rechargeRate, maxReserve);
+						}
 					}
-
-					float fBonus = (float)atof(GetTrimParam(scLine, 1).c_str());
-					if (fBonus <= 0.0f)
+				}
+			}
+			else if (ini.is_header("ShipTypeBonus"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("ship_class_bonus"))
 					{
-						ConPrint(L"ERROR: %s:%d: bonus not valid\n", stows(ini.get_file_name()).c_str(), ini.get_line_num());
-						continue;
-					}
-
-					uint iReplacementLootID = 0;
-					string scReplacementLoot = GetTrimParam(scLine, 2);
-					if (scReplacementLoot.size())
-					{
-						iReplacementLootID = CreateID(scReplacementLoot.c_str());
-					}
-
-					//
-					float fRechargeRate = 1000;
-					//float fRechargeRate = (float)atof(GetTrimParam(scLine, 3).c_str());
-					//if (fRechargeRate <= 0.0f)
-					//{
-					//	fRechargeRate = 50000;					
-					//}
-
-					float fMaxReserve = 100000;
-					//float fMaxReserve = (float)atof(GetTrimParam(scLine, 4).c_str());
-					//if (fMaxReserve <= 0.0f)
-					//{
-					//	fMaxReserve = 100000;					
-					//}
-
-					uint iZoneID = CreateID(scZone.c_str());
-					set_mapZoneBonus[iZoneID].scZone = scZone;
-					set_mapZoneBonus[iZoneID].fBonus = fBonus;
-					set_mapZoneBonus[iZoneID].iReplacementLootID = iReplacementLootID;
-					set_mapZoneBonus[iZoneID].fRechargeRate = fRechargeRate;
-					set_mapZoneBonus[iZoneID].fMaxReserve = fMaxReserve;
-					if (set_iPluginDebug)
-					{
-						ConPrint(L"NOTICE: zone bonus %s fBonus=%2.2f iReplacementLootID=%s(%u) fRechargeRate=%0.0f fMaxReserve=%0.0f\n",
-							stows(scZone).c_str(), fBonus, stows(scReplacementLoot).c_str(), iReplacementLootID, fRechargeRate, fMaxReserve);
+						set_shipClassModifiers[ini.get_value_int(0)] = ini.get_value_float(1);
 					}
 				}
 			}
@@ -497,27 +350,21 @@ EXPORT void LoadSettings()
 			{
 				while (ini.read_value())
 				{
-					string scLine = ini.get_name_ptr();
-					string scZone = GetTrimParam(scLine, 0);
-					float fCurrReserve = (float)atof(GetTrimParam(scLine, 1).c_str());
-					float fMined = (float)atof(GetTrimParam(scLine, 2).c_str());
-					uint iZoneID = CreateID(scZone.c_str());
-					if (set_mapZoneBonus.find(iZoneID) != set_mapZoneBonus.end())
+					string zoneName = ini.get_value_string(0);
+					if (zoneName.empty())
 					{
-						set_mapZoneBonus[iZoneID].fCurrReserve = fCurrReserve;
-						set_mapZoneBonus[iZoneID].fMined = fMined;
+						ConPrint(L"Incorrect entry in mining stats file!\n");
+						continue;
 					}
+					uint zoneID = CreateID(zoneName.c_str());
+					auto& zoneData = set_mapZoneBonus[zoneID];
+					zoneData.fCurrReserve = ini.get_value_float(1);
+					zoneData.fMined = ini.get_value_float(2);
 				}
 			}
 		}
 		ini.close();
 	}
-
-	// Remove patch now that we've finished loading.
-	unsigned char patch2[] = { 0xFF, 0x12 };
-	WriteProcMem((char*)0x62F327E, &patch2, 2);
-	WriteProcMem((char*)0x62F944E, &patch2, 2);
-	WriteProcMem((char*)0x62F123E, &patch2, 2);
 
 	struct PlayerData *pPD = 0;
 	while (pPD = Players.traverse_active(pPD))
@@ -529,34 +376,84 @@ EXPORT void LoadSettings()
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-	srand((uint)time(0));
 	// If we're being loaded from the command line while FLHook is running then
 	// set_scCfgFile will not be empty so load the settings as FLHook only
 	// calls load settings on FLHook startup and .rehash.
-	if (fdwReason == DLL_PROCESS_ATTACH && set_scCfgFile.length() > 0)
-		LoadSettings();
+	if (fdwReason == DLL_PROCESS_ATTACH)
+	{
+		if (set_scCfgFile.length() > 0)
+		{
+			LoadSettings();
+		}
+
+		HkLoadStringDLLs();
+	}
+	if (fdwReason == DLL_PROCESS_DETACH)
+	{
+		HkUnloadStringDLLs();
+	}
+	return true;
+
+}
+
+
+bool UserCmd_Process(uint client, const wstring& args)
+{
+	if (args.find(L"/cs") != 0 && args.find(L"/cargostored") != 0)
+	{
+		return true;
+	}
+	uint targetId;
+	uint shipId;
+	pub::Player::GetShip(client, shipId);
+	pub::SpaceObj::GetTarget(shipId, targetId);
+	if (!targetId)
+	{
+		PrintUserCmdText(client, L"ERR Mining container not selected");
+		return true;
+	}
+	const auto& container = mapMiningContainers.find(targetId);
+	if (container == mapMiningContainers.end())
+	{
+		PrintUserCmdText(client, L"ERR Mining container not selected");
+		return true;
+	}
+
+	PrintUserCmdText(client, L"Container holds %u units of cargo", container->second.lootCount);
+	
 	return true;
 }
 
 void __stdcall PlayerLaunch(unsigned int iShip, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-	ClearClientInfo(iClientID);
+	CheckClientSetup(iClientID);
 }
 
 /// Called when a gun hits something
 void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-
 	// If this is not a lootable rock, do no other processing.
-	if (ci.dwTargetShip != 0)
+	if (ci.iProjectileArchID != set_miningMunition || ci.dwTargetShip != 0)
+	{
 		return;
+	}
 
 	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 
-	// Initialise the mining setup for this client if it hasn't been done already.
-	CheckClientSetup(iClientID);
+	CLIENT_DATA& cd = mapClients[iClientID];
+
+	if (!cd.itemCount)
+	{
+		return;
+	}
+
+	// use floats to ensure precision when applying various minor modifiers.
+	float miningYield = static_cast<float>(cd.itemCount);
+	uint lootId = cd.lootID;
+	cd.itemCount = 0;
+	cd.lootID = 0;
 
 	uint iShip;
 	pub::Player::GetShip(iClientID, iShip);
@@ -568,183 +465,309 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 	uint iClientSystemID;
 	pub::Player::GetSystem(iClientID, iClientSystemID);
 	CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(iClientSystemID);
-	if (csys)
+	if (!csys)
 	{
+		return;
+	}
+
+	// Find asteroid field that matches the best.
+	for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
+	{
+		if (!cfield->near_field(vPos))
+		{
+			continue;
+		}
+		const Universe::IZone* zone = cfield->get_lootable_zone(vPos);
+		if (!zone || !zone->lootableZone)
+		{
+			continue;
+		}
+
+		const auto& zoneBonusData = set_mapZoneBonus.find(zone->iZoneID);
+		ZONE_BONUS* finalZone = nullptr;
+		if(zoneBonusData != set_mapZoneBonus.end())
+		{
+			auto& zoneData = zoneBonusData->second;
+			if (zoneData.fCurrReserve == 0.0f)
+			{
+				return;
+			}
+
+			if (zoneData.iReplacementLootID)
+			{
+				lootId = zoneData.iReplacementLootID;
+			}
+			miningYield *= zoneData.fMultiplier;
+
+			miningYield = max(miningYield, zoneData.fCurrReserve);
+			finalZone = &zoneData; // save ZONE_BONUS ref to update AFTER all the bonuses are applied
+		}
+		uint type;
+		pub::SpaceObj::GetType(iShip, type);
+		miningYield *= GetMiningYieldBonus(cd.equippedID, lootId) * set_globalModifier * set_shipClassModifiers[type];
+		miningYield += cd.overminedFraction; // add the decimal remainder from last mining event.
+
+		if (finalZone)
+		{
+			finalZone->fCurrReserve -= miningYield;
+			finalZone->fMined += miningYield;
+		}
+		// If this ship is has another ship targetted then send the ore into the cargo
+		// hold of the other ship.
+		uint iSendToClientID = iClientID;
+		const Archetype::Equipment* lootInfo = Archetype::GetEquipment(lootId);
+
+		uint iTargetObj;
+		bool foundContainer = false;
+		pub::SpaceObj::GetTarget(iShip, iTargetObj);
+		if (iTargetObj && HkDistance3DByShip(iShip, iTargetObj) < 1000.0f)
+		{
+			uint iTargetClientID = HkGetClientIDByShip(iTargetObj);
+			if (iTargetClientID)
+			{
+				iSendToClientID = iTargetClientID;
+			}
+			else
+			{
+				const auto& container = mapMiningContainers.find(iTargetObj);
+				if (container != mapMiningContainers.end() && container->second.lootId == lootId)
+				{
+					foundContainer = true;
+					container->second.lootCount += static_cast<uint>(miningYield * set_containerModifier);
+
+					if (container->second.lootCount >= set_containerJettisonCount)
+					{
+						Server.MineAsteroid(container->second.systemId, container->second.jettisonPos, set_containerLootCrateID, container->second.lootId, set_containerJettisonCount, container->second.clientId);
+						container->second.lootCount -= set_containerJettisonCount;
+					}
+				}
+			}
+		}
+
+		uint miningYieldInt = static_cast<uint>(miningYield);
+		cd.overminedFraction = miningYield - miningYieldInt; // save the unused decimal portion for the next mining event.
+
+		if (cd.miningSampleStart < time(nullptr))
+		{
+			float average = cd.miningEvents / 30.0f;
+			if (average > set_miningCheatLogThreshold)
+			{
+				AddLog("NOTICE: high mining rate charname=%s rate=%0.1f/sec location=%0.0f,%0.0f,%0.0f system=%08x zone=%08x",
+					wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(),
+					average, vPos.x, vPos.y, vPos.z, zone->iSystemID, zone->iZoneID);
+			}
+
+			cd.miningSampleStart = static_cast<uint>(time(nullptr)) + 30;
+			cd.miningEvents = 0;
+		}
+
+		if (foundContainer)
+		{
+			return;
+		}
+
+		float fHoldRemaining;
+		pub::Player::GetRemainingHoldSize(iSendToClientID, fHoldRemaining);
+		if (fHoldRemaining < static_cast<float>(miningYieldInt) * lootInfo->fVolume)
+		{
+			miningYieldInt = static_cast<uint>(fHoldRemaining / lootInfo->fVolume);
+		}
+
+		if (!miningYieldInt)
+		{
+			if (((uint)time(nullptr) - mapClients[iClientID].LastTimeMessageAboutBeingFull) > 1)
+			{
+				PrintUserCmdText(iClientID, L"%s's cargo is now full.", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iSendToClientID)));
+				pub::Player::SendNNMessage(iClientID, insufficientCargoSoundId);
+				if (iClientID != iSendToClientID)
+				{
+					PrintUserCmdText(iSendToClientID, L"Your cargo is now full.");
+					pub::Player::SendNNMessage(iSendToClientID, insufficientCargoSoundId);
+				}
+				mapClients[iClientID].LastTimeMessageAboutBeingFull = (uint)time(nullptr);
+			}
+		}
+		else
+		{
+			pub::Player::AddCargo(iSendToClientID, lootId, miningYieldInt, 1.0, false);
+		}
+		return;
+	}
+}
+
+void __stdcall MineAsteroid(uint iClientSystemID, class Vector const& vPos, uint iCrateID, uint iLootID, uint iCount, uint iClientID)
+{
+	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	CLIENT_DATA& data = mapClients[iClientID];
+	data.itemCount = iCount;
+	data.lootID = iLootID;
+}
+
+void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const& jc)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (jc.iCount != 1)
+	{
+		return;
+	}
+
+	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
+	{
+		if (item->sID != jc.iSlot)
+		{
+			continue;
+		}
+		if (item->iArchID != set_deployableContainerCommodity)
+		{
+			return;
+		}
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		const auto& cd = mapClients.find(iClientID);
+		if (cd != mapClients.end() && cd->second.deployedContainerId)
+		{
+			PrintUserCmdText(iClientID, L"ERR A mining container is already deployed");
+			return;
+		}
+
+		uint shipId;
+		uint systemId;
+		Vector pos;
+		Matrix ori;
+		wstring commodityName;
+		uint lootId = 0;
+		pub::Player::GetShip(iClientID, shipId);
+		pub::Player::GetSystem(iClientID, systemId);
+		pub::SpaceObj::GetLocation(shipId, pos, ori);
+		TranslateX(pos, ori, -400);
+
+		CmnAsteroid::CAsteroidSystem* csys = CmnAsteroid::Find(systemId);
+		if (!csys)
+		{
+			PrintUserCmdText(iClientID, L"ERR Not in a mineable field!");
+			return;
+		}
+
 		// Find asteroid field that matches the best.
 		for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
 		{
-			try
+			if (!cfield->near_field(pos))
 			{
-				const Universe::IZone *zone = cfield->get_lootable_zone(vPos);
-				if (cfield->near_field(vPos) && zone && zone->lootableZone)
-				{
-					CLIENT_DATA &cd = mapClients[iClientID];
-
-					// If a non-rock is being shot we won't have an associated mining event
-					// so ignore this.
-					cd.iPendingMineAsteroidEvents--;
-					if (cd.iPendingMineAsteroidEvents < 0)
-					{
-						cd.iPendingMineAsteroidEvents = 0;
-						return;
-					}
-
-					// Adjust the bonus based on the zone.
-					float fZoneBonus = 0.25f;
-					if (set_mapZoneBonus[zone->iZoneID].fBonus)
-						fZoneBonus = set_mapZoneBonus[zone->iZoneID].fBonus;
-
-					// If the field is getting mined out, reduce the bonus
-					//fZoneBonus *= set_mapZoneBonus[zone->iZoneID].fCurrReserve / set_mapZoneBonus[zone->iZoneID].fMaxReserve;
-
-					uint iLootID = zone->lootableZone->dynamic_loot_commodity;
-					uint iCrateID = zone->lootableZone->dynamic_loot_container;
-
-					// Change the commodity if appropriate.
-					if (set_mapZoneBonus[zone->iZoneID].iReplacementLootID)
-						iLootID = set_mapZoneBonus[zone->iZoneID].iReplacementLootID;
-
-
-
-					// If no mining bonus entry for this commodity is found, flag as no bonus
-					map<uint, list<uint> >::iterator ammolst = cd.mapLootAmmoLst.find(iLootID);
-					bool bNoMiningCombo = false;
-					if (ammolst == cd.mapLootAmmoLst.end())
-					{
-						bNoMiningCombo = true;
-						if (cd.iDebug)
-							PrintUserCmdText(iClientID, L"* Wrong ship/equip/rep");
-					}
-					// If this minable commodity was not hit by the right type of gun, flag as no bonus
-					else if (find(ammolst->second.begin(), ammolst->second.end(), ci.iProjectileArchID) == ammolst->second.end())
-					{
-						bNoMiningCombo = true;
-						if (cd.iDebug)
-							PrintUserCmdText(iClientID, L"* Wrong gun");
-					}
-
-					// If either no mining gun was used in the shot, or the character isn't using a valid mining combo 
-					// for this commodity, set bonus to *0.5
-					float fPlayerBonus = 0.5f;
-					if (bNoMiningCombo)
-						fPlayerBonus = 0.5f;
-					else
-						fPlayerBonus = cd.mapLootBonus[iLootID];
-
-					// If this ship is has another ship targetted then send the ore into the cargo
-					// hold of the other ship.
-					uint iSendToClientID = iClientID;
-					if (!bNoMiningCombo)
-					{
-						uint iTargetShip;
-						pub::SpaceObj::GetTarget(iShip, iTargetShip);
-						if (iTargetShip)
-						{
-							uint iTargetClientID = HkGetClientIDByShip(iTargetShip);
-							if (iTargetClientID)
-							{
-								if (HkDistance3DByShip(iShip, iTargetShip) < 1000.0f)
-								{
-									iSendToClientID = iTargetClientID;
-								}
-							}
-						}
-					}
-
-					// Calculate the loot drop count
-					float fRand = (float)rand() / (float)RAND_MAX;
-
-					// Calculate the loot drop and drop it.
-					int iLootCount = (int)(fRand * set_fGenericFactor * fZoneBonus * fPlayerBonus * zone->lootableZone->dynamic_loot_count2);
-
-					// Remove this lootCount from the field
-					set_mapZoneBonus[zone->iZoneID].fCurrReserve -= iLootCount;
-					set_mapZoneBonus[zone->iZoneID].fMined += iLootCount;
-					if (set_mapZoneBonus[zone->iZoneID].fCurrReserve <= 0)
-					{
-						set_mapZoneBonus[zone->iZoneID].fCurrReserve = 0;
-						//iLootCount = 0;
-					}
-
-					if (mapClients[iClientID].iDebug)
-					{
-						PrintUserCmdText(iClientID, L"* fRand=%2.2f fGenericBonus=%2.2f fPlayerBonus=%2.2f fZoneBonus=%2.2f iLootCount=%d iLootID=%u/%u fCurrReserve=%0.0f",
-							fRand, set_fGenericFactor, fPlayerBonus, fZoneBonus, iLootCount, iLootID, iCrateID, set_mapZoneBonus[zone->iZoneID].fCurrReserve);
-					}
-
-					mapClients[iClientID].iMineAsteroidEvents++;
-					if (mapClients[iClientID].tmMineAsteroidSampleStart < time(0))
-					{
-						float average = mapClients[iClientID].iMineAsteroidEvents / 30.0f;
-						if (average > 2.0f)
-						{
-							AddLog("NOTICE: high mining rate charname=%s rate=%0.1f/sec location=%0.0f,%0.0f,%0.0f system=%08x zone=%08x",
-								wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(),
-								average, vPos.x, vPos.y, vPos.z, zone->iSystemID, zone->iZoneID);
-						}
-
-						mapClients[iClientID].tmMineAsteroidSampleStart = time(0) + 30;
-						mapClients[iClientID].iMineAsteroidEvents = 0;
-					}
-
-					if (iLootCount)
-					{
-						float fHoldRemaining;
-						pub::Player::GetRemainingHoldSize(iSendToClientID, fHoldRemaining);
-						if (fHoldRemaining < iLootCount)
-						{
-							iLootCount = (int)fHoldRemaining;
-						}
-						if (iLootCount == 0)
-						{
-							if (((uint)time(0) - mapClients[iClientID].LastTimeMessageAboutBeingFull) > 1)
-							{
-								PrintUserCmdText(iClientID, L"%s's cargo is now full.", reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iSendToClientID)));
-								pub::Player::SendNNMessage(iClientID, CreateID("insufficient_cargo_space"));
-								if (iClientID != iSendToClientID)
-								{
-									PrintUserCmdText(iSendToClientID, L"Your cargo is now full.");
-									pub::Player::SendNNMessage(iSendToClientID, CreateID("insufficient_cargo_space"));
-								}
-								mapClients[iClientID].LastTimeMessageAboutBeingFull = (uint)time(0);
-							}
-							return;
-						}
-						pub::Player::AddCargo(iSendToClientID, iLootID, iLootCount, 1.0, false);
-					}
-					return;
-				}
+				continue;
 			}
-			catch (...) {}
+			const Universe::IZone* zone = cfield->get_lootable_zone(pos);
+			if (!zone || !zone->lootableZone)
+			{
+				continue;
+			}
+			const auto& zoneBonusData = set_mapZoneBonus.find(zone->iZoneID);
+			if (zoneBonusData != set_mapZoneBonus.end() && zoneBonusData->second.iReplacementLootID)
+			{
+				lootId = zoneBonusData->second.iReplacementLootID;
+				const GoodInfo* gi = GoodList::find_by_id(lootId);
+				commodityName = HkGetWStringFromIDS(gi->iIDSName);
+			}
+			else
+			{
+				lootId = zone->lootableZone->dynamic_loot_commodity;
+				const GoodInfo* gi = GoodList::find_by_id(lootId);
+				commodityName = HkGetWStringFromIDS(gi->iIDSName);
+			}
+			break;
 		}
+
+		if (!lootId)
+		{
+			PrintUserCmdText(iClientID, L"ERR Not in a mineable field!");
+			return;
+		}
+
+		SPAWN_SOLAR_STRUCT data;
+		data.iSystemId = systemId;
+		data.pos = pos;
+		data.ori = ori;
+		data.initialName = commodityName + L" Container";
+		data.nickname = "player_mining_container_"+itos(iClientID);
+		data.solar_ids = 540999 + iClientID;
+		data.solarArchetypeId = set_containerSolarArchetypeID;
+		data.loadoutArchetypeId = set_containerLoadoutArchetypeID;
+
+		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_SPAWN_SOLAR, &data);
+		if (data.iSpaceObjId)
+		{
+			CONTAINER_DATA cd;
+			cd.systemId = systemId;
+			pos.y -= 30;
+			cd.jettisonPos = pos;
+			cd.lootId = lootId;
+			cd.nameIDS = data.solar_ids;
+			cd.solarName = data.initialName;
+			cd.clientId = iClientID;
+			cd.lootCrateId = Archetype::GetEquipment(lootId)->get_loot_appearance()->iArchID;
+			mapMiningContainers[data.iSpaceObjId] = cd;
+			mapClients[iClientID].deployedContainerId = data.iSpaceObjId;
+			pub::Player::RemoveCargo(iClientID, item->sID, 1);
+		}
+
+		return;
 	}
 }
 
-/// Called when an asteriod is mined. We ignore all of the parameters from the client.
-void __stdcall MineAsteroid(uint iClientSystemID, class Vector const &vPos, uint iCrateID, uint iLootID, uint iCount, uint iClientID)
-{
-	mapClients[iClientID].iPendingMineAsteroidEvents += 4;
-	//	ConPrint(L"mine_asteroid %d %d %d\n", iCrateID, iLootID, iCount);
-	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-	return;
-}
-
-#define IS_CMD(a) !wscCmd.compare(L##a)
-
-bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &wscCmd)
+void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 {
 	returncode = DEFAULT_RETURNCODE;
-
-	if (IS_CMD("printminezones"))
-	{
-		returncode = NOFUNCTIONCALL;
-		PrintZones();
-		return true;
-	}
-
-	return false;
+	DestroyContainer(iClientID);
 }
 
+void __stdcall CharacterSelect(struct CHARACTER_ID const& cId, unsigned int iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	DestroyContainer(iClientID);
+
+	for (const auto& container : mapMiningContainers)
+	{
+		HkChangeIDSString(iClientID, container.second.nameIDS, container.second.solarName);
+	}
+}
+
+void __stdcall SystemSwitchOut(unsigned int iShip, uint iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	DestroyContainer(iClientID);
+}
+
+void __stdcall BaseEnter(uint base, uint iClientID)
+{
+	returncode = DEFAULT_RETURNCODE;
+	const auto& clientInfo = mapClients.find(iClientID);
+	if (clientInfo == mapClients.end())
+	{
+		return;
+	}
+	if (clientInfo->second.deployedContainerId
+	&&  mapMiningContainers[clientInfo->second.deployedContainerId].systemId != Players[iClientID].iSystemID)
+	{
+		DestroyContainer(iClientID);
+	}
+}
+
+void BaseDestroyed(uint space_obj, uint client)
+{
+	returncode = DEFAULT_RETURNCODE;
+	const auto& i = mapMiningContainers.find(space_obj);
+	if (i != mapMiningContainers.end())
+	{
+		const CONTAINER_DATA& cd = i->second;
+		mapClients[cd.clientId].deployedContainerId = 0;
+		// container destruction drop all contents as well as 'packed up' container.
+		if (cd.lootCount)
+		{
+			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
+		}
+		Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
+		mapMiningContainers.erase(space_obj);
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -759,9 +782,16 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOut, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseDestroyed, PLUGIN_BaseDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&MineAsteroid, PLUGIN_HkIServerImpl_MineAsteroid, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SPMunitionCollision, PLUGIN_HkIServerImpl_SPMunitionCollision, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&JettisonCargo, PLUGIN_HkIServerImpl_JettisonCargo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	return p_PI;
 }

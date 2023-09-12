@@ -22,6 +22,13 @@ static uint STORAGE_MODULE_CAPACITY = 40000;
 void LogCheater(uint client, const wstring& reason);
 uint GetAffliationFromClient(uint client);
 
+struct AICONFIG
+{
+	pub::AI::Personality::GunUseStruct gunUse;
+	pub::AI::Personality::MissileUseStruct missileUse;
+	pub::AI::Personality::JobStruct job;
+};
+
 struct RECIPE
 {
 	RECIPE() : cooking_rate(0), credit_cost(0) {}
@@ -223,6 +230,8 @@ public:
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
 	void Reset();
+
+	static void LoadSettings(const string& path);
 };
 
 class BuildModule : public Module
@@ -575,9 +584,17 @@ namespace PlayerCommands
 	void Aff_initer();
 }
 
-namespace Log {
-	void LogBaseAction(string basename, const char* message);
+namespace Log
+{
+	void LogBaseAction(string basename, const char *message);
 	void LogGenericAction(string message);
+}
+
+namespace CreateSolar
+{
+	pub::AI::SetPersonalityParams MakePersonality();
+	void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo);
+	void CreateSolarCallout(SPAWN_SOLAR_STRUCT* info);
 }
 
 extern unordered_map<uint, CLIENT_DATA> clients;
@@ -709,6 +726,8 @@ extern float damage_threshold;
 extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
+
+extern unordered_set<uint> customSolarList;
 
 extern unordered_map<uint, float> siegeWeaponryMap;
 

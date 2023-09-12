@@ -914,6 +914,45 @@ void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 	CheckforStackables(iClientID);
 }
 
+bool SetShipArch(uint iClientID, uint ship)
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	static uint botsArch = CreateID("ge_s_repair_01");
+	static uint battArch = CreateID("ge_s_battery_01");
+	const auto& shipData = Archetype::GetShip(ship);
+	int counter = 0;
+	for (const auto& eq : Players[iClientID].equipDescList.equip)
+	{
+		if (eq.iArchID == botsArch)
+		{
+			if (eq.iCount > shipData->iMaxNanobots)
+			{
+				uint botsToSell = eq.iCount - shipData->iMaxNanobots;
+				pub::Player::RemoveCargo(iClientID, eq.sID, botsToSell);
+				const GoodInfo* gi = GoodList::find_by_id(botsArch);
+				pub::Player::AdjustCash(iClientID, static_cast<int>(gi->fPrice * static_cast<float>(botsToSell)));
+			}
+			counter++;
+		}
+		else if (eq.iArchID == battArch)
+		{
+			if (eq.iCount > shipData->iMaxShieldBats)
+			{
+				uint battsToSell = eq.iCount - shipData->iMaxNanobots;
+				pub::Player::RemoveCargo(iClientID, eq.sID, battsToSell);
+				const GoodInfo* gi = GoodList::find_by_id(battArch);
+				pub::Player::AdjustCash(iClientID, static_cast<int>(gi->fPrice * static_cast<float>(battsToSell)));
+			}
+			counter++;
+		}
+		if (counter == 2) // both bots and batts processed, early exit
+		{
+			break;
+		}
+	}
+	return true;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Client command processing
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -994,6 +1033,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SetShipArch, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SETSHIPARCH, 0));
 
 	return p_PI;
 }

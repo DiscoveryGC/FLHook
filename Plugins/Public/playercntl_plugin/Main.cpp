@@ -53,6 +53,8 @@ float set_iDockBroadcastRange = 9999;
 float set_fSpinProtectMass;
 float set_fSpinImpulseMultiplier;
 
+float set_fMinCLootRoadkillSpeed = 25.0f;
+
 // set of ships which cannot use TradeLane, and are blocked
 // from forming on other ships to bypass the block
 unordered_set<uint> setLaneAndFormationBannedShips;
@@ -126,6 +128,8 @@ void LoadSettings()
 
 	set_iLocalChatRange = IniGetF(scPluginCfgFile, "General", "LocalChatRange", 0);
 	set_iDockBroadcastRange = IniGetF(scPluginCfgFile, "General", "DockBroadcastRange", 0);
+	
+	set_fMinCLootRoadkillSpeed = IniGetF(scPluginCfgFile, "General", "MinCLootRoadkillSpeed", 25.0f);
 
 	set_bLocalTime = IniGetB(scPluginCfgFile, "General", "LocalTime", false);
 
@@ -424,20 +428,6 @@ namespace HkIServerImpl
 		}
 	}
 
-	void __stdcall CreateGuided(uint iClientID, FLPACKET_CREATEGUIDED& createGuidedPacket)
-	{
-		uint clientID = HkGetClientIDByShip(createGuidedPacket.iOwner);
-		if (!clientID)
-			return;
-		uint targetId;
-		pub::SpaceObj::GetTarget(createGuidedPacket.iOwner, targetId);
-		if (targetId)
-			return;
-
-		const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
-		projectile->set_target(nullptr);
-	}
-
 	void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)
 	{
 		const static uint NANOBOT_ARCH_ID = CreateID("ge_s_repair_01");
@@ -496,7 +486,7 @@ namespace HkIServerImpl
 				float shieldHp, shieldMax;
 				bool shieldUp;
 				pub::SpaceObj::GetShieldHealth(iTargetObj, shieldHp, shieldMax, shieldUp);
-				if (!shieldUp)
+				if (shieldMax > 0.0f && !shieldUp)
 				{
 					pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
 					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -618,12 +608,22 @@ namespace HkIServerImpl
 	void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
+		if (iClientID != HkGetClientIDByShip(iShip))
+		{
+			return;
+		}
 		// Make player invincible to fix JHs/JGs near mine fields sometimes
 		// exploding player while jumping (in jump tunnel)
 		pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-		AntiJumpDisconnect::SystemSwitchOutComplete(iShip, iClientID);
-		if (HyperJump::SystemSwitchOutComplete(iShip, iClientID))
-			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		HyperJump::SystemSwitchOutComplete(iShip, iClientID);
+	}
+
+	void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
+	{
+		// in case of SERVER_PACKET hooks, first argument is junk data before it gets processed by the server.
+		uint packetClient = HkGetClientIDByShip(switchOutPacket.shipId);
+		if(packetClient)
+			AntiJumpDisconnect::SystemSwitchOut(packetClient);
 	}
 
 	void __stdcall SPObjCollision(struct SSPObjCollisionInfo const &ci, unsigned int iClientID)
@@ -631,8 +631,29 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 
 		// If spin protection is off, do nothing.
-		if (set_fSpinProtectMass == -1.0f)
+		if (!ci.dwTargetShip || set_fSpinProtectMass == -1.0f)
+		{
 			return;
+		}
+		
+		uint type;
+		pub::SpaceObj::GetType(ci.dwTargetShip, type);
+
+		uint client_ship;
+		pub::Player::GetShip(iClientID, client_ship);
+
+		if (type == OBJ_LOOT)
+		{
+			Vector V1, V2;
+			pub::SpaceObj::GetMotion(client_ship, V1, V2);
+			float playerSpeed = sqrtf(V1.x * V1.x + V1.y * V1.y + V1.z * V1.z);
+			if (playerSpeed > set_fMinCLootRoadkillSpeed)
+			{
+				pub::SpaceObj::Destroy(ci.dwTargetShip, DestroyType::FUSE);
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			}
+			return;
+		}
 
 		// If the target is not a player, do nothing.
 		//uint iClientIDTarget = HkGetClientIDByShip(ci.dwTargetShip);
@@ -641,9 +662,6 @@ namespace HkIServerImpl
 
 		float target_mass;
 		pub::SpaceObj::GetMass(ci.dwTargetShip, target_mass);
-
-		uint client_ship;
-		pub::Player::GetShip(iClientID, client_ship);
 
 		float client_mass;
 		pub::SpaceObj::GetMass(client_ship, client_mass);
@@ -1749,6 +1767,11 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			SystemSensor::JumpInComplete(info->iSystemID, info->iShipID, iClientID);
 		}
 	}
+	else if (msg == CUSTOM_IN_WARP_CHECK)
+	{
+		CUSTOM_IN_WARP_CHECK_STRUCT* checkData = reinterpret_cast<CUSTOM_IN_WARP_CHECK_STRUCT*>(data);
+		checkData->inWarp = AntiJumpDisconnect::IsInWarp(checkData->clientId);
+	}
 	return;
 }
 
@@ -1780,6 +1803,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::JumpInComplete_AFTER, PLUGIN_HkIServerImpl_JumpInComplete_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SystemSwitchOut, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::SPObjCollision, PLUGIN_HkIServerImpl_SPObjCollision, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));
@@ -1801,7 +1825,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::StopTradelane, PLUGIN_HkIServerImpl_StopTradelane, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateNewCharacter, PLUGIN_HkIServerImpl_CreateNewCharacter, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::DestroyCharacter, PLUGIN_HkIServerImpl_DestroyCharacter, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::CreateGuided, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::UseItemRequest, PLUGIN_HkIServerImpl_SPRequestUseItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIEngine::Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_SendChat, PLUGIN_HkCb_SendChat, 0));

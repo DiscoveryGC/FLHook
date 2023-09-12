@@ -211,6 +211,7 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_CREATEGUIDED, // adding here to avoid breaking private plugins due to enum mismatch, can be moved in case of global plugin recompile
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT,
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND,
+	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SETSHIPARCH,
 	PLUGIN_CALLBACKS_AMOUNT,
 };
 
@@ -250,12 +251,19 @@ enum PLUGIN_MESSAGE
 	DSACE_SPEED_EXCEPTION = 41,
 	CUSTOM_BASE_BEAM = 42,
 	CUSTOM_BASE_IS_DOCKED = 43,
-	CUSTOM_BASE_LAST_DOCKED = 46,
 	CLIENT_CLOAK_INFO = 44,
 	COMBAT_DAMAGE_OVERRIDE = 45,
+	CUSTOM_BASE_LAST_DOCKED = 46,
 	CUSTOM_JUMP = 47,
-	CUSTOM_IS_IT_POB = 50,
 	CUSTOM_REVERSE_TRANSACTION = 48,
+
+	CUSTOM_SPAWN_SOLAR = 52,
+
+	CUSTOM_JUMP_CALLOUT = 49,
+	CUSTOM_IS_IT_POB = 50,
+	CUSTOM_MOBILE_DOCK_CHECK = 53,
+	CUSTOM_IN_WARP_CHECK = 54,
+
 	CUSTOM_CLOAK_ALERT = 60
 };
 
@@ -365,9 +373,50 @@ struct CUSTOM_JUMP_STRUCT
 	uint iSystemID;
 };
 
+struct CUSTOM_JUMP_CALLOUT_STRUCT
+{
+	uint iClientID;
+	uint iSystemID;
+	Vector pos;
+	Matrix ori;
+	uint jumpType = 0;
+};
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 {
 	uint iClientID;
+};
+
+
+struct SPAWN_SOLAR_STRUCT
+{
+	uint solarArchetypeId;
+	uint loadoutArchetypeId;
+	string nickname;
+	uint solar_ids;
+	wstring initialName;
+	Vector pos;
+	Matrix ori;
+	uint iSystemId;
+	uint iSpaceObjId = 0;
+	float percentageHp = 1.0f;
+};
+struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
+{
+	uint iClientID;
+	bool isMobileDocked = false;
+};
+
+struct LAST_PLAYER_BASE_NAME_STRUCT
+{
+	uint clientID;
+	wstring lastBaseName;
+};
+
+struct CUSTOM_IN_WARP_CHECK_STRUCT
+{
+	uint clientId;
+	bool inWarp = false;
+
 };
 
 struct CUSTOM_CLOAK_ALERT_STRUCT

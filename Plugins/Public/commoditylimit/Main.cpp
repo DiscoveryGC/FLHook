@@ -16,8 +16,6 @@
 #include <math.h>
 #include <list>
 #include <map>
-#include <unordered_map>
-#include <unordered_set>
 #include <algorithm>
 #include <FLHook.h>
 #include <plugin.h>
@@ -68,10 +66,8 @@ struct CommodityLimitStruct
 	//list<uint> ShipClassRestrictions;
 };
 
-unordered_map<uint, CommodityLimitStruct> mapCommodityRestrictions;
+map<uint, CommodityLimitStruct> mapCommodityRestrictions;
 map<uint, bool> mapBuySuppression;
-unordered_map<uint, unordered_set<uint>> mapProducers;
-map<uint, uint> sellSuppressionMap;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Loading Settings
@@ -122,23 +118,6 @@ void LoadSettings()
 				mapCommodityRestrictions[commodity] = cls;
 				++iLoaded;
 			}
-			else if (ini.is_header("producer_base"))
-			{
-				while (ini.read_value())
-				{
-					if (ini.is_value("producer"))
-					{
-						auto& bannedGoodList = mapProducers[CreateID(ini.get_value_string(0))];
-						int i = 0;
-						string goodName = ini.get_value_string(++i);
-						while (!goodName.empty())
-						{
-							bannedGoodList.insert(CreateID(goodName.c_str()));
-							goodName = ini.get_value_string(++i);
-						}
-					}
-				}
-			}
 		}
 		ini.close();
 	}
@@ -165,45 +144,6 @@ void ClearClientInfo(uint iClientID)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Functions to hook
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void __stdcall GFGoodSell(struct SGFGoodSellInfo const& gsi, unsigned int client)
-{
-	returncode = DEFAULT_RETURNCODE;
-	const uint& baseId = Players[client].iBaseID;
-	if (!mapProducers.count(baseId))
-	{
-		return;
-	}
-
-	if (!mapProducers.at(baseId).count(gsi.iArchID))
-	{
-		return;
-	}
-	static uint voiceDealerNotInterested = CreateID("not_interested");
-	pub::Player::SendNNMessage(client, voiceDealerNotInterested);
-	sellSuppressionMap[client] = gsi.iArchID;
-	returncode = SKIPPLUGINS;
-}
-
-void __stdcall ReqRemoveItem_AFTER(unsigned short iID, int count, unsigned int client)
-{
-	returncode = DEFAULT_RETURNCODE;
-	if (!sellSuppressionMap.count(client))
-	{
-		return;
-	}
-
-	uint baseId = Players[client].iBaseID;
-	uint goodId = sellSuppressionMap.at(client);
-	float price = BaseDataList_get()->get_base_data(baseId)->market_map.find(goodId).value()->fPrice;
-
-	pub::Player::AdjustCash(client, -(static_cast<int>(price) * count));
-	wstring clientName = (const wchar_t*)Players.GetActiveCharacterName(client);
-	HkAddCargo(clientName, goodId, count, false);
-	
-	sellSuppressionMap.erase(client);
-	returncode = SKIPPLUGINS;
-}
 
 void __stdcall GFGoodBuy(struct SGFGoodBuyInfo const &gbi, unsigned int iClientID)
 {
@@ -292,9 +232,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqRemoveItem_AFTER, PLUGIN_HkIServerImpl_ReqRemoveItem_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqChangeCash, PLUGIN_HkIServerImpl_ReqChangeCash, 0));
 
 	return p_PI;

@@ -395,20 +395,6 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 void __stdcall Disconnect(uint client, enum EFLConnection conn)
 {
 	returncode = DEFAULT_RETURNCODE;
-	uint shipId;
-	pub::Player::GetShip(client, shipId);
-	if (shipId)
-	{
-		PlayerData* pd = nullptr;
-		wstring victimName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(client));
-		while (pd = Players.traverse_active(pd))
-		{
-			if (GetDamageDone(damageArray[pd->iOnlineID][client]) != 0.0f)
-			{
-				PrintUserCmdText(pd->iOnlineID, L"%ls : Damaged player %ls has disconnected in space", GetTimeString(false).c_str(), victimName.c_str());
-			}
-		}
-	}
 	ClearDamageTaken(client);
 	ClearDamageDone(client, true);
 }

@@ -10,16 +10,24 @@
 #include <set>
 #include <map>
 #include <algorithm>
-#include <unordered_map>
 #include <FLHook.h>
 #include <plugin.h>
 #include <PluginUtilities.h>
+#include <unordered_map>
+#include <unordered_set>
 
 using namespace std;
 
 static uint STORAGE_MODULE_CAPACITY = 40000;
 void LogCheater(uint client, const wstring &reason);
 uint GetAffliationFromClient(uint client);
+
+struct AICONFIG
+{
+	pub::AI::Personality::GunUseStruct gunUse;
+	pub::AI::Personality::MissileUseStruct missileUse;
+	pub::AI::Personality::JobStruct job;
+};
 
 struct RECIPE
 {
@@ -220,6 +228,8 @@ public:
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
 	void Reset();
+
+	static void LoadSettings(const string& path);
 };
 
 class BuildModule : public Module
@@ -562,12 +572,14 @@ namespace PlayerCommands
 	void Aff_initer();
 }
 
-namespace Log {
+namespace Log
+{
 	void LogBaseAction(string basename, const char *message);
 	void LogGenericAction(string message);
 }
 
-namespace CreateSolar {
+namespace CreateSolar
+{
 	pub::AI::SetPersonalityParams MakePersonality();
 	void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo);
 	void CreateSolarCallout(SPAWN_SOLAR_STRUCT* info);
@@ -697,7 +709,7 @@ extern float siege_mode_damage_trigger_level;
 
 extern float siege_mode_chain_reaction_trigger_distance;
 
-extern set<uint> customSolarList;
+extern unordered_set<uint> customSolarList;
 
 extern unordered_map<uint, float> siegeWeaponryMap;
 

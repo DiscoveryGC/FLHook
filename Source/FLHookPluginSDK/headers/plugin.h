@@ -390,6 +390,20 @@ struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 	uint iClientID;
 };
 
+
+struct SPAWN_SOLAR_STRUCT
+{
+	uint solarArchetypeId;
+	uint loadoutArchetypeId;
+	string nickname;
+	uint solar_ids;
+	wstring initialName;
+	Vector pos;
+	Matrix ori;
+	uint iSystemId;
+	uint iSpaceObjId = 0;
+	float percentageHp = 1.0f;
+};
 struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
 {
 	uint iClientID;
@@ -422,6 +436,7 @@ struct CUSTOM_IN_WARP_CHECK_STRUCT
 {
 	uint clientId;
 	bool inWarp = false;
+
 };
 
 struct DESPAWN_SOLAR_STRUCT

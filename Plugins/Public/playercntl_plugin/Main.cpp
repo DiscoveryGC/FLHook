@@ -508,7 +508,7 @@ namespace HkIServerImpl
 			float shieldHp, shieldMax;
 			bool shieldUp;
 			pub::SpaceObj::GetShieldHealth(iTargetObj, shieldHp, shieldMax, shieldUp);
-			if (!shieldUp)
+			if (shieldMax > 0.0f && !shieldUp)
 			{
 				pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnvoice_trade_lane_disrupted"));
 				returncode = SKIPPLUGINS_NOFUNCTIONCALL;

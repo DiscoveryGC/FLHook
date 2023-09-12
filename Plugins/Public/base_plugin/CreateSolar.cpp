@@ -21,12 +21,13 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 		ConPrint(L"Aborting due to object %ls already existing\n", stows(info->nickname).c_str());
 		return;
 	}
+  
 	pub::SpaceObj::SolarInfo si;
 	memset(&si, 0, sizeof(si));
 	si.iFlag = 4;
 	si.iArchID = info->solarArchetypeId;
 	si.iLoadoutID = info->loadoutArchetypeId;
-
+  
 	si.iHitPointsLeft = 1;
 	si.iSystemID = info->iSystemId;
 	si.mOrientation = info->ori;

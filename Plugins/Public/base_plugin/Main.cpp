@@ -22,7 +22,6 @@
 #include "Main.h"
 #include <sstream>
 #include <hookext_exports.h>
-#include <unordered_map>
 
 // Clients
 map<uint, CLIENT_DATA> clients;
@@ -155,6 +154,8 @@ float siege_mode_damage_trigger_level = 8000000;
 
 //the distance between bases to share siege mod activation
 float siege_mode_chain_reaction_trigger_distance = 8000;
+
+unordered_set<uint> customSolarList;
 
 //siege weaponry definitions
 unordered_map<uint, float> siegeWeaponryMap;
@@ -443,6 +444,7 @@ void LoadSettingsActual()
 	shield_power_items.clear();
 
 	HookExt::ClearMiningObjData();
+	DefenseModule::LoadSettings(string(szCurDir) + R"(\flhook_plugins\base_wp_ai.cfg)");
 
 	INI_Reader ini;
 	if (ini.open(cfg_file.c_str(), false))
@@ -1125,6 +1127,15 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			delete base->second;
 		}
+
+		for (uint customSolar : customSolarList)
+		{
+			if (pub::SpaceObj::ExistsAndAlive(customSolar) == 0) // this method returns -2 for dead, 0 for alive
+			{
+				pub::SpaceObj::Destroy(customSolar, DestroyType::FUSE);
+			}
+		}
+		customSolarList.clear();
 
 		HkUnloadStringDLLs();
 	}
@@ -2178,7 +2189,9 @@ void BaseDestroyed(uint space_obj, uint client)
 	{
 		returncode = SKIPPLUGINS;
 		i->second->SpaceObjDestroyed(space_obj);
+		return;
 	}
+	customSolarList.erase(space_obj);
 }
 
 void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newHealth, enum DamageEntry::SubObjFate& fate)
@@ -2896,6 +2909,12 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			base->Save();
 		}
 	}
+
+	else if (msg == CUSTOM_SPAWN_SOLAR)
+	{
+		SPAWN_SOLAR_STRUCT* info = reinterpret_cast<SPAWN_SOLAR_STRUCT*>(data);
+		CreateSolar::CreateSolarCallout(info);	
+  }
 	else if (msg == CUSTOM_BASE_LAST_DOCKED)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -2916,6 +2935,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		{
 			info->lastBaseName = L"Object Unknown";
 		}
+
 	}
 	return;
 }

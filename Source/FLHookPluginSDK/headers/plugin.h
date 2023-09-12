@@ -258,6 +258,7 @@ enum PLUGIN_MESSAGE
 	CUSTOM_REVERSE_TRANSACTION = 48,
 	CUSTOM_JUMP_CALLOUT = 49,
 	CUSTOM_IS_IT_POB = 50,
+	CUSTOM_SPAWN_SOLAR = 52,
 	CUSTOM_MOBILE_DOCK_CHECK = 53,
 	CUSTOM_IN_WARP_CHECK = 54,
 	CUSTOM_CLOAK_CHECK = 56,
@@ -383,6 +384,20 @@ struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 	uint iClientID;
 };
 
+
+struct SPAWN_SOLAR_STRUCT
+{
+	uint solarArchetypeId;
+	uint loadoutArchetypeId;
+	string nickname;
+	uint solar_ids;
+	wstring initialName;
+	Vector pos;
+	Matrix ori;
+	uint iSystemId;
+	uint iSpaceObjId = 0;
+	float percentageHp = 1.0f;
+};
 struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
 {
 	uint iClientID;
@@ -399,6 +414,7 @@ struct CUSTOM_IN_WARP_CHECK_STRUCT
 {
 	uint clientId;
 	bool inWarp = false;
+
 };
 
 struct CUSTOM_CLOAK_ALERT_STRUCT

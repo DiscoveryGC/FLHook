@@ -434,11 +434,11 @@ void LoadSettingsActual()
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string cfg_file = string(szCurDir) + "\\flhook_plugins\\base.cfg";
-	string cfg_fileitems = string(szCurDir) + "\\flhook_plugins\\base_recipe_items.cfg";
-	string cfg_filemodules = string(szCurDir) + "\\flhook_plugins\\base_recipe_modules.cfg";
-	string cfg_filearch = string(szCurDir) + "\\flhook_plugins\\base_archtypes.cfg";
-	string cfg_fileforbiddencommodities = string(szCurDir) + "\\flhook_plugins\\base_forbidden_cargo.cfg";
+	string cfg_file = string(szCurDir) + R"(\flhook_plugins\base.cfg)";
+	string cfg_fileitems = string(szCurDir) + R"(\flhook_plugins\base_recipe_items.cfg)";
+	string cfg_filemodules = string(szCurDir) + R"(\flhook_plugins\base_recipe_modules.cfg)";
+	string cfg_filearch = string(szCurDir) + R"(\flhook_plugins\base_archtypes.cfg)";
+	string cfg_fileforbiddencommodities = string(szCurDir) + R"(\flhook_plugins\base_forbidden_cargo.cfg)";
 	uint bmapLoadHyperspaceHubConfig = 0;
 
 	map<uint, PlayerBase*>::iterator base = player_bases.begin();

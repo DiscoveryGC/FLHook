@@ -931,7 +931,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		CUSTOM_CLOAK_ALERT_STRUCT* info = reinterpret_cast<CUSTOM_CLOAK_ALERT_STRUCT*>(data);
 		CloakAlert(info);
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	}
 	else if (msg == CUSTOM_CLOAK_CHECK)
 	{

@@ -117,9 +117,9 @@ void HyperJump::InitJumpHoleConfig()
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
 	string cfg_filehyperspaceHub = (string)szCurDir + "\\flhook_plugins\\base_hyperspacehub.cfg";
-	uint exitJumpHoleArchetype = CreateID("flhook_jumphole");
+	uint exitJumpHoleArchetype = CreateID("jumphole_noentry");
 	uint exitJumpHoleLoadout = CreateID("wormhole_unstable");
-	exitJumpHoleArchetype = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleArchetype", "flhook_jumphole").c_str());
+	exitJumpHoleArchetype = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleArchetype", "jumphole_noentry").c_str());
 	exitJumpHoleLoadout = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleLoadout", "wormhole_unstable").c_str());
 
 	vector<PlayerBase*> invalidJumpHoles;
@@ -181,8 +181,6 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	uint lastJumpholeRandomization = 0;
 	uint randomizationCooldown = 3600 * 23;
-	uint exitJumpHoleArchetype = CreateID("flhook_jumphole");
-	uint exitJumpHoleLoadout = CreateID("wormhole_unstable");
 	INI_Reader ini;
 
 	if (ini.open(cfg_filehyperspaceHubTimer.c_str(), false))
@@ -255,21 +253,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 	{
 		while (ini.read_header())
 		{
-			if (ini.is_header("general"))
-			{
-				while (ini.read_value())
-				{	
-					if (ini.is_value("exitJumpHoleLoadout"))
-					{
-						exitJumpHoleLoadout = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("exitJumpHoleArchetype"))
-					{
-						exitJumpHoleArchetype = CreateID(ini.get_value_string(0));
-					}
-				}
-			}
-			else if (ini.is_header("return_system_data"))
+			if (ini.is_header("return_system_data"))
 			{
 				while (ini.read_value())
 				{
@@ -336,12 +320,14 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 	}
 
 	if (returnJumpHoles.size() > legalReturnSystems.size()
-		|| hubToUnchartedJumpHoles.size() > unchartedToHubJumpHoles.size()) {
+		|| hubToUnchartedJumpHoles.size() > unchartedToHubJumpHoles.size())
+	{
 		ConPrint(L"HYPERSPACE HUB: ERROR! more random jump bases than distinct available destinations, aborting randomization!\n");
 		return;
 	}
 
-	for (uint returnJH : returnJumpHoles) {
+	for (uint returnJH : returnJumpHoles)
+	{
 
 		PlayerBase* pb = player_bases[returnJH];
 		uint index = rand() % legalReturnSystems.size();
@@ -364,7 +350,8 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 		RespawnBase(pb);
 	}
 
-	for (uint unchartedJH : hubToUnchartedJumpHoles) {
+	for (uint unchartedJH : hubToUnchartedJumpHoles)
+	{
 		PlayerBase* pb = player_bases[unchartedJH];
 		uint randomizedIndex = rand() % unchartedToHubJumpHoles.size();
 		uint randomizedTarget = unchartedToHubJumpHoles.at(randomizedIndex);

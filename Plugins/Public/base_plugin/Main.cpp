@@ -2657,6 +2657,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->basesolar = "legacy";
 		newbase->baseloadout = "legacy";
 		newbase->defense_mode = 1;
+		newbase->isCrewSupplied = true;
 
 		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
 		{
@@ -2891,6 +2892,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->baseloadout = wstos(loadout);
 		newbase->defense_mode = 2;
 		newbase->base_health = 10000000000;
+		newbase->isCrewSupplied = true;
 
 		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
 		{

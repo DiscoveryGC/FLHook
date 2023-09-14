@@ -83,7 +83,6 @@ bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpH
 	}
 
 	SPAWN_SOLAR_STRUCT info;
-	info.overwrittenName = L"Unstable Jump Hole Exit Point";
 	info.iSystemId = coords.system;
 	info.pos = coords.pos;
 	info.ori = coords.ornt;
@@ -114,7 +113,7 @@ void HyperJump::InitJumpHoleConfig()
 {
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string cfg_filehyperspaceHub = (string)szCurDir + "\\flhook_plugins\\base_hyperspacehub.cfg";
+	string cfg_filehyperspaceHub = (string)szCurDir + R"(\flhook_plugins\base_hyperspacehub.cfg)";
 	uint exitJumpHoleArchetype = CreateID("jumphole_noentry");
 	uint exitJumpHoleLoadout = CreateID("wormhole_unstable");
 	exitJumpHoleArchetype = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleArchetype", "jumphole_noentry").c_str());
@@ -166,11 +165,12 @@ void HyperJump::InitJumpHoleConfig()
 	}
 }
 
-void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
+void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
+{
 
-	string cfg_filejumpMap = configPath + "\\flhook_plugins\\jump_allowedsystems.cfg";
-	string cfg_filehyperspaceHub = configPath + "\\flhook_plugins\\base_hyperspacehub.cfg";
-	string cfg_filehyperspaceHubTimer = configPath + "\\flhook_plugins\\base_hyperspacehubtimer.cfg";
+	string cfg_filejumpMap = configPath + R"(\flhook_plugins\jump_allowedsystems.cfg)";
+	string cfg_filehyperspaceHub = configPath + R"(\flhook_plugins\base_hyperspacehub.cfg)";
+	string cfg_filehyperspaceHubTimer = configPath + R"(\flhook_plugins\base_hyperspacehubtimer.cfg)";
 	vector<uint> legalReturnSystems;
 	vector<uint> returnJumpHoles;
 	vector<uint> hubToUnchartedJumpHoles;
@@ -351,28 +351,31 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath) {
 
 	for (uint unchartedJH : hubToUnchartedJumpHoles)
 	{
-		PlayerBase* pb = player_bases[unchartedJH];
+		PlayerBase* originJumpHole = player_bases[unchartedJH];
 		uint randomizedIndex = rand() % unchartedToHubJumpHoles.size();
 		uint randomizedTarget = unchartedToHubJumpHoles.at(randomizedIndex);
 		auto targetJumpHole = player_bases.at(randomizedTarget);
 
-		pb->destObject = randomizedTarget;
+		originJumpHole->destObject = CreateID(targetJumpHole->nickname.c_str());
+		originJumpHole->destObjectName = targetJumpHole->nickname;
+		originJumpHole->destSystem = targetJumpHole->system;
 
 		auto unchartedSystemInfo = Universe::get_system(targetJumpHole->system);
-		pb->basename = L"Unstable " + HkGetWStringFromIDS(unchartedSystemInfo->strid_name) + L" Jump Hole";
+		originJumpHole->basename = L"Unstable " + HkGetWStringFromIDS(unchartedSystemInfo->strid_name) + L" Jump Hole";
 
+		targetJumpHole->destObject = CreateID(originJumpHole->nickname.c_str());
+		targetJumpHole->destObjectName = originJumpHole->nickname;
+		targetJumpHole->destSystem = originJumpHole->system;
 
-		targetJumpHole->destObject = unchartedJH;
-
-		auto originSystemInfo = Universe::get_system(pb->system);
+		auto originSystemInfo = Universe::get_system(originJumpHole->system);
 		targetJumpHole->basename = L"Unstable " + HkGetWStringFromIDS(originSystemInfo->strid_name) + L" Jump Hole";
 
 
 		unchartedToHubJumpHoles.erase(unchartedToHubJumpHoles.begin() + randomizedIndex);
 
-		pb->Save();
+		originJumpHole->Save();
 		targetJumpHole->Save();
-		RespawnBase(pb);
+		RespawnBase(originJumpHole);
 		RespawnBase(targetJumpHole);
 	}
 

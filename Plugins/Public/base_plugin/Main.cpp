@@ -83,8 +83,8 @@ map<uint, RECIPE> moduleNumberRecipeMap;
 map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 set<wstring> buildingCraftLists;
 
-void AddFactoryRecipeToMaps(RECIPE recipe, wstring recipe_type);
-void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number);
+void AddFactoryRecipeToMaps(const RECIPE& recipe, const wstring& recipe_type);
+void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
 
 /// Map of item nickname hash to recipes to operate shield.
 map<uint, uint> shield_power_items;
@@ -3053,28 +3053,23 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	return;
 }
 
-void AddFactoryRecipeToMaps(RECIPE recipe, wstring craft_type)
+void AddFactoryRecipeToMaps(const RECIPE& recipe, const wstring& craft_type)
 {
 
-	wstring recipeNameKey = recipe.infotext;
-	//convert to lowercase
-	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
-	transform(craft_type.begin(), craft_type.end(), craft_type.begin(), ::tolower);
+	wstring recipeNameKey = ToLower(recipe.infotext);
+	wstring craftTypeKey = ToLower(craft_type);
 	recipeMap[recipe.nickname] = recipe;
-	recipeCraftTypeNumberMap[craft_type][recipe.shortcut_number] = recipe;
-	recipeCraftTypeNameMap[craft_type][recipeNameKey] = recipe;
+	recipeCraftTypeNumberMap[craftTypeKey][recipe.shortcut_number] = recipe;
+	recipeCraftTypeNameMap[craftTypeKey][recipeNameKey] = recipe;
 }
 
-void AddModuleRecipeToMaps(RECIPE recipe, vector<wstring> craft_types, wstring build_type, uint recipe_number)
+void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number)
 {
+	wstring recipeNameKey = ToLower(recipe.infotext);
 
-	wstring recipeNameKey = recipe.infotext;
-	//convert to lowercase
-	transform(recipeNameKey.begin(), recipeNameKey.end(), recipeNameKey.begin(), ::tolower);
-
-	for (wstring craftType : craft_types)
+	for (const wstring& craftType : craft_types)
 	{
-		factoryNicknameToCraftTypeMap[recipe.nickname].emplace_back(craftType);
+		factoryNicknameToCraftTypeMap[recipe.nickname].emplace_back(ToLower(craftType));
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;

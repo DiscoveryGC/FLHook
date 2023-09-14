@@ -1365,6 +1365,20 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"OK Module destroyed");
 	}
 
+	void PrintCraftHelpMenu(uint client)
+	{
+		PrintUserCmdText(client, L"ERR Invalid parameters");
+		PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>]");
+		PrintUserCmdText(client, L"|  list - show available lists of craftble items");
+		PrintUserCmdText(client, L"|  stopall - stops all production on the base");
+		PrintUserCmdText(client, L"|  <craftList> start <name/itemNr> - adds selected item into the crafting queue");
+		PrintUserCmdText(client, L"|  <craftList> stop <name/itemNr> - stops crafting of selected item");
+		PrintUserCmdText(client, L"|  <craftList> pause <name/itemNr> - pauses crafting of selected item");
+		PrintUserCmdText(client, L"|  <craftList> resume <name/itemNr> - resumes crafting of selected item");
+		PrintUserCmdText(client, L"|  <craftList> list - list item recipes available for this crafting list");
+		PrintUserCmdText(client, L"|  <craftList> list <name/itemNr> - list materials necessary for selected item");
+	}
+
 	void BaseFacMod(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
@@ -1398,7 +1412,7 @@ namespace PlayerCommands
 		}
 		else if (!base->availableCraftList.count(craftType))
 		{
-			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
+			PrintCraftHelpMenu(client);
 			return;
 		}
 
@@ -1406,7 +1420,7 @@ namespace PlayerCommands
 		wstring param = GetParamToEnd(args, ' ', 3);
 		if (cmd.empty())
 		{
-			PrintUserCmdText(client, L"ERR Invalid command, syntax: /craft <list/stopall/craftList> <start/stop/resume/pause/list> <productName/productNr>");
+			PrintCraftHelpMenu(client);
 			return;
 		}
 
@@ -1442,16 +1456,7 @@ namespace PlayerCommands
 
 		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume"))
 		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>]");
-			PrintUserCmdText(client, L"|  list - show available lists of craftble items");
-			PrintUserCmdText(client, L"|  stopall - stops all production on the base");
-			PrintUserCmdText(client, L"|  <craftList> start <name/itemNr> - adds selected item into the crafting queue");
-			PrintUserCmdText(client, L"|  <craftList> stop <name/itemNr> - stops crafting of selected item");
-			PrintUserCmdText(client, L"|  <craftList> pause <name/itemNr> - pauses crafting of selected item");
-			PrintUserCmdText(client, L"|  <craftList> resume <name/itemNr> - resumes crafting of selected item");
-			PrintUserCmdText(client, L"|  <craftList> list - list item recipes available for this crafting list");
-			PrintUserCmdText(client, L"|  <craftList> list <name/itemNr> - list materials necessary for selected item");
+			PrintCraftHelpMenu(client);
 			return;
 		}
 

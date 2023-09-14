@@ -2832,22 +2832,20 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 
 	if (msg == CUSTOM_BASE_BEAM)
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		returncode = SKIPPLUGINS;
 		CUSTOM_BASE_BEAM_STRUCT* info = reinterpret_cast<CUSTOM_BASE_BEAM_STRUCT*>(data);
 			PlayerBase *base = GetPlayerBase(info->iTargetBaseID);
 		if (base)
 		{
-			returncode = SKIPPLUGINS;
 			ForcePlayerBaseDock(info->iClientID, base);
 			info->bBeamed = true;
 		}
 	}
 	if (msg == CUSTOM_IS_IT_POB)
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		returncode = SKIPPLUGINS;
 		CUSTOM_BASE_IS_IT_POB_STRUCT* info = reinterpret_cast<CUSTOM_BASE_IS_IT_POB_STRUCT*>(data);
 		PlayerBase *base = GetPlayerBase(info->iBase);
-		returncode = SKIPPLUGINS;
 		if (base)
 		{
 			info->bAnswer = true;
@@ -2855,12 +2853,11 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	}
 	else if (msg == CUSTOM_BASE_IS_DOCKED)
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		returncode = SKIPPLUGINS;
 		CUSTOM_BASE_IS_DOCKED_STRUCT* info = reinterpret_cast<CUSTOM_BASE_IS_DOCKED_STRUCT*>(data);
 		PlayerBase *base = GetPlayerBaseForClient(info->iClientID);
 		if (base)
 		{
-			returncode = SKIPPLUGINS;
 			info->iDockedBaseID = base->base;
 		}
 	}
@@ -2893,6 +2890,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	}
 	else if (msg == CUSTOM_BASE_LAST_DOCKED)
 	{
+		returncode = SKIPPLUGINS;
 		LAST_PLAYER_BASE_NAME_STRUCT* info = reinterpret_cast<LAST_PLAYER_BASE_NAME_STRUCT*>(data);
 		if (clients.count(info->clientID))
 		{
@@ -2910,19 +2908,18 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		{
 			info->lastBaseName = L"Object Unknown";
 		}
-		returncode = SKIPPLUGINS;
 	}
 	else if (msg == CUSTOM_SPAWN_SOLAR)
 	{
+		returncode = SKIPPLUGINS;
 		SPAWN_SOLAR_STRUCT* info = reinterpret_cast<SPAWN_SOLAR_STRUCT*>(data);
 		CreateSolar::CreateSolarCallout(info);
-		returncode = SKIPPLUGINS;
 	}
 	else if (msg == CUSTOM_DESPAWN_SOLAR)
 	{
+		returncode = SKIPPLUGINS;
 		DESPAWN_SOLAR_STRUCT* info = reinterpret_cast<DESPAWN_SOLAR_STRUCT*>(data);
 		CreateSolar::DespawnSolarCallout(info);
-		returncode = SKIPPLUGINS;
 	}
 	return;
 }

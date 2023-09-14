@@ -1270,11 +1270,11 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Invalid parameters");
 			PrintUserCmdText(client, L"/build <list|buildlist> <list|start|resume|pause|info> <moduleName/Nr");
 			PrintUserCmdText(client, L"|  list - lists available module lists");
-			PrintUserCmdText(client, L"|  buildlist list - lists modules available on the selected module list");
-			PrintUserCmdText(client, L"|  buildlist start - starts constructon of selected module");
-			PrintUserCmdText(client, L"|  buildlist resume - pauses selected module construction");
-			PrintUserCmdText(client, L"|  buildlist pause - resumes selected module construction");
-			PrintUserCmdText(client, L"|  buildlist info - provides construction material info for selected module");
+			PrintUserCmdText(client, L"|  <buildlist> list - lists modules available on the selected module list");
+			PrintUserCmdText(client, L"|  <buildlist> start <moduleName/Nr> - starts constructon of selected module");
+			PrintUserCmdText(client, L"|  <buildlist> resume <moduleName/Nr> - pauses selected module construction");
+			PrintUserCmdText(client, L"|  <buildlist> pause <moduleName/Nr> - resumes selected module construction");
+			PrintUserCmdText(client, L"|  <buildlist> info <moduleName/Nr> - provides construction material info for selected module");
 		}
 	}
 
@@ -1293,8 +1293,8 @@ namespace PlayerCommands
 			return;
 		}
 
-		const uint index1 = ToUInt(GetParam(args, ' ', 1));
-		const uint index2 = ToUInt(GetParam(args, ' ', 2));
+		const uint index1 = ToUInt(GetParam(args, ' ', 2));
+		const uint index2 = ToUInt(GetParam(args, ' ', 3));
 		if (index1 == 0 || index2 == 0)
 		{
 			PrintUserCmdText(client, L"ERR Invalid module indexes");

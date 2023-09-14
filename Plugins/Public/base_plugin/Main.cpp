@@ -903,11 +903,11 @@ void LoadSettingsActual()
 	GetUserDataPath(datapath);
 
 	// Create base account dir if it doesn't exist
-	string basedir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\";
+	string basedir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)";
 	CreateDirectoryA(basedir.c_str(), 0);
 
 	// Load and spawn all bases
-	string path = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\base_*.ini";
+	string path = string(datapath) + R"(\Accts\MultiPlayer\player_bases\base_*.ini)";
 
 	WIN32_FIND_DATA findfile;
 	HANDLE h = FindFirstFile(path.c_str(), &findfile);
@@ -915,7 +915,7 @@ void LoadSettingsActual()
 	{
 		do
 		{
-			string filepath = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\" + findfile.cFileName;
+			string filepath = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)" + findfile.cFileName;
 			PlayerBase *base = new PlayerBase(filepath);
 			if (base && !base->nickname.empty())
 			{
@@ -2364,47 +2364,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 {
 	returncode = DEFAULT_RETURNCODE;
-	/*if (args.find(L"dumpbases")==0)
-	{
-		Universe::ISystem *sys = Universe::GetFirstSystem();
-		FILE* f = fopen("bases.txt", "w");
-		while (sys)
-		{
-			fprintf(f, "[Base]\n");
-			fprintf(f, "nickname = %s_proxy_base\n", sys->nickname);
-			fprintf(f, "system = %s\n", sys->nickname);
-			fprintf(f, "strid_name = 0\n");
-			fprintf(f, "file=Universe\\Systems\\proxy_base->ini\n");
-			fprintf(f, "BGCS_base_run_by=W02bF35\n\n");
-
-			sys = Universe::GetNextSystem();
-		}
-		fclose(f);
-	}
-	if (args.find(L"makebases")==0)
-	{
-		struct Universe::ISystem *sys = Universe::GetFirstSystem();
-		while (sys)
-		{
-			string path = string("..\\DATA\\UNIVERSE\\SYSTEMS\\") + string(sys->nickname) + "\\" + string(sys->nickname) + ".ini";
-			FILE *file = fopen(path.c_str(), "a+");
-			if (file)
-			{
-				ConPrint(L"doing path %s\n", stows(path).c_str());
-				fprintf(file, "\n\n[Object]\n");
-				fprintf(file, "nickname = %s_proxy_base\n", sys->nickname);
-				fprintf(file, "dock_with = %s_proxy_base\n", sys->nickname);
-				fprintf(file, "base = %s_proxy_base\n", sys->nickname);
-				fprintf(file, "pos = 0, -100000, 0\n");
-				fprintf(file, "archetype = invisible_base\n");
-				fprintf(file, "behavior = NOTHING\n");
-				fprintf(file, "visit = 128\n");
-				fclose(file);
-			}
-			sys = Universe::GetNextSystem();
-		}
-		return true;
-	}*/
 
 	if (args.find(L"testmodulerecipe") == 0)
 	{

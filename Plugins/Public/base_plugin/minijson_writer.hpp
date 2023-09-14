@@ -78,30 +78,30 @@ namespace minijson
 					switch (*str)
 					{
 					case '"':
-						stream << "\\\"";
+						stream << R"(\")";
 						break;
 
 					case '\\':
-						stream << "\\\\";
+						stream << R"(\\)";
 						break;
 
 					case '\n':
-						stream << "\\n";
+						stream << R"(\n)";
 						break;
 
 					case '\r':
-						stream << "\\r";
+						stream << R"(\r)";
 						break;
 
 					case '\t':
-						stream << "\\t";
+						stream << R"(\t)";
 						break;
 
 					default:
 						if ((*str > 0 && *str < 32) || *str == 127) // ASCII control characters (NUL is not supported)
 						{
 							stream << std::hex << std::right << std::setfill('0');
-							stream << "\\u" << std::setw(4) << static_cast<unsigned>(*str);
+							stream << R"(\u)" << std::setw(4) << static_cast<unsigned>(*str);
 							stream << std::dec;
 						}
 						else

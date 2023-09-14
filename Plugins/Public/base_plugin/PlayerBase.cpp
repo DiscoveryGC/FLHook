@@ -122,7 +122,7 @@ void PlayerBase::SetupDefaults()
 		GetUserDataPath(datapath);
 
 		char tpath[1024];
-		sprintf(tpath, "%s\\Accts\\MultiPlayer\\player_bases\\base_%08x.ini", datapath, base);
+		sprintf(tpath, R"(%s\Accts\MultiPlayer\player_bases\base_%08x.ini)", datapath, base);
 		path = tpath;
 	}
 

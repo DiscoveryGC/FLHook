@@ -712,7 +712,7 @@ namespace PlayerCommands
 		{
 			INI_Reader ini;
 
-			string factionpropfile = "..\\data\\initialworld.ini";
+			string factionpropfile = R"(..\data\initialworld.ini)";
 			if (ini.open(factionpropfile.c_str(), false))
 			{
 				while (ini.read_header())

@@ -337,7 +337,7 @@ HK_ERROR HkGetOnLineTime(const wstring &wscCharname, int &iSecs)
 	wstring wscFile;
 	HkGetCharFileName(wscCharname, wscFile);
 
-	string scCharFile = scAcctPath + wstos(wscDir) + "\\" + wstos(wscFile) + ".fl";
+	string scCharFile = scAcctPath + wstos(wscDir) + R"(\)" + wstos(wscFile) + ".fl";
 	if (HkIsEncoded(scCharFile))
 	{
 		string scCharFileNew = scCharFile + ".ini";

@@ -35,7 +35,7 @@ void DeleteBase(PlayerBase* base)
 	char datapath[MAX_PATH];
 	GetUserDataPath(datapath);
 	// Create base save  dir if it doesn't exist
-	string basesvdir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\destroyed\\";
+	string basesvdir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\destroyed\)";
 	CreateDirectoryA(basesvdir.c_str(), 0);
 
 	string timestamp = boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());

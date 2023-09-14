@@ -22,24 +22,30 @@ wstring FactoryModule::GetInfo(bool xml)
 	wstring info;
 
 	std::wstring Status = L"";
-	if (Paused)	Status = L"(Paused) ";
-	else Status = L"(Active) ";
+	if (Paused)
+	{
+		Status = L"(Paused) ";
+	}
+	else
+	{
+		Status = L"(Active) ";
+	}
 
 	info += recipeMap[factoryNickname].infotext;
 
 	wstring openLine;
-	wstring closeLine;
 	if (xml)
 	{
 		openLine = L"</TEXT><PARA/><TEXT>      ";
-		closeLine = L"</TEXT>";
 	}
 	else
 	{
 		openLine = L"\n - ";
-		closeLine = L"\n";
 	}
-	info += openLine + L"Pending " + stows(itos(build_queue.size())) + L" items";
+	if (!build_queue.empty())
+	{
+		info += openLine + L"Pending " + stows(itos(build_queue.size())) + L" items";
+	}
 	if (active_recipe.nickname)
 	{
 		info += openLine + L"Crafting " + Status + active_recipe.infotext + L". Waiting for:";
@@ -67,17 +73,15 @@ wstring FactoryModule::GetInfo(bool xml)
 				info += L" [Insufficient cash]";
 			}
 		}
-		vector<pair<uint, uint>> neededWorkforce;
+		if (!sufficientCatalysts)
+		{
+			info += openLine + L"Insufficient catalysts/workforce";
+		}
 		if (!active_recipe.catalyst_items.empty())
 		{
 			info += openLine + L"Needed catalysts:";
 			for (const auto& catalyst : active_recipe.catalyst_items)
 			{
-				if (humanCargoList.count(catalyst.first))
-				{
-					neededWorkforce.emplace_back(catalyst);
-					continue;
-				}
 				uint good = catalyst.first;
 				uint quantity = catalyst.second;
 
@@ -93,10 +97,10 @@ wstring FactoryModule::GetInfo(bool xml)
 				}
 			}
 		}
-		if (!neededWorkforce.empty())
+		if (!active_recipe.catalyst_workforce.empty())
 		{
 			info += openLine + L"Needed workforce:";
-			for (const auto& worker : neededWorkforce)
+			for (const auto& worker : active_recipe.catalyst_workforce)
 			{
 				uint good = worker.first;
 				uint quantity = worker.second;
@@ -113,7 +117,6 @@ wstring FactoryModule::GetInfo(bool xml)
 				}
 			}
 		}
-		info += closeLine; 
 	}
 
 	return info;
@@ -154,11 +157,27 @@ bool FactoryModule::Timer(uint time)
 		uint presentAmount = base->HasMarketItem(good);
 		if ((presentAmount - base->reservedCatalystMap[good]) < quantityNeeded)
 		{
+			sufficientCatalysts = false;
+			return false;
+		}
+		base->reservedCatalystMap[good] += quantityNeeded;
+	}
+	for (const auto& workers : active_recipe.catalyst_workforce)
+	{
+		uint good = workers.first;
+		uint quantityNeeded = workers.second;
+
+		uint presentAmount = base->HasMarketItem(good);
+		if ((presentAmount - base->reservedCatalystMap[good]) < quantityNeeded)
+		{
+			sufficientCatalysts = false;
 			return false;
 		}
 		base->reservedCatalystMap[good] += quantityNeeded;
 	}
 
+	sufficientCatalysts = true;
+	
 	if (active_recipe.credit_cost)
 	{
 		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);

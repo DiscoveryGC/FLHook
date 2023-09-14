@@ -41,6 +41,7 @@ struct RECIPE
 	uint cooking_rate;
 	vector<pair<uint, uint>> consumed_items;
 	vector<pair<uint, uint>> catalyst_items;
+	vector<pair<uint, uint>> catalyst_workforce;
 	uint credit_cost;
 	uint reqlevel;
 	unordered_map<uint, float> affiliationBonus;
@@ -266,6 +267,8 @@ public:
 
 	// List of queued recipes;
 	list<uint> build_queue;
+
+	bool sufficientCatalysts = true;
 
 	FactoryModule(PlayerBase* the_base);
 	FactoryModule(PlayerBase* the_base, uint factoryNickname);

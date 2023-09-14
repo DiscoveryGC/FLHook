@@ -1445,10 +1445,35 @@ namespace PlayerCommands
 					const GoodInfo* gi = GoodList::find_by_id(item.first);
 					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
 				}
+				PrintUserCmdText(client, L"Produced goods:");
+				for (const auto& product : recipe->produced_items)
+				{
+					const GoodInfo* gi = GoodList::find_by_id(product.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), product.second);
+				}
+				if (!recipe->catalyst_items.empty())
+				{
+					PrintUserCmdText(client, L"Production catalysts (not consumed):");
+					for (const auto& catalyst : recipe->catalyst_items)
+					{
+						const GoodInfo* gi = GoodList::find_by_id(catalyst.first);
+						PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), catalyst.second);
+					}
+				}
+				if (!recipe->catalyst_workforce.empty())
+				{
+					PrintUserCmdText(client, L"Workers:");
+					for (const auto& workforce : recipe->catalyst_workforce)
+					{
+						const GoodInfo* gi = GoodList::find_by_id(workforce.first);
+						PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), workforce.second);
+					}
+				}
+				PrintUserCmdText(client, L"IFF bonuses:");
 				for (const auto& rep : recipe->affiliationBonus)
 				{
-					PrintUserCmdText(client, L"|   %ls - +%u%% bonus",
-						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), ((1.0f - rep.second) * 100));
+					PrintUserCmdText(client, L"|   %ls - +%u%% efficiency bonus",
+						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), static_cast<uint>(((1.0f / rep.second) - 1.0f) * 100));
 				}
 				return;
 			}
@@ -1462,7 +1487,7 @@ namespace PlayerCommands
 
 		if (cmd == L"start")
 		{
-			if (base->availableCraftList.find(recipe->craft_type) == base->availableCraftList.end())
+			if (!base->availableCraftList.count(recipe->craft_type))
 			{
 				PrintUserCmdText(client, L"ERR incorrect craftlist");
 				return;
@@ -1475,6 +1500,7 @@ namespace PlayerCommands
 			}
 			factory->AddToQueue(recipe->nickname);
 			PrintUserCmdText(client, L"OK Item added to build queue");
+			base->Save();
 			return;
 		}
 

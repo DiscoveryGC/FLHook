@@ -83,7 +83,7 @@ map<uint, RECIPE> moduleNumberRecipeMap;
 map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 set<wstring> buildingCraftLists;
 
-void AddFactoryRecipeToMaps(const RECIPE& recipe, const wstring& recipe_type);
+void AddFactoryRecipeToMaps(const RECIPE& recipe);
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
 
 /// Map of item nickname hash to recipes to operate shield.
@@ -731,7 +731,6 @@ void LoadSettingsActual()
 			if (ini.is_header("recipe"))
 			{
 				RECIPE recipe;
-				wstring craft_type;
 				while (ini.read_value())
 				{
 					if (ini.is_value("nickname"))
@@ -752,7 +751,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("craft_type"))
 					{
-						craft_type = stows(ToLower(ini.get_value_string(0)));
+						recipe.craft_type = stows(ToLower(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("infotext"))
 					{
@@ -772,7 +771,15 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("catalyst"))
 					{
-						recipe.catalyst_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
+						uint cargoHash = CreateID(ini.get_value_string(0));
+						if (humanCargoList.count(cargoHash))
+						{
+							recipe.catalyst_workforce.emplace_back(make_pair(cargoHash, ini.get_value_int(1)));
+						}
+						else
+						{
+							recipe.catalyst_items.emplace_back(make_pair(cargoHash, ini.get_value_int(1)));
+						}
 					}
 					else if (ini.is_value("reqlevel"))
 					{
@@ -780,10 +787,10 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("affiliation_bonus"))
 					{
-						recipe.affiliationBonus[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+						recipe.affiliationBonus[MakeId(ini.get_value_string(0))] = ini.get_value_float(1);
 					}
 				}
-				AddFactoryRecipeToMaps(recipe, craft_type);
+				AddFactoryRecipeToMaps(recipe);
 			}
 		}
 		ini.close();
@@ -1755,8 +1762,6 @@ void __stdcall BaseExit(uint base, uint client)
 	SendResetMarketOverride(client);
 	SendSetBaseInfoText2(client, L"");
 
-	//wstring base_status = L"<RDL><PUSH/>";
-	//base_status += L"<TEXT>" + XMLText(base->name) + L", " + HkGetWStringFromIDS(sys->strid_name) +  L"</TEXT><PARA/><PARA/>";
 }
 
 void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigned int iDockTarget, unsigned int p4, unsigned long p5, unsigned int client)
@@ -3053,14 +3058,12 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	return;
 }
 
-void AddFactoryRecipeToMaps(const RECIPE& recipe, const wstring& craft_type)
+void AddFactoryRecipeToMaps(const RECIPE& recipe)
 {
-
 	wstring recipeNameKey = ToLower(recipe.infotext);
-	wstring craftTypeKey = ToLower(craft_type);
 	recipeMap[recipe.nickname] = recipe;
-	recipeCraftTypeNumberMap[craftTypeKey][recipe.shortcut_number] = recipe;
-	recipeCraftTypeNameMap[craftTypeKey][recipeNameKey] = recipe;
+	recipeCraftTypeNumberMap[recipe.craft_type][recipe.shortcut_number] = recipe;
+	recipeCraftTypeNameMap[recipe.craft_type][recipeNameKey] = recipe;
 }
 
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number)

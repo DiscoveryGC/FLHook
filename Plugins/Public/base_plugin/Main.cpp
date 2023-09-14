@@ -458,6 +458,8 @@ void LoadSettingsActual()
 	moduleNameRecipeMap.clear();
 	moduleNumberRecipeMap.clear();
 	craftListNumberModuleMap.clear();
+	humanCargoList.clear();
+	humanCargoList.insert(set_base_crew_type);
 
 	HookExt::ClearMiningObjData();
 	DefenseModule::LoadSettings(string(szCurDir) + R"(\flhook_plugins\base_wp_ai.cfg)");

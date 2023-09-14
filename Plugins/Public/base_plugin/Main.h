@@ -440,7 +440,7 @@ public:
 	// if true, the base was repaired or is able to be repaired
 	bool isCrewSupplied;
 
-	map<uint, uint> reservedCatalystMap;
+	map<uint, int> reservedCatalystMap;
 
 	// The state of the shield
 	static const int SHIELD_STATE_OFFLINE = 0;

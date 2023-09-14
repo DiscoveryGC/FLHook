@@ -152,9 +152,9 @@ bool FactoryModule::Timer(uint time)
 	for (const auto& catalyst : active_recipe.catalyst_items)
 	{
 		uint good = catalyst.first;
-		uint quantityNeeded = catalyst.second;
+		int quantityNeeded = catalyst.second;
 
-		uint presentAmount = base->HasMarketItem(good);
+		int presentAmount = base->HasMarketItem(good);
 		if ((presentAmount - base->reservedCatalystMap[good]) < quantityNeeded)
 		{
 			sufficientCatalysts = false;
@@ -165,9 +165,9 @@ bool FactoryModule::Timer(uint time)
 	for (const auto& workers : active_recipe.catalyst_workforce)
 	{
 		uint good = workers.first;
-		uint quantityNeeded = workers.second;
+		int quantityNeeded = workers.second;
 
-		uint presentAmount = base->HasMarketItem(good);
+		int presentAmount = base->HasMarketItem(good);
 		if ((presentAmount - base->reservedCatalystMap[good]) < quantityNeeded)
 		{
 			sufficientCatalysts = false;

@@ -459,7 +459,6 @@ void LoadSettingsActual()
 	moduleNumberRecipeMap.clear();
 	craftListNumberModuleMap.clear();
 	humanCargoList.clear();
-	humanCargoList.insert(set_base_crew_type);
 
 	HookExt::ClearMiningObjData();
 	DefenseModule::LoadSettings(string(szCurDir) + R"(\flhook_plugins\base_wp_ai.cfg)");
@@ -565,6 +564,7 @@ void LoadSettingsActual()
 					else if (ini.is_value("base_crew_item"))
 					{
 						set_base_crew_type = CreateID(ini.get_value_string(0));
+						humanCargoList.insert(set_base_crew_type);
 					}
 					else if (ini.is_value("human_cargo_item"))
 					{

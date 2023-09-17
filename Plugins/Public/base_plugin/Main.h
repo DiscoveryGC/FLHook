@@ -166,28 +166,6 @@ public:
 	void RepairDamage(float max_base_health);
 };
 
-class ShieldModule : public Module
-{
-public:
-	PlayerBase *base;
-
-	// If true then a player has entered the system and so we reset the fuse
-	// so that they see the shield
-	bool reset_needed;
-
-	ShieldModule(PlayerBase *the_base);
-	~ShieldModule();
-	wstring GetInfo(bool xml);
-
-	void LoadState(INI_Reader &ini);
-	void SaveState(FILE *file);
-
-	bool Timer(uint time);
-	void SetReputation(int player_rep, float attitude);
-
-	bool HasShieldPower();
-};
-
 class StorageModule : public Module
 {
 public:
@@ -426,9 +404,8 @@ public:
 	bool repairing;
 
 	// The state of the shield
-	static const int SHIELD_STATE_OFFLINE = 0;
-	static const int SHIELD_STATE_ONLINE = 1;
-	static const int SHIELD_STATE_ACTIVE = 2;
+	static const int SHIELD_STATE_ONLINE = 0;
+	static const int SHIELD_STATE_ACTIVE = 1;
 	int shield_state;
 
 	// The number of seconds that shield will be active
@@ -647,9 +624,6 @@ extern map<uint, uint> construction_items;
 
 /// Construction cost in credits
 extern int construction_credit_cost;
-
-/// Map of item nickname hash to recipes to operate shield.
-extern map<uint, uint> shield_power_items;
 
 /// Damage to the base every 10 seconds
 extern uint set_damage_per_10sec;

@@ -148,7 +148,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ClCompile Include="PlayerBase.cpp" />
     <ClCompile Include="PlayerCommands.cpp" />
     <ClCompile Include="SaveFiles.cpp" />
-    <ClCompile Include="ShieldModule.cpp" />
     <ClCompile Include="SiegeGun.cpp" />
     <ClCompile Include="StorageModule.cpp" />
   </ItemGroup>

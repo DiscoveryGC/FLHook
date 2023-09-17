@@ -4,7 +4,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -39,7 +39,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_OFFLINE),
+	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules
@@ -340,12 +340,6 @@ void PlayerBase::Load()
 			else if (ini.is_header("BuildModule"))
 			{
 				BuildModule *mod = new BuildModule(this);
-				mod->LoadState(ini);
-				modules.push_back(mod);
-			}
-			else if (ini.is_header("ShieldModule"))
-			{
-				ShieldModule *mod = new ShieldModule(this);
 				mod->LoadState(ini);
 				modules.push_back(mod);
 			}
@@ -778,10 +772,11 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	{
 		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		ReportAttack(this->basename, charname, this->system);
-		this->shield_active_time = 60 + (rand() % 512);
 		if (set_plugin_debug > 1)
 			ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_active_time);
 	}
+
+	this->shield_active_time = 60;
 
 	return 0.0f;
 }

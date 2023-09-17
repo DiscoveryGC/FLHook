@@ -338,12 +338,6 @@ bool CoreModule::Timer(uint time)
 float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
-	
-	if(base->shield_state == PlayerBase::SHIELD_STATE_OFFLINE)
-	{
-		// shield offline, return expected damage without modifications
-		return new_hitpoints;
-	}
 
 	if (base->shield_strength_multiplier >= 1.0f || isGlobalBaseInvulnerabilityActive || base->invulnerable == 1)
 	{

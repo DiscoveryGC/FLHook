@@ -86,9 +86,6 @@ set<wstring> buildingCraftLists;
 void AddFactoryRecipeToMaps(const RECIPE& recipe);
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
 
-/// Map of item nickname hash to recipes to operate shield.
-map<uint, uint> shield_power_items;
-
 /// Map of space obj IDs to base modules to speed up damage algorithms.
 unordered_map<uint, Module*> spaceobj_modules;
 
@@ -125,6 +122,8 @@ uint repair_per_repair_cycle = 60000;
 map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
+
+const uint shield_fuse = CreateID("player_base_shield");
 
 // decides if bases are globally immune, based on server time
 bool isGlobalBaseInvulnerabilityActive;
@@ -451,7 +450,6 @@ void LoadSettingsActual()
 	set_base_repair_items.clear();
 	set_base_crew_consumption_items.clear();
 	set_base_crew_food_items.clear();
-	shield_power_items.clear();
 	recipeCraftTypeNumberMap.clear();
 	recipeCraftTypeNameMap.clear();
 	factoryNicknameToCraftTypeMap.clear();
@@ -592,12 +590,6 @@ void LoadSettingsActual()
 					else if (ini.is_value("set_crew_check_frequency"))
 					{
 						set_crew_check_frequency = ini.get_value_int(0);
-					}
-					else if (ini.is_value("shield_power_item"))
-					{
-						uint good = CreateID(ini.get_value_string(0));
-						uint quantity = ini.get_value_int(1);
-						shield_power_items[good] = quantity;
 					}
 					else if (ini.is_value("set_new_spawn"))
 					{
@@ -1403,12 +1395,6 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseDefMod(client, args);
 		return true;
 	}
-	else if (args.find(L"/base shieldmod") == 0)
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		PlayerCommands::BaseShieldMod(client, args);
-		return true;
-	}
 	else if (args.find(L"/build") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1603,7 +1589,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 			}
 
 			// Shield is up, docking is not possible.
-			if (pbase->shield_active_time)
+			if (pbase->shield_timeout)
 			{
 				PrintUserCmdText(client, L"Docking failed because base shield is active");
 				iCancel = -1;
@@ -1777,7 +1763,7 @@ void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigne
 			if (base)
 			{
 				// Shield is up, docking is not possible.
-				if (base->shield_active_time)
+				if (base->shield_timeout)
 				{
 					PrintUserCmdText(client, L"Docking failed because base shield is active");
 					pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));

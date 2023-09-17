@@ -150,9 +150,6 @@ bool BuildModule::Timer(uint time)
 					base->modules[0]->Spawn();
 
 					break;
-				case Module::TYPE_SHIELDGEN:
-					base->modules[i] = new ShieldModule(base);
-					break;
 				case Module::TYPE_STORAGE:
 					base->modules[i] = new StorageModule(base);
 					break;

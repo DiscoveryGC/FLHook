@@ -502,9 +502,9 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 			miningYield = max(miningYield, zoneData.fCurrReserve);
 			finalZone = &zoneData; // save ZONE_BONUS ref to update AFTER all the bonuses are applied
 		}
-		uint type;
-		pub::SpaceObj::GetType(iShip, type);
-		miningYield *= GetMiningYieldBonus(cd.equippedID, lootId) * set_globalModifier * set_shipClassModifiers[type];
+		uint shipClass = Archetype::GetShip(Players[iClientID].iShipArchetype)->iShipClass;
+
+		miningYield *= GetMiningYieldBonus(cd.equippedID, lootId) * set_globalModifier * set_shipClassModifiers[shipClass];
 		miningYield += cd.overminedFraction; // add the decimal remainder from last mining event.
 
 		if (finalZone)

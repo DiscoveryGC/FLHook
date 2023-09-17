@@ -1629,56 +1629,9 @@ namespace PlayerCommands
 		}
 	}
 
-	void BaseShieldMod(uint client, const wstring& args)
-	{
-		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
-
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
-			return;
-		}
-
-		const wstring& cmd = GetParam(args, ' ', 2);
-		if (cmd == L"on")
-		{
-			base->shield_active_time = 3600 * 24;
-		}
-		else if (cmd == L"off")
-		{
-			base->shield_active_time = 0;
-		}
-		else
-		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/base shieldmod [on|off]");
-			PrintUserCmdText(client, L"|  on - turn the shield on");
-			PrintUserCmdText(client, L"|  off - turn the shield off");
-		}
-
-		// Force the timer for the shield module(s) to run and read their
-		// status.
-		for (uint index = 0; index < base->modules.size(); index++)
-		{
-			if (base->modules[index] &&
-				base->modules[index]->type == Module::TYPE_SHIELDGEN)
-			{
-				ShieldModule* mod = (ShieldModule*)base->modules[index];
-				mod->Timer(0);
-				PrintUserCmdText(client, L"|  * %s", mod->GetInfo(false).c_str());
-			}
-		}
-		PrintUserCmdText(client, L"OK");
-	}
-
 	void Bank(uint client, const wstring& args)
 	{
-		PlayerBase* base = GetPlayerBaseForClient(client);
+		PlayerBase *base = GetPlayerBaseForClient(client);
 
 		if (!base)
 		{

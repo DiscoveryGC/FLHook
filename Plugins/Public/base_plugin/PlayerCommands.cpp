@@ -849,6 +849,15 @@ namespace PlayerCommands
 			return;
 		}
 
+		if (find(base->perma_hostile_tags.begin(), base->perma_hostile_tags.end(), tag) != base->perma_hostile_tags.end())
+		{
+			PrintUserCmdText(client, L"ERR Tag already exists");
+			return;
+		}
+
+
+		base->perma_hostile_tags.push_back(tag);
+
 		// Logging
 		wstring thecharname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		wstring wscMsg = L": \"%sender\" added \"%victim\" to blacklist of base \"%base\"";
@@ -885,6 +894,14 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR No tag");
 		}
 
+		if (find(base->perma_hostile_tags.begin(), base->perma_hostile_tags.end(), tag) == base->perma_hostile_tags.end())
+		{
+			PrintUserCmdText(client, L"ERR Tag does not exist");
+			return;
+		}
+
+		base->perma_hostile_tags.remove(tag);
+
 		// Logging
 		wstring thecharname = (const wchar_t*)Players.GetActiveCharacterName(client);
 		wstring wscMsg = L": \"%sender\" removed \"%victim\" from blacklist of base \"%base\"";
@@ -915,6 +932,8 @@ namespace PlayerCommands
 			return;
 		}
 
+		foreach(base->perma_hostile_tags, wstring, i)
+			PrintUserCmdText(client, L"%s", i->c_str());
 		PrintUserCmdText(client, L"OK");
 	}
 

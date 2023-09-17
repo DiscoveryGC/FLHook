@@ -95,6 +95,15 @@ void ExportData::ToHTML()
 
 				fprintf(file, "<td class=\"column0\">%s</td>", thewhitelist.c_str());
 
+				string theblacklist;
+				for (list<wstring>::iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
+				{
+					theblacklist.append(wstos((*i)).c_str());
+					theblacklist.append("\n");
+				}
+
+				fprintf(file, "<td class=\"column0\">%s</td>", theblacklist.c_str());
+
 				fprintf(file, "</tr>\n");
 				++iter;
 			}

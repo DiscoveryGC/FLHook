@@ -3,7 +3,7 @@
 PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_basename)
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
-	base_level(1), defense_mode(0), proxy_base(0), affiliation(0),
+	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
 	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
@@ -38,7 +38,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
-	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0),
+	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
 	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
@@ -287,6 +287,12 @@ void PlayerBase::Load()
 						// TODO: enable this to load hostile tags hostile_tags[tag] = tag;
 						//Useless as perma hostile tags have been implemented
 					}
+					else if (ini.is_value("perma_hostile_tag"))
+					{
+						wstring tag;
+						ini_get_wstring(ini, tag);
+						perma_hostile_tags.push_back(tag);
+					}
 					else if (ini.is_value("faction_ally_tag"))
 					{
 						ally_factions.insert(ini.get_value_int(0));
@@ -419,6 +425,10 @@ void PlayerBase::Save()
 		{
 			ini_write_wstring(file, "hostile_tag", (wstring&)i->first);
 		}
+		foreach(perma_hostile_tags, wstring, i)
+		{
+			ini_write_wstring(file, "perma_hostile_tag", *i);
+		}
 		foreach(passwords, BasePassword, i)
 		{
 			BasePassword bp = *i;
@@ -526,6 +536,17 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 	// By default all bases are hostile to everybody.
 	float attitude = -1.0;
 	wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+
+	
+	// Make base hostile if player is on the perma hostile list. First check so it overrides everything.
+	if (siege_mode || emulated_siege_mode)
+		for (std::list<wstring>::const_iterator i = perma_hostile_tags.begin(); i != perma_hostile_tags.end(); ++i)
+		{
+			if (charname.find(*i) == 0)
+			{
+				return -1.0;
+			}
+		}
 
 	// Make base friendly if player is on the friendly list.
 	for (std::list<wstring>::const_iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
@@ -658,6 +679,35 @@ void ReportAttack(wstring basename, wstring charname, uint system, wstring alert
 	return;
 }
 
+// For all players in the base's system, resync their reps towards all objects
+// of this base.
+void PlayerBase::SiegeModChainReaction(uint client)
+{
+	map<uint, PlayerBase*>::iterator it;
+	for (it = player_bases.begin(); it != player_bases.end(); it++)
+	{
+		if (it->second->system == this->system)
+		{
+			if (HkDistance3D(it->second->position, this->position) < siege_mode_chain_reaction_trigger_distance)
+			{
+				if (!(it->second->siege_mode))
+				{
+					float attitude = it->second->GetAttitudeTowardsClient(client, true);
+					if (attitude < -0.55f)
+					{
+						it->second->siege_mode = true;
+
+						const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+						ReportAttack(it->second->basename, charname, it->second->system, L"has detected hostile activity at a nearby base by");
+
+						it->second->SyncReputationForBase();
+					}
+				}
+			}
+		}
+	}
+}
+
 // Return true if 
 float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
@@ -698,8 +748,21 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 				ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
 
 				SyncReputationForBase();
+
+				if (siege_mode)
+					SiegeModChainReaction(client);
 			}
 		}
+
+		if (!siege_mode && (hostile_tags_damage[charname]) > siege_mode_damage_trigger_level)
+		{
+			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
+
+			siege_mode = true;
+			SiegeModChainReaction(client);
+		}
+
 
 		// If the shield is not active but could be set a time 
 		// to request that it is activated.
@@ -714,7 +777,7 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			}
 		}
 
-		this->shield_active_time = static_cast<uint>(time(nullptr) + 60);
+		this->shield_active_time = time(nullptr) + 60;
 	}
 
 	return 0.0f;

@@ -558,26 +558,26 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 	}
 
 	// Make base hostile if player is on the hostile list.
-	if (!emulated_siege_mode && hostile_tags.find(charname) != hostile_tags.end())
+	if (hostile_tags.count(charname))
 	{
 		return -1.0;
 	}
 
 	uint playeraff = GetAffliationFromClient(client);
 	// Make base hostile if player is on the hostile faction list.
-	if ((siege_mode || emulated_siege_mode) && hostile_factions.find(playeraff) != hostile_factions.end())
+	if (hostile_factions.count(playeraff))
 	{
 		return -1.0;
 	}
 
 	// Make base friendly if player is on the friendly faction list.
-	if (ally_factions.find(playeraff) != ally_factions.end())
+	if (ally_factions.count(playeraff))
 	{
 		return 1.0;
 	}
 
 	// if defense mode 3, at this point if player doesn't match any criteria, give him fireworks
-	if ((siege_mode || emulated_siege_mode) && defense_mode == 3)
+	if (defense_mode == 3)
 	{
 		return -1.0;
 	}
@@ -592,11 +592,7 @@ float PlayerBase::GetAttitudeTowardsClient(uint client, bool emulated_siege_mode
 			pub::Player::GetRep(client, rep);
 			pub::Reputation::GetGroupFeelingsTowards(rep, affiliation, attitude);
 
-			// if in siege mode, return true affiliation, otherwise clamp to minimum neutralNoDock rep
-			if (siege_mode || emulated_siege_mode)
-				return attitude;
-			else
-				return max(-0.59f, attitude);
+			return attitude;
 		}
 	}
 
@@ -638,6 +634,8 @@ void PlayerBase::SyncReputationForBaseObject(uint space_obj)
 			int player_rep;
 			pub::SpaceObj::GetRep(pd->iShipID, player_rep);
 			float attitude = GetAttitudeTowardsClient(pd->iOnlineID);
+
+			ConPrint(L"att %f\n", attitude);
 
 			int obj_rep;
 			pub::SpaceObj::GetRep(space_obj, obj_rep);

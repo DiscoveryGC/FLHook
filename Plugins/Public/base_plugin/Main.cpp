@@ -117,6 +117,8 @@ map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
+const uint shield_fuse = CreateID("player_base_shield");
+
 // decides if bases are globally immune, based on server time
 bool isGlobalBaseInvulnerabilityActive;
 

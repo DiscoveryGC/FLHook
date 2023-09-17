@@ -764,19 +764,23 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 			siege_mode = true;
 			SiegeModChainReaction(client);
 		}
-	}
 
-	// If the shield is not active but could be set a time 
-	// to request that it is activated.
-	if (!this->shield_active_time && this->shield_state == SHIELD_STATE_ONLINE)
-	{
-		const wstring &charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		ReportAttack(this->basename, charname, this->system);
-		if (set_plugin_debug > 1)
-			ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_active_time);
-	}
 
-	this->shield_active_time = 60;
+		// If the shield is not active but could be set a time 
+		// to request that it is activated.
+		if (!this->shield_active_time && this->shield_state == SHIELD_STATE_ONLINE
+			&& !isGlobalBaseInvulnerabilityActive)
+		{
+			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			ReportAttack(this->basename, charname, this->system);
+			if (set_plugin_debug > 1)
+			{
+				ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_active_time);
+			}
+		}
+
+		this->shield_active_time = time(nullptr) + 60;
+	}
 
 	return 0.0f;
 }

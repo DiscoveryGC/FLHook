@@ -223,8 +223,31 @@ void CoreModule::RepairDamage(float max_base_health)
 	}
 }
 
+void CoreModule::SetShieldState(const int shieldState)
+{
+	if (space_obj)
+	{
+		uint dummy;
+		IObjInspectImpl* inspect;
+		if (GetShipInspect(space_obj, inspect, dummy))
+		{
+			HkUnLightFuse((IObjRW*)inspect, shield_fuse, 0);
+			if (base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE)
+			{
+				HkLightFuse((IObjRW*)inspect, shield_fuse, 0.0f, 0.0f, 0.0f);
+			}
+		}
+	}
+}
+
 bool CoreModule::Timer(uint time)
 {
+	// Disable shield if time elapsed
+	if (base->shield_active_time < time)
+	{
+		base->shield_state = PlayerBase::SHIELD_STATE_ONLINE;
+		SetShieldState(base->shield_state);
+	}
 
 	if ((time%set_tick_time) != 0 || set_holiday_mode) {
 		return false;
@@ -438,6 +461,8 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 {
 	if (space_obj)
 	{
+		SetShieldState(base->shield_state);
+
 		int obj_rep;
 		pub::SpaceObj::GetRep(this->space_obj, obj_rep);
 		if (set_plugin_debug > 1)

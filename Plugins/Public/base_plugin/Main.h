@@ -162,6 +162,7 @@ public:
 	bool SpaceObjDestroyed(uint space_obj);
 	void SetReputation(int player_rep, float attitude);
 	float FindWearNTearModifier(float currHpPercentage);
+	void SetShieldState(const int shieldState);
 
 	void RepairDamage(float max_base_health);
 };
@@ -409,7 +410,7 @@ public:
 	int shield_state;
 
 	// The number of seconds that shield will be active
-	int shield_active_time;
+	uint shield_active_time;
 
 	// When this timer drops to less than 0 the base is saved	 
 	int save_timer;
@@ -654,6 +655,8 @@ extern uint set_tick_time;
 extern map<int, float> shield_reinforcement_threshold_map;
 extern float shield_reinforcement_increment;
 extern float base_shield_strength;
+
+extern const uint shield_fuse;
 
 extern bool isGlobalBaseInvulnerabilityActive;
 

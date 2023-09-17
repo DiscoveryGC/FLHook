@@ -1356,15 +1356,6 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 		}
 	}
 
-	//Hostile listed can't dock even if they are friendly faction listed
-	for (list<wstring>::iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
-	{
-		if (charname.find(*i) == 0)
-		{
-			return false;
-		}
-	}
-
 	uint playeraff = GetAffliationFromClient(client);
 	//Do not allow dock if player is on the hostile faction list.
 	if (base->hostile_factions.find(playeraff) != base->hostile_factions.end())

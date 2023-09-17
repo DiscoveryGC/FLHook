@@ -4,7 +4,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	repairing(false), shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -39,7 +39,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_active_time(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	repairing(false), shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules
@@ -768,18 +768,18 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 		// If the shield is not active but could be set a time 
 		// to request that it is activated.
-		if (!this->shield_active_time && this->shield_state == SHIELD_STATE_ONLINE
+		if (!this->shield_timeout && this->shield_state == SHIELD_STATE_ONLINE
 			&& !isGlobalBaseInvulnerabilityActive)
 		{
 			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 			ReportAttack(this->basename, charname, this->system);
 			if (set_plugin_debug > 1)
 			{
-				ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_active_time);
+				ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
 			}
 		}
 
-		this->shield_active_time = time(nullptr) + 60;
+		this->shield_timeout = time(nullptr) + 60;
 	}
 
 	return 0.0f;

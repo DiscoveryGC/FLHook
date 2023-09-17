@@ -410,7 +410,7 @@ public:
 	int shield_state;
 
 	// The number of seconds that shield will be active
-	uint shield_active_time;
+	uint shield_timeout;
 
 	// When this timer drops to less than 0 the base is saved	 
 	int save_timer;

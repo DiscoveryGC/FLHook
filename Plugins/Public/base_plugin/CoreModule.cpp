@@ -243,8 +243,9 @@ void CoreModule::SetShieldState(const int shieldState)
 bool CoreModule::Timer(uint time)
 {
 	// Disable shield if time elapsed
-	if (base->shield_active_time < time)
+	if (base->shield_timeout < time)
 	{
+		base->shield_timeout = 0;
 		base->shield_state = PlayerBase::SHIELD_STATE_ONLINE;
 		SetShieldState(base->shield_state);
 	}

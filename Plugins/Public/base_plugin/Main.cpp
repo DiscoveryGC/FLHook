@@ -1499,7 +1499,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 			}
 
 			// Shield is up, docking is not possible.
-			if (pbase->shield_active_time)
+			if (pbase->shield_timeout)
 			{
 				PrintUserCmdText(client, L"Docking failed because base shield is active");
 				iCancel = -1;
@@ -1676,7 +1676,7 @@ void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigne
 			if (base)
 			{
 				// Shield is up, docking is not possible.
-				if (base->shield_active_time)
+				if (base->shield_timeout)
 				{
 					PrintUserCmdText(client, L"Docking failed because base shield is active");
 					pub::Player::SendNNMessage(client, pub::GetNicknameId("info_access_denied"));

@@ -526,11 +526,9 @@ void StartDockingProcedure(uint dockingID, uint carrierID)
 		dd.timeLeft = dockingPeriod;
 		dd.startPosition = pos;
 		dockingInProgress[dockingID] = dd;
-		auto dockingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dockingID));
-		auto carrierName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(carrierID));
-		wstring message = dockingName;
-		message += L" has begun docking on ";
-		message += carrierName;
+		wstring dockingName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(dockingID));
+		wstring carrierName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(carrierID));
+		wstring message = dockingName + L" has begun docking on " + carrierName;
 		PrintLocalUserCmdText(dockingID, message, 10000);
 	}
 	else

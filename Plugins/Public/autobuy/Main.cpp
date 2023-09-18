@@ -571,7 +571,7 @@ void PlayerAutorepair(uint iClientID)
 			continue;
 		}
 
-		repairCost += (int)floor(info->fPrice * (1.0f - item->fHealth) *  equipmentRepairFactor);
+		repairCost += (int)floor(info->fPrice * (1.0f - item->fHealth) * equipmentRepairFactor);
 		eqToFix.insert(item->sID);
 	}
 
@@ -598,6 +598,14 @@ void PlayerAutorepair(uint iClientID)
 	if (iCash < repairCost)
 	{
 		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): FAILED! Insufficient Credits");
+		return;
+	}
+
+	if (repairCost < 0)
+	{
+		PrintUserCmdText(iClientID, L"Auto-Buy(Repair): FAILED! Unknown error, staff has been notified. Please repair manually.");
+		wstring charName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+		AddLog("Autobuy error: %ls got negative repair value. Debug data: hp: %f, repairCost: %d\n", charName.c_str(), Players[iClientID].fRelativeHealth, repairCost);
 		return;
 	}
 

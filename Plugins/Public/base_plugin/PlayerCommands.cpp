@@ -74,13 +74,10 @@ L"<TEXT>Defense Mode 5 - Logic: Blacklist > Whitelist > Faction Whitelist > Neut
 L"<TEXT>Docking Rights: Whitelisted ships only.</TEXT><PARA/><PARA/>"
 
 L"<TRA bold=\"true\"/><TEXT>/base info</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Set the base's infocard description.</TEXT>"
+L"<TEXT>Set the base's infocard description.</TEXT><PARA/><PARA/>"
 
 L"<TRA bold=\"true\"/><TEXT>/craft</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Control factory modules to produce various goods and equipment.</TEXT><PARA/><PARA/>"
-
-L"<TRA bold=\"true\"/><TEXT>/base rep [clear]</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Set or clear the faction that this base is affiliated with. When setting the affiliation, the affiliation will be that of the player executing the command.</TEXT><PARA/><PARA/>"
 
 L"<TRA bold=\"true\"/><TEXT>/base supplies</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Prints Crew, Food, Water, Oxygen and repair material counts.</TEXT>",

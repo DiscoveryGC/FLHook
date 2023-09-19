@@ -637,8 +637,6 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 		return true;
 	}
 
-	// If this cloaking device requires more power than the ship can provide
-	// no cloaking device is available.
 	uint type;
 	pub::SpaceObj::GetType(iShip, type);
 	

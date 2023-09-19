@@ -293,15 +293,9 @@ namespace PlayerCommands
 	void BaseAddPwd(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -342,15 +336,9 @@ namespace PlayerCommands
 	void BaseRmPwd(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -378,15 +366,9 @@ namespace PlayerCommands
 	void BaseSetMasterPwd(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -435,15 +417,9 @@ namespace PlayerCommands
 	void BaseLstPwd(uint client, const wstring& cmd)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -473,15 +449,9 @@ namespace PlayerCommands
 	void BaseAddAllyTag(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -517,15 +487,9 @@ namespace PlayerCommands
 	void BaseRmAllyTag(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -559,15 +523,9 @@ namespace PlayerCommands
 	void BaseLstAllyTag(uint client, const wstring& cmd)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -578,26 +536,14 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"OK");
 	}
 
-	bool CheckForBase(PlayerBase* base, uint client)
-	{
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return true;
-		}
-
-		if (!clients[client].admin)
-		{
-			PrintUserCmdText(client, L"ERR Access denied");
-			return true;
-		}
-		return false;
-	}
-
 	void BaseAddAllyFac(uint client, const wstring& args, bool HostileFactionMod)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
 
 		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -635,7 +581,11 @@ namespace PlayerCommands
 	void BaseClearAllyFac(uint client, const wstring& args, bool HostileFactionMod)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
 
 		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -649,7 +599,11 @@ namespace PlayerCommands
 	void BaseRmAllyFac(uint client, const wstring& args, bool HostileFactionMod)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
 
 		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -802,7 +756,11 @@ namespace PlayerCommands
 	void BaseLstAllyFac(uint client, const wstring& cmd, bool HostileFactionMod)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (CheckForBase(base, client)) return;
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
 
 		unordered_set<uint>* list;
 		if (!HostileFactionMod) list = &(base->ally_factions);
@@ -894,15 +852,9 @@ namespace PlayerCommands
 	void BaseAddHostileTag(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -940,15 +892,9 @@ namespace PlayerCommands
 	void BaseRmHostileTag(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -984,15 +930,9 @@ namespace PlayerCommands
 	void BaseLstHostileTag(uint client, const wstring& cmd)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -1004,15 +944,9 @@ namespace PlayerCommands
 	void BaseInfo(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -1071,15 +1005,9 @@ namespace PlayerCommands
 	void BaseDefenseMode(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -1126,15 +1054,9 @@ namespace PlayerCommands
 	void BaseBuildMod(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -1278,15 +1200,9 @@ namespace PlayerCommands
 	void BaseSwapModule(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -1312,15 +1228,9 @@ namespace PlayerCommands
 	void BaseBuildModDestroy(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -1541,15 +1451,9 @@ namespace PlayerCommands
 	void BaseDefMod(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
-		if (!base)
-		{
-			PrintUserCmdText(client, L"ERR Not in player base");
-			return;
-		}
 
-		if (!clients[client].admin)
+		if (!checkBaseAdminAccess(base, client))
 		{
-			PrintUserCmdText(client, L"ERR Access denied");
 			return;
 		}
 
@@ -2135,102 +2039,102 @@ namespace PlayerCommands
 			float distance = HkDistance3D(solar->get_position(), pos);
 			switch (solar->iType)
 			{
-			case OBJ_PLANET:
-			case OBJ_MOON:
-			{
-				if (distance < (minPlanetDistance + solar->get_radius())) // In case of planets, we only care about distance from actual surface, since it can vary wildly
+				case OBJ_PLANET:
+				case OBJ_MOON:
 				{
-					uint idsName = solar->get_name();
-					if (!idsName) idsName = solar->get_archetype()->iIdsName;
-					if (client)
+					if (distance < (minPlanetDistance + solar->get_radius())) // In case of planets, we only care about distance from actual surface, since it can vary wildly
 					{
-						PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minPlanetDistance));
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
+						if (client)
+						{
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minPlanetDistance));
+						}
+						else
+						{
+							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance - solar->get_radius()));
+						}
+						return false;
 					}
-					else
-					{
-						ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance - solar->get_radius()));
-					}
-					return false;
+					break;
 				}
-				break;
-			}
-			case OBJ_DOCKING_RING:
-			case OBJ_STATION:
-			{
-				if (distance < minStationDistance)
+				case OBJ_DOCKING_RING:
+				case OBJ_STATION:
 				{
-					uint idsName = solar->get_name();
-					if (!idsName) idsName = solar->get_archetype()->iIdsName;
-					if (client)
+					if (distance < minStationDistance)
 					{
-						PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minStationDistance));
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
+						if (client)
+						{
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minStationDistance));
+						}
+						else
+						{
+							ConPrint(L"Base too close to %ls, Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+						}
+						return false;
 					}
-					else
-					{
-						ConPrint(L"Base too close to %ls, Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
-					}
-					return false;
+					break;
 				}
-				break;
-			}
-			case OBJ_TRADELANE_RING:
-			{
-				if (distance < minLaneDistance)
+				case OBJ_TRADELANE_RING:
 				{
-					if (client)
+					if (distance < minLaneDistance)
 					{
-						PrintUserCmdText(client, L"Trade Lane Ring is too close. Current: %um, Minimum distance: %um", static_cast<uint>(distance), static_cast<uint>(minLaneDistance));
+						if (client)
+						{
+							PrintUserCmdText(client, L"Trade Lane Ring is too close. Current: %um, Minimum distance: %um", static_cast<uint>(distance), static_cast<uint>(minLaneDistance));
+						}
+						else
+						{
+							ConPrint(L"Trade Lane too close, distance: %um", static_cast<uint>(distance));
+						}
+						return false;
 					}
-					else
-					{
-						ConPrint(L"Trade Lane too close, distance: %um", static_cast<uint>(distance));
-					}
-					return false;
+					break;
 				}
-				break;
-			}
-			case OBJ_JUMP_GATE:
-			case OBJ_JUMP_HOLE:
-			{
-				if (distance < minJumpDistance)
+				case OBJ_JUMP_GATE:
+				case OBJ_JUMP_HOLE:
 				{
-					uint idsName = solar->get_name();
-					if (!idsName) idsName = solar->get_archetype()->iIdsName;
+					if (distance < minJumpDistance)
+					{
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
 
-					if (client)
-					{
-						PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minJumpDistance));
+						if (client)
+						{
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minJumpDistance));
+						}
+						else
+						{
+							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+						}
+						return false;
 					}
-					else
-					{
-						ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
-					}
-					return false;
+					break;
 				}
-				break;
-			}
-			case OBJ_SATELLITE:
-			case OBJ_WEAPONS_PLATFORM:
-			case OBJ_DESTROYABLE_DEPOT:
-			case OBJ_NON_TARGETABLE:
-			case OBJ_MISSION_SATELLITE:
-			{
-				if (distance < minDistanceMisc)
+				case OBJ_SATELLITE:
+				case OBJ_WEAPONS_PLATFORM:
+				case OBJ_DESTROYABLE_DEPOT:
+				case OBJ_NON_TARGETABLE:
+				case OBJ_MISSION_SATELLITE:
 				{
-					uint idsName = solar->get_name();
-					if (!idsName) idsName = solar->get_archetype()->iIdsName;
-					if (client)
+					if (distance < minDistanceMisc)
 					{
-						PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minDistanceMisc));
+						uint idsName = solar->get_name();
+						if (!idsName) idsName = solar->get_archetype()->iIdsName;
+						if (client)
+						{
+							PrintUserCmdText(client, L"%ls too close. Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance), static_cast<uint>(minDistanceMisc));
+						}
+						else
+						{
+							ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+						}
+						return false;
 					}
-					else
-					{
-						ConPrint(L"Base too close to %ls, distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
-					}
-					return false;
+					break;
 				}
-				break;
-			}
 			}
 		}
 

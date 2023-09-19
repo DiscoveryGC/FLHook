@@ -49,7 +49,7 @@ struct CLOAK_ARCH
 	string scNickName;
 	int iWarmupTime;
 	int activationPeriod;
-	int iHoldSizeLimit;
+	uint availableShipClasses;
 	map<uint, CLOAK_FUEL_USAGE> mapFuelToUsage;
 	bool bDropShieldsOnUncloak;
 	bool bBreakOnProximity;
@@ -155,9 +155,24 @@ void LoadSettings()
 					{
 						device.iWarmupTime = ini.get_value_int(0);
 					}
-					else if (ini.is_value("hold_size_limit"))
+					else if (ini.is_value("ship_classes"))
 					{
-						device.iHoldSizeLimit = ini.get_value_int(0);
+						uint types = 0;
+						string typeStr = ToLower(ini.get_value_string(0));
+						if (typeStr.find("fighter") != string::npos)
+							types |= OBJ_FIGHTER;
+						if (typeStr.find("freighter") != string::npos)
+							types |= OBJ_FREIGHTER;
+						if (typeStr.find("transport") != string::npos)
+							types |= OBJ_TRANSPORT;
+						if (typeStr.find("gunboat") != string::npos)
+							types |= OBJ_GUNBOAT;
+						if (typeStr.find("cruiser") != string::npos)
+							types |= OBJ_CRUISER;
+						if (typeStr.find("capital") != string::npos)
+							types |= OBJ_CAPITAL;
+
+						device.availableShipClasses = types;
 					}
 					else if (ini.is_value("fuel"))
 					{
@@ -622,49 +637,42 @@ bool UserCmd_Cloak(uint iClientID, const wstring &wscCmd, const wstring &wscPara
 		return true;
 	}
 
-	// If this cloaking device requires more power than the ship can provide
-	// no cloaking device is available.
-	IObjInspectImpl *obj = HkGetInspect(iClientID);
-	if (obj)
+	uint type;
+	pub::SpaceObj::GetType(iShip, type);
+	
+	if (!(info.arch->availableShipClasses & type))
 	{
-		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
-		if (cship)
-		{
-			if (info.arch->iHoldSizeLimit != 0
-				&& info.arch->iHoldSizeLimit < cship->shiparch()->fHoldSize)
-			{
-				PrintUserCmdText(iClientID, L"Cloaking device will not function on this ship type");
-				mapClientsCloak[iClientID].iState = STATE_CLOAK_INVALID;
-				SetState(iClientID, iShip, STATE_CLOAK_OFF);
-				return true;
-			}
-
-			mapClientsCloak[iClientID].bAdmin = false;
-
-			switch (mapClientsCloak[iClientID].iState)
-			{
-			case STATE_CLOAK_OFF:
-				SetState(iClientID, iShip, STATE_CLOAK_CHARGING);
-				break;
-			case STATE_CLOAK_ON:
-			{
-				mstime now = timeInMS();
-				if ((info.tmCloakTime + info.arch->activationPeriod) < now)
-				{
-					SetState(iClientID, iShip, STATE_CLOAK_OFF);
-				}
-				else
-				{
-					PrintUserCmdText(iClientID, L"ERR Device must fully activate before deactivation.");
-				}
-				break;
-			}
-			case STATE_CLOAK_CHARGING:
-				SetState(iClientID, iShip, STATE_CLOAK_OFF);
-				break;
-			}
-		}
+		PrintUserCmdText(iClientID, L"Cloaking device will not function on this ship type");
+		mapClientsCloak[iClientID].iState = STATE_CLOAK_INVALID;
+		SetState(iClientID, iShip, STATE_CLOAK_OFF);
+		return true;
 	}
+
+	mapClientsCloak[iClientID].bAdmin = false;
+
+	switch (mapClientsCloak[iClientID].iState)
+	{
+	case STATE_CLOAK_OFF:
+		SetState(iClientID, iShip, STATE_CLOAK_CHARGING);
+		break;
+	case STATE_CLOAK_ON:
+	{
+		mstime now = timeInMS();
+		if ((info.tmCloakTime + info.arch->activationPeriod) < now)
+		{
+			SetState(iClientID, iShip, STATE_CLOAK_OFF);
+		}
+		else
+		{
+			PrintUserCmdText(iClientID, L"ERR Device must fully activate before deactivation.");
+		}
+		break;
+	}
+	case STATE_CLOAK_CHARGING:
+		SetState(iClientID, iShip, STATE_CLOAK_OFF);
+		break;
+	}
+	
 	return true;
 }
 

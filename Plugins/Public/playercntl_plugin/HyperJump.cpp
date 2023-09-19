@@ -117,7 +117,7 @@ namespace HyperJump
 		uint jump_hole_capacity;
 		uint jump_hole_duration;
 		map<uint, vector<uint>> mapFuelToUsagePerDistance;
-		float power;
+		uint available_ship_classes;
 		boolean cd_disrupts_charge;
 	};
 	static unordered_map<uint, JUMPDRIVE_ARCH> mapJumpDriveArch;
@@ -383,9 +383,24 @@ namespace HyperJump
 								jd.mapFuelToUsagePerDistance[fuel].push_back(rate);
 							}
 						}
-						else if (ini.is_value("power"))
+						else if (ini.is_value("ship_classes"))
 						{
-							jd.power = ini.get_value_float(0);
+							uint types = 0;
+							string typeStr = ToLower(ini.get_value_string(0));
+							if (typeStr.find("fighter") != string::npos)
+								types |= OBJ_FIGHTER;
+							if (typeStr.find("freighter") != string::npos)
+								types |= OBJ_FREIGHTER;
+							if (typeStr.find("transport") != string::npos)
+								types |= OBJ_TRANSPORT;
+							if (typeStr.find("gunboat") != string::npos)
+								types |= OBJ_GUNBOAT;
+							if (typeStr.find("cruiser") != string::npos)
+								types |= OBJ_CRUISER;
+							if (typeStr.find("capital") != string::npos)
+								types |= OBJ_CAPITAL;
+
+							jd.available_ship_classes = types;
 						}
 						else if (ini.is_value("cd_disrupts_charge"))
 						{
@@ -1573,10 +1588,11 @@ namespace HyperJump
 	bool HyperJump::UserCmd_Jump(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 	{
 		// If no ship, report a warning
-		IObjInspectImpl *obj = HkGetInspect(iClientID);
-		if (!obj)
+		uint ship;
+		pub::Player::GetShip(iClientID, ship);
+		if (!ship)
 		{
-			PrintUserCmdText(iClientID, L"ERR Jump drive charging failed");
+			PrintUserCmdText(iClientID, L"ERR You need to be in space!");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}
@@ -1590,10 +1606,12 @@ namespace HyperJump
 
 		JUMPDRIVE &jd = mapJumpDrives[iClientID];
 
-		CShip* cship = (CShip*)HkGetEqObjFromObjRW((IObjRW*)obj);
-		if (cship->get_max_power() < jd.arch->power)
+		uint type;
+		pub::SpaceObj::GetType(ship, type);
+
+		if (!(jd.arch->available_ship_classes & type))
 		{
-			PrintUserCmdText(iClientID, L"Insufficient power to charge jumpdrive, your ship has %f, required: %f", cship->get_max_power(), jd.arch->power);
+			PrintUserCmdText(iClientID, L"ERR Jump Drive will not function on this ship type");
 			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("nnv_jumpdrive_charging_failed"));
 			return true;
 		}

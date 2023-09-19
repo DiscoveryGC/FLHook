@@ -1760,7 +1760,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	returncode = DEFAULT_RETURNCODE;
 	SyncReputationForClientShip(ship, client);
 
-	HyperJump::CheckForDisconnectedUnchartedLogin(ship, client);
 	if (player_launch_base && !system_match)
 	{
 		ForcePlayerBaseDock(client, player_launch_base);
@@ -2811,6 +2810,10 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	return false;
 }
 
+void DelayedDisconnect(uint clientId, uint shipId)
+{
+	HyperJump::CheckForDisconnectedUnchartedDisconnect(clientId, shipId);
+}
 
 void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 {
@@ -2953,6 +2956,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseDestroyed, PLUGIN_BaseDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkCb_AddDmgEntry, PLUGIN_HkCb_AddDmgEntry, 15));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 11));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DelayedDisconnect, PLUGIN_DelayedDisconnect, 0));
 	return p_PI;
 }
 

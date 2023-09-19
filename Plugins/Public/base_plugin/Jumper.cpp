@@ -38,7 +38,7 @@ struct SYSTEMJUMPCOORDS
 	Matrix ornt;
 };
 
-void HyperJump::CheckForDisconnectedUnchartedLogin(uint ship, uint client)
+void HyperJump::CheckForDisconnectedUnchartedDisconnect(uint ship, uint client)
 {
 	if (disconnectedUnchartedSystems.count(Players[client].iSystemID))
 	{

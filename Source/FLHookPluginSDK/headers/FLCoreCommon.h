@@ -339,7 +339,7 @@ namespace Archetype
 		virtual void redefine(struct Root const &);
 		bool traverse_groups(struct CollisionGroup const * &)const;
 	public:
-		/* 23 */ CollisionGroup *cg;
+		/* 23 */ CollisionGroup *collisiongroup;
 		/* 24 */ uint iDunno1;
 		/* 25 */ uint iDunno2;
 		/* 26 */ uint iDunno3;
@@ -462,6 +462,22 @@ namespace Archetype
 		CollisionGroup* next;
 		USHORT	id;
 		CacheString name;
+		uint type;
+		uint hitPts;
+		bool separable;
+		bool destroyParent;
+		bool rootHealthProxy;
+		float parentImpulse;
+		float mass;
+		bool hasRotationInertia;
+		Vector rotationInertia;
+		uint separationExplosionArch;
+		uint debrisTypeArch;
+		float explosionResistance;
+		uint dunno1[6]; // 64 something about dmg_hp, dmg_obj, group_dmg_hp and group_dmg_obj
+		uint dunno[4]; //88 something about fuses
+		uint linkedEquipType;
+		float linkedEquipDamage;
 	};
 
 	struct IMPORT Commodity : Equipment
@@ -3477,7 +3493,8 @@ struct IMPORT CollisionGroupDesc
 	bool operator>(struct CollisionGroupDesc const &)const;
 
 public:
-	unsigned char data[OBJECT_DATA_SIZE];
+	ushort id;
+	float health;
 };
 
 struct IMPORT CommReferrable

@@ -45,7 +45,7 @@ const char* EquipmentUtilities::FindNickname(uint hash)
 /** Read freelancer data to determine mod settings. */
 void EquipmentUtilities::ReadIniNicknames()
 {
-	string dataDirPath = "..\\data";
+	string dataDirPath = R"(..\data)";
 
 	INI_Reader ini;
 	if (ini.open("freelancer.ini", false))

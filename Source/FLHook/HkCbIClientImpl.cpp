@@ -930,7 +930,7 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_SETCASH(uint iClientID, uint iCash)
 /**************************************************************************************************************
 **************************************************************************************************************/
 
-bool HkIClientImpl::Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(uint iClientID, st6::list<XCollisionGroup>& collisionGrpList)
+bool HkIClientImpl::Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(uint iClientID, st6::list<CollisionGroupDesc>& collisionGrpList)
 {
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);

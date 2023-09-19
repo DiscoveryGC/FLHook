@@ -171,7 +171,7 @@ public:
 	virtual double CDPClientProxy__GetLinkSaturation(uint iClientID);
 	virtual bool Send_FLPACKET_SERVER_SETSHIPARCH(uint iClientID, uint iShipArch);
 	virtual bool Send_FLPACKET_SERVER_SETHULLSTATUS(uint iClientID, float fStatus);
-	virtual bool Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(uint iClientID, st6::list<XCollisionGroup>& collisionGrpList);
+	virtual bool Send_FLPACKET_SERVER_SETCOLLISIONGROUPS(uint iClientID, st6::list<CollisionGroupDesc>& collisionGrpList);
 	virtual bool Send_FLPACKET_SERVER_SETEQUIPMENT(uint iClientID, st6::vector<EquipDesc>& equipVec);
 	virtual void unknown_26(uint iClientID, uint iDunno);
 	virtual bool Send_FLPACKET_SERVER_SETADDITEM(uint iClientID, FLPACKET_UNKNOWN& pDunno, FLPACKET_UNKNOWN& pDunno2);

@@ -3,10 +3,10 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-void DeleteBase(PlayerBase *base, bool moveFile)
+void DeleteBase(PlayerBase* base, bool moveFile)
 {
 	// If there are players online and in the base then force them to launch to space
-	struct PlayerData *pd = 0;
+	struct PlayerData* pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		uint client = pd->iOnlineID;
@@ -36,7 +36,7 @@ void DeleteBase(PlayerBase *base, bool moveFile)
 		char datapath[MAX_PATH];
 		GetUserDataPath(datapath);
 		// Create base save  dir if it doesn't exist
-		string basesvdir = string(datapath) + "\\Accts\\MultiPlayer\\player_bases\\destroyed\\";
+		string basesvdir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\destroyed\)";
 		CreateDirectoryA(basesvdir.c_str(), 0);
 
 		string timestamp = boost::posix_time::to_iso_string(boost::posix_time::second_clock::local_time());

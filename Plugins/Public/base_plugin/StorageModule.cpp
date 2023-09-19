@@ -1,7 +1,7 @@
 #include "Main.h"
 
 
-StorageModule::StorageModule(PlayerBase *the_base)
+StorageModule::StorageModule(PlayerBase* the_base)
 	: Module(TYPE_STORAGE), base(the_base)
 {
 }
@@ -15,14 +15,14 @@ wstring StorageModule::GetInfo(bool xml)
 	return L"Cargo Storage";
 }
 
-void StorageModule::LoadState(INI_Reader &ini)
+void StorageModule::LoadState(INI_Reader& ini)
 {
 	while (ini.read_value())
 	{
 	}
 }
 
-void StorageModule::SaveState(FILE *file)
+void StorageModule::SaveState(FILE* file)
 {
 	fprintf(file, "[StorageModule]\n");
 }

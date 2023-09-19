@@ -21,7 +21,7 @@ namespace pt = boost::posix_time;
 
 void ExportData::ToHTML()
 {
-	FILE *file = fopen(set_status_path_html.c_str(), "w");
+	FILE* file = fopen(set_status_path_html.c_str(), "w");
 	if (file)
 	{
 		fprintf(file, "<html>\n<head><title>Player Base Status</title><style type=text/css>\n");
@@ -46,67 +46,64 @@ void ExportData::ToHTML()
 		fprintf(file, "<th class=\"ColumnH\">Blacklisted Tags</th>");
 		fprintf(file, "</tr>\n\n");
 
-		map<uint, PlayerBase*>::iterator iter = player_bases.begin();
-		while (iter != player_bases.end())
+		for (auto& iter : player_bases)
 		{
-			PlayerBase *base = iter->second;
+			PlayerBase* base = iter.second;
 
 			//do nothing if it's something we don't care about
 			if (mapArchs[base->basetype].display == false)
 			{
-				++iter;
+				continue;
 			}
-			else
+			
+			wstring theaffiliation = HtmlEncode(HkGetWStringFromIDS(Reputation::get_name(base->affiliation)));
+
+			fprintf(file, "<tr>");
+			fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(base->basename)).c_str());
+			fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(theaffiliation)).c_str());
+			fprintf(file, "<td class=\"column0\">%0.0f</td>", 100 * (base->base_health / base->max_base_health));
+			fprintf(file, "<td class=\"column0\">%s</td>", base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE ? "On" : "Off");
+			fprintf(file, "<td class=\"column0\">%I64d</td>", base->money);
+
+
+			string desc;
+			for (int i = 1; i <= MAX_PARAGRAPHS; i++)
 			{
-				wstring theaffiliation = HtmlEncode(HkGetWStringFromIDS(Reputation::get_name(base->affiliation)));
-
-				fprintf(file, "<tr>");
-				fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(base->basename)).c_str());
-				fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(theaffiliation)).c_str());
-				fprintf(file, "<td class=\"column0\">%0.0f</td>", 100 * (base->base_health / base->max_base_health));
-				fprintf(file, "<td class=\"column0\">%s</td>", base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE ? "On" : "Off");
-				fprintf(file, "<td class=\"column0\">%I64d</td>", base->money);
-
-
-				string desc;
-				for (int i = 1; i <= MAX_PARAGRAPHS; i++)
-				{
-					desc += "<p>";
-					desc += wstos(HtmlEncode(base->infocard_para[i]));
-					desc += "</p>";
-				}
-				fprintf(file, "<td class=\"column0\">%s</td>", desc.c_str());
-
-				// the new fields begin here
-				fprintf(file, "<td class=\"column0\">%d</td>", base->base_level);
-				fprintf(file, "<td class=\"column0\">%d</td>", base->defense_mode);
-
-				const Universe::ISystem *iSys = Universe::get_system(base->system);
-				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
-				fprintf(file, "<td class=\"column0\">%s</td>", wstos(wscSysName).c_str());
-				fprintf(file, "<td class=\"column0\">%0.0f %0.0f %0.0f</td>", base->position.x, base->position.y, base->position.z);
-
-				string thewhitelist;
-				for (list<wstring>::iterator i = base->ally_tags.begin(); i != base->ally_tags.end(); ++i)
-				{
-					thewhitelist.append(wstos((*i)).c_str());
-					thewhitelist.append("\n");
-				}
-
-				fprintf(file, "<td class=\"column0\">%s</td>", thewhitelist.c_str());
-
-				string theblacklist;
-				for (list<wstring>::iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
-				{
-					theblacklist.append(wstos((*i)).c_str());
-					theblacklist.append("\n");
-				}
-
-				fprintf(file, "<td class=\"column0\">%s</td>", theblacklist.c_str());
-
-				fprintf(file, "</tr>\n");
-				++iter;
+				desc += "<p>";
+				desc += wstos(HtmlEncode(base->infocard_para[i]));
+				desc += "</p>";
 			}
+			fprintf(file, "<td class=\"column0\">%s</td>", desc.c_str());
+
+			// the new fields begin here
+			fprintf(file, "<td class=\"column0\">%d</td>", base->base_level);
+			fprintf(file, "<td class=\"column0\">%d</td>", base->defense_mode);
+
+			const Universe::ISystem* iSys = Universe::get_system(base->system);
+			wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
+			fprintf(file, "<td class=\"column0\">%s</td>", wstos(wscSysName).c_str());
+			fprintf(file, "<td class=\"column0\">%0.0f %0.0f %0.0f</td>", base->position.x, base->position.y, base->position.z);
+
+			string thewhitelist;
+			for (auto& i : base->ally_tags)
+			{
+				thewhitelist.append(wstos(i).c_str());
+				thewhitelist.append("\n");
+			}
+
+			fprintf(file, "<td class=\"column0\">%s</td>", thewhitelist.c_str());
+
+			string theblacklist;
+			for (auto& i : base->perma_hostile_tags)
+			{
+				theblacklist.append(wstos(i).c_str());
+				theblacklist.append("\n");
+			}
+
+			fprintf(file, "<td class=\"column0\">%s</td>", theblacklist.c_str());
+
+			fprintf(file, "</tr>\n");
+			
 		}
 
 
@@ -122,19 +119,10 @@ void ExportData::ToJSON()
 	writer.write("timestamp", pt::to_iso_string(pt::second_clock::local_time()));
 	minijson::object_writer pwc = writer.nested_object("bases");
 
-	map<uint, PlayerBase*>::iterator iter = player_bases.begin();
-	while (iter != player_bases.end())
+	for (auto& iter : player_bases)
 	{
-		PlayerBase *base = iter->second;
-
-		//do nothing if it's something we don't care about
-		//if ((base->basetype == "jumpgate") || (base->basetype == "jumphole") || (base->basetype == "airlock") || (base->basetype == "solar") || (base->basetype == "invinciblesolar"))
-		//{
-		//	++iter;
-		//}
-		//else
-		//{
-			//grab the affiliation before we begin
+		PlayerBase* base = iter.second;
+		//grab the affiliation before we begin
 		wstring theaffiliation = HtmlEncode(HkGetWStringFromIDS(Reputation::get_name(base->affiliation)));
 		if (theaffiliation == L"Object Unknown")
 		{
@@ -146,39 +134,41 @@ void ExportData::ToJSON()
 
 		minijson::array_writer pwds = pw.nested_array("passwords");
 		// first thing we'll do is grab all administrator passwords, encoded.
-		for (list<BasePassword>::iterator it = base->passwords.begin(); it != base->passwords.end(); ++it)
+		for (auto& bp : base->passwords)
 		{
-			BasePassword bp = *it;
 			wstring l = bp.pass;
 			if (!bp.admin && bp.viewshop)
+			{
 				l += L" viewshop";
+			}
 			pwds.write(wstos(HtmlEncode(l)).c_str());
 		}
 		pwds.close();
 
 		minijson::array_writer shop = pw.nested_array("shop_items");
-		int curr_item = 1;
-		for (map<UINT, MARKET_ITEM>::iterator i = base->market_items.begin(); i != base->market_items.end(); ++i, curr_item++)
+		for (auto i : base->market_items)
 		{
 			try {
 				minijson::object_writer item = shop.nested_object();
-				item.write("quantity", i->second.quantity);
-				item.write("price", i->second.price);
-				item.write("min_stock", i->second.min_stock);
-				item.write("max_stock", i->second.max_stock);
-				item.write("is_public", i->second.is_public);
-				
-				const GoodInfo* gi = GoodList::find_by_id(i->first);
-				
+				item.write("quantity", i.second.quantity);
+				item.write("price", i.second.price);
+				item.write("min_stock", i.second.min_stock);
+				item.write("max_stock", i.second.max_stock);
+				item.write("is_public", i.second.is_public);
+
+				const GoodInfo* gi = GoodList::find_by_id(i.first);
+
 				wstring name = HkGetWStringFromIDS(gi->iIDSName);
 				item.write("name", wstos(name).c_str());
 				item.write("name_id", gi->iIDSName);
-				item.write("id", i->first);
-				item.write("nickname", EquipmentUtilities::FindNickname(i->first));
+				item.write("id", i.first);
+				item.write("nickname", EquipmentUtilities::FindNickname(i.first));
 				item.close();
-				
-			} catch (...) {
-				ConPrint(L"WARN: failed to output to json object with id %u\n", i->first);
+
+			}
+			catch (...)
+			{
+				ConPrint(L"WARN: failed to output to json object with id %u\n", i.first);
 			}
 		}
 		shop.close();
@@ -195,16 +185,13 @@ void ExportData::ToJSON()
 		pw.write("shieldstate", base->shield_state);
 		pw.close();
 
-		++iter;
-		//}
-
 	}
 	pwc.close();
 
 	writer.close();
 
 	//dump to a file
-	FILE *file = fopen(set_status_path_json.c_str(), "w");
+	FILE* file = fopen(set_status_path_json.c_str(), "w");
 	if (file)
 	{
 		fprintf(file, stream.str().c_str());

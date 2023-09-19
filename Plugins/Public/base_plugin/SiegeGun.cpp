@@ -32,7 +32,7 @@ map<uint, POBSOUNDS> soundhistory;
 //Structures and shit yo
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Siege::SiegeGunDeploy(uint client, const wstring &args)
+void Siege::SiegeGunDeploy(uint client, const wstring& args)
 {
 	// Abort processing if this is not a "heavy lifter"
 	uint shiparch;
@@ -96,7 +96,7 @@ void Siege::SiegeGunDeploy(uint client, const wstring &args)
 			PrintUserCmdText(client, L"ERR Construction failed due to insufficient raw material.");
 			for (i = construction_items.begin(); i != construction_items.end(); ++i)
 			{
-				const GoodInfo *gi = GoodList::find_by_id(i->first);
+				const GoodInfo* gi = GoodList::find_by_id(i->first);
 				if (gi)
 				{
 					PrintUserCmdText(client, L"|  %ux %s", i->second, HkGetWStringFromIDS(gi->iIDSName).c_str());
@@ -115,7 +115,7 @@ void Siege::SiegeGunDeploy(uint client, const wstring &args)
 	wstring password = L"hastesucks";
 	wstring basename = stows(randomname);
 
-	PlayerBase *newbase = new PlayerBase(client, password, basename);
+	PlayerBase* newbase = new PlayerBase(client, password, basename);
 	player_bases[newbase->base] = newbase;
 	newbase->basetype = "siegegun";
 	newbase->basesolar = "depot";
@@ -125,7 +125,7 @@ void Siege::SiegeGunDeploy(uint client, const wstring &args)
 	for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
 	{
 
-		ARCHTYPE_STRUCT &thearch = iter->second;
+		ARCHTYPE_STRUCT& thearch = iter->second;
 		if (iter->first == newbase->basetype)
 		{
 			newbase->invulnerable = thearch.invulnerable;
@@ -152,7 +152,7 @@ int Siege::CalculateHealthPercentage(uint basehash, int health, int maxhealth)
 void Siege::SiegeAudioCalc(uint basehash, uint iSystemID, Vector pos, int level)
 {
 	// For all players in system...
-	struct PlayerData *pPD = 0;
+	struct PlayerData* pPD = 0;
 	while (pPD = Players.traverse_active(pPD))
 	{
 		// Get the this player's current system and location in the system.

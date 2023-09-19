@@ -1,17 +1,17 @@
 #include "main.h"
 
 /// Send a command to the client at destination ID 0x9999
-void SendCommand(uint client, const wstring &message)
+void SendCommand(uint client, const wstring& message)
 {
 	HkFMsg(client, L"<TEXT>" + XMLText(message) + L"</TEXT>");
 }
 
-void SendSetBaseInfoText(uint client, const wstring &message)
+void SendSetBaseInfoText(uint client, const wstring& message)
 {
 	SendCommand(client, wstring(L" SetBaseInfoText ") + message);
 }
 
-void SendSetBaseInfoText2(uint client, const wstring &message)
+void SendSetBaseInfoText2(uint client, const wstring& message)
 {
 	SendCommand(client, wstring(L" SetBaseInfoText2 ") + message);
 }
@@ -22,9 +22,9 @@ void SendResetMarketOverride(uint client)
 }
 
 // Send a price update to all clients in the player base for a single good
-void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item)
+void SendMarketGoodUpdated(PlayerBase* base, uint good, MARKET_ITEM& item)
 {
-	struct PlayerData *pd = 0;
+	struct PlayerData* pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		uint client = pd->iOnlineID;
@@ -60,7 +60,7 @@ void SendMarketGoodUpdated(PlayerBase *base, uint good, MARKET_ITEM &item)
 }
 
 // Send a price update to a single client for all goods in the base
-void SendMarketGoodSync(PlayerBase *base, uint client)
+void SendMarketGoodSync(PlayerBase* base, uint client)
 {
 	// Reset the client's market
 	SendResetMarketOverride(client);
@@ -70,11 +70,11 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 		SendCommand(client, L" SetMarketOverride 0 0 0 0");
 
 	// Send the market
-	for (map<uint, MARKET_ITEM>::iterator i = base->market_items.begin();
+	for (auto i = base->market_items.begin();
 		i != base->market_items.end(); i++)
 	{
 		uint good = i->first;
-		MARKET_ITEM &item = i->second;
+		MARKET_ITEM& item = i->second;
 		wchar_t buf[200];
 		// If the base has none of the item then it is buy-only at the client.
 		if (item.quantity == 0)
@@ -97,6 +97,25 @@ void SendMarketGoodSync(PlayerBase *base, uint client)
 		}
 		SendCommand(client, buf);
 	}
+}
+
+wstring UIntToPrettyStr(uint value)
+{
+	wchar_t buf[1000];
+	swprintf(buf, _countof(buf), L"%u", value);
+	int len = wcslen(buf);
+
+	wstring wscBuf;
+	for (int i = len - 1, j = 0; i >= 0; i--, j++)
+	{
+		if (j == 3)
+		{
+			j = 0;
+			wscBuf.insert(0, L".");
+		}
+		wscBuf.insert(0, wstring(1, buf[i]));
+	}
+	return wscBuf;
 }
 
 static wstring Int64ToPrettyStr(INT64 iValue)
@@ -125,9 +144,9 @@ static wstring IntToStr(uint iValue)
 	return	buf;
 }
 
-void SendBaseStatus(uint client, PlayerBase *base)
+void SendBaseStatus(uint client, PlayerBase* base)
 {
-	const Universe::ISystem *sys = Universe::get_system(base->system);
+	const Universe::ISystem* sys = Universe::get_system(base->system);
 
 	wstring base_status = L"<RDL><PUSH/>";
 	base_status += L"<TEXT>" + XMLText(base->basename) + L", " + HkGetWStringFromIDS(sys->strid_name) + L"</TEXT><PARA/><PARA/>";
@@ -169,13 +188,21 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	{
 		base_status += L"<TEXT>Repair Status: ALL I WANT FOR CHRISTMAS IS YOU</TEXT><PARA/>";
 	}
-	else if (base->repairing)
+	else if (base->HasMarketItem(set_base_crew_type) < base->base_level * 200)
 	{
-		base_status += L"<TEXT>Repair Status: Repairing</TEXT><PARA/>";
+		base_status += L"<TEXT>Crew Status: Insufficient crew onboard</TEXT><PARA/>";
+	}
+	else if (base->isCrewSupplied)
+	{
+		base_status += L"<TEXT>Crew Status: Working</TEXT><PARA/>";
 	}
 	else
 	{
-		base_status += L"<TEXT>Repair Status: Not repairing</TEXT><PARA/>";
+		time_t currTime = time(0);
+		uint nextCheckInSeconds = set_crew_check_frequency - (currTime % set_crew_check_frequency);
+		uint nextCheckHour = nextCheckInSeconds / 3600;
+		uint nextCheckMinute = (nextCheckInSeconds % 3600) / 60;
+		base_status += L"<TEXT>Crew Status: Refusing to work over lack of supplies, next supply check in " + stows(itos(nextCheckHour)) + L"h " + stows(itos(nextCheckMinute)) + L"m</TEXT><PARA/>";
 	}
 
 	base_status += L"<PARA/>";
@@ -184,7 +211,7 @@ void SendBaseStatus(uint client, PlayerBase *base)
 	for (uint i = 1; i < base->modules.size(); i++)
 	{
 		base_status += L"<TEXT>  " + stows(itos(i)) + L": ";
-		Module *module = base->modules[i];
+		Module* module = base->modules[i];
 		if (module)
 		{
 			base_status += module->GetInfo(true);
@@ -202,9 +229,9 @@ void SendBaseStatus(uint client, PlayerBase *base)
 }
 
 // Update the base status and send it to all clients in the base
-void SendBaseStatus(PlayerBase *base)
+void SendBaseStatus(PlayerBase* base)
 {
-	struct PlayerData *pd = 0;
+	struct PlayerData* pd = 0;
 	while (pd = Players.traverse_active(pd))
 	{
 		if (!HkIsInCharSelectMenu(pd->iOnlineID))

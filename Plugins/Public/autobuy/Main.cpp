@@ -609,7 +609,7 @@ void PlayerAutorepair(uint iClientID)
 		return;
 	}
 
-	pub::Player::AdjustCash(iClientID, repairCost);
+	pub::Player::AdjustCash(iClientID, -repairCost);
 
 	if (!eqToFix.empty())
 	{

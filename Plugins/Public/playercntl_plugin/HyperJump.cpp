@@ -1181,7 +1181,9 @@ namespace HyperJump
 								continue;
 							}
 
-							pub::SpaceObj::GetLocation(jd.targetClient, jd.vTargetPosition, jd.matTargetOrient);
+							uint targetShip;
+							pub::Player::GetShip(jd.targetClient, targetShip);
+							pub::SpaceObj::GetLocation(targetShip, jd.vTargetPosition, jd.matTargetOrient);
 							pub::Player::GetSystem(jd.targetClient, jd.iTargetSystem);
 							int innacurracy = mapPlayerBeaconMatrix[jd.targetClient].arch->inaccuracy;
 							jd.vTargetPosition.x += (rand() % (innacurracy * 2)) - innacurracy;
@@ -1196,7 +1198,7 @@ namespace HyperJump
 					continue;
 				}
 
-				if (jd.charging_on)
+				if (jd.charging_on && jd.jump_timer == 0)
 				{
 					// Use fuel to charge the jump drive's storage capacitors
 					bool successfulCharge = false;
@@ -1782,10 +1784,11 @@ namespace HyperJump
 		jd.charging_on = true;
 		jd.last_tick_charge = 0;
 		jd.curr_charge = 0.0f;
-		jd.targetClient = iTargetClientID;
+		jd.targetClient = iClientID;
 		jd.jumpDistance = canJump.second;
 
 		PrintUserCmdText(iTargetClientID, L"Beacon jump request accepted, charging...");
+		PrintUserCmdText(iClientID, L"Beacon jump request accepted");
 		return true;
 	}
 
@@ -1853,7 +1856,10 @@ namespace HyperJump
 		const wchar_t* charName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
 		PrintUserCmdText(iClientID, L"Sent beacon jump request");
 		PrintUserCmdText(iTargetClientID, L"%ls has sent a beacon jump request", charName);
-		PrintUserCmdText(iTargetClientID, L"To accept, type /acceptjump %u or /acceptjump %ls", iClientID, charName);
+		PrintUserCmdText(iTargetClientID, L"To accept, type /acceptbeacon %u or /acceptbeacon %ls", iClientID, charName);
+
+		mapBeaconJumpRequests[iClientID] = iTargetClientID;
+
 		return true;
 	}
 

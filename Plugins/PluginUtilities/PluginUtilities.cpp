@@ -607,14 +607,6 @@ void HkDelayedKick(uint iClientID, uint secs)
 // Move the client to the specified location
 void HkRelocateClient(uint iClientID, Vector vDestination, Matrix mOrientation)
 {
-	//force clear target to prevent a 'ghost duplicate' bug from occuring
-	XSetTarget clearTarget;
-	clearTarget.iShip = ClientInfo[iClientID].iShip;
-	clearTarget.iSlot = 0;
-	clearTarget.iSpaceID = 0;
-	clearTarget.iSubObjID = 0;
-	HookClient->Send_FLPACKET_COMMON_SETTARGET(iClientID, clearTarget);
-
 	Quaternion qRotation = HkMatrixToQuaternion(mOrientation);
 
 	FLPACKET_LAUNCH pLaunch;

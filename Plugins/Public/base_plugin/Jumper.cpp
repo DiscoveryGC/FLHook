@@ -29,7 +29,7 @@
 //Structures and shit yo
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-unordered_set<uint>disconnectedUnchartedSystems;
+unordered_set<uint> unchartedSystems;
 
 struct SYSTEMJUMPCOORDS
 {
@@ -38,9 +38,9 @@ struct SYSTEMJUMPCOORDS
 	Matrix ornt;
 };
 
-void HyperJump::CheckForDisconnectedUnchartedDisconnect(uint ship, uint client)
+void HyperJump::CheckForUnchartedDisconnect(uint ship, uint client)
 {
-	if (disconnectedUnchartedSystems.count(Players[client].iSystemID))
+	if (unchartedSystems.count(Players[client].iSystemID))
 	{
 		pub::SpaceObj::SetRelativeHealth(ship, 0.0f);
 	}
@@ -50,23 +50,14 @@ void HyperJump::InitJumpHole(uint baseId, uint destSystem, uint destObject)
 {
 	uint dunno;
 	IObjInspectImpl* inspect;
-	GetShipInspect(baseId, inspect, dunno);	
-	if (!inspect)
-	{
-		ConPrint(L"Something went very wrong!\n");
-	}
+	GetShipInspect(baseId, inspect, dunno);
 	const CObject* solar = inspect->cobject();
-
-	if (!solar)
-	{
-		ConPrint(L"Something went very wrong!\n");
-	}
 
 	memcpy((uint*)solar + 0x6d, &destSystem, 4);
 	memcpy((uint*)solar + 0x6e, &destObject, 4);
 }
 
-bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS coords, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
+bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS& coords, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
 {
 	static uint counter = 0;
 	auto systemInfo = Universe::get_system(coords.system);
@@ -128,8 +119,6 @@ void HyperJump::InitJumpHoleConfig()
 		{
 			continue;
 		}
-
-		disconnectedUnchartedSystems.erase(base.second->destSystem);
 
 		if (mapArchs[pbase->basetype].ishubreturn)
 		{
@@ -204,7 +193,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 				{
 					if (ini.is_value("system"))
 					{
-						disconnectedUnchartedSystems.insert(CreateID(ini.get_value_string(0)));
+						unchartedSystems.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}

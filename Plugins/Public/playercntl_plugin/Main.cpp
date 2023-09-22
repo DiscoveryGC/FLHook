@@ -442,7 +442,9 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 
 		if (!iClientID)
+		{
 			return;
+		}
 
 		HyperJump::RequestCancel(iType, iShip, p3, p4);
 	}
@@ -495,12 +497,10 @@ namespace HkIServerImpl
 		{
 			uint iTargetTypeID;
 			pub::SpaceObj::GetType(iTargetObj, iTargetTypeID);
-			if (iTargetTypeID & (OBJ_DOCKING_RING | OBJ_STATION))
+			if (iTargetTypeID & (OBJ_DOCKING_RING | OBJ_STATION)
+				&& !IsDockingAllowed(iShip, iTargetObj, iClientID))
 			{
-				if (!IsDockingAllowed(iShip, iTargetObj, iClientID))
-				{
-					returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-				}
+				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			}
 		}
 		else if (iEventType == 2) // trade lane dock
@@ -627,7 +627,7 @@ namespace HkIServerImpl
 			SystemSensor::JumpInComplete(iSystem, iShip, iClientID);
 			HyperJump::JumpInComplete(iShip);
 			HyperJump::SetJumpInFuse(iClientID);
-			HyperJump::SetJumpInInvulnerability(iClientID);
+			HyperJump::SetJumpInPvPInvulnerability(iClientID);
 		}
 	}
 
@@ -1237,7 +1237,6 @@ USERCMD UserCmds[] =
 	//{ L"/ss",		    MiscCmds::UserCmd_Screenshot, L"Usage: /ss"},
 	{ L"/setsector",	HyperJump::UserCmd_SetSector, L"Usage: /setsector <number>"},
 	{ L"/jump",			HyperJump::UserCmd_Jump, L"Usage: /jump <systemName/blind/stop/list>"},
-	{ L"/jump*",		HyperJump::UserCmd_Jump, L"Usage: /jump <systemName/blind/stop/list>"},
 	{ L"/jumpbeacon",	HyperJump::UserCmd_JumpBeacon, L"Usage: /jumpbeacon <playername/playerID>" },
 	{ L"/acceptbeacon",	HyperJump::UserCmd_AcceptBeaconRequest, L"Usage: /acceptbeacon <playername/playerID>" },
 	{ L"/canjump",		HyperJump::UserCmd_IsSystemJumpable, L"Usage: /canjump <systemname>" },

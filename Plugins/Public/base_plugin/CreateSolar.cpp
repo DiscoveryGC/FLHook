@@ -45,8 +45,10 @@ void CreateSolar::CreateSolarCallout(SPAWN_SOLAR_STRUCT* info)
 		struct PlayerData* pd = nullptr;
 		while (pd = Players.traverse_active(pd))
 		{
-			if (pd->iSystemID == info->iSystemId || pd->iSystemID == info->creatorSystem)
+			if (pd->iSystemID == info->iSystemId)
+			{
 				HkChangeIDSString(pd->iOnlineID, info->solar_ids, info->overwrittenName);
+			}
 		}
 	}
 	// Set the base name

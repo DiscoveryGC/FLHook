@@ -145,7 +145,7 @@ namespace HyperJump
 	void ClientCloakCallback(CLIENT_CLOAK_STRUCT* info);
 	void SetJumpInFuse(uint iClientID);
 	void ForceJump(CUSTOM_JUMP_CALLOUT_STRUCT jumpData);
-	void SetJumpInInvulnerability(uint iClientID);
+	void SetJumpInPvPInvulnerability(uint iClientID);
 	bool Dock_Call(uint const& iShip, uint const& iDockTarget);
 	void JumpInComplete(uint ship);
 	void RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4);

@@ -686,7 +686,7 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 		data.iSystemId = systemId;
 		data.pos = pos;
 		data.ori = ori;
-		data.initialName = commodityName + L" Container";
+		data.overwrittenName = commodityName + L" Container";
 		data.nickname = "player_mining_container_"+itos(iClientID);
 		data.solar_ids = 540999 + iClientID;
 		data.solarArchetypeId = set_containerSolarArchetypeID;
@@ -701,7 +701,7 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 			cd.jettisonPos = pos;
 			cd.lootId = lootId;
 			cd.nameIDS = data.solar_ids;
-			cd.solarName = data.initialName;
+			cd.solarName = data.overwrittenName;
 			cd.clientId = iClientID;
 			cd.lootCrateId = Archetype::GetEquipment(lootId)->get_loot_appearance()->iArchID;
 			mapMiningContainers[data.iSpaceObjId] = cd;

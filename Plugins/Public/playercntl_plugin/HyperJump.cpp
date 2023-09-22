@@ -65,7 +65,7 @@ namespace HyperJump
 	static float JumpCargoSizeRestriction = 7000;
 	static uint set_blindJumpOverrideSystem = 0;
 	static boolean set_canJumpWithCommodities = true;
-	static uint set_jumpInInvulnerabilityPeriod = 5000;
+	static uint set_jumpInPvPInvulnerabilityPeriod = 5000;
 	static uint set_exitJumpHoleLoadout = CreateID("wormhole_unstable");
 	static uint set_exitJumpHoleArchetype = CreateID("jumphole_noentry");
 	static uint set_entryJumpHoleLoadout = CreateID("wormhole_unstable");
@@ -303,7 +303,7 @@ namespace HyperJump
 						}
 						else if (ini.is_value("JumpInInvulnerabilityPeriod"))
 						{
-							set_jumpInInvulnerabilityPeriod = ini.get_value_int(0);
+							set_jumpInPvPInvulnerabilityPeriod = ini.get_value_int(0);
 						}
 						else if (ini.is_value("JumpInFuse"))
 						{
@@ -597,7 +597,7 @@ namespace HyperJump
 		// about it - otherwise return false.
 		for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 		{
-			if (mapJumpDriveArch.find(item->iArchID) != mapJumpDriveArch.end())
+			if (mapJumpDriveArch.count(item->iArchID))
 			{
 				if (item->bMounted)
 				{
@@ -617,7 +617,7 @@ namespace HyperJump
 		}
 		for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 		{
-			if (mapBeaconMatrix.find(item->iArchID) != mapBeaconMatrix.end())
+			if (mapBeaconMatrix.count(item->iArchID))
 			{
 				mapPlayerBeaconMatrix[iClientID].arch = &mapBeaconMatrix[item->iArchID];
 				return true;
@@ -695,14 +695,10 @@ namespace HyperJump
 		exitSolar.iSystemId = jd.iTargetSystem;
 		exitSolar.pos = jd.vTargetPosition;
 		exitSolar.ori = jd.matTargetOrient;
-		exitSolar.solar_ids = set_IDSNamespaceStart;
-		exitSolar.overwrittenName = L"Collapsing Hyperspace Breach";
-		exitSolar.creatorSystem = Players[iClientID].iSystemID;
+		exitSolar.solar_ids = 267199;
 		exitSolar.nickname = "custom_jump_hole_exit_" + to_string(iClientID) + "_" + to_string(timestamp);
 
-
-		//beacon jump
-
+		// create the entrance
 		Plugin_Communication(CUSTOM_SPAWN_SOLAR, &exitSolar);
 
 		entrySolar.loadoutArchetypeId = set_entryJumpHoleLoadout;
@@ -718,20 +714,22 @@ namespace HyperJump
 
 		Plugin_Communication(CUSTOM_SPAWN_SOLAR, &entrySolar);
 
-		time_t now = time(0);
+		JD_JUMPHOLE exitHole;
+		exitHole.objId = exitSolar.iSpaceObjId;
+		exitHole.isEntrance = false;
+		exitHole.pairedJH = entrySolar.iSpaceObjId;
+		exitHole.remainingCapacity = 0;
 
-		if (entrySolar.iSpaceObjId == 0)
-		{
-			ConPrint(L"entry bugged out\n");
-		}
+		JD_JUMPHOLE entryHole;
+		entryHole.objId = entrySolar.iSpaceObjId;
+		entryHole.targetSystem = entrySolar.destSystem;
+		entryHole.timeout = time(nullptr) + jd.arch->jump_hole_duration;
+		entryHole.isEntrance = true;
+		entryHole.pairedJH = exitSolar.iSpaceObjId;
+		entryHole.remainingCapacity = jd.arch->jump_hole_capacity;
 
-		if (exitSolar.iSpaceObjId == 0)
-		{
-			ConPrint(L"exit bugged out\n");
-		}
-
-		jumpObjMap[exitSolar.iSpaceObjId] = { exitSolar.iSpaceObjId, 0, 0, false, entrySolar.iSpaceObjId, {}, 0 };
-		jumpObjMap[entrySolar.iSpaceObjId] = { entrySolar.iSpaceObjId, entrySolar.destSystem, now + jd.arch->jump_hole_duration, true, exitSolar.iSpaceObjId, {}, jd.arch->jump_hole_capacity };
+		jumpObjMap[exitSolar.iSpaceObjId] = exitHole;
+		jumpObjMap[entrySolar.iSpaceObjId] = entryHole;
 
 		ClearJumpDriveInfo(iClientID, true);
 	}
@@ -810,12 +808,12 @@ namespace HyperJump
 		shipToJumpObjMap.erase(ship);
 	}
 
-	void HyperJump::RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4)
+	void HyperJump::RequestCancel(int iType, unsigned int iShip, unsigned int dockObjId, unsigned long p4)
 	{
-		if (iType == 0 && jumpObjMap.count(p3)) // dock type request, p3 represents the docked-onto object ID
+		if (iType == 0 && jumpObjMap.count(dockObjId)) // dock type request
 		{
-			jumpObjMap.at(p3).dockingQueue.erase(iShip);
-			jumpObjMap.at(p3).remainingCapacity++;
+			jumpObjMap.at(dockObjId).dockingQueue.erase(iShip);
+			jumpObjMap.at(dockObjId).remainingCapacity++;
 			shipToJumpObjMap.erase(iShip);
 		}
 	}
@@ -882,7 +880,7 @@ namespace HyperJump
 			return;
 		}
 
-		if (mapAvailableJumpSystems.count(iSystemID) == 0)
+		if (!mapAvailableJumpSystems.count(iSystemID))
 		{
 			PrintUserCmdText(iClientID, L"ERR Jumping from this system is not possible");
 			return;
@@ -1069,7 +1067,7 @@ namespace HyperJump
 			return true;
 		}
 
-		if (mapJumpDrives[iClientID].iTargetSystem == 0) 
+		if (!mapJumpDrives[iClientID].iTargetSystem) 
 		{
 			PrintUserCmdText(iClientID, L"ERR Jump Drive not locked onto a system, use /jump <systemName> to initiate.");
 			return true;
@@ -1077,7 +1075,7 @@ namespace HyperJump
 
 		auto &jd = mapJumpDrives[iClientID];
 		uint index = ToUInt(GetParam(wscParam, ' ', 0));
-		if (index == 0 || mapSystemJumps[jd.iTargetSystem].size() < index)
+		if (!index || mapSystemJumps[jd.iTargetSystem].size() < index)
 		{
 			PrintUserCmdText(iClientID, L"ERR invalid selection");
 			return true;
@@ -1212,7 +1210,7 @@ namespace HyperJump
 
 					for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 					{
-						if (jd.arch->mapFuelToUsagePerDistance.find(item->iArchID) != jd.arch->mapFuelToUsagePerDistance.end())
+						if (jd.arch->mapFuelToUsagePerDistance.count(item->iArchID))
 						{
 							uint fuel_usage = jd.arch->mapFuelToUsagePerDistance[item->iArchID].at(jd.jumpDistance);
 							if (item->iCount >= fuel_usage)
@@ -1317,11 +1315,11 @@ namespace HyperJump
 		}
 	}
 
-	void HyperJump::SetJumpInInvulnerability(uint clientID)
+	void HyperJump::SetJumpInPvPInvulnerability(uint clientID)
 	{
-		if (set_jumpInInvulnerabilityPeriod)
+		if (set_jumpInPvPInvulnerabilityPeriod)
 		{
-			ClientInfo[clientID].tmProtectedUntil = timeInMS() + set_jumpInInvulnerabilityPeriod;
+			ClientInfo[clientID].tmProtectedUntil = timeInMS() + set_jumpInPvPInvulnerabilityPeriod;
 		}
 	}
 
@@ -1777,7 +1775,7 @@ namespace HyperJump
 		}
 
 		auto& beaconData = mapPlayerBeaconMatrix[iClientID];
-		beaconData.incomingClientIDs.push_back(iTargetClientID);
+		beaconData.incomingClientIDs.emplace_back(iTargetClientID);
 
 		JUMPDRIVE& jd = mapJumpDrives[iTargetClientID];
 

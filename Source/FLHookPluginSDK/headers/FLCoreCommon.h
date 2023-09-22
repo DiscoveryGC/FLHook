@@ -2593,11 +2593,6 @@ public:
 	float GetChargeRate(void)const;
 	float GetThrustCapacity(void)const;
 	float GetThrustChargeRate(void)const;
-
-	CEqObj* owner;
-	unsigned int iSubObjId;
-	Archetype::Power* archetype;
-	unsigned char data2[16];
 };
 
 class IMPORT CERepairDroid : public CEquip

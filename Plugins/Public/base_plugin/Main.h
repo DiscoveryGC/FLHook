@@ -526,9 +526,7 @@ namespace HyperJump
 	void InitJumpHole(uint baseId, uint destSystem, uint destObject);
 	void LoadHyperspaceHubConfig(const string& configPath);
 	void InitJumpHoleConfig();
-	void CheckForDisconnectedUnchartedDisconnect(uint ship, uint client);
-	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt);
-	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
+	void CheckForUnchartedDisconnect(uint ship, uint client);
 	void ClearClientInfo(uint iClientID);
 }
 

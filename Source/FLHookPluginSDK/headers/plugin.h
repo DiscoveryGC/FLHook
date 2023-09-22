@@ -258,9 +258,9 @@ enum PLUGIN_MESSAGE
 	CUSTOM_JUMP = 47,
 	CUSTOM_REVERSE_TRANSACTION = 48,
 	CUSTOM_JUMP_CALLOUT = 49,
-	CUSTOM_MOBILE_DOCK_CHECK = 50,
+	CUSTOM_IS_IT_POB = 50,
 	CUSTOM_SPAWN_SOLAR = 52,
-	CUSTOM_IS_IT_POB = 53,
+	CUSTOM_MOBILE_DOCK_CHECK = 53,
 	CUSTOM_IN_WARP_CHECK = 54,
 	CUSTOM_DESPAWN_SOLAR = 55,
 	CUSTOM_CLOAK_CHECK = 56,
@@ -392,17 +392,6 @@ struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 	uint iClientID;
 };
 
-struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
-{
-	uint iClientID;
-	bool isMobileDocked = false;
-};
-
-struct LAST_PLAYER_BASE_NAME_STRUCT
-{
-	uint clientID;
-	wstring lastBaseName;
-};
 
 struct SPAWN_SOLAR_STRUCT
 {
@@ -417,8 +406,18 @@ struct SPAWN_SOLAR_STRUCT
 	uint iSpaceObjId = 0;
 	uint destSystem = 0;
 	uint destObj = 0;
-	uint creatorSystem = 0;
 	float percentageHp = 1.0f;
+};
+struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
+{
+	uint iClientID;
+	bool isMobileDocked = false;
+};
+
+struct LAST_PLAYER_BASE_NAME_STRUCT
+{
+	uint clientID;
+	wstring lastBaseName;
 };
 
 struct CUSTOM_IN_WARP_CHECK_STRUCT

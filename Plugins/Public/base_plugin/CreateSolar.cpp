@@ -7,7 +7,7 @@ void CreateSolar::DespawnSolarCallout(DESPAWN_SOLAR_STRUCT* info)
 		return;
 	}
 
-	if (pub::SpaceObj::ExistsAndAlive(info->spaceObjId) == 0)
+	if (pub::SpaceObj::ExistsAndAlive(info->spaceObjId) == 0) //0 means alive, -2 dead
 	{
 		pub::SpaceObj::Destroy(info->spaceObjId, info->destroyType);
 	}

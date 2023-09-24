@@ -68,7 +68,7 @@ bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS& coords, uint exitJump
 	string baseNickName = "custom_return_hole_exit_" + (string)systemInfo->nickname;
 	counter++;
 
-	if (pub::SpaceObj::ExistsAndAlive(CreateID(baseNickName.c_str())) == 0)
+	if (pub::SpaceObj::ExistsAndAlive(CreateID(baseNickName.c_str())) == 0) //0 means alive, -2 dead
 	{
 		return false;
 	}

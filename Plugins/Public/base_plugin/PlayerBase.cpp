@@ -424,20 +424,20 @@ void PlayerBase::Save()
 		fprintf(file, "rot = %0.0f, %0.0f, %0.0f\n", vRot.x, vRot.y, vRot.z);
 		if (mapArchs[basetype].ishubreturn)
 		{
-			const auto& systemInfo = Universe::get_system(destSystem);
-			fprintf(file, "destsystem = %s\n", systemInfo->nickname);
+			const auto& destSystemInfo = Universe::get_system(destSystem);
+			fprintf(file, "destsystem = %s\n", destSystemInfo->nickname);
 
 			fprintf(file, "destpos = %0.0f, %0.0f, %0.0f\n", destPos.x, destPos.y, destPos.z);
 
 			Vector destRot = MatrixToEuler(destOri);
 			fprintf(file, "destori = %0.0f, %0.0f, %0.0f\n", destRot.x, destRot.y, destRot.z);
 		}
-		else if (mapArchs[basetype].isjump && destObject && pub::SpaceObj::ExistsAndAlive(destObject) == 0)
+		else if (mapArchs[basetype].isjump && destObject && pub::SpaceObj::ExistsAndAlive(destObject) == 0) //0 means alive, -2 dead
 		{
-			uint systemId;
-			pub::SpaceObj::GetSystem(destObject, systemId);
-			const auto& systemInfo = Universe::get_system(systemId);
-			fprintf(file, "destsystem = %s\n", systemInfo->nickname);
+			uint destSystemId;
+			pub::SpaceObj::GetSystem(destObject, destSystemId);
+			const auto& destSystemInfo = Universe::get_system(destSystemId);
+			fprintf(file, "destsystem = %s\n", destSystemInfo->nickname);
 			fprintf(file, "destobject = %s\n", destObjectName.c_str());
 		}
 

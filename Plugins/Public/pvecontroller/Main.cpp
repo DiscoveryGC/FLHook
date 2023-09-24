@@ -592,8 +592,6 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	unsigned int uArchID = 0;
 	pub::SpaceObj::GetSolarArchetypeID(iVictimShipId, uArchID);
 	Archetype::Ship* victimShiparch = Archetype::GetShip(uArchID);
-	if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-		PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: You killed an NPC uArchID == %u", uArchID);
 
 	// Grab some info we'll need later.
 	uint uKillerSystem = 0;
@@ -610,8 +608,6 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	Reputation::Vibe::GetAffiliation(iPlayerRep, uKillerAffiliation, false);
 	pub::Reputation::GetGroupFeelingsTowards(iPlayerRep, uTargetAffiliation, fAttitude);
 	if (fAttitude > set_fMaximumRewardRep) {
-		if (set_bBountiesEnabled)
-			PrintUserCmdText(iKillerClientId, L"Can not pay bounty against ineligible combatant (reputation towards target must be %0.2f or lower).", set_fMaximumRewardRep);
 		return;
 	}
 
@@ -624,8 +620,6 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		// Determine bounty payout.
 		const auto& iter = mapBountyShipPayouts.find(uArchID);
 		if (iter != mapBountyShipPayouts.end()) {
-			if (set_iPluginDebug >= PLUGIN_DEBUG_VERBOSE)
-				PrintUserCmdText(iKillerClientId, L"Overriding payout for uarch %u to be $%d.", uArchID, iter->second.iBasePayout);
 			iBountyPayout = iter->second.iBasePayout;
 		}
 		else {
@@ -658,8 +652,6 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 			if (iter != mmapBountyWarzoneScales.end())
 			{
 				if ((iter->second.uFaction1 == uKillerAffiliation && iter->second.uFaction2 == uTargetAffiliation) || (iter->second.uFaction2 == uKillerAffiliation && iter->second.uFaction1 == uTargetAffiliation)) {
-					if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-						PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Killer (%u) and Target (%u) have valid warzone multipliyer of %0.2f", uKillerAffiliation, uTargetAffiliation, iter->second.fMultiplier);
 					iBountyPayout *= iter->second.fMultiplier;
 				}
 			}
@@ -685,8 +677,6 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 			const auto& itDiffMultiplier = mapClassDiffMultipliers.lower_bound(classDiff);
 			if (itDiffMultiplier != mapClassDiffMultipliers.end())
 				iBountyPayout *= itDiffMultiplier->second;
-			if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-				PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Modifying payout to $%d (%0.2f x normal) due to class difference. %u vs %u \n", iBountyPayout, itDiffMultiplier->second, itKillerType->second, itVictimType->second);
 		}
 
 		// If we've turned bounties off, don't pay it.
@@ -696,9 +686,6 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 		if (iBountyPayout) {
 			list<GROUP_MEMBER> lstMembers;
 			HkGetGroupMembers((const wchar_t*)Players.GetActiveCharacterName(iKillerClientId), lstMembers);
-
-			if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-				PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: There are %u players in your group.", lstMembers.size());
 
 			foreach(lstMembers, GROUP_MEMBER, gm) {
 				uint uGroupMemberSystem = 0;
@@ -711,9 +698,6 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 				iBountyPayout = (int)((float)iBountyPayout * mapBountyGroupScale[lstMembers.size()]);
 			else
 				iBountyPayout = (int)((float)iBountyPayout / lstMembers.size());
-
-			if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-				PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Paying out $%d to %u eligible group members in your system.", iBountyPayout, lstMembers.size());
 
 			foreach(lstMembers, GROUP_MEMBER, gm) {
 				NPCBountyAddToPool(gm->iClientID, iBountyPayout, set_iPoolPayoutTimer);
@@ -735,27 +719,15 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	{
 		return;
 	}
-	if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-	{
-		PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: class %d drop entry found, %f chance to drop 0x%08X.\n", iter->first, iter->second.fChance, iter->second.uGoodID);
-	}
 	
 	float roll = static_cast<float>(rand()) / RAND_MAX;
 	if (roll < iter->second.fChance)
 	{
-		if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-		{
-			PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, won a drop!\n", roll);
-		}
 		Vector vLoc = { 0.0f, 0.0f, 0.0f };
 		Matrix mRot = { 0.0f, 0.0f, 0.0f };
 		pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
 		vLoc.x += 30.0;
 		Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, iter->second.uGoodID, 1, iKillerClientId);
-	}
-	else if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-	{
-		PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, no drop for you.\n", roll);
 	}
 }
 

@@ -725,27 +725,37 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	}
 
 	// Process drops if enabled.
-	if (set_bDropsEnabled) {
-		const auto& iter = mmapDropInfo.find(victimShiparch->iShipClass);
-		if (iter != mmapDropInfo.end())
-		{
-			if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-				PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: class %d drop entry found, %f chance to drop 0x%08X.\n", iter->first, iter->second.fChance, iter->second.uGoodID);
-			float roll = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-			if (roll < iter->second.fChance) {
-				if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-					PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, won a drop!\n", roll);
+	if (!set_bDropsEnabled)
+	{
+		return;
+	}
 
-				Vector vLoc = { 0.0f, 0.0f, 0.0f };
-				Matrix mRot = { 0.0f, 0.0f, 0.0f };
-				pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
-				vLoc.x += 30.0;
-				Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, iter->second.uGoodID, 1, iKillerClientId);
-			}
-			else
-				if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
-					PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, no drop for you.\n", roll);
+	const auto& iter = mmapDropInfo.find(victimShiparch->iShipClass);
+	if (iter == mmapDropInfo.end())
+	{
+		return;
+	}
+	if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+	{
+		PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: class %d drop entry found, %f chance to drop 0x%08X.\n", iter->first, iter->second.fChance, iter->second.uGoodID);
+	}
+	
+	float roll = static_cast<float>(rand()) / RAND_MAX;
+	if (roll < iter->second.fChance)
+	{
+		if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+		{
+			PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, won a drop!\n", roll);
 		}
+		Vector vLoc = { 0.0f, 0.0f, 0.0f };
+		Matrix mRot = { 0.0f, 0.0f, 0.0f };
+		pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
+		vLoc.x += 30.0;
+		Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, iter->second.uGoodID, 1, iKillerClientId);
+	}
+	else if (set_iPluginDebug >= PLUGIN_DEBUG_VERYVERBOSE)
+	{
+		PrintUserCmdText(iKillerClientId, L"PVECONTROLLER: Rolled %f, no drop for you.\n", roll);
 	}
 }
 

@@ -413,7 +413,8 @@ namespace HkIServerImpl
 		{
 
 			uint iClientID = HkGetClientIDByShip(iShip);
-			if(set_iAntiDockKill && iClientID) {
+			if (set_iAntiDockKill && iClientID)
+			{
 				ClientInfo[iClientID].tmProtectedUntil = timeInMS() + set_iAntiDockKill; // save for anti-dockkill
 			}
 

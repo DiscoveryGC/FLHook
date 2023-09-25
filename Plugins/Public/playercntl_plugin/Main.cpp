@@ -437,7 +437,7 @@ namespace HkIServerImpl
 		}
 	}
 
-	void __stdcall RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4, unsigned int iClientID)
+	void __stdcall RequestCancel(int iType, unsigned int requestFrom, unsigned int requestTo, unsigned long parameter, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
 
@@ -446,7 +446,7 @@ namespace HkIServerImpl
 			return;
 		}
 
-		HyperJump::RequestCancel(iType, iShip, p3, p4);
+		HyperJump::RequestCancel(iType, requestFrom, requestTo);
 	}
 
 	void __stdcall UseItemRequest(SSPUseItem const& p1, unsigned int iClientID)

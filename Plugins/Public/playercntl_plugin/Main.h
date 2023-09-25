@@ -148,7 +148,7 @@ namespace HyperJump
 	void SetJumpInPvPInvulnerability(uint iClientID);
 	bool Dock_Call(uint const& iShip, uint const& iDockTarget);
 	void JumpInComplete(uint ship);
-	void RequestCancel(int iType, unsigned int iShip, unsigned int p3, unsigned long p4);
+	void RequestCancel(int iType, uint iShip, uint dockObjId);
 
 	void AdminCmd_Chase(CCmds* cmds, const wstring &wscCharname);
 	bool AdminCmd_Beam(CCmds* cmds, const wstring &wscCharname, const wstring &wscTargetBaseName);

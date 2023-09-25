@@ -808,7 +808,7 @@ namespace HyperJump
 		shipToJumpObjMap.erase(ship);
 	}
 
-	void HyperJump::RequestCancel(int iType, unsigned int iShip, unsigned int dockObjId, unsigned long p4)
+	void HyperJump::RequestCancel(int iType, uint iShip, uint dockObjId)
 	{
 		if (iType == 0 && jumpObjMap.count(dockObjId)) // dock type request
 		{

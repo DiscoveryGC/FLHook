@@ -662,8 +662,22 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("enable_hyperspace_hub_bitmap"))
 					{
-						bmapLoadHyperspaceHubConfig = ini.get_value_int(0);
-          }
+						string typeStr = ToLower(ini.get_value_string(0));
+						if (typeStr.find("monday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 0;
+						if (typeStr.find("tuesday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 1;
+						if (typeStr.find("wednesday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 2;
+						if (typeStr.find("thursday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 3;
+						if (typeStr.find("friday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 4;
+						if (typeStr.find("saturday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 5;
+						if (typeStr.find("sunday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 6;
+					}
 					else if (ini.is_value("siege_gun"))
 					{
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
@@ -2684,8 +2698,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
-		wstring destsystem = cmd->ArgStr(4);
-		if (!destsystem.length())
+		wstring destobject = cmd->ArgStr(4);
+		if (!destobject.length())
 		{
 			PrintUserCmdText(client, L"ERR No destination object");
 			PrintUserCmdText(client, usage.c_str());
@@ -2735,7 +2749,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->defense_mode = 4;
 		newbase->base_health = 10000000000;
 
-		newbase->destObject = CreateID(wstos(destsystem).c_str());
+		newbase->destObject = CreateID(wstos(destobject).c_str());
 
 		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
 		newbase->logic = mapArchs[newbase->basetype].logic;

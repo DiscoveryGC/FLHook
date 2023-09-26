@@ -44,6 +44,8 @@ float minJumpDistance = 15000;
 float minDistanceMisc = 2500;
 float minOtherPOBDistance = 5000;
 
+unordered_set<uint> lowTierMiningCommoditiesSet;
+
 /// Deployment command cooldown trackimg
 unordered_map<uint, uint> deploymentCooldownMap;
 uint deploymentCooldownDuration = 60;
@@ -636,6 +638,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("min_jump_distance"))
 					{
 						minJumpDistance = max(0.0f, ini.get_value_float(0));
+					}
+					else if (ini.is_value("low_tier_mining_exemption"))
+					{
+						lowTierMiningCommoditiesSet.insert(CreateID(ini.get_value_string()));
 					}
 					else if(ini.is_value("deployment_cooldown"))
 					{
@@ -2890,10 +2896,29 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		RIGHT_CHECK(RIGHT_BASES)
 
+
+		ConPrint(L"POB distance check for following settings:\n"
+			L"High Tier Mining: %um\n"
+			L"Planets: %um\n"
+			L"Solars: %um\n"
+			L"Trade Lanes: %um\n"
+			L"JH/JG: %um\n"
+			L"POBs: %um\n"
+			L"Other: %um\n",
+			static_cast<uint>(minMiningDistance),
+			static_cast<uint>(minPlanetDistance),
+			static_cast<uint>(minStationDistance),
+			static_cast<uint>(minLaneDistance),
+			static_cast<uint>(minJumpDistance),
+			static_cast<uint>(minOtherPOBDistance),
+			static_cast<uint>(minDistanceMisc));
+
 		for (const auto& base : player_bases)
 		{
 			if (base.second->basetype != "legacy" || base.second->invulnerable || !base.second->logic)
+			{
 				continue;
+			}
 
 			Vector& pos = base.second->position;
 			uint system = base.second->system;

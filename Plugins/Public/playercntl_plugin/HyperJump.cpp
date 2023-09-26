@@ -377,7 +377,7 @@ namespace HyperJump
 						{
 							uint fuel = CreateValidID(ini.get_value_string(0));
 							int rate;
-							for (uint i = 0; i <= set_maxJumpRange; ++i)
+							for (uint i = 1; i <= set_maxJumpRange + 1; ++i)
 							{
 								rate = ini.get_value_int(i);
 								jd.mapFuelToUsagePerDistance[fuel].push_back(rate);

@@ -1967,7 +1967,7 @@ namespace PlayerCommands
 					continue;
 				}
 
-				if (set_lowTierMiningCommodities.count(zone->lootableZone->dynamic_loot_commodity))
+				if (lowTierMiningCommoditiesSet.count(zone->lootableZone->dynamic_loot_commodity))
 				{
 					continue;
 				}

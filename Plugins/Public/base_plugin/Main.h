@@ -64,9 +64,9 @@ struct ARCHTYPE_STRUCT
 	int invulnerable;
 	list<string> modules;
 	int idrestriction;
-	list<uint> allowedids;
+	unordered_set<uint> allowedids;
 	int shipclassrestriction;
-	list<uint> allowedshipclasses;
+	unordered_set<uint> allowedshipclasses;
 	bool isjump = false;
 	bool ishubreturn = false;
 	bool display = false;

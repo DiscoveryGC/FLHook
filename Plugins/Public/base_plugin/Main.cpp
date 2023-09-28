@@ -859,11 +859,11 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("allowedshipclasses"))
 					{
-						archstruct.allowedshipclasses.emplace_back(ini.get_value_int(0));
+						archstruct.allowedshipclasses.insert(ini.get_value_int(0));
 					}
 					else if (ini.is_value("allowedids"))
 					{
-						archstruct.allowedids.emplace_back(CreateID(ini.get_value_string(0)));
+						archstruct.allowedids.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("module"))
 					{
@@ -1559,18 +1559,10 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					bool foundid = false;
 					for (list<EquipDesc>::iterator item = Players[client].equipDescList.equip.begin(); item != Players[client].equipDescList.equip.end(); item++)
 					{
-						if (item->bMounted)
+						if (item->bMounted &&mapArchs[pbase->basetype].allowedids.count(item->iArchID))
 						{
-							list<uint>::iterator iditer = mapArchs[pbase->basetype].allowedids.begin();
-							while (iditer != mapArchs[pbase->basetype].allowedids.end())
-							{
-								if (*iditer == item->iArchID)
-								{
-									foundid = true;
-									break;
-								}
-								iditer++;
-							}
+							foundid = true;
+							break;
 						}
 					}
 					if (foundid == false)
@@ -1590,18 +1582,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					Archetype::Ship* TheShipArch = Archetype::GetShip(Players[client].iShipArchetype);
 					uint shipclass = TheShipArch->iShipClass;
 
-					list<uint>::iterator iditer = mapArchs[pbase->basetype].allowedshipclasses.begin();
-					while (iditer != mapArchs[pbase->basetype].allowedshipclasses.end())
-					{
-						if (*iditer == shipclass)
-						{
-							foundclass = true;
-							break;
-						}
-						iditer++;
-					}
-
-					if (foundclass == false)
+					if(!mapArchs[pbase->basetype].allowedshipclasses.count(shipclass))
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
 						iCancel = -1;

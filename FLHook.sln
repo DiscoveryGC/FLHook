@@ -52,22 +52,37 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Broken or Buggy Plugins", "Broken or Buggy Plugins", "{B802515E-816B-4FC3-AF09-4684613A7425}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "npc", "Plugins\Public\npc_control\npc.vcxproj", "{7C84F18C-FE8C-4731-882D-05C237753A54}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Player Control", "Plugins\Public\playercntl_plugin\Player Control Plugin.vc14.vcxproj", "{9E084A9E-A8B9-4F64-8048-F3357839683E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tempban Plugin", "Plugins\Public\tempban\Tempban Plugin.vc14.vcxproj", "{01DE3D3D-0DA2-447E-8C03-B2A2FB03A0F5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DroneBays", "Plugins\Public\dronebays\DroneBay.vcxproj", "{7DE3DF47-662F-4E34-9899-140F103D2D01}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Laz", "Laz", "{63F35E63-664C-46D5-8897-D0EB32610F96}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Help", "Plugins\Public\help_expanded\Help.vcxproj", "{8CBF9EF0-324A-4699-8A26-C2999B99B225}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Rep", "Plugins\Public\getrep\Rep.vcxproj", "{E7EB5672-90CC-4B88-A8A0-55BB6BBAE7F7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Balance Magic Plugin", "Plugins\Public\balancemagic\Balance Magic Plugin.vc14.vcxproj", "{2853796F-8AAF-4E93-A210-08EA11C63D6B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiscellaneousCommands", "Plugins\Public\MiscellaneousCommands\MiscellaneousCommands.vcxproj", "{C26DA99F-10F7-421B-AC31-EED1623E7B04}"
+	ProjectSection(ProjectDependencies) = postProject
+		{81D33B95-1DDD-4F58-A24C-E2EC4A143DD0} = {81D33B95-1DDD-4F58-A24C-E2EC4A143DD0}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PvE Controller", "Plugins\Public\pvecontroller\pvecontroller.vcxproj", "{22D02598-F2D3-495F-BBA9-72DC156DA723}"
 EndProject

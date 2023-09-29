@@ -433,7 +433,7 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 		cloakInfo.bCanCloak = true;
 		cloakInfo.iState = STATE_CLOAK_INVALID;
 		SetState(iClientID, iShip, STATE_CLOAK_OFF);
-		if (cloakInfo.arch && cloakInfo.arch->bBreakOnProximity)
+		if (cloakInfo.arch && cloakInfo.arch->bBreakOnProximity && !cloakInfo.bAdmin)
 		{
 			InitCloakInfo(iClientID, static_cast<uint>(mapClientsCloak[iClientID].arch->fRange));
 		}
@@ -834,11 +834,13 @@ bool ExecuteCommandString_Callback(CCmds* cmds, const wstring &wscCmd)
 		{
 		case STATE_CLOAK_OFF:
 			mapClientsCloak[iClientID].bAdmin = true;
+			InitCloakInfo(iClientID, 0);
 			SetState(iClientID, iShip, STATE_CLOAK_ON);
 			break;
 		case STATE_CLOAK_CHARGING:
 		case STATE_CLOAK_ON:
 			mapClientsCloak[iClientID].bAdmin = true;
+			InitCloakInfo(iClientID, 0);
 			SetState(iClientID, iShip, STATE_CLOAK_OFF);
 			break;
 		}

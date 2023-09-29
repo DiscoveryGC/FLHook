@@ -262,6 +262,7 @@ enum PLUGIN_MESSAGE
 	CUSTOM_MOBILE_DOCK_CHECK = 53,
 	CUSTOM_IN_WARP_CHECK = 54,
 	CUSTOM_CLOAK_CHECK = 56,
+	CUSTOM_RENAME_NOTIFICATION = 57,
 	CUSTOM_CLOAK_ALERT = 60
 };
 
@@ -345,12 +346,6 @@ struct CUSTOM_BASE_IS_IT_POB_STRUCT
 	bool bAnswer;
 };
 
-struct CUSTOM_BASE_LAST_DOCKED_STRUCT
-{
-	uint iClientID;
-	uint iLastDockedBaseID;
-};
-
 struct CLIENT_CLOAK_STRUCT
 {
 	uint iClientID;
@@ -426,6 +421,11 @@ struct CUSTOM_CLOAK_CHECK_STRUCT
 {
 	uint clientId;
 	bool isCloaked = false;
+};
+
+struct CUSTOM_RENAME_NOTIFICATION_STRUCT
+{
+	wstring currentName;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

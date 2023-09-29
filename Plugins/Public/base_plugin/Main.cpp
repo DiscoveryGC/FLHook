@@ -2916,7 +2916,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	{
 		returncode = SKIPPLUGINS;
 		CUSTOM_BASE_BEAM_STRUCT* info = reinterpret_cast<CUSTOM_BASE_BEAM_STRUCT*>(data);
-			PlayerBase *base = GetPlayerBase(info->iTargetBaseID);
+		PlayerBase *base = GetPlayerBase(info->iTargetBaseID);
 		if (base)
 		{
 			returncode = SKIPPLUGINS;

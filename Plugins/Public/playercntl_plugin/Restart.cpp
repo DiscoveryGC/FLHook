@@ -167,6 +167,9 @@ namespace Restart
 			if (HkGetClientIdFromCharname(restart.wscCharname) != -1)
 				return;
 
+			CUSTOM_RESTART_NOTIFICATION_STRUCT info;
+			info.playerName = restart.wscCharname;
+			Plugin_Communication(CUSTOM_RESTART_NOTIFICATION, &info);
 			pendingRestarts.pop_front();
 
 			try

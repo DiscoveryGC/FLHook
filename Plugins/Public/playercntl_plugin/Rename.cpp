@@ -427,15 +427,15 @@ namespace Rename
 				if (!acc)
 					throw "no acc";
 
+				CUSTOM_RENAME_NOTIFICATION_STRUCT info;
+				info.currentName = o.wscCharname;
+				Plugin_Communication(CUSTOM_RENAME_NOTIFICATION, &info);
+
 				HkLockAccountAccess(acc, true);
 				HkUnlockAccountAccess(acc);
 
 				wstring wscCharFileName;
 				HkGetCharFileName(o.wscCharname, wscCharFileName);
-
-				CUSTOM_RENAME_NOTIFICATION_STRUCT info;
-				info.currentName = o.wscCharname;
-				Plugin_Communication(CUSTOM_RENAME_NOTIFICATION, &info);
 
 				// Move the char file to a temporary one.
 				if (!::MoveFileExA(o.scSourceFile.c_str(), o.scDestFileTemp.c_str(),

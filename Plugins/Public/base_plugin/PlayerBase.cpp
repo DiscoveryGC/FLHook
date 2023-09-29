@@ -753,8 +753,12 @@ void PlayerBase::SiegeModChainReaction(uint client)
 }
 
 // Return true if 
-float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
+void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
+	if (invulnerable)
+	{
+		return;
+	}
 	float incoming_damage = curr_hitpoints - new_hitpoints;
 
 	// Make sure that the attacking player is hostile.
@@ -823,6 +827,4 @@ float PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 		this->shield_timeout = time(nullptr) + 60;
 	}
-
-	return 0.0f;
 }

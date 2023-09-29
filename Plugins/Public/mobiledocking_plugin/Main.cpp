@@ -1165,6 +1165,14 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			MoveOfflineShipToLastDockedSolar(info->currentName);
 		}
 	}
+	else if (msg == CUSTOM_RESTART_NOTIFICATION)
+	{
+		CUSTOM_RESTART_NOTIFICATION_STRUCT* info = reinterpret_cast<CUSTOM_RESTART_NOTIFICATION_STRUCT*>(data);
+		if (nameToDockedInfoMap.count(info->playerName))
+		{
+			MoveOfflineShipToLastDockedSolar(info->playerName);
+		}
+	}
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)

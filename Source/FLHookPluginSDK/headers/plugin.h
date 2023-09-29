@@ -265,6 +265,7 @@ enum PLUGIN_MESSAGE
 	CUSTOM_DESPAWN_SOLAR = 55,
 	CUSTOM_CLOAK_CHECK = 56,
 	CUSTOM_RENAME_NOTIFICATION = 57,
+	CUSTOM_RESTART_NOTIFICATION = 58,
 	CUSTOM_CLOAK_ALERT = 60
 };
 
@@ -442,6 +443,11 @@ struct CUSTOM_CLOAK_CHECK_STRUCT
 struct CUSTOM_RENAME_NOTIFICATION_STRUCT
 {
 	wstring currentName;
+};
+
+struct CUSTOM_RESTART_NOTIFICATION_STRUCT
+{
+	wstring playerName;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

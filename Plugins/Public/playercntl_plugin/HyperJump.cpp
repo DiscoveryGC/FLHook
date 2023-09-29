@@ -1183,10 +1183,10 @@ namespace HyperJump
 							pub::Player::GetShip(jd.targetClient, targetShip);
 							pub::SpaceObj::GetLocation(targetShip, jd.vTargetPosition, jd.matTargetOrient);
 							pub::Player::GetSystem(jd.targetClient, jd.iTargetSystem);
-							int innacurracy = mapPlayerBeaconMatrix[jd.targetClient].arch->inaccuracy;
-							jd.vTargetPosition.x += (rand() % (innacurracy * 2)) - innacurracy;
-							jd.vTargetPosition.y += (rand() % (innacurracy * 2)) - innacurracy;
-							jd.vTargetPosition.z += (rand() % (innacurracy * 2)) - innacurracy;
+							int inaccuracy = mapPlayerBeaconMatrix[jd.targetClient].arch->inaccuracy;
+							jd.vTargetPosition.x += (rand() % (inaccuracy * 2)) - inaccuracy;
+							jd.vTargetPosition.y += (rand() % (inaccuracy * 2)) - inaccuracy;
+							jd.vTargetPosition.z += (rand() % (inaccuracy * 2)) - inaccuracy;
 						}
 
 						CreateJumpHolePair(iClientID);

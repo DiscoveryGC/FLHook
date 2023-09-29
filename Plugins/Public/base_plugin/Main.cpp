@@ -1559,7 +1559,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					bool foundid = false;
 					for (list<EquipDesc>::iterator item = Players[client].equipDescList.equip.begin(); item != Players[client].equipDescList.equip.end(); item++)
 					{
-						if (item->bMounted &&mapArchs[pbase->basetype].allowedids.count(item->iArchID))
+						if (item->bMounted && mapArchs[pbase->basetype].allowedids.count(item->iArchID))
 						{
 							foundid = true;
 							break;

@@ -270,6 +270,15 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 			PrintUserCmdText(client, L"ERR Cannot use command in this system or base");
 			return true;
 		}
+		CUSTOM_MOBILE_DOCK_CHECK_STRUCT info;
+		info.iClientID = client;
+		info.isMobileDocked = false;
+		Plugin_Communication(CUSTOM_MOBILE_DOCK_CHECK, &info);
+		if (info.isMobileDocked)
+		{
+			PrintUserCmdText(client, L"ERR Cannot go to connecticut while mobile docked");
+			return true;
+		}
 
 		if (!IsDockedClient(client))
 		{

@@ -10,6 +10,7 @@ int __stdcall DisconnectPacketSent(uint iClientID)
 		if (set_iDisconnectDelay && iShip)
 		{ // in space
 			ClientInfo[iClientID].tmF1TimeDisconnect = timeInMS() + set_iDisconnectDelay;
+			CALL_PLUGINS_NORET(PLUGIN_DelayedDisconnect, , (uint, uint), (iClientID, iShip));
 			return 0; // don't pass on
 		}
 	}

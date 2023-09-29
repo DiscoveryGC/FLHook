@@ -19,7 +19,7 @@
 #include <FLHook.h>
 #include <plugin.h>
 #include <list>
-#include <set>
+#include <unordered_set>
 
 #include <PluginUtilities.h>
 #include "Main.h"
@@ -29,111 +29,344 @@
 //Structures and shit yo
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct DEFERREDJUMPS
+unordered_set<uint> unchartedSystems;
+
+struct SYSTEMJUMPCOORDS
 {
 	uint system;
 	Vector pos;
 	Matrix ornt;
 };
-static map<uint, DEFERREDJUMPS> mapDeferredJumps;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Settings Loading
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Dependencies
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-void AP::SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt)
+void HyperJump::CheckForUnchartedDisconnect(uint ship, uint client)
 {
-	mapDeferredJumps[iClientID].system = system;
-	mapDeferredJumps[iClientID].pos = pos;
-	mapDeferredJumps[iClientID].ornt = ornt;
-
-	// Force a launch to put the ship in the right location in the current system so that
-	// when the change system command arrives (hopefully) a fraction of a second later
-	// the ship will appear at the right location.
-	HkRelocateClient(iClientID, pos, ornt);
-	// Send the jump command to the client. The client will send a system switch out complete
-	// event which we intercept to set the new starting positions.
-	PrintUserCmdText(iClientID, L" ChangeSys %u", system);
+	if (unchartedSystems.count(Players[client].iSystemID))
+	{
+		pub::SpaceObj::SetRelativeHealth(ship, 0.0f);
+	}
 }
 
-bool AP::SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
+void HyperJump::InitJumpHole(uint baseId, uint destSystem, uint destObject)
 {
-	static PBYTE SwitchOut = 0;
-	if (!SwitchOut)
-	{
-		SwitchOut = (PBYTE)hModServer + 0xf600;
+	uint dunno;
+	IObjInspectImpl* inspect;
+	GetShipInspect(baseId, inspect, dunno);
+	const CObject* solar = inspect->cobject();
 
-		DWORD dummy;
-		VirtualProtect(SwitchOut + 0xd7, 200, PAGE_EXECUTE_READWRITE, &dummy);
-	}
-
-	// Patch the system switch out routine to put the ship in a
-	// system of our choosing.
-	if (mapDeferredJumps.find(iClientID) != mapDeferredJumps.end())
-	{
-		uint iSystemID = mapDeferredJumps[iClientID].system;
-		SwitchOut[0x0d7] = 0xeb;				// ignore exit object
-		SwitchOut[0x0d8] = 0x40;
-		SwitchOut[0x119] = 0xbb;				// set the destination system
-		*(PDWORD)(SwitchOut + 0x11a) = iSystemID;
-		SwitchOut[0x266] = 0x45;				// don't generate warning
-		*(float*)(SwitchOut + 0x2b0) = mapDeferredJumps[iClientID].pos.z;		// set entry location
-		*(float*)(SwitchOut + 0x2b8) = mapDeferredJumps[iClientID].pos.y;
-		*(float*)(SwitchOut + 0x2c0) = mapDeferredJumps[iClientID].pos.x;
-		*(float*)(SwitchOut + 0x2c8) = mapDeferredJumps[iClientID].ornt.data[2][2];
-		*(float*)(SwitchOut + 0x2d0) = mapDeferredJumps[iClientID].ornt.data[1][1];
-		*(float*)(SwitchOut + 0x2d8) = mapDeferredJumps[iClientID].ornt.data[0][0];
-		*(float*)(SwitchOut + 0x2e0) = mapDeferredJumps[iClientID].ornt.data[2][1];
-		*(float*)(SwitchOut + 0x2e8) = mapDeferredJumps[iClientID].ornt.data[2][0];
-		*(float*)(SwitchOut + 0x2f0) = mapDeferredJumps[iClientID].ornt.data[1][2];
-		*(float*)(SwitchOut + 0x2f8) = mapDeferredJumps[iClientID].ornt.data[1][0];
-		*(float*)(SwitchOut + 0x300) = mapDeferredJumps[iClientID].ornt.data[0][2];
-		*(float*)(SwitchOut + 0x308) = mapDeferredJumps[iClientID].ornt.data[0][1];
-		*(PDWORD)(SwitchOut + 0x388) = 0x03ebc031;		// ignore entry object
-		mapDeferredJumps.erase(iClientID);
-		pub::SpaceObj::SetInvincible(iShip, false, false, 0);
-		Server.SystemSwitchOutComplete(iShip, iClientID);
-		SwitchOut[0x0d7] = 0x0f;
-		SwitchOut[0x0d8] = 0x84;
-		SwitchOut[0x119] = 0x87;
-		*(PDWORD)(SwitchOut + 0x11a) = 0x1b8;
-		*(PDWORD)(SwitchOut + 0x25d) = 0x1cf7f;
-		SwitchOut[0x266] = 0x1a;
-		*(float*)(SwitchOut + 0x2b0) =
-			*(float*)(SwitchOut + 0x2b8) =
-			*(float*)(SwitchOut + 0x2c0) = 0;
-		*(float*)(SwitchOut + 0x2c8) =
-			*(float*)(SwitchOut + 0x2d0) =
-			*(float*)(SwitchOut + 0x2d8) = 1;
-		*(float*)(SwitchOut + 0x2e0) =
-			*(float*)(SwitchOut + 0x2e8) =
-			*(float*)(SwitchOut + 0x2f0) =
-			*(float*)(SwitchOut + 0x2f8) =
-			*(float*)(SwitchOut + 0x300) =
-			*(float*)(SwitchOut + 0x308) = 0;
-		*(PDWORD)(SwitchOut + 0x388) = 0xcf8b178b;
-
-		CUSTOM_JUMP_STRUCT info;
-		info.iShipID = iShip;
-		info.iSystemID = iSystemID;
-		Plugin_Communication(CUSTOM_JUMP, &info);
-
-		return true;
-	}
-	return false;
+	memcpy((uint*)solar + 0x6d, &destSystem, 4);
+	memcpy((uint*)solar + 0x6e, &destObject, 4);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Logic
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void AP::ClearClientInfo(uint iClientID)
+bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS& coords, uint exitJumpHoleLoadout, uint exitJumpHoleArchetype)
 {
-	mapDeferredJumps.erase(iClientID);
+	static uint counter = 0;
+	auto systemInfo = Universe::get_system(coords.system);
+	if (!systemInfo)
+	{
+		return false;
+	}
+	string baseNickName = "custom_return_hole_exit_" + (string)systemInfo->nickname;
+	counter++;
+
+	if (pub::SpaceObj::ExistsAndAlive(CreateID(baseNickName.c_str())) == 0) //0 means alive, -2 dead
+	{
+		return false;
+	}
+
+	SPAWN_SOLAR_STRUCT info;
+	info.iSystemId = coords.system;
+	info.pos = coords.pos;
+	info.ori = coords.ornt;
+	info.nickname = baseNickName;
+	info.loadoutArchetypeId = exitJumpHoleLoadout;
+	info.solarArchetypeId = exitJumpHoleArchetype;
+	info.solar_ids = 267199;
+
+	CreateSolar::CreateSolarCallout(&info);
+
+	pb->destObject = info.iSpaceObjId;
+	pb->destObjectName = baseNickName;
+	pb->destSystem = coords.system;
+
+	uint dunno;
+	IObjInspectImpl* inspect;
+	GetShipInspect(info.iSpaceObjId, inspect, dunno);
+	const CObject* solar = inspect->cobject();
+
+	memcpy((uint*)solar + 0x6d, &pb->destSystem, 4);
+	memcpy((uint*)solar + 0x6e, &pb->destObject, 4);
+
+	customSolarList.insert(info.iSpaceObjId);
+	return true;
+}
+
+void HyperJump::InitJumpHoleConfig()
+{
+	char szCurDir[MAX_PATH];
+	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
+	string cfg_filehyperspaceHub = (string)szCurDir + R"(\flhook_plugins\base_hyperspacehub.cfg)";
+	uint exitJumpHoleArchetype = CreateID("jumphole_noentry");
+	uint exitJumpHoleLoadout = CreateID("wormhole_unstable");
+	exitJumpHoleArchetype = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleArchetype", "jumphole_noentry").c_str());
+	exitJumpHoleLoadout = CreateID(IniGetS(cfg_filehyperspaceHub, "general", "exitJumpHoleLoadout", "wormhole_unstable").c_str());
+
+	vector<PlayerBase*> invalidJumpHoles;
+	for (auto& base : player_bases)
+	{
+		bool completedLoad = false;
+		PlayerBase* pbase = base.second;
+		if (!mapArchs[pbase->basetype].isjump)
+		{
+			continue;
+		}
+
+		if (mapArchs[pbase->basetype].ishubreturn)
+		{
+			SYSTEMJUMPCOORDS coords = { pbase->destSystem, pbase->destPos, pbase->destOri };
+			completedLoad = SetupCustomExitHole(pbase, coords, exitJumpHoleLoadout, exitJumpHoleArchetype);
+		}
+		else if (pub::SpaceObj::ExistsAndAlive(pbase->destObject) == 0) // method returns 0 for alive, -2 otherwise
+		{
+			completedLoad = true;
+		}
+		
+		if (!completedLoad)
+		{
+			invalidJumpHoles.emplace_back(pbase);
+			continue;
+		}
+
+		uint systemId;
+		pub::SpaceObj::GetSystem(pbase->destObject, systemId);
+		pbase->destSystem = systemId;
+
+		pbase->Save();
+
+		InitJumpHole(base.first, pbase->destSystem, pbase->destObject);
+	}
+
+	for (auto pbase : invalidJumpHoles)
+	{
+		wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\') + 1));
+		ConPrint(L"ERROR: Jump Base %ls's jump target/target system does not exist, despawning it to prevent issues\ntargetObject: %u, targetSystem: %u\nfilename: %ls\n", stows(pbase->nickname).c_str(), pbase->destObject, pbase->destSystem, fileName.c_str());
+		pbase->base_health = 0;
+		CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
+	}
+}
+
+void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
+{
+
+	string cfg_filejumpMap = configPath + R"(\flhook_plugins\jump_allowedsystems.cfg)";
+	string cfg_filehyperspaceHub = configPath + R"(\flhook_plugins\base_hyperspacehub.cfg)";
+	string cfg_filehyperspaceHubTimer = configPath + R"(\flhook_plugins\base_hyperspacehubtimer.cfg)";
+	vector<uint> legalReturnSystems;
+	vector<uint> returnJumpHoles;
+	vector<uint> hubToUnchartedJumpHoles;
+	vector<uint> unchartedToHubJumpHoles;
+	map<uint, wstring> systemNameMap;
+	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
+	uint lastJumpholeRandomization = 0;
+	uint randomizationCooldown = 3600 * 23;
+	INI_Reader ini;
+
+	if (ini.open(cfg_filehyperspaceHubTimer.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("Timer")) {
+				while (ini.read_value())
+				{
+					if (ini.is_value("lastRandomization"))
+					{
+						lastJumpholeRandomization = ini.get_value_int(0);
+					}
+					if (ini.is_value("randomizationCooldown"))
+					{
+						randomizationCooldown = ini.get_value_int(0);
+					}
+				}
+			}
+			else if (ini.is_header("uncharted_systems"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("system"))
+					{
+						unchartedSystems.insert(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+		}
+
+		ini.close();
+	}
+
+	time_t currTime = time(0);
+	if (lastJumpholeRandomization + randomizationCooldown > currTime)
+	{
+		ConPrint(L"HYPERSPACE HUB: insufficient time passed, aborting randomization\n");
+		return;
+	}
+
+	ConPrint(L"HYPERSPACE HUB: Randomizing hub jump holes\n");
+
+	if (ini.open(cfg_filejumpMap.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("system_jump_positions")) {
+				while (ini.read_value())
+				{
+					if (ini.is_value("jump_position"))
+					{
+						SYSTEMJUMPCOORDS coords;
+						coords.system = CreateID(ini.get_value_string(0));
+						coords.pos = { ini.get_value_float(1), ini.get_value_float(2), ini.get_value_float(3) };
+
+						Vector erot = { ini.get_value_float(4), ini.get_value_float(5), ini.get_value_float(6) };
+						coords.ornt = EulerMatrix(erot);
+
+						mapSystemJumps[coords.system].push_back(coords);
+					}
+				}
+			}
+		}
+
+		ini.close();
+	}
+
+	if (ini.open(cfg_filehyperspaceHub.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("return_system_data"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("return_system"))
+					{
+						legalReturnSystems.push_back(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+			else if (ini.is_header("return_jump_bases"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("base"))
+					{
+						string nickname = ini.get_value_string(0);
+						uint nicknameHash = CreateID(nickname.c_str());
+						if (!player_bases.count(nicknameHash))
+						{
+							ConPrint(L"HYPERSPACE HUB: Warning! Return jumphole %s not found, check config!\n", stows(nickname).c_str());
+							continue;
+						}
+						returnJumpHoles.push_back(nicknameHash);
+					}
+				}
+			}
+			else if (ini.is_header("uncharted_return_jump_bases"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("base"))
+					{
+						string nickname = ini.get_value_string(0);
+						uint nicknameHash = CreateID(nickname.c_str());
+						if (!player_bases.count(nicknameHash))
+						{
+							ConPrint(L"HYPERSPACE HUB: Warning! Uncharted to Hub jumphole %s not found, check config!\n", stows(nickname).c_str());
+							continue;
+						}
+						unchartedToHubJumpHoles.push_back(nicknameHash);
+					}
+				}
+			}
+			else if (ini.is_header("uncharted_jump_bases"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("base"))
+					{
+						string nickname = ini.get_value_string(0);
+						uint nicknameHash = CreateID(nickname.c_str());
+						if (!player_bases.count(nicknameHash))
+						{
+							ConPrint(L"HYPERSPACE HUB: Warning! Hub to Uncharted jumphole %s not found, check config!\n", stows(nickname).c_str());
+							continue;
+						}
+						hubToUnchartedJumpHoles.push_back(nicknameHash);
+					}
+				}
+			}
+		}
+
+		ini.close();
+	}
+
+	if (returnJumpHoles.size() > legalReturnSystems.size()
+		|| hubToUnchartedJumpHoles.size() > unchartedToHubJumpHoles.size())
+	{
+		ConPrint(L"HYPERSPACE HUB: ERROR! more random jump bases than distinct available destinations, aborting randomization!\n");
+		return;
+	}
+
+	for (uint returnJH : returnJumpHoles)
+	{
+
+		PlayerBase* pb = player_bases[returnJH];
+		uint index = rand() % legalReturnSystems.size();
+		if (mapSystemJumps.count(legalReturnSystems.at(index)) == 0)
+		{
+			ConPrint(L"HYPERSPACE HUB: Jump Point data for return system not found, aborting randomization!\n");
+			continue;
+		}
+		const auto& coordsList = mapSystemJumps[legalReturnSystems.at(index)];
+		const auto& coords = coordsList.at(rand() % coordsList.size());
+
+		pb->destSystem = coords.system;
+		pb->destPos = coords.pos;
+		pb->destOri = coords.ornt;
+
+		const auto& systemInfo = Universe::get_system(coords.system);
+		pb->basename = HkGetWStringFromIDS(systemInfo->strid_name) + L" Jump Hole";
+		legalReturnSystems.erase(legalReturnSystems.begin() + index);
+
+		pb->Save();
+		RespawnBase(pb);
+	}
+
+	for (uint unchartedJH : hubToUnchartedJumpHoles)
+	{
+		PlayerBase* originJumpHole = player_bases[unchartedJH];
+		uint randomizedIndex = rand() % unchartedToHubJumpHoles.size();
+		uint randomizedTarget = unchartedToHubJumpHoles.at(randomizedIndex);
+		auto targetJumpHole = player_bases.at(randomizedTarget);
+
+		originJumpHole->destObject = CreateID(targetJumpHole->nickname.c_str());
+		originJumpHole->destObjectName = targetJumpHole->nickname;
+		originJumpHole->destSystem = targetJumpHole->system;
+
+		auto unchartedSystemInfo = Universe::get_system(targetJumpHole->system);
+		originJumpHole->basename = L"Unstable " + HkGetWStringFromIDS(unchartedSystemInfo->strid_name) + L" Jump Hole";
+
+		targetJumpHole->destObject = CreateID(originJumpHole->nickname.c_str());
+		targetJumpHole->destObjectName = originJumpHole->nickname;
+		targetJumpHole->destSystem = originJumpHole->system;
+
+		auto originSystemInfo = Universe::get_system(originJumpHole->system);
+		targetJumpHole->basename = L"Unstable " + HkGetWStringFromIDS(originSystemInfo->strid_name) + L" Jump Hole";
+
+
+		unchartedToHubJumpHoles.erase(unchartedToHubJumpHoles.begin() + randomizedIndex);
+
+		originJumpHole->Save();
+		targetJumpHole->Save();
+		RespawnBase(originJumpHole);
+		RespawnBase(targetJumpHole);
+	}
+
+	WritePrivateProfileString("Timer", "lastRandomization", itos((int)currTime).c_str(), cfg_filehyperspaceHubTimer.c_str());
 }

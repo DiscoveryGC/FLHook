@@ -87,7 +87,7 @@ float degrees(float rad);
 CEqObj * __stdcall HkGetEqObjFromObjRW(struct IObjRW *objRW);
 
 void __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float fDelay, float fLifetime, float fSkip);
-void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno);
+void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDelay);
 
 #pragma pack(push, 1)
 struct SETEQUIPMENT_ITEM

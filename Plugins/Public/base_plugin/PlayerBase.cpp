@@ -4,7 +4,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -39,7 +39,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	repairing(false), shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules
@@ -159,13 +159,9 @@ void PlayerBase::Load()
 			{
 				int newsindex = 0;
 				int paraindex = 0;
-				destposition.x = 0;
-				destposition.y = 0;
-				destposition.z = 0;
 				invulnerable = 0;
 				logic = 1;
 				string defaultsystem = "iw09";
-				destsystem = CreateID(defaultsystem.c_str());
 
 				while (ini.read_value())
 				{
@@ -195,7 +191,16 @@ void PlayerBase::Load()
 					}
 					else if (ini.is_value("system"))
 					{
-						system = ini.get_value_int(0);
+						string sysNickname = ini.get_value_string(0);
+						uint systemId = Universe::get_system_id(sysNickname.c_str());
+						if (systemId)
+						{
+							system = systemId;
+						}
+						else
+						{
+							system = ini.get_value_int(0);
+						}
 					}
 					else if (ini.is_value("pos"))
 					{
@@ -211,9 +216,32 @@ void PlayerBase::Load()
 						erot.z = ini.get_value_float(2);
 						rotation = EulerMatrix(erot);
 					}
+					else if (ini.is_value("destobject"))
+					{
+						destObjectName = ini.get_value_string(0);
+						destObject = CreateID(destObjectName.c_str());
+					}
 					else if (ini.is_value("destsystem"))
 					{
-						destsystem = ini.get_value_int(0);
+						string sysNickname = ini.get_value_string(0);
+						uint systemId = Universe::get_system_id(sysNickname.c_str());
+						if (systemId)
+						{
+							destSystem = systemId;
+						}
+						else
+						{
+							destSystem = ini.get_value_int(0);
+						}
+					}
+					else if (ini.is_value("destpos"))
+					{
+						destPos = { ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) };
+					}
+					else if (ini.is_value("destori"))
+					{
+						Vector ori = { ini.get_value_float(0), ini.get_value_float(1), ini.get_value_float(2) };
+						destOri = EulerMatrix(ori);
 					}
 					else if (ini.is_value("logic"))
 					{
@@ -230,12 +258,6 @@ void PlayerBase::Load()
 					else if (ini.is_value("shielddmgtaken"))
 					{
 						damage_taken_since_last_threshold = ini.get_value_float(0);
-					}
-					else if (ini.is_value("destposition"))
-					{
-						destposition.x = ini.get_value_float(0);
-						destposition.y = ini.get_value_float(1);
-						destposition.z = ini.get_value_float(2);
 					}
 					else if (ini.is_value("infoname"))
 					{
@@ -394,14 +416,30 @@ void PlayerBase::Save()
 		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 
 		fprintf(file, "money = %I64d\n", money);
-		fprintf(file, "system = %u\n", system);
+		auto sysInfo = Universe::get_system(system);
+		fprintf(file, "system = %s\n", sysInfo->nickname);
 		fprintf(file, "pos = %0.0f, %0.0f, %0.0f\n", position.x, position.y, position.z);
-
-		fprintf(file, "destsystem = %u\n", destsystem);
-		fprintf(file, "destposition = %0.0f, %0.0f, %0.0f\n", destposition.x, destposition.y, destposition.z);
 
 		Vector vRot = MatrixToEuler(rotation);
 		fprintf(file, "rot = %0.0f, %0.0f, %0.0f\n", vRot.x, vRot.y, vRot.z);
+		if (mapArchs[basetype].ishubreturn)
+		{
+			const auto& destSystemInfo = Universe::get_system(destSystem);
+			fprintf(file, "destsystem = %s\n", destSystemInfo->nickname);
+
+			fprintf(file, "destpos = %0.0f, %0.0f, %0.0f\n", destPos.x, destPos.y, destPos.z);
+
+			Vector destRot = MatrixToEuler(destOri);
+			fprintf(file, "destori = %0.0f, %0.0f, %0.0f\n", destRot.x, destRot.y, destRot.z);
+		}
+		else if (mapArchs[basetype].isjump && destObject && pub::SpaceObj::ExistsAndAlive(destObject) == 0) //0 means alive, -2 dead
+		{
+			uint destSystemId;
+			pub::SpaceObj::GetSystem(destObject, destSystemId);
+			const auto& destSystemInfo = Universe::get_system(destSystemId);
+			fprintf(file, "destsystem = %s\n", destSystemInfo->nickname);
+			fprintf(file, "destobject = %s\n", destObjectName.c_str());
+		}
 
 		ini_write_wstring(file, "infoname", basename);
 		for (int i = 1; i <= MAX_PARAGRAPHS; i++)

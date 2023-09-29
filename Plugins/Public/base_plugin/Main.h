@@ -62,15 +62,15 @@ struct ARCHTYPE_STRUCT
 {
 	int logic;
 	int invulnerable;
-	float radius;
 	list<string> modules;
 	int idrestriction;
-	list<uint> allowedids;
+	unordered_set<uint> allowedids;
 	int shipclassrestriction;
-	list<uint> allowedshipclasses;
-	int isjump;
-	bool display;
-	bool mining;
+	unordered_set<uint> allowedshipclasses;
+	bool isjump = false;
+	bool ishubreturn = false;
+	bool display = false;
+	bool mining = false;
 	string miningevent;
 };
 
@@ -162,7 +162,7 @@ public:
 
 	bool Timer(uint time);
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
-	bool SpaceObjDestroyed(uint space_obj);
+	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true);
 	void SetReputation(int player_rep, float attitude);
 	float FindWearNTearModifier(float currHpPercentage);
 	void SetShieldState(const int shieldState);
@@ -439,14 +439,17 @@ public:
 	wstring last_attacker;
 
 	////////////Unique to Solars/////////////
-	//the radius (for jumps)
-	float radius;
 
 	//the destination system, once again for jumps
-	uint destsystem;
+	uint destSystem;
 
 	//the destination vector
-	Vector destposition;
+	uint destObject;
+	string destObjectName;
+
+	//return hub JHs only, destination data
+	Vector destPos;
+	Matrix destOri;
 
 	/////////////////////////////////////////
 };
@@ -456,7 +459,8 @@ PlayerBase* GetPlayerBaseForClient(uint client);
 
 void BaseLogging(const char* szString, ...);
 
-void DeleteBase(PlayerBase* base);
+void RespawnBase(PlayerBase* base);
+void DeleteBase(PlayerBase* base, bool moveFile);
 void LoadDockState(uint client);
 void SaveDockState(uint client);
 void DeleteDockState(uint client);
@@ -472,6 +476,7 @@ wstring UIntToPrettyStr(uint value);
 void SendBaseStatus(uint client, PlayerBase* base);
 void SendBaseStatus(PlayerBase* base);
 void ForceLaunch(uint client);
+void SendJumpObjOverride(uint client, uint jumpObjId, uint newTargetSystem);
 
 struct CLIENT_DATA
 {
@@ -516,10 +521,12 @@ namespace Siege
 	int GetRandomSound(int min, int max);
 }
 
-namespace AP
+namespace HyperJump
 {
-	void SwitchSystem(uint iClientID, uint system, Vector pos, Matrix ornt);
-	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);
+	void InitJumpHole(uint baseId, uint destSystem, uint destObject);
+	void LoadHyperspaceHubConfig(const string& configPath);
+	void InitJumpHoleConfig();
+	void CheckForUnchartedDisconnect(uint ship, uint client);
 	void ClearClientInfo(uint iClientID);
 }
 
@@ -576,6 +583,7 @@ namespace CreateSolar
 	pub::AI::SetPersonalityParams MakePersonality();
 	void SpawnSolar(unsigned int& spaceID, pub::SpaceObj::SolarInfo const& solarInfo);
 	void CreateSolarCallout(SPAWN_SOLAR_STRUCT* info);
+	void DespawnSolarCallout(DESPAWN_SOLAR_STRUCT* info);
 }
 
 extern unordered_map<uint, CLIENT_DATA> clients;
@@ -629,7 +637,7 @@ extern map<uint, uint> set_base_crew_food_items;
 
 extern uint set_crew_check_frequency;
 
-extern map<string, ARCHTYPE_STRUCT> mapArchs;
+extern unordered_map<string, ARCHTYPE_STRUCT> mapArchs;
 
 /// List of banned systems
 extern unordered_set<uint> bannedSystemList;

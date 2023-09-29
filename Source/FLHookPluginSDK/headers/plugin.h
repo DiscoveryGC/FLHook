@@ -212,6 +212,7 @@ enum PLUGIN_CALLBACKS
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SYSTEM_SWITCH_OUT,
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND,
 	PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_SETSHIPARCH,
+	PLUGIN_DelayedDisconnect,
 	PLUGIN_CALLBACKS_AMOUNT,
 };
 
@@ -261,6 +262,7 @@ enum PLUGIN_MESSAGE
 	CUSTOM_SPAWN_SOLAR = 52,
 	CUSTOM_MOBILE_DOCK_CHECK = 53,
 	CUSTOM_IN_WARP_CHECK = 54,
+	CUSTOM_DESPAWN_SOLAR = 55,
 	CUSTOM_CLOAK_CHECK = 56,
 	CUSTOM_CLOAK_ALERT = 60
 };
@@ -365,6 +367,11 @@ struct COMBAT_DAMAGE_OVERRIDE_STRUCT
 	float fDamageMultiplier;
 };
 
+const enum JUMP_TYPE {
+	BEAM_JUMP,
+	JUMPGATE_HOLE_JUMP
+};
+
 struct CUSTOM_JUMP_STRUCT
 {
 	uint iShipID;
@@ -377,8 +384,9 @@ struct CUSTOM_JUMP_CALLOUT_STRUCT
 	uint iSystemID;
 	Vector pos;
 	Matrix ori;
-	uint jumpType = 0;
+	JUMP_TYPE jumpType = BEAM_JUMP;
 };
+
 struct CUSTOM_REVERSE_TRANSACTION_STRUCT
 {
 	uint iClientID;
@@ -391,11 +399,13 @@ struct SPAWN_SOLAR_STRUCT
 	uint loadoutArchetypeId;
 	string nickname;
 	uint solar_ids;
-	wstring initialName;
+	wstring overwrittenName;
 	Vector pos;
 	Matrix ori;
 	uint iSystemId;
 	uint iSpaceObjId = 0;
+	uint destSystem = 0;
+	uint destObj = 0;
 	float percentageHp = 1.0f;
 };
 struct CUSTOM_MOBILE_DOCK_CHECK_STRUCT
@@ -415,6 +425,12 @@ struct CUSTOM_IN_WARP_CHECK_STRUCT
 	uint clientId;
 	bool inWarp = false;
 
+};
+
+struct DESPAWN_SOLAR_STRUCT
+{
+	uint spaceObjId;
+	DestroyType destroyType;
 };
 
 struct CUSTOM_CLOAK_ALERT_STRUCT

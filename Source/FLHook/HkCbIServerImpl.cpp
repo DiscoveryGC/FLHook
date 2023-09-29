@@ -409,15 +409,13 @@ namespace HkIServerImpl
 		ISERVER_LOGARG_UI(iBaseID);
 		ISERVER_LOGARG_UI(iShip);
 
-		try {
+		try
+		{
+
 			uint iClientID = HkGetClientIDByShip(iShip);
-			if (iClientID) {
-				ClientInfo[iClientID].tmSpawnTime = timeInMS(); // save for anti-dockkill
-				// is there spawnprotection?
-				if (set_iAntiDockKill > 0)
-					ClientInfo[iClientID].bSpawnProtected = true;
-				else
-					ClientInfo[iClientID].bSpawnProtected = false;
+			if (set_iAntiDockKill && iClientID)
+			{
+				ClientInfo[iClientID].tmProtectedUntil = timeInMS() + set_iAntiDockKill; // save for anti-dockkill
 			}
 
 			// event

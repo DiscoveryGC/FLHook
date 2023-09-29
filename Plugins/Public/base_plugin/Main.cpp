@@ -146,7 +146,7 @@ bool set_holiday_mode = false;
 POBSOUNDS pbsounds;
 
 //archtype structure
-map<string, ARCHTYPE_STRUCT> mapArchs;
+unordered_map<string, ARCHTYPE_STRUCT> mapArchs;
 
 //commodities to watch for logging
 map<uint, wstring> listCommodities;
@@ -265,6 +265,16 @@ void BaseLogging(const char *szString, ...)
 		fflush(BaseLogfile);
 		fclose(BaseLogfile);
 	}
+}
+
+void RespawnBase(PlayerBase* base)
+{
+	string filepath = base->path;
+	player_bases.erase(base->base);
+	delete base;
+	PlayerBase* newBase = new PlayerBase(filepath);
+	player_bases[newBase->base] = newBase;
+	newBase->Spawn();
 }
 
 FILE *LogfileEventCommodities = fopen("./flhook_logs/event_pobsales.log", "at");
@@ -434,11 +444,12 @@ void LoadSettingsActual()
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string cfg_file = string(szCurDir) + R"(flhook_plugins\base.cfg)";
+	string cfg_file = string(szCurDir) + R"(\flhook_plugins\base.cfg)";
 	string cfg_fileitems = string(szCurDir) + R"(\flhook_plugins\base_recipe_items.cfg)";
 	string cfg_filemodules = string(szCurDir) + R"(\flhook_plugins\base_recipe_modules.cfg)";
 	string cfg_filearch = string(szCurDir) + R"(\flhook_plugins\base_archtypes.cfg)";
 	string cfg_fileforbiddencommodities = string(szCurDir) + R"(\flhook_plugins\base_forbidden_cargo.cfg)";
+	uint bmapLoadHyperspaceHubConfig = 0;
 
 	for (auto base : player_bases)
 	{
@@ -649,6 +660,24 @@ void LoadSettingsActual()
 					{
 						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
 					}
+					else if (ini.is_value("enable_hyperspace_hub_bitmap"))
+					{
+						string typeStr = ToLower(ini.get_value_string(0));
+						if (typeStr.find("monday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 0;
+						if (typeStr.find("tuesday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 1;
+						if (typeStr.find("wednesday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 2;
+						if (typeStr.find("thursday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 3;
+						if (typeStr.find("friday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 4;
+						if (typeStr.find("saturday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 5;
+						if (typeStr.find("sunday") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 1 << 6;
+					}
 					else if (ini.is_value("siege_gun"))
 					{
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
@@ -798,7 +827,6 @@ void LoadSettingsActual()
 			{
 				ARCHTYPE_STRUCT archstruct;
 				string nickname = "default";
-				int radius = 0;
 				while (ini.read_value())
 				{
 					if (ini.is_value("nickname"))
@@ -813,10 +841,6 @@ void LoadSettingsActual()
 					{
 						archstruct.logic = ini.get_value_int(0);
 					}
-					else if (ini.is_value("radius"))
-					{
-						archstruct.radius = ini.get_value_float(0);
-					}
 					else if (ini.is_value("idrestriction"))
 					{
 						archstruct.idrestriction = ini.get_value_int(0);
@@ -825,17 +849,21 @@ void LoadSettingsActual()
 					{
 						archstruct.isjump = ini.get_value_int(0);
 					}
+					else if (ini.is_value("ishubreturn"))
+					{
+						archstruct.ishubreturn = ini.get_value_int(0);
+					}
 					else if (ini.is_value("shipclassrestriction"))
 					{
 						archstruct.shipclassrestriction = ini.get_value_int(0);
 					}
 					else if (ini.is_value("allowedshipclasses"))
 					{
-						archstruct.allowedshipclasses.emplace_back(ini.get_value_int(0));
+						archstruct.allowedshipclasses.insert(ini.get_value_int(0));
 					}
 					else if (ini.is_value("allowedids"))
 					{
-						archstruct.allowedids.emplace_back(CreateID(ini.get_value_string(0)));
+						archstruct.allowedids.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("module"))
 					{
@@ -922,6 +950,21 @@ void LoadSettingsActual()
 		FindClose(h);
 	}
 
+	// loadHyperspaceHubConfig is weekday where 0 = sunday, 6 = saturday
+	// if it's today, randomize appropriate 'jump hole' POBs
+	if (bmapLoadHyperspaceHubConfig)
+	{
+		time_t tNow = time(0);
+		struct tm *t = localtime(&tNow);
+		uint currWeekday = (t->tm_wday + 6)%7; // conversion from sunday-week-start to monday-start
+		if (bmapLoadHyperspaceHubConfig & (1 << currWeekday)) // 1 - monday, 2 - tuesday, 4 - wednesday and so on
+		{
+			HyperJump::LoadHyperspaceHubConfig(string(szCurDir));
+		}
+	}
+
+	HyperJump::InitJumpHoleConfig();
+
 	// Load and sync player state
 	struct PlayerData *pd = 0;
 	while (pd = Players.traverse_active(pd))
@@ -999,6 +1042,17 @@ void HkTimerCheckKick()
 		}
 	}
 
+	//fix custom jump solars not being dockable
+	for (uint customSolar : customSolarList)
+	{
+		uint type;
+		pub::SpaceObj::GetType(customSolar, type);
+		if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+		{
+			pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+		}
+	}
+
 	if (ExportType == 0 || ExportType == 2)
 	{
 		// Write status to an html formatted page every 60 seconds
@@ -1020,8 +1074,10 @@ void HkTimerCheckKick()
 
 bool __stdcall HkCb_IsDockableError(uint dock_with, uint base)
 {
-	if (GetPlayerBase(base))
+	if (GetPlayerBase(base) || customSolarList.count(base))
+	{
 		return false;
+	}
 	ConPrint(L"ERROR: Base not found dock_with=%08x base=%08x\n", dock_with, base);
 	return true;
 }
@@ -1483,20 +1539,6 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	return false;
 }
 
-// If this is a docking request at a player controlled based then send
-// an update to set the base arrival text, base economy and change the
-// infocards.
-
-void __stdcall SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID)
-{
-	returncode = DEFAULT_RETURNCODE;
-	// Make player invincible to fix JHs/JGs near mine fields sometimes
-	// exploding player while jumping (in jump tunnel)
-	pub::SpaceObj::SetInvincible(iShip, true, true, 0);
-	if (AP::SystemSwitchOutComplete(iShip, iClientID))
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-}
-
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& iCancel, enum DOCK_HOST_RESPONSE& response)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -1517,19 +1559,10 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					bool foundid = false;
 					for (list<EquipDesc>::iterator item = Players[client].equipDescList.equip.begin(); item != Players[client].equipDescList.equip.end(); item++)
 					{
-						if (item->bMounted)
+						if (item->bMounted && mapArchs[pbase->basetype].allowedids.count(item->iArchID))
 						{
-							list<uint>::iterator iditer = mapArchs[pbase->basetype].allowedids.begin();
-							while (iditer != mapArchs[pbase->basetype].allowedids.end())
-							{
-								if (*iditer == item->iArchID)
-								{
-									foundid = true;
-									PrintUserCmdText(client, L"DEBUG: Found acceptable ID.");
-									break;
-								}
-								iditer++;
-							}
+							foundid = true;
+							break;
 						}
 					}
 					if (foundid == false)
@@ -1549,19 +1582,7 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					Archetype::Ship* TheShipArch = Archetype::GetShip(Players[client].iShipArchetype);
 					uint shipclass = TheShipArch->iShipClass;
 
-					list<uint>::iterator iditer = mapArchs[pbase->basetype].allowedshipclasses.begin();
-					while (iditer != mapArchs[pbase->basetype].allowedshipclasses.end())
-					{
-						if (*iditer == shipclass)
-						{
-							foundclass = true;
-							PrintUserCmdText(client, L"DEBUG: Found acceptable shipclass.");
-							break;
-						}
-						iditer++;
-					}
-
-					if (foundclass == false)
+					if(!mapArchs[pbase->basetype].allowedshipclasses.count(shipclass))
 					{
 						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
 						iCancel = -1;
@@ -1570,22 +1591,9 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 					}
 				}
 
-				Vector pos;
-				Matrix ornt;
+				SendJumpObjOverride(client, base, pbase->destSystem);
 
-				pub::SpaceObj::GetLocation(iShip, pos, ornt);
-
-				pos.x = pbase->destposition.x;
-				pos.y = pbase->destposition.y;
-				pos.z = pbase->destposition.z;
-
-				const Universe::ISystem *iSys = Universe::get_system(pbase->destsystem);
-				wstring wscSysName = HkGetWStringFromIDS(iSys->strid_name);
-
-				AP::SwitchSystem(client, pbase->destsystem, pos, ornt);
-				iCancel = -1;
-				response = DOCK;
-				return 1;
+				return 0;
 			}
 
 			// Shield is up, docking is not possible.
@@ -2611,16 +2619,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->defense_mode = 1;
 		newbase->isCrewSupplied = true;
 
-		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
-		{
-
-			ARCHTYPE_STRUCT &thearch = iter->second;
-			if (iter->first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-			}
-		}
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
 
 		newbase->Spawn();
 		newbase->Save();
@@ -2637,7 +2637,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		RIGHT_CHECK(RIGHT_BASES)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
-		PlayerBase *base = GetPlayerBaseForClient(client);
 
 		uint ship;
 		pub::Player::GetShip(client, ship);
@@ -2646,6 +2645,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			PrintUserCmdText(client, L"ERR Not in space");
 			return true;
 		}
+
+		wstring usage = L"Usage: .jumpcreate <archtype> <loadout> <type> <dest object> <affiliation> <name>";
 
 		// If the ship is moving, abort the processing.
 		Vector dir1;
@@ -2661,50 +2662,45 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		if (!archtype.length())
 		{
 			PrintUserCmdText(client, L"ERR No archtype");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 		wstring loadout = cmd->ArgStr(2);
 		if (!loadout.length())
 		{
 			PrintUserCmdText(client, L"ERR No loadout");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 		wstring type = cmd->ArgStr(3);
 		if (!type.length())
 		{
 			PrintUserCmdText(client, L"ERR No type");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
-		wstring destsystem = cmd->ArgStr(4);
-		if (!destsystem.length())
+		wstring destobject = cmd->ArgStr(4);
+		if (!destobject.length())
 		{
-			PrintUserCmdText(client, L"ERR No destination system");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, L"ERR No destination object");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 
-		Vector destpos;
-		destpos.x = cmd->ArgFloat(5);
-		destpos.y = cmd->ArgFloat(6);
-		destpos.z = cmd->ArgFloat(7);
-
-		wstring theaffiliation = cmd->ArgStr(8);
+		wstring theaffiliation = cmd->ArgStr(5);
 		if (!theaffiliation.length())
 		{
 			PrintUserCmdText(client, L"ERR No affiliation");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 
 
-		wstring basename = cmd->ArgStrToEnd(9);
+		wstring basename = cmd->ArgStrToEnd(6);
 		if (!basename.length())
 		{
 			PrintUserCmdText(client, L"ERR No name entered");
-			PrintUserCmdText(client, L"Usage: .jumpcreate <archtype> <loadout> <type> <dest system> <x> <y> <z> <affiliation> <name>");
+			PrintUserCmdText(client, usage.c_str());
 			return true;
 		}
 
@@ -2734,23 +2730,15 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->defense_mode = 4;
 		newbase->base_health = 10000000000;
 
-		newbase->destsystem = CreateID(wstos(destsystem).c_str());
-		newbase->destposition = destpos;
+		newbase->destObject = CreateID(wstos(destobject).c_str());
 
-		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
-		{
-
-			ARCHTYPE_STRUCT &thearch = iter->second;
-			if (iter->first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-				newbase->radius = thearch.radius;
-			}
-		}
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
 
 		newbase->Spawn();
 		newbase->Save();
+
+		HyperJump::InitJumpHoleConfig();
 
 		PrintUserCmdText(client, L"OK: Solar deployed");
 		//PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
@@ -2846,16 +2834,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		newbase->base_health = 10000000000;
 		newbase->isCrewSupplied = true;
 
-		for (map<string, ARCHTYPE_STRUCT>::iterator iter = mapArchs.begin(); iter != mapArchs.end(); iter++)
-		{
-
-			ARCHTYPE_STRUCT &thearch = iter->second;
-			if (iter->first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-			}
-		}
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
 
 		newbase->Spawn();
 		newbase->Save();
@@ -2907,6 +2887,10 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	return false;
 }
 
+void DelayedDisconnect(uint clientId, uint shipId)
+{
+	HyperJump::CheckForUnchartedDisconnect(clientId, shipId);
+}
 
 void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 {
@@ -2919,7 +2903,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 			PlayerBase *base = GetPlayerBase(info->iTargetBaseID);
 		if (base)
 		{
-			returncode = SKIPPLUGINS;
 			ForcePlayerBaseDock(info->iClientID, base);
 			info->bBeamed = true;
 		}
@@ -2929,7 +2912,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		returncode = SKIPPLUGINS;
 		CUSTOM_BASE_IS_IT_POB_STRUCT* info = reinterpret_cast<CUSTOM_BASE_IS_IT_POB_STRUCT*>(data);
 		PlayerBase *base = GetPlayerBase(info->iBase);
-		returncode = SKIPPLUGINS;
 		if (base)
 		{
 			info->bAnswer = true;
@@ -2942,7 +2924,6 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		PlayerBase *base = GetPlayerBaseForClient(info->iClientID);
 		if (base)
 		{
-			returncode = SKIPPLUGINS;
 			info->iDockedBaseID = base->base;
 		}
 	}
@@ -2994,7 +2975,18 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		{
 			info->lastBaseName = L"Object Unknown";
 		}
-
+	}
+	else if (msg == CUSTOM_SPAWN_SOLAR)
+	{
+		returncode = SKIPPLUGINS;
+		SPAWN_SOLAR_STRUCT* info = reinterpret_cast<SPAWN_SOLAR_STRUCT*>(data);
+		CreateSolar::CreateSolarCallout(info);
+	}
+	else if (msg == CUSTOM_DESPAWN_SOLAR)
+	{
+		returncode = SKIPPLUGINS;
+		DESPAWN_SOLAR_STRUCT* info = reinterpret_cast<DESPAWN_SOLAR_STRUCT*>(data);
+		CreateSolar::DespawnSolarCallout(info);
 	}
 	else if (msg == CUSTOM_SPAWN_SOLAR)
 	{
@@ -3039,6 +3031,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->bMayPause = true;
 	p_PI->bMayUnload = true;
 	p_PI->ePluginReturnCode = &returncode;
+  
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
@@ -3051,7 +3044,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
-	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOutComplete, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
 
 
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 15));

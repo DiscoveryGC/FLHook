@@ -2307,15 +2307,9 @@ namespace PlayerCommands
 		newbase->defense_mode = 1;
 		newbase->isCrewSupplied = true;
 
-		for (auto& iter : mapArchs)
-		{
-			ARCHTYPE_STRUCT& thearch = iter.second;
-			if (iter.first == newbase->basetype)
-			{
-				newbase->invulnerable = thearch.invulnerable;
-				newbase->logic = thearch.logic;
-			}
-		}
+		newbase->invulnerable = mapArchs[newbase->basetype].invulnerable;
+		newbase->logic = mapArchs[newbase->basetype].logic;
+
 		newbase->Spawn();
 		newbase->Save();
 

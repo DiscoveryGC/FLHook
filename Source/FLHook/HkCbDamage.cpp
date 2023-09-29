@@ -225,19 +225,19 @@ bool AllowPlayerDamage(uint iClientID, uint iClientIDTarget)
 	if (iClientIDTarget)
 	{
 		// anti-dockkill check
-		if (ClientInfo[iClientIDTarget].bSpawnProtected)
+		if (ClientInfo[iClientIDTarget].tmProtectedUntil)
 		{
-			if ((timeInMS() - ClientInfo[iClientIDTarget].tmSpawnTime) <= set_iAntiDockKill)
+			if (timeInMS() <= ClientInfo[iClientIDTarget].tmProtectedUntil)
 				return false; // target is protected
 			else
-				ClientInfo[iClientIDTarget].bSpawnProtected = false;
+				ClientInfo[iClientIDTarget].tmProtectedUntil = 0;
 		}
-		if (ClientInfo[iClientID].bSpawnProtected)
+		if (ClientInfo[iClientID].tmProtectedUntil)
 		{
-			if ((timeInMS() - ClientInfo[iClientID].tmSpawnTime) <= set_iAntiDockKill)
+			if (timeInMS() <= ClientInfo[iClientID].tmProtectedUntil)
 				return false; // target may not shoot
 			else
-				ClientInfo[iClientID].bSpawnProtected = false;
+				ClientInfo[iClientID].tmProtectedUntil = 0;
 		}
 
 

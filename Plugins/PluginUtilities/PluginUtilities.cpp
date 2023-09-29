@@ -1281,13 +1281,13 @@ __declspec(naked) void __stdcall HkLightFuse(IObjRW *ship, uint iFuseID, float f
 	}
 }
 
-__declspec(naked) void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDunno)
+__declspec(naked) void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float fDelay)
 {
 	__asm
 	{
 		mov ecx, [esp + 4]
 		lea eax, [esp + 8] //iFuseID
-		push[esp + 12] //fDunno
+		push[esp + 12] //fDelay
 		push 0 //SUBOBJ_ID_NONE
 		push eax //iFuseID
 		mov eax, [ecx]

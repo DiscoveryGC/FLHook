@@ -380,7 +380,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	return curr_hitpoints - damageTaken;
 }
 
-bool CoreModule::SpaceObjDestroyed(uint space_obj)
+bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile)
 {
 	if (this->space_obj == space_obj)
 	{
@@ -431,7 +431,7 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj)
 		}
 
 		// Unspawn, delete base and save file.
-		DeleteBase(base);
+		DeleteBase(base, moveFile);
 
 		// Careful not to access this as this object will have been deleted by now.
 		return true;

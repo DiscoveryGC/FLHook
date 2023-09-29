@@ -1967,6 +1967,11 @@ namespace PlayerCommands
 					continue;
 				}
 
+				if (lowTierMiningCommoditiesSet.count(zone->lootableZone->dynamic_loot_commodity))
+				{
+					continue;
+				}
+
 				float distance = pub::Zone::GetDistance(zone->iZoneID, pos); // returns distance from the nearest point at the edge of the zone, value is negative if you're within the zone.
 
 				if (distance <= 0)
@@ -2071,7 +2076,7 @@ namespace PlayerCommands
 						}
 						else
 						{
-							ConPrint(L"Base too close to %ls, Current: %um, Minimum distance: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
+							ConPrint(L"Base too close to %ls, Current: %um", HkGetWStringFromIDS(idsName).c_str(), static_cast<uint>(distance));
 						}
 						return false;
 					}

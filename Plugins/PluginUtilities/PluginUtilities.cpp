@@ -1287,7 +1287,7 @@ __declspec(naked) void __stdcall HkUnLightFuse(IObjRW *ship, uint iFuseID, float
 	{
 		mov ecx, [esp + 4]
 		lea eax, [esp + 8] //iFuseID
-		push[esp + 12] //fDunno
+		push[esp + 12] //fDelay
 		push 0 //SUBOBJ_ID_NONE
 		push eax //iFuseID
 		mov eax, [ecx]

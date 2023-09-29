@@ -316,11 +316,11 @@ void SCI::StoreReturnPointForClient(unsigned int client)
 uint SCI::GetCustomLastBaseForClient(unsigned int client)
 {
 	// Pass to plugins incase this ship is docked at a custom base.
-	CUSTOM_BASE_LAST_DOCKED_STRUCT info;
+	CUSTOM_BASE_IS_DOCKED_STRUCT info;
 	info.iClientID = client;
-	info.iLastDockedBaseID = 0;
-	Plugin_Communication(CUSTOM_BASE_LAST_DOCKED, &info);
-	return info.iLastDockedBaseID;
+	info.iDockedBaseID = 0;
+	Plugin_Communication(CUSTOM_BASE_IS_DOCKED, &info);
+	return info.iDockedBaseID;
 }
 
 // based on conn plugin

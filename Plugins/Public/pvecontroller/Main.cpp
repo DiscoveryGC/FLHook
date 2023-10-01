@@ -288,6 +288,10 @@ void LoadSettingsNPCDrops()
 						drop.uGoodID = CreateID(szGood.c_str());
 						drop.fChance = ini.get_value_float(2);
 						drop.uAmountDropped = ini.get_value_int(3);
+						if (drop.uAmountDropped == 0)
+						{
+							drop.uAmountDropped = 1;
+						}
 						mmapDropInfo.insert(make_pair(iClass, drop));
 						++iLoadedNPCDropClasses;
 						if (set_iPluginDebug)

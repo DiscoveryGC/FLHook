@@ -86,6 +86,7 @@ void LoadSettings()
 	int iLoaded2 = 0;
 
 	INI_Reader ini;
+	vector<uint> buyBackRestrictedGoods;
 	if (ini.open(File_FLHook.c_str(), false))
 	{
 		while (ini.read_header())
@@ -122,25 +123,35 @@ void LoadSettings()
 				mapCommodityRestrictions[commodity] = cls;
 				++iLoaded;
 			}
-			else if (ini.is_header("producer_base"))
+			else if (ini.is_header("producer_buy_prevention"))
 			{
 				while (ini.read_value())
 				{
-					if (ini.is_value("producer"))
+					if (ini.is_value("commodity"))
 					{
-						auto& bannedGoodList = mapProducers[CreateID(ini.get_value_string(0))];
-						int i = 0;
-						string goodName = ini.get_value_string(++i);
-						while (!goodName.empty())
-						{
-							bannedGoodList.insert(CreateID(goodName.c_str()));
-							goodName = ini.get_value_string(++i);
-						}
+						buyBackRestrictedGoods.emplace_back(CreateID(ini.get_value_string()));
 					}
 				}
 			}
 		}
 		ini.close();
+	}
+
+	if (!buyBackRestrictedGoods.empty())
+	{
+		const Universe::IBase* baseInfo = Universe::GetFirstBase();
+		while (baseInfo)
+		{
+			auto& marketMap = BaseDataList_get()->get_base_data(baseInfo->iBaseID)->market_map;
+			for (uint goodID : buyBackRestrictedGoods)
+			{
+				if (marketMap.find(goodID).value()->iStock == 500 )
+				{
+					mapProducers[baseInfo->iBaseID].insert(goodID);
+				}
+			}
+			baseInfo = Universe::GetNextBase();
+		}
 	}
 
 	ConPrint(L"CL: Loaded %u Limited Commodities\n", iLoaded);

@@ -666,7 +666,7 @@ void LoadSettingsActual()
 					{
 						bannedSystemList.insert(CreateID(ini.get_value_string(0)));
 					}
-					else if (ini.is_value("enable_hyperspace_hub_bitmap"))
+					else if (ini.is_value("randomize_hyperspace_hub_days"))
 					{
 						string typeStr = ToLower(ini.get_value_string(0));
 						if (typeStr.find("monday") != string::npos)
@@ -683,6 +683,8 @@ void LoadSettingsActual()
 							bmapLoadHyperspaceHubConfig |= 1 << 5;
 						if (typeStr.find("sunday") != string::npos)
 							bmapLoadHyperspaceHubConfig |= 1 << 6;
+						if (typeStr.find("always") != string::npos)
+							bmapLoadHyperspaceHubConfig |= 0xff;
 					}
 					else if (ini.is_value("siege_gun"))
 					{

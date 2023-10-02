@@ -356,6 +356,11 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 		targetJumpHole->destObjectName = originJumpHole->nickname;
 		targetJumpHole->destSystem = originJumpHole->system;
 
+		auto& selectedSystemCoordList = mapSystemJumps[targetJumpHole->system];
+		auto& coords = selectedSystemCoordList.at(rand() % selectedSystemCoordList.size());
+		targetJumpHole->position = coords.pos;
+		targetJumpHole->rotation = coords.ornt;
+
 		auto originSystemInfo = Universe::get_system(originJumpHole->system);
 		targetJumpHole->basename = L"Unstable " + HkGetWStringFromIDS(originSystemInfo->strid_name) + L" Jump Hole";
 

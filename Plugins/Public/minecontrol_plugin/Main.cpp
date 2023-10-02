@@ -56,6 +56,7 @@ static uint set_containerJettisonCount = 5000;
 static uint set_containerLootCrateID = CreateID("lootcrate_ast_loot_metal");
 static uint set_containerSolarArchetypeID = CreateID("dsy_playerbase_01");
 static uint set_containerLoadoutArchetypeID = CreateID("dsy_playerbase_01");
+static bool set_scaleFieldRechargeWithPlayerCount = false;
 
 const uint insufficientCargoSoundId = CreateID("insufficient_cargo_space");
 
@@ -183,11 +184,18 @@ EXPORT void HkTimerCheckKick()
 	// Perform 120 second tasks. 
 	if (currTime % 120 == 0)
 	{
-		uint playerCount = 0;
-		PlayerData* pd = nullptr;
-		while (pd = Players.traverse_active(pd))
+		uint playerModifier = 0;
+		if (set_scaleFieldRechargeWithPlayerCount)
 		{
-			playerCount++;
+			PlayerData* pd = nullptr;
+			while (pd = Players.traverse_active(pd))
+			{
+				playerModifier++;
+			}
+		}
+		else
+		{
+			playerModifier = 1;
 		}
 
 		char szDataPath[MAX_PATH];
@@ -201,7 +209,7 @@ EXPORT void HkTimerCheckKick()
 		for (auto& i = set_mapZoneBonus.begin(); i != set_mapZoneBonus.end(); i++)
 		{
 			auto& zone = i->second;
-			zone.fCurrReserve = min(zone.fCurrReserve + (zone.fRechargeRate * playerCount), zone.fMaxReserve);
+			zone.fCurrReserve = min(zone.fCurrReserve + (zone.fRechargeRate * playerModifier), zone.fMaxReserve);
 
 			if (file && !zone.scZone.empty() && zone.fMaxReserve > 0 && zone.fMaxReserve != zone.fCurrReserve)
 			{
@@ -249,6 +257,7 @@ EXPORT void LoadSettings()
 	set_deployableContainerCommodity = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "ContainerCommodity", "commodity_scrap_metal").c_str());
 	set_miningMunition = CreateID(IniGetS(scPluginCfgFile, "MiningGeneral", "MiningMunition", "mining_gun_ammo").c_str());
 	set_miningCheatLogThreshold = IniGetF(scPluginCfgFile, "MiningGeneral", "MiningCheatLogThreshold", set_miningCheatLogThreshold);
+	set_scaleFieldRechargeWithPlayerCount = IniGetB(scPluginCfgFile, "MiningGeneral", "PlayerScalingRecharge", set_scaleFieldRechargeWithPlayerCount);
 
 	set_containerLootCrateID = Archetype::GetEquipment(set_deployableContainerCommodity)->get_loot_appearance()->iArchID;
 

@@ -162,15 +162,17 @@ bool BuildModule::Timer(uint time)
 				case Module::TYPE_DEFENSE_3:
 					base->modules[i] = new DefenseModule(base, Module::TYPE_DEFENSE_3);
 					break;
-				default:
+				case Module::TYPE_FACTORY:
 					//check if factory
 					if (factoryNicknameToCraftTypeMap.count(active_recipe.nickname))
 					{
 						base->modules[i] = new FactoryModule(base, active_recipe.nickname);
 						break;
 					}
-					base->modules[i] = 0;
+					base->modules[i] = nullptr;
 					break;
+				 default:
+					base->modules[i] = nullptr;
 				}
 				base->Save();
 				delete this;

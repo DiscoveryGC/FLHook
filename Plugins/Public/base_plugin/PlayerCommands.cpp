@@ -1264,6 +1264,7 @@ namespace PlayerCommands
 			for (auto& craftType : factoryNicknameToCraftTypeMap[facMod->factoryNickname])
 			{
 				base->availableCraftList.erase(craftType);
+				base->craftTypeTofactoryModuleMap.erase(craftType);
 			}
 		}
 		delete base->modules[index];
@@ -1302,12 +1303,19 @@ namespace PlayerCommands
 		}
 
 		wstring& craftType = GetParam(args, ' ', 1);
+		int craftTypeNumber = ToInt(craftType);
+		if (craftTypeNumber && base->availableCraftList.size() <= craftTypeNumber)
+		{
+			craftType = *next(base->availableCraftList.begin(), craftTypeNumber - 1);
+		}
 		if (craftType == L"list")
 		{
 			PrintUserCmdText(client, L"Available crafting lists:");
-			for (wstring craftType : base->availableCraftList)
+			uint counter = 1;
+			for (const wstring& craftTypeName : base->availableCraftList)
 			{
-				PrintUserCmdText(client, L"|   %ls", craftType.c_str());
+				PrintUserCmdText(client, L"%u. %ls", counter, craftTypeName.c_str());
+				counter++;
 			}
 			return;
 		}
@@ -1877,30 +1885,30 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);
 
 		PrintUserCmdText(client, L"Crew supplies:");
-		for (auto& i : set_base_crew_consumption_items)
+		for (uint item : set_base_crew_consumption_items)
 		{
-			const GoodInfo* gi = GoodList::find_by_id(i.first);
+			const GoodInfo* gi = GoodList::find_by_id(item);
 			if (!gi)
 			{
 				continue;
 			}
-			if (base->market_items.count(i.first))
+			if (base->market_items.count(item))
 			{
-				PrintUserCmdText(client, L"|    %s: %u/%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i.first), base->market_items[i.first].max_stock);
+				PrintUserCmdText(client, L"|    %s: %u/%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(item), base->market_items[item].max_stock);
 			}
 			else
 			{
-				PrintUserCmdText(client, L"|    %s: %u/0", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(i.first));
+				PrintUserCmdText(client, L"|    %s: %u/0", HkGetWStringFromIDS(gi->iIDSName).c_str(), base->HasMarketItem(item));
 			}
 		}
 
 		uint foodCount = 0;
 		uint maxFoodCount = 0;
-		for (auto& i : set_base_crew_food_items)
+		for (uint item : set_base_crew_food_items)
 		{
-			foodCount += base->HasMarketItem(i.first);
-			if (base->market_items.count(i.first))
-				maxFoodCount += base->market_items[i.first].max_stock;
+			foodCount += base->HasMarketItem(item);
+			if (base->market_items.count(item))
+				maxFoodCount += base->market_items[item].max_stock;
 		}
 		PrintUserCmdText(client, L"|    Food: %u/%u", foodCount, maxFoodCount);
 

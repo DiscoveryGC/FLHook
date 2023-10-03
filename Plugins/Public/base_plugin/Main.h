@@ -31,19 +31,19 @@ struct AICONFIG
 
 struct RECIPE
 {
-	RECIPE() : cooking_rate(0), credit_cost(0) {}
-	uint nickname;
+	uint nickname = 0;
+	string nicknameString = "";
 	vector<pair<uint, uint>> produced_items;
-	uint shortcut_number;
-	bool loop_production;
-	wstring infotext;
-	wstring craft_type;
-	uint cooking_rate;
+	uint shortcut_number = 0;
+	bool loop_production = false;
+	wstring infotext = L"";
+	wstring craft_type = L"";
+	uint cooking_rate = 0;
 	vector<pair<uint, uint>> consumed_items;
 	vector<pair<uint, uint>> catalyst_items;
 	vector<pair<uint, uint>> catalyst_workforce;
-	uint credit_cost;
-	uint reqlevel;
+	uint credit_cost = 0;
+	uint reqlevel = 0;
 	unordered_map<uint, float> affiliationBonus;
 };
 
@@ -109,10 +109,9 @@ public:
 	int mining;
 	static const int TYPE_BUILD = 0;
 	static const int TYPE_CORE = 1;
-	static const int TYPE_SHIELDGEN = 2;
+	static const int TYPE_FACTORY = 2;
 	static const int TYPE_STORAGE = 3;
 	static const int TYPE_DEFENSE_1 = 4;
-	static const int TYPE_FACTORY = 5;
 	static const int TYPE_DEFENSE_2 = 9;
 	static const int TYPE_DEFENSE_3 = 10;
 
@@ -408,7 +407,7 @@ public:
 	unordered_map<wstring, FactoryModule*> craftTypeTofactoryModuleMap;
 
 	// Available crafting types
-	unordered_set<wstring> availableCraftList;
+	set<wstring> availableCraftList;
 
 	// Path to base ini file.
 	string path;
@@ -612,7 +611,7 @@ extern POBSOUNDS pbsounds;
 extern int set_plugin_debug;
 
 /// Global recipe map
-extern map<uint, RECIPE> recipeMap;
+extern unordered_map<uint, RECIPE> recipeMap;
 /// Maps of shortcut numbers to recipes to construct item.
 extern map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
 extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
@@ -631,9 +630,9 @@ extern list<REPAIR_ITEM> set_base_repair_items;
 
 extern uint set_base_crew_type;
 
-extern map<uint, uint> set_base_crew_consumption_items;
+extern vector<uint> set_base_crew_consumption_items;
 
-extern map<uint, uint> set_base_crew_food_items;
+extern vector<uint> set_base_crew_food_items;
 
 extern uint set_crew_check_frequency;
 

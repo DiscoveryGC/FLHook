@@ -60,8 +60,8 @@ int construction_credit_cost = 0;
 list<REPAIR_ITEM> set_base_repair_items;
 
 /// list of items used by human crew
-map<uint, uint> set_base_crew_consumption_items;
-map<uint, uint> set_base_crew_food_items;
+vector<uint> set_base_crew_consumption_items;
+vector<uint> set_base_crew_food_items;
 
 uint set_crew_check_frequency = 43200;
 
@@ -74,7 +74,7 @@ unordered_set<uint> humanCargoList;
 PLUGIN_RETURNCODE returncode;
 
 /// Global recipe map
-map<uint, RECIPE> recipeMap;
+unordered_map<uint, RECIPE> recipeMap;
 
 /// Maps of shortcut numbers to recipes to construct item.
 map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
@@ -591,14 +591,12 @@ void LoadSettingsActual()
 					else if (ini.is_value("base_crew_consumption_item"))
 					{
 						uint good = CreateID(ini.get_value_string(0));
-						uint quantity = ini.get_value_int(1);
-						set_base_crew_consumption_items[good] = quantity;
+						set_base_crew_consumption_items.emplace_back(good);
 					}
 					else if (ini.is_value("base_crew_food_item"))
 					{
 						uint good = CreateID(ini.get_value_string(0));
-						uint quantity = ini.get_value_int(1);
-						set_base_crew_food_items[good] = quantity;
+						set_base_crew_food_items.emplace_back(good);
 					}
 					else if (ini.is_value("set_crew_check_frequency"))
 					{
@@ -711,6 +709,7 @@ void LoadSettingsActual()
 					if (ini.is_value("nickname"))
 					{
 						recipe.nickname = CreateID(ini.get_value_string(0));
+						recipe.nicknameString = ini.get_value_string(0);
 					}
 					else if (ini.is_value("infotext"))
 					{
@@ -728,7 +727,7 @@ void LoadSettingsActual()
 					{
 						recipe_number = ini.get_value_int(0);
 					}
-					else if (ini.is_value("shortcut_number"))
+					else if (ini.is_value("module_class"))
 					{
 						recipe.shortcut_number = ini.get_value_int(0);
 					}
@@ -767,6 +766,7 @@ void LoadSettingsActual()
 					if (ini.is_value("nickname"))
 					{
 						recipe.nickname = CreateID(ini.get_value_string(0));
+						recipe.nicknameString = ini.get_value_string(0);
 					}
 					else if (ini.is_value("produced_item"))
 					{

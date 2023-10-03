@@ -14,6 +14,7 @@ FactoryModule::FactoryModule(PlayerBase* the_base, uint nickname)
 	for (wstring& craftType : factoryNicknameToCraftTypeMap[factoryNickname])
 	{
 		base->availableCraftList.insert(craftType);
+		base->craftTypeTofactoryModuleMap[craftType] = this;
 	}
 }
 
@@ -258,7 +259,7 @@ void FactoryModule::LoadState(INI_Reader& ini)
 	{
 		if (ini.is_value("type"))
 		{
-			factoryNickname = moduleNumberRecipeMap[ini.get_value_int(0)].nickname;
+			factoryNickname = CreateID(ini.get_value_string(0));\
 			for (auto& craftType : factoryNicknameToCraftTypeMap[factoryNickname])
 			{
 				base->availableCraftList.insert(craftType);
@@ -268,8 +269,12 @@ void FactoryModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("nickname"))
 		{
-			SetActiveRecipe(ini.get_value_int(0));
-			active_recipe.consumed_items.clear();
+			uint activeRecipeNickname = ini.get_value_int(0);
+			if (activeRecipeNickname)
+			{
+				SetActiveRecipe(activeRecipeNickname);
+				active_recipe.consumed_items.clear();
+			}
 		}
 		else if (ini.is_value("paused"))
 		{
@@ -277,15 +282,24 @@ void FactoryModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+			if (active_recipe.nickname)
+			{
+				active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+			}
 		}
 		else if (ini.is_value("credit_cost"))
 		{
-			active_recipe.credit_cost = ini.get_value_int(0);
+			if (active_recipe.nickname)
+			{
+				active_recipe.credit_cost = ini.get_value_int(0);
+			}
 		}
 		else if (ini.is_value("build_queue"))
 		{
-			build_queue.emplace_back(ini.get_value_int(0));
+			if (active_recipe.nickname)
+			{
+				build_queue.emplace_back(ini.get_value_int(0));
+			}
 		}
 	}
 }
@@ -293,11 +307,11 @@ void FactoryModule::LoadState(INI_Reader& ini)
 void FactoryModule::SaveState(FILE* file)
 {
 	fprintf(file, "[FactoryModule]\n");
-	fprintf(file, "type = %u\n", recipeMap[factoryNickname].shortcut_number);
-	fprintf(file, "nickname = %u\n", active_recipe.nickname);
-	fprintf(file, "paused = %d\n", Paused);
+	fprintf(file, "type = %s\n", recipeMap[factoryNickname].nicknameString.c_str());
 	if (active_recipe.nickname)
 	{
+		fprintf(file, "nickname = %u\n", active_recipe.nickname);
+		fprintf(file, "paused = %d\n", Paused);
 		if (active_recipe.credit_cost)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (auto& i : active_recipe.consumed_items)

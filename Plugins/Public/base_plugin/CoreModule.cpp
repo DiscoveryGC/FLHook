@@ -295,34 +295,34 @@ bool CoreModule::Timer(uint time)
 			peopleToFeed += base->HasMarketItem(humanCargoType);
 		}
 
-		for (auto i : set_base_crew_consumption_items)
+		for (uint item : set_base_crew_consumption_items)
 		{
 			// Use water and oxygen.
-			if (base->HasMarketItem(i.first) >= peopleToFeed)
+			if (base->HasMarketItem(item) >= peopleToFeed)
 			{
-				base->RemoveMarketGood(i.first, peopleToFeed);
+				base->RemoveMarketGood(item, peopleToFeed);
 			}
 			else
 			{
-				base->RemoveMarketGood(i.first, base->HasMarketItem(i.first));
+				base->RemoveMarketGood(item, base->HasMarketItem(item));
 				passedFoodCheck = false;
 			}
 		}
 
 		// Humans use food but may eat one of a number of types.
 
-		for (auto& i : set_base_crew_food_items)
+		for (uint item : set_base_crew_food_items)
 		{
 			if (!peopleToFeed)
 			{
 				break;
 			}
 
-			uint food_available = base->HasMarketItem(i.first);
+			uint food_available = base->HasMarketItem(item);
 			if (food_available)
 			{
 				uint food_to_use = min(food_available, peopleToFeed);
-				base->RemoveMarketGood(i.first, food_to_use);
+				base->RemoveMarketGood(item, food_to_use);
 				peopleToFeed -= food_to_use;
 			}
 		}

@@ -170,8 +170,11 @@ void DestroyContainer(const uint clientID)
 				Server.MineAsteroid(cd.systemId, cd.jettisonPos, cd.lootCrateId, cd.lootId, cd.lootCount, cd.clientId);
 			}
 			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
-			pub::SpaceObj::Destroy(iter->second.deployedContainerId, DestroyType::FUSE);
 			mapMiningContainers.erase(iter->second.deployedContainerId);
+			DESPAWN_SOLAR_STRUCT info;
+			info.destroyType = FUSE;
+			info.spaceObjId = iter->second.deployedContainerId;
+			Plugin_Communication(CUSTOM_DESPAWN_SOLAR, &info);
 		}
 		mapClients[clientID].deployedContainerId = 0;
 	}

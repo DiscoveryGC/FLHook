@@ -544,10 +544,11 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 					foundContainer = true;
 					container->second.lootCount += static_cast<uint>(miningYield * set_containerModifier);
 
-					if (container->second.lootCount >= set_containerJettisonCount)
+					uint amountToJettison = static_cast<uint>(static_cast<float>(set_containerJettisonCount) / lootInfo->fVolume);
+					if (container->second.lootCount >= amountToJettison)
 					{
-						Server.MineAsteroid(container->second.systemId, container->second.jettisonPos, set_containerLootCrateID, container->second.lootId, set_containerJettisonCount, container->second.clientId);
-						container->second.lootCount -= set_containerJettisonCount;
+						Server.MineAsteroid(container->second.systemId, container->second.jettisonPos, set_containerLootCrateID, container->second.lootId, amountToJettison, container->second.clientId);
+						container->second.lootCount -= amountToJettison;
 					}
 				}
 			}
@@ -704,6 +705,7 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_SPAWN_SOLAR, &data);
 		if (data.iSpaceObjId)
 		{
+			pub::SpaceObj::SetRelativeHealth(data.iSpaceObjId, 1.0f);
 			CONTAINER_DATA cd;
 			cd.systemId = systemId;
 			pos.y -= 30;

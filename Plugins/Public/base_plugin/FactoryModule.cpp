@@ -259,7 +259,7 @@ void FactoryModule::LoadState(INI_Reader& ini)
 	{
 		if (ini.is_value("type"))
 		{
-			factoryNickname = CreateID(ini.get_value_string(0));\
+			factoryNickname = CreateID(ini.get_value_string(0));
 			for (auto& craftType : factoryNicknameToCraftTypeMap[factoryNickname])
 			{
 				base->availableCraftList.insert(craftType);

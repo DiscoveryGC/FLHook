@@ -26,6 +26,8 @@ unordered_map<uint, DOCKEDCRAFTINFO*> idToDockedInfoMap;
 
 unordered_map<uint,uint> jettisonedShipsQueue;
 
+unordered_set<uint> bannedSystems;
+
 std::mutex saveMutex;
 std::thread saveThread;
 
@@ -133,6 +135,10 @@ void LoadSettings()
 					else if (ini.is_value("docking_shield_drain"))
 					{
 						disableShieldsOnDockAttempt = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("banned_system"))
+					{
+						bannedSystems.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -763,6 +769,16 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 		pub::SpaceObj::GetType(iTargetID, iType);
 		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
 		{
+			return 0;
+		}
+		
+		uint systemId;
+		pub::SpaceObj::GetSystem(iShip, systemId);
+		if (bannedSystems.count(systemId))
+		{
+			PrintUserCmdText(client, L"ERR Cannot mobile dock in this system!");
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 

@@ -1834,11 +1834,16 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
+
+	system_match = true;
+	player_launch_base = 0;
+
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 
 	if (!clients[client].last_player_base)
 		return;
+
 
 	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
 	mobileCheck.iClientID = client;
@@ -2909,8 +2914,21 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 				ConPrint(L" - %ls\n", base.second->basename.c_str());
 			}
 		}
+		return true;
 	}
+	else if (args.find(L"baselogin") == 0)
+	{
+		RIGHT_CHECK(RIGHT_SUPERADMIN);
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (base)
+		{
+			clients[client].admin = true;
+			clients[client].admin = true;
+		}
+		return true;
+	}
 	return false;
 }
 

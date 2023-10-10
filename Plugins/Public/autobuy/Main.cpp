@@ -225,6 +225,56 @@ void LoadSettings()
 					++iLoaded;
 				}
 			}
+			else if (ini.is_header("CounterMeasure"))
+			{
+				uint itemname;
+				int itemlimit;
+				bool valid = false;
+
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						itemname = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("ammo_limit"))
+					{
+						valid = true;
+						itemlimit = ini.get_value_int(0);
+					}
+				}
+
+				if (valid == true)
+				{
+					mapAmmolimits[itemname] = itemlimit;
+					++iLoaded;
+				}
+			}
+			else if (ini.is_header("Mine"))
+			{
+				uint itemname;
+				int itemlimit;
+				bool valid = false;
+
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						itemname = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("ammo_limit"))
+					{
+						valid = true;
+						itemlimit = ini.get_value_int(0);
+					}
+				}
+
+				if (valid == true)
+				{
+					mapAmmolimits[itemname] = itemlimit;
+					++iLoaded;
+				}
+			}
 		}
 		ini.close();
 	}

@@ -17,6 +17,7 @@
 #include <list>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <algorithm>
 
 #include <PluginUtilities.h>
@@ -72,6 +73,7 @@ namespace HyperJump
 	static uint set_entryJumpHoleArchetype = CreateID("flhook_jumphole");
 	static uint set_IDSNamespaceStart = 267200;
 	static uint set_maxJumpRange = 0;
+	static unordered_set<uint> set_banJumpSystems;
 
 	struct JD_JUMPHOLE
 	{
@@ -318,6 +320,10 @@ namespace HyperJump
 						else if (ini.is_value("JumpDriveIDSStart"))
 						{
 							set_IDSNamespaceStart = ini.get_value_int(0);
+						}
+						else if (ini.is_value("BanJumpSystem"))
+						{
+							set_banJumpSystems.insert(CreateID(ini.get_value_string()));
 						}
 					}
 				}
@@ -950,6 +956,15 @@ namespace HyperJump
 
 		targetSystem = ToLower(targetSystem);
 
+		uint iPlayerSystem;
+		pub::Player::GetSystem(iClientID, iPlayerSystem);
+
+		if (set_banJumpSystems.count(iPlayerSystem))
+		{
+			PrintUserCmdText(iClientID, L"ERR Jumping not allowed in this system");
+			return false;
+		}
+
 		if (targetSystem == L"blind")
 		{
 			if (set_blindJumpOverrideSystem)
@@ -965,7 +980,7 @@ namespace HyperJump
 				jd.iTargetSystem = set_blindJumpOverrideSystem;
 				jd.vTargetPosition = jumpCoords.pos;
 				jd.matTargetOrient = jumpCoords.ornt;
-				jd.jumpDistance = set_maxJumpRange;
+				jd.jumpDistance = 0;
 			}
 			else
 			{
@@ -1009,8 +1024,6 @@ namespace HyperJump
 			}
 			uint &iTargetSystemID = sysinfo->id;
 
-			uint iPlayerSystem;
-			pub::Player::GetSystem(iClientID, iPlayerSystem);
 			auto canJump = IsSystemJumpable(iPlayerSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range);
 			if (!canJump.first)
 			{

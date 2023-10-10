@@ -1661,7 +1661,8 @@ namespace PlayerCommands
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
 		if (clients[client].admin)
 		{
-			status += L"<TEXT>  /shop price [item] [price] [min stock] [max stock]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop price [item] [price]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop stock [item] [min stock] [max stock]</TEXT><PARA/>";
 			status += L"<TEXT>  /shop remove [item]</TEXT><PARA/>";
 		}
 		status += L"<TEXT>  /shop [page]</TEXT><PARA/><TEXT>  /shop filter [substring] [page]</TEXT><PARA/><PARA/>";

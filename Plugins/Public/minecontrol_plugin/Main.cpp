@@ -411,9 +411,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 bool UserCmd_Process(uint client, const wstring& args)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	if (args.find(L"/cs") != 0 && args.find(L"/cargostored") != 0)
 	{
-		return true;
+		return false;
 	}
 	uint targetId;
 	uint shipId;

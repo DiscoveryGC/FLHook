@@ -164,7 +164,6 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 	vector<uint> returnJumpHoles;
 	vector<uint> hubToUnchartedJumpHoles;
 	vector<uint> unchartedToHubJumpHoles;
-	map<uint, wstring> systemNameMap;
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	uint lastJumpholeRandomization = 0;
 	uint randomizationCooldown = 3600 * 23;

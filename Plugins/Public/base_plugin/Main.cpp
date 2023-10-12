@@ -57,7 +57,7 @@ map<uint, uint> construction_items;
 int construction_credit_cost = 0;
 
 /// list of items and quantity used to repair 10000 units of damage
-list<REPAIR_ITEM> set_base_repair_items;
+vector<REPAIR_ITEM> set_base_repair_items;
 
 /// list of items used by human crew
 vector<uint> set_base_crew_consumption_items;
@@ -77,13 +77,13 @@ PLUGIN_RETURNCODE returncode;
 unordered_map<uint, RECIPE> recipeMap;
 
 /// Maps of shortcut numbers to recipes to construct item.
-map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
-map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
-map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
-map<wstring, RECIPE> moduleNameRecipeMap;
-map<uint, RECIPE> moduleNumberRecipeMap;
-map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
-set<wstring> buildingCraftLists;
+unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+unordered_map<wstring, RECIPE> moduleNameRecipeMap;
+unordered_map<uint, RECIPE> moduleNumberRecipeMap;
+unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+unordered_set<wstring> buildingCraftLists;
 
 void AddFactoryRecipeToMaps(const RECIPE& recipe);
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
@@ -99,10 +99,6 @@ string set_status_path_json;
 
 /// Damage to the base every tick
 uint set_damage_per_tick = 600;
-
-/// Damage multiplier for damaged/abandoned stations
-/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
 
 /// Additional damage penalty for stations without proper crew
 float no_crew_damage_multiplier = 1;
@@ -121,7 +117,7 @@ uint repair_per_repair_cycle = 60000;
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
 // threshold size is to be configured per core level.
-map<int, float> shield_reinforcement_threshold_map;
+unordered_map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
@@ -130,10 +126,10 @@ const uint shield_fuse = CreateID("player_base_shield");
 // decides if bases are globally immune, based on server time
 bool isGlobalBaseInvulnerabilityActive;
 
-list<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
+vector<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
 
 /// List of commodities forbidden to store on POBs
-set<uint> forbidden_player_base_commodity_set;
+unordered_set<uint> forbidden_player_base_commodity_set;
 
 // If true, use the new solar based defense platform spawn 	 	
 bool set_new_spawn = true;
@@ -436,6 +432,15 @@ void LoadSettings()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void ValidateItem(const char* goodName)
+{
+	const GoodInfo* gi = GoodList_get()->find_by_name(goodName);
+	if (!gi)
+	{
+		ConPrint(L"\n\nBASE ERROR Invalid good found in config: %ls\n\n", stows((string)goodName).c_str());
+	}
+}
+
 /// Load the configuration
 void LoadSettingsActual()
 {
@@ -515,14 +520,6 @@ void LoadSettingsActual()
 					{
 						set_damage_per_tick = ini.get_value_int(0);
 					}
-					else if (ini.is_value("damage_multiplier"))
-					{
-						WEAR_N_TEAR_MODIFIER mod;
-						mod.fromHP = ini.get_value_float(0);
-						mod.toHP = ini.get_value_float(1);
-						mod.modifier = ini.get_value_float(2);
-						wear_n_tear_mod_list.emplace_back(mod);
-					}
 					else if (ini.is_value("no_crew_damage_multiplier"))
 					{
 						no_crew_damage_multiplier = ini.get_value_float(0);
@@ -564,6 +561,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("construction_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						uint quantity = ini.get_value_int(1);
 						construction_items[good] = quantity;
@@ -574,15 +572,18 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						set_base_crew_type = CreateID(ini.get_value_string(0));
 						humanCargoList.insert(set_base_crew_type);
 					}
 					else if (ini.is_value("human_cargo_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						humanCargoList.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("base_repair_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						REPAIR_ITEM item;
 						item.good = CreateID(ini.get_value_string(0));
 						item.quantity = ini.get_value_int(1);
@@ -590,11 +591,13 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_consumption_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_consumption_items.emplace_back(good);
 					}
 					else if (ini.is_value("base_crew_food_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_food_items.emplace_back(good);
 					}
@@ -741,6 +744,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("reqlevel"))
@@ -770,6 +774,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("produced_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.produced_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("loop_production"))
@@ -798,10 +803,12 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("catalyst"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint cargoHash = CreateID(ini.get_value_string(0));
 						if (humanCargoList.count(cargoHash))
 						{
@@ -1031,7 +1038,7 @@ void HkTimerCheckKick()
 		PlayerBase *base = iter.second;
 		base->Timer(curr_time);
 	}
-	if (!player_bases.empty() && !set_holiday_mode)
+	if (!player_bases.empty())
 	{
 		if (baseSaveIterator == player_bases.end())
 		{
@@ -2302,13 +2309,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	{
 		return;
 	}
-	
-	if (set_holiday_mode)
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		iDmgToSpaceID = 0;
-		return;
-	}
 
 	// If this is an NPC hit then suppress the call completely
 	if (!dmg->is_inflictor_a_player())
@@ -3120,7 +3120,7 @@ bool checkBaseVulnerabilityStatus()
 	// iterate over configured vulnerability periods to check if we're in one.
 	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
 	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
-	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i)
+	for (auto& i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i)
 	{
 		if((i->start < i->end 
 			&& i->start <= currHour && i->end > currHour)

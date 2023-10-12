@@ -265,7 +265,6 @@ void FactoryModule::LoadState(INI_Reader& ini)
 				base->availableCraftList.insert(craftType);
 				base->craftTypeTofactoryModuleMap[craftType] = this;
 			}
-			break;
 		}
 		else if (ini.is_value("nickname"))
 		{

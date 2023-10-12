@@ -249,18 +249,20 @@ bool UserCmd_Process(uint iClientID, const wstring &wscCmd)
 /** Clean up when a client disconnects */
 void ClearClientInfo(uint iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	Condata::ClearClientInfo(iClientID);
 	mapActivityData.erase(iClientID);
-	returncode = DEFAULT_RETURNCODE;
 }
 
 void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	//PrintUserCmdText(iClientID, L"Cleared info");
 }
 
 void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 {
+	returncode = DEFAULT_RETURNCODE;
 	Condata::PlayerLaunch(iShip, client);
 	//PrintUserCmdText(client, L"Cleared info");
 }
@@ -304,6 +306,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 
 void _stdcall Disconnect(unsigned int iClientID, enum EFLConnection p2)
 {
+	returncode = DEFAULT_RETURNCODE;
 	ClearClientInfo(iClientID);
 }
 
@@ -412,11 +415,13 @@ void HkTimerJSON()
 
 void UserCmd_Help(uint iClientID, const wstring &wscParam)
 {
+	returncode = DEFAULT_RETURNCODE;
 	Condata::UserCmd_Help(iClientID, wscParam);
 }
 
 void SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	Condata::SPObjUpdate(ui, iClientID);
 }
 

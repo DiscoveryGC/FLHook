@@ -129,6 +129,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 void LoadSettings()
 {
+
+	returncode = DEFAULT_RETURNCODE;
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
@@ -260,6 +262,7 @@ void LoadSettings()
 
 void ClearClientInfo(uint iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	mapClientsCloak.erase(iClientID);
 	setJumpingClients.erase(iClientID);
 }
@@ -375,6 +378,7 @@ void InitCloakInfo(uint client, uint distance)
 
 void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (mapCloakDisruptors.find(item->iArchID) != mapCloakDisruptors.end())
@@ -442,12 +446,14 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 
 void BaseEnter(unsigned int iBaseID, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	mapClientsCloak.erase(iClientID);
 	mapClientsCD.erase(iClientID);
 }
 
 void HkTimerCheckKick()
 {
+	returncode = DEFAULT_RETURNCODE;
 	mstime now = timeInMS();
 	uint curr_time = (uint)time(0);
 

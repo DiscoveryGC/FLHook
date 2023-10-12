@@ -230,6 +230,7 @@ EXPORT void HkTimerCheckKick()
 /// Clear client info when a client connects.
 EXPORT void ClearClientInfo(uint iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	auto& cd = mapClients[iClientID];
 	cd.equippedID = 0;
 	cd.itemCount = 0;

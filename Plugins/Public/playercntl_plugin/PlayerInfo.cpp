@@ -32,7 +32,7 @@ namespace PlayerInfo
 #define RSRCID_PLAYERINFO_TITLE 500000
 #define RSRCID_PLAYERINFO_TEXT RSRCID_PLAYERINFO_TITLE + 1
 #define MAX_PARAGRAPHS 5
-#define MAX_CHARACTERS 1000
+#define MAX_CHARACTERS 2000
 
 	static wstring IniGetLongWS(const string &scFile, const string &scApp, const string &scKey, const wstring &wscDefault)
 	{

@@ -423,6 +423,7 @@ wstring HtmlEncode(wstring text)
 /// Clear client info when a client connects.
 void ClearClientInfo(uint client)
 {
+	returncode = DEFAULT_RETURNCODE;
 	clients.erase(client);
 }
 
@@ -2934,6 +2935,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 void DelayedDisconnect(uint clientId, uint shipId)
 {
+	returncode = DEFAULT_RETURNCODE;
 	HyperJump::CheckForUnchartedDisconnect(clientId, shipId);
 }
 

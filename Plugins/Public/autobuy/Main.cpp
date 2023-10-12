@@ -1012,6 +1012,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned
 
 void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	pub::Player::GetBase(iClientID, iBaseID);
 	PlayerAutobuy(iClientID, iBaseID);
 

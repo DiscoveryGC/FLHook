@@ -90,6 +90,7 @@ void LoadSettingsNPCDrops(void);
 /// Clear client info when a client connects.
 void ClearClientInfo(uint iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	aClientData[iClientID] = { 0 };
 }
 

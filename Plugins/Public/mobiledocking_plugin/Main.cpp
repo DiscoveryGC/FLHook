@@ -1063,6 +1063,7 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 
 void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 {
+	returncode = DEFAULT_RETURNCODE;
 	if (idToCarrierInfoMap.count(iClientID))
 	{
 		for (const wstring& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)

@@ -4,7 +4,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	shield_timeout(0), isShieldOn(false),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -39,7 +39,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	shield_timeout(0), isShieldOn(false),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules
@@ -411,7 +411,7 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
-		fprintf(file, "crew_supplied = %u\n", isCrewSupplied);
+		fprintf(file, "crew_supplied = %u\n", isCrewSupplied ? 1 : 0);
 		fprintf(file, "shieldstrength = %f\n", shield_strength_multiplier);
 		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 
@@ -812,19 +812,26 @@ void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float
 		}
 
 
-		// If the shield is not active but could be set a time 
-		// to request that it is activated.
-		if (!this->shield_timeout && this->shield_state == SHIELD_STATE_ONLINE
-			&& !isGlobalBaseInvulnerabilityActive)
-		{
-			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			ReportAttack(this->basename, charname, this->system);
-			if (set_plugin_debug > 1)
-			{
-				ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
-			}
-		}
 
-		this->shield_timeout = time(nullptr) + 60;
+	}
+
+	// If the shield is not active but could be set a time 
+	// to request that it is activated.
+	if (!this->shield_timeout && this->isShieldOn == false
+		&& !isGlobalBaseInvulnerabilityActive)
+	{
+		const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		ReportAttack(this->basename, charname, this->system);
+		if (set_plugin_debug > 1)
+		{
+			ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
+		}
+	}
+
+	this->shield_timeout = time(nullptr) + 60;
+	if (!this->isShieldOn)
+	{
+		this->isShieldOn = true;
+		((CoreModule*)this->modules[0])->EnableShieldFuse(true);
 	}
 }

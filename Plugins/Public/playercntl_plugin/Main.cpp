@@ -1131,6 +1131,7 @@ USERCMD UserCmds[] =
 	{ L"/showitems",	PimpShip::UserCmd_ShowItems,	L"Usage: /showitems" },
 	{ L"/setitem",		PimpShip::UserCmd_ChangeItem,	L"Usage: /setitem" },
 	{ L"/renameme",		Rename::UserCmd_RenameMe,		L"Usage: /renameme <charname> [password]" },
+	{ L"/rename",		Rename::UserCmd_RenameMe,		L"Usage: /rename <charname> [password]" },
 	{ L"/movechar",		Rename::UserCmd_MoveChar,		L"Usage: /movechar <charname> <code>" },
 	{ L"/set movecharcode",	Rename::UserCmd_SetMoveCharCode,	L"Usage: /set movecharcode <code>" },
 	{ L"/restart",		Restart::UserCmd_Restart,		L"Usage: /restart <faction>" },

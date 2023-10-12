@@ -2536,6 +2536,93 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		//cmd->Print(L"OK Base is gone are you proud of yourself.");
 		return true;
 	}
+	else if (args.find(L"basedespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		int billythecat = 0;
+		PlayerBase* base;
+		for (auto& i : player_bases)
+		{
+			if (i.second->basename == cmd->ArgStrToEnd(1))
+			{
+				base = i.second;
+				billythecat = 1;
+			}
+		}
+
+
+		if (billythecat == 0)
+		{
+			cmd->Print(L"ERR Base doesn't exist lmao");
+			return true;
+		}
+
+		base->base_health = 0;
+		if (base->base_health < 1)
+		{
+			return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
+		}
+
+		//cmd->Print(L"OK Base is gone are you proud of yourself.");
+		return true;
+	}
+	else if (args.find(L"baserespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+
+		// Create base account dir if it doesn't exist
+		string basedir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)";
+
+		wstring baseName = cmd->ArgStrToEnd(1);
+
+		// Load and spawn all bases
+		string path = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)" + wstos(baseName) + ".ini";
+
+		WIN32_FIND_DATA findfile;
+		HANDLE h = FindFirstFile(path.c_str(), &findfile);
+		if (h == INVALID_HANDLE_VALUE)
+		{
+			cmd->Print(L"ERR Base file not found");
+			return true;
+		}
+
+		uint baseNickname = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
+
+		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0)
+		{
+			cmd->Print(L"ERR Base already spwawned!\n");
+			return true;
+		}
+
+		PlayerBase* base = new PlayerBase(path);
+
+		FindClose(h);
+		if (base && !base->nickname.empty())
+		{
+			player_bases[base->base] = base;
+			base->Spawn();
+			cmd->Print(L"Base respawned!\n");
+		}
+		else
+		{
+			cmd->Print(L"ERROR POB file corrupted: %ls\n", stows(path).c_str());
+		}
+
+
+		return true;
+	}
 	else if (args.find(L"basetogglegod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -2921,6 +3008,11 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	{
 		RIGHT_CHECK(RIGHT_SUPERADMIN);
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		if (client == -1)
+		{
+			ConPrint(L"Only usable ingame\n");
+			return true;
+		}
 
 		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (base)
@@ -2928,6 +3020,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			clients[client].admin = true;
 			clients[client].admin = true;
 		}
+
+		PrintUserCmdText(client, L"Logged in as admin");
 		return true;
 	}
 	return false;

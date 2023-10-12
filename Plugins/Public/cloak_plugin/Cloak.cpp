@@ -938,13 +938,13 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	returncode = DEFAULT_RETURNCODE;
 	if (msg == CUSTOM_CLOAK_ALERT)
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		returncode = SKIPPLUGINS;
 		CUSTOM_CLOAK_ALERT_STRUCT* info = reinterpret_cast<CUSTOM_CLOAK_ALERT_STRUCT*>(data);
 		CloakAlert(info);
 	}
 	else if (msg == CUSTOM_CLOAK_CHECK)
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		returncode = SKIPPLUGINS;
 		CUSTOM_CLOAK_CHECK_STRUCT* info = reinterpret_cast<CUSTOM_CLOAK_CHECK_STRUCT*>(data);
 		auto cloakState = mapClientsCloak[info->clientId].iState;
 		if (cloakState == STATE_CLOAK_CHARGING || cloakState == STATE_CLOAK_ON)

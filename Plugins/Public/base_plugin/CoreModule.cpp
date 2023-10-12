@@ -219,8 +219,18 @@ bool CoreModule::Timer(uint time)
 		base->shield_state = PlayerBase::SHIELD_STATE_ONLINE;
 		SetShieldState(base->shield_state);
 	}
+	
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	float rhealth = base->base_health / base->max_base_health;
+	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 
-	if ((time % set_tick_time) != 0 || set_holiday_mode)
+	if (set_holiday_mode)
+	{
+		return false;
+	}
+
+	if ((time % set_tick_time) != 0)
 	{
 		return false;
 	}
@@ -230,10 +240,6 @@ bool CoreModule::Timer(uint time)
 		return false;
 	}
 
-	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
-	// this allows clients to perceive those objects as dockable
-	float rhealth = base->base_health / base->max_base_health;
-	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 
 	// if health is 0 then the object will be destroyed but we won't
 	// receive a notification of this so emulate it.

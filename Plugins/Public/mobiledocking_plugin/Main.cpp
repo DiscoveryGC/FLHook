@@ -205,7 +205,7 @@ void LoadSettings()
 				}
 				else
 				{
-					for (const auto& dockedShipName : ci.dockedShipList)
+					for (const wstring& dockedShipName : ci.dockedShipList)
 					{
 						MoveOfflineShipToLastDockedSolar(dockedShipName);
 					}
@@ -1065,7 +1065,7 @@ void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 {
 	if (idToCarrierInfoMap.count(iClientID))
 	{
-		for (const auto& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)
+		for (const wstring& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(dockedPlayer.c_str());
 			if (dockedClientID != -1)
@@ -1094,11 +1094,11 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 	
-	auto charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+	wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
 	if (nameToCarrierInfoMap.count(charname))
 	{
 		idToCarrierInfoMap[iClientID] = &nameToCarrierInfoMap[charname];
-		for (const auto& dockedShipName : idToCarrierInfoMap[iClientID]->dockedShipList)
+		for (const wstring& dockedShipName : idToCarrierInfoMap[iClientID]->dockedShipList)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(dockedShipName.c_str());
 			if (dockedClientID != -1)
@@ -1128,7 +1128,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 				Matrix ori;
 				pub::SpaceObj::GetLocation(carrierInfo.iShipID, pos, ori);
 				wstring& sector = VectorToSectorCoord(sysInfo->id, pos);
-				PrintUserCmdText(iClientID, L"Carrier in flight, %ls %ls", sysName.c_str(), sector.c_str());
+				PrintUserCmdText(iClientID, L"Carrier %ls in flight, %ls %ls", idToDockedInfoMap[iClientID]->carrierName.c_str(), sysName.c_str(), sector.c_str());
 			}
 			else if (carrierInfo.iBaseID)
 			{

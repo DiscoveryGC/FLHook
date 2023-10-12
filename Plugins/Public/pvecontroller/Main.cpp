@@ -43,7 +43,8 @@ struct stBountyBasePayout {
 struct stDropInfo {
 	uint uGoodID;
 	float fChance;
-	uint uAmountDropped;
+	uint uAmountDroppedMin;
+	uint uAmountDroppedMax;
 };
 
 struct stWarzone {
@@ -287,10 +288,11 @@ void LoadSettingsNPCDrops()
 						string szGood = ini.get_value_string(1);
 						drop.uGoodID = CreateID(szGood.c_str());
 						drop.fChance = ini.get_value_float(2);
-						drop.uAmountDropped = ini.get_value_int(3);
-						if (drop.uAmountDropped == 0)
+						drop.uAmountDroppedMin = ini.get_value_int(3);
+						drop.uAmountDroppedMax = ini.get_value_int(4);
+						if (drop.uAmountDroppedMin == 0)
 						{
-							drop.uAmountDropped = 1;
+							drop.uAmountDroppedMin = 1;
 						}
 						mmapDropInfo.insert(make_pair(iClass, drop));
 						++iLoadedNPCDropClasses;
@@ -730,13 +732,23 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	while (iter != iterEnd)
 	{
 		float roll = static_cast<float>(rand()) / RAND_MAX;
-		if (roll < iter->second.fChance)
+		auto& dropData = iter->second;
+		if (roll < dropData.fChance)
 		{
 			Vector vLoc;
 			Matrix mRot;
 			pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
 			vLoc.x += 30.0;
-			Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, iter->second.uGoodID, iter->second.uAmountDropped, iKillerClientId);
+			uint amountDropped;
+			if (dropData.uAmountDroppedMax)
+			{
+				amountDropped = dropData.uAmountDroppedMin + (rand() % (dropData.uAmountDroppedMax - dropData.uAmountDroppedMin + 1));
+			}
+			else
+			{
+				amountDropped = dropData.uAmountDroppedMin;
+			}
+			Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, dropData.uGoodID, dropData.uAmountDroppedMin, iKillerClientId);
 		}
 		iter++;
 	}

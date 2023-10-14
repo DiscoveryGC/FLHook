@@ -75,6 +75,7 @@ void FormatSendChat(uint iToClientID, const wstring &wscSender, const wstring &w
 void ini_get_wstring(INI_Reader &ini, wstring &wscValue);
 void ini_write_wstring(FILE *file, const string &parmname, wstring &in);
 void PrintLocalUserCmdText(uint iClientID, const wstring &wscMsg, float fDistance);
+void PrintLocalMsgAroundObject(uint spaceObjId, const wstring& wscMsg, float fDistance);
 void SendGroupChat(uint iFromClientID, const wstring &wscText);
 void Rotate180(Matrix &rot);
 void TranslateX(Vector &pos, Matrix &rot, float x);

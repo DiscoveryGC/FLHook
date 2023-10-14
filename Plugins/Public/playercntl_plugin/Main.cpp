@@ -562,16 +562,16 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 		
 		uint landingClientId = HkGetClientIDByShip(pLand.iShip);
-		//debugging for LandingMessages not printing
-		
-		ConPrint(L"%u %u %u\n", iClientID, landingClientId, pLand.iShip);
 		if (landingClientId && landingClientId == iClientID)
 		{
 			// Print out a message when a player ship docks.
 			wstring wscMsg = L"%time Traffic control alert: %player has docked";
 			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
 			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(landingClientId));
-			PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
+
+			const auto base = Universe::get_base(pLand.iTargetBase);
+
+			PrintLocalMsgAroundObject(base->lSpaceObjID, wscMsg, set_iDockBroadcastRange);
 		}
 		return true;
 	}

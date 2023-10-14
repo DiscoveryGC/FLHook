@@ -644,6 +644,29 @@ bool CanDockOnCarrier(uint dockingID, uint carrierShipID)
 	return false;
 }
 
+void ReturnCraftToLastDockedBase(uint dockingID)
+{
+	CUSTOM_BASE_IS_DOCKED_STRUCT lastDockedCheck;
+	lastDockedCheck.iClientID = dockingID;
+	lastDockedCheck.iDockedBaseID = 0;
+	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_IS_DOCKED, &lastDockedCheck);
+	if (lastDockedCheck.iDockedBaseID)
+	{
+		CUSTOM_BASE_BEAM_STRUCT POBbeamStruct;
+		POBbeamStruct.iClientID = dockingID;
+		POBbeamStruct.iTargetBaseID = lastDockedCheck.iDockedBaseID;
+		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_BEAM, &POBbeamStruct);
+	}
+	else
+	{
+		uint lastDockedBaseID = idToDockedInfoMap[dockingID]->lastDockedSolar;
+		if (lastDockedBaseID)
+		{
+			HkBeamById(dockingID, lastDockedBaseID);
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void __stdcall BaseExit(uint iBaseID, uint iClientID)
@@ -689,6 +712,14 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
 	if (carrierClientID != -1)
 	{
+		uint carrierSystemID;
+		pub::Player::GetSystem(carrierClientID, carrierSystemID);
+		if (bannedSystems.count(carrierSystemID))
+		{
+			ReturnCraftToLastDockedBase(client);
+			return;
+		}
+
 		uint carrierShipID;
 		pub::Player::GetShip(carrierClientID, carrierShipID);
 		if (carrierShipID == 0)
@@ -722,35 +753,16 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			{
 				HkBeamById(client, mobileDockingProxyBase);
 				PrintUserCmdText(client, L"ERR Can't undock while carrier is in hyperspace transit.");
-				returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 				return;
 			}
 
 			BeamToCarrier(client, carrierShipID);
 		}
+
+		return;
 	}
-	else
-	{
-		CUSTOM_BASE_IS_DOCKED_STRUCT lastDockedCheck;
-		lastDockedCheck.iClientID = client;
-		lastDockedCheck.iDockedBaseID = 0;
-		Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_IS_DOCKED, &lastDockedCheck);
-		if (lastDockedCheck.iDockedBaseID)
-		{
-			CUSTOM_BASE_BEAM_STRUCT POBbeamStruct;
-			POBbeamStruct.iClientID = client;
-			POBbeamStruct.iTargetBaseID = lastDockedCheck.iDockedBaseID;
-			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_BASE_BEAM, &POBbeamStruct);
-		}
-		else
-		{
-			uint lastDockedBaseID = idToDockedInfoMap[client]->lastDockedSolar;
-			if (lastDockedBaseID)
-			{
-				HkBeamById(client, lastDockedBaseID);
-			}
-		}
-	}
+	//carrier not online, return to last docked base
+	ReturnCraftToLastDockedBase(client);
 }
 
 // If this is a docking request at a player ship then process it.
@@ -934,16 +946,6 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 		}
 		return true;
 	}
-	else if (wscCmd.find(L"/conn") == 0 || wscCmd.find(L"/return") == 0)
-	{
-		// This plugin always runs before the Conn Plugin runs it's /conn function. Verify that there are no docked ships.
-		if (mobiledockClients[client].iDockingModulesAvailable != mobiledockClients[client].iDockingModulesInstalled)
-		{
-			PrintUserCmdText(client, L"You cannot use this command if you have vessels docked with you!");
-			returncode = SKIPPLUGINS;
-			return true;
-		}
-	}
 	else if (wscCmd.find(L"/jettisonship") == 0)
 	{
 		if (!idToCarrierInfoMap.count(client) || idToCarrierInfoMap[client]->dockedShipList.empty())
@@ -1072,7 +1074,7 @@ void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 			if (dockedClientID != -1)
 			{
 				wstring& lastBaseName = GetLastBaseName(dockedClientID);
-				PrintUserCmdText(dockedClientID, L"Carrier logged off, redirecting undock to %ls", lastBaseName);
+				PrintUserCmdText(dockedClientID, L"Carrier logged off, redirecting undock to %ls", lastBaseName.c_str());
 			}
 		}
 	}
@@ -1118,12 +1120,19 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 		{
 			const auto& shipInfo = Archetype::GetShip(Players[iClientID].iShipArchetype);
 			wstring& shipName = HkGetWStringFromIDS(shipInfo->iIdsName);
-			PrintUserCmdText(carrierClientID, L"INFO: %ls, %ls is standing by for launch", shipName.c_str(), charname);
+			PrintUserCmdText(carrierClientID, L"INFO: %ls, %ls is standing by for launch", shipName.c_str(), charname.c_str());
 
 			const auto& carrierInfo = Players[carrierClientID];
 			const auto& sysInfo = Universe::get_system(carrierInfo.iSystemID);
 			wstring& sysName = HkGetWStringFromIDS(sysInfo->strid_name);
-			if (carrierInfo.iShipID)
+
+			if (bannedSystems.count(carrierInfo.iSystemID))
+			{
+				wstring& lastBaseName = GetLastBaseName(iClientID);
+				PrintUserCmdText(iClientID, L"Carrier %ls is in an area where mobile docking is banned, undock will put you on %ls",
+					idToDockedInfoMap[iClientID]->carrierName.c_str(), lastBaseName.c_str());
+			}
+			else if (carrierInfo.iShipID)
 			{
 				Vector pos;
 				Matrix ori;
@@ -1146,7 +1155,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 		{
 			wstring& lastBaseName = GetLastBaseName(iClientID);
 
-			PrintUserCmdText(iClientID, L"Carrier currently offline. Last docked base: %ls", lastBaseName);
+			PrintUserCmdText(iClientID, L"Carrier currently offline. Last docked base: %ls", lastBaseName.c_str());
 		}
 	}
 }

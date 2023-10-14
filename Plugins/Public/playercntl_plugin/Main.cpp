@@ -562,8 +562,11 @@ namespace HkIServerImpl
 	bool __stdcall Base_Land(uint iClientID, FLPACKET_LAND& pLand)
 	{
 		returncode = DEFAULT_RETURNCODE;
-
+		
 		uint landingClientId = HkGetClientIDByShip(pLand.iShip);
+		//debugging for LandingMessages not printing
+		
+		ConPrint(L"%u %u %u\n", iClientID, landingClientId, pLand.iShip);
 		if (landingClientId && landingClientId == iClientID)
 		{
 			// Print out a message when a player ship docks.

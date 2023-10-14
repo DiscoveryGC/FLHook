@@ -114,9 +114,15 @@ void CoreModule::Spawn()
 		float current;
 		pub::SpaceObj::GetHealth(space_obj, current, base->max_base_health);
 		if (base->base_health <= 0)
+		{
+			AddLog("Base %s constructed\n", wstos(base->basename).c_str());
 			base->base_health = base->max_base_health * 0.05f;
+		}
 		else if (base->base_health > base->max_base_health)
+		{
 			base->base_health = base->max_base_health;
+		}
+		
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
 		if (shield_reinforcement_threshold_map.count(base->base_level))

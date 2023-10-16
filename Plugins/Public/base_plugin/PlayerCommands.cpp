@@ -1294,8 +1294,8 @@ namespace PlayerCommands
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
 
-		if (!base) {
-			PrintUserCmdText(client, L"ERR Not in player base");
+		if (!checkBaseAdminAccess(base, client))
+		{
 			return;
 		}
 
@@ -1323,10 +1323,12 @@ namespace PlayerCommands
 					continue;
 				}
 
-				foundRecipe = true;
-				base->RemoveMarketGood(i.first, 1);
-				base->available_blueprints.insert(i.first);
-				PrintUserCmdText(client, L"Blueprint %ls applied.", HkGetWStringFromIDS(gi->iIDSName).c_str());
+				if (base->HasMarketItem(i.first)) {
+					foundRecipe = true;
+					base->RemoveMarketGood(i.first, 1);
+					base->available_blueprints.insert(i.first);
+					PrintUserCmdText(client, L"Blueprint %ls applied.", HkGetWStringFromIDS(gi->iIDSName).c_str());
+				}
 			}
 			if (!foundRecipe) {
 				PrintUserCmdText(client, L"Selection invalid, item ID not found.");
@@ -1348,15 +1350,24 @@ namespace PlayerCommands
 				if (!gi)
 					continue;
 
-				PrintUserCmdText(client, L"%u. %ls", counter, HkGetWStringFromIDS(gi->iIDSName).c_str());
+				PrintUserCmdText(client, L"%|  %u. %ls", counter, HkGetWStringFromIDS(gi->iIDSName).c_str());
 				counter++;
+			}
+		}
+		else if (cmd == L"known") 
+		{
+			PrintUserCmdText(client, L"Researched blueprints:");
+			for (auto& i : base->available_blueprints) {
+				const GoodInfo* gi = GoodList::find_by_id(i);
+				PrintUserCmdText(client, L"|  %ls", HkGetWStringFromIDS(gi->iIDSName).c_str());
 			}
 		}
 		else 
 		{
 			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/unlock [list|<blueprint number>]");
+			PrintUserCmdText(client, L"/unlock [list|known|<blueprint number>]");
 			PrintUserCmdText(client, L"|  list - show available blueprints to consume");
+			PrintUserCmdText(client, L"|  known - show blueprints already researched");
 			PrintUserCmdText(client, L"|  <blueprint number> - consume a blueprint and unlock the related recipe");
 		}
 		

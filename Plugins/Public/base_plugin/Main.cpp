@@ -84,7 +84,7 @@ map<wstring, RECIPE> moduleNameRecipeMap;
 map<uint, RECIPE> moduleNumberRecipeMap;
 map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 set<wstring> buildingCraftLists;
-map<uint, RECIPE> blueprintRecipeMap;
+unordered_map<uint, RECIPE> blueprintRecipeMap;
 
 void AddFactoryRecipeToMaps(const RECIPE& recipe);
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
@@ -3040,7 +3040,8 @@ void AddFactoryRecipeToMaps(const RECIPE& recipe)
 	recipeMap[recipe.nickname] = recipe;
 	recipeCraftTypeNumberMap[recipe.craft_type][recipe.shortcut_number] = recipe;
 	recipeCraftTypeNameMap[recipe.craft_type][recipeNameKey] = recipe;
-	if (recipe.unlocked_by != 0) {
+	if (recipe.unlocked_by) 
+	{
 		blueprintRecipeMap[recipe.unlocked_by] = recipe;
 	}
 }

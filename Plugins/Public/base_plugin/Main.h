@@ -625,7 +625,7 @@ extern map<wstring, RECIPE> moduleNameRecipeMap;
 extern map<uint, RECIPE> moduleNumberRecipeMap;
 extern map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 extern set<wstring> buildingCraftLists;
-extern map<uint, RECIPE> blueprintRecipeMap;
+extern unordered_map<uint, RECIPE> blueprintRecipeMap;
 
 struct REPAIR_ITEM
 {

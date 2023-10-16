@@ -127,7 +127,8 @@ namespace PlayerCommands
 			currentString += stows(itos(recipe.second.shortcut_number));
 			currentString += L" = ";
 			currentString += recipe.second.infotext.c_str();
-			if (recipe.second.unlocked_by) {
+			if (recipe.second.unlocked_by) 
+			{
 				currentString += L" (req. blueprint)";
 			}
 			generatedHelpStringList.emplace_back(currentString.c_str());
@@ -1309,25 +1310,34 @@ namespace PlayerCommands
 			for (auto& i : base->market_items)
 			{
 				if (!blueprintRecipeMap.count(i.first))
+				{
 					continue;
+				}
 
 				if (base->available_blueprints.count(i.first))
+				{
 					continue;
+				}
 
 				const GoodInfo* gi = GoodList::find_by_id(i.first);
 				if (!gi)
+				{
 					continue;
+				}
 
-				if (counter != bp) {
+				if (counter != bp) 
+				{
 					counter++;
 					continue;
 				}
 
-				if (base->HasMarketItem(i.first)) {
+				if (base->HasMarketItem(i.first)) 
+				{
 					foundRecipe = true;
 					base->RemoveMarketGood(i.first, 1);
 					base->available_blueprints.insert(i.first);
 					PrintUserCmdText(client, L"Blueprint %ls applied.", HkGetWStringFromIDS(gi->iIDSName).c_str());
+					break;
 				}
 			}
 			if (!foundRecipe) {
@@ -1341,14 +1351,20 @@ namespace PlayerCommands
 			for (auto& i : base->market_items)
 			{
 				if (!blueprintRecipeMap.count(i.first))
+				{
 					continue;
+				}
 
 				if (base->available_blueprints.count(i.first))
+				{
 					continue;
+				}
 
 				const GoodInfo* gi = GoodList::find_by_id(i.first);
 				if (!gi)
+				{
 					continue;
+				}
 
 				PrintUserCmdText(client, L"%|  %u. %ls", counter, HkGetWStringFromIDS(gi->iIDSName).c_str());
 				counter++;
@@ -1357,7 +1373,8 @@ namespace PlayerCommands
 		else if (cmd == L"known") 
 		{
 			PrintUserCmdText(client, L"Researched blueprints:");
-			for (auto& i : base->available_blueprints) {
+			for (auto& i : base->available_blueprints) 
+			{
 				const GoodInfo* gi = GoodList::find_by_id(i);
 				PrintUserCmdText(client, L"|  %ls", HkGetWStringFromIDS(gi->iIDSName).c_str());
 			}
@@ -1427,7 +1444,8 @@ namespace PlayerCommands
 
 		const RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
 
-		if (recipe && recipe->unlocked_by != 0 && !base->available_blueprints.count(recipe->unlocked_by)) {
+		if (recipe && recipe->unlocked_by && !base->available_blueprints.count(recipe->unlocked_by)) 
+		{
 			PrintUserCmdText(client, L"ERR Recipe not discovered");
 			return;
 		}

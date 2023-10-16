@@ -28,7 +28,10 @@ wstring BuildModule::GetInfo(bool xml)
 			uint good = i->first;
 			uint quantity = i->second;
 
-			if (quantity <= 0) { continue; }
+			if (!quantity) 
+			{ 
+				continue; 
+			}
 
 			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
@@ -60,7 +63,10 @@ wstring BuildModule::GetInfo(bool xml)
 			uint good = i->first;
 			uint quantity = i->second;
 
-			if (quantity <= 0) { continue; }
+			if (!quantity)
+			{
+				continue;
+			}
 
 			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)

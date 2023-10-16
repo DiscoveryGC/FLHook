@@ -28,12 +28,15 @@ wstring BuildModule::GetInfo(bool xml)
 			uint good = i->first;
 			uint quantity = i->second;
 
+			if (quantity <= 0) { continue; }
+
 			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
 			{
 				info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-				if (base->HasMarketItem(good) < quantity)
-					info += L" [Out of stock]";
+				uint has_quantity = base->HasMarketItem(good);
+				if (has_quantity < quantity)
+					info += L" [Only " + UIntToPrettyStr(has_quantity) + L" units available]";
 				info += L"</TEXT>";
 			}
 		}
@@ -57,12 +60,15 @@ wstring BuildModule::GetInfo(bool xml)
 			uint good = i->first;
 			uint quantity = i->second;
 
+			if (quantity <= 0) { continue; }
+
 			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
 			{
 				info += stows(itos(quantity)) + L"x" + HkGetWStringFromIDS(gi->iIDSName) + L" ";
-				if (base->HasMarketItem(good) < quantity)
-					info += L" [Out of stock]";
+				uint has_quantity = base->HasMarketItem(good);
+				if (has_quantity < quantity)
+					info += L" [Only " + UIntToPrettyStr(has_quantity) + L" units available]";
 			}
 		}
 		if (active_recipe.credit_cost)

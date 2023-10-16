@@ -343,6 +343,10 @@ void PlayerBase::Load()
 						}
 						passwords.emplace_back(bp);
 					}
+					else if (ini.is_value("blueprint"))
+					{
+						available_blueprints.insert(ini.get_value_int(0));
+					}
 					else if (ini.is_value("crew_supplied"))
 					{
 						isCrewSupplied = ini.get_value_bool(0);
@@ -452,6 +456,10 @@ void PlayerBase::Save()
 		{
 			fprintf(file, "commodity = %u, %u, %f, %u, %u, %u\n",
 				i.first, i.second.quantity, i.second.price, i.second.min_stock, i.second.max_stock, int(i.second.is_public));
+		}
+		for (auto i : available_blueprints) 
+		{
+			fprintf(file, "blueprint = %u\n", i);
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);

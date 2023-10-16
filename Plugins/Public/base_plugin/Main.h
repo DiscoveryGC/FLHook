@@ -44,6 +44,7 @@ struct RECIPE
 	vector<pair<uint, uint>> catalyst_workforce;
 	uint credit_cost = 0;
 	uint reqlevel = 0;
+	uint unlocked_by = 0;
 	unordered_map<uint, float> affiliationBonus;
 };
 
@@ -420,6 +421,9 @@ public:
 
 	map<uint, int> reservedCatalystMap;
 
+	// List of blueprints that have been used to unlock recipes on this base
+	unordered_set<uint> available_blueprints;
+
 	// The state of the shield
 	static const int SHIELD_STATE_ONLINE = 0;
 	static const int SHIELD_STATE_ACTIVE = 1;
@@ -558,6 +562,7 @@ namespace PlayerCommands
 	void BaseBuildMod(uint client, const wstring& args);
 	void BaseBuildModDestroy(uint client, const wstring& args);
 	void BaseFacMod(uint client, const wstring& args);
+	void UnlockRecipe(uint client, const wstring& args);
 	void PopulateHelpMenus();
 	void BaseShieldMod(uint client, const wstring& args);
 	void Bank(uint client, const wstring& args);
@@ -620,6 +625,7 @@ extern map<wstring, RECIPE> moduleNameRecipeMap;
 extern map<uint, RECIPE> moduleNumberRecipeMap;
 extern map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 extern set<wstring> buildingCraftLists;
+extern map<uint, RECIPE> blueprintRecipeMap;
 
 struct REPAIR_ITEM
 {

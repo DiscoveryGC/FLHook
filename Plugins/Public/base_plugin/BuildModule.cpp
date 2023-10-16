@@ -28,9 +28,9 @@ wstring BuildModule::GetInfo(bool xml)
 			uint good = i->first;
 			uint quantity = i->second;
 
-			if (!quantity) 
-			{ 
-				continue; 
+			if (!quantity)
+			{
+				continue;
 			}
 
 			const GoodInfo* gi = GoodList::find_by_id(good);
@@ -39,7 +39,9 @@ wstring BuildModule::GetInfo(bool xml)
 				info += L"<PARA/><TEXT>      - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
 				uint has_quantity = base->HasMarketItem(good);
 				if (has_quantity < quantity)
+				{
 					info += L" [Only " + UIntToPrettyStr(has_quantity) + L" units available]";
+				}
 				info += L"</TEXT>";
 			}
 		}
@@ -74,7 +76,9 @@ wstring BuildModule::GetInfo(bool xml)
 				info += stows(itos(quantity)) + L"x" + HkGetWStringFromIDS(gi->iIDSName) + L" ";
 				uint has_quantity = base->HasMarketItem(good);
 				if (has_quantity < quantity)
+				{
 					info += L" [Only " + UIntToPrettyStr(has_quantity) + L" units available]";
+				}
 			}
 		}
 		if (active_recipe.credit_cost)
@@ -183,7 +187,7 @@ bool BuildModule::Timer(uint time)
 					}
 					base->modules[i] = nullptr;
 					break;
-				 default:
+				default:
 					base->modules[i] = nullptr;
 				}
 				base->Save();

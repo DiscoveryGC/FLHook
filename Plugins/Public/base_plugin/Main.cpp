@@ -75,6 +75,7 @@ PLUGIN_RETURNCODE returncode;
 
 /// Global recipe map
 unordered_map<uint, RECIPE> recipeMap;
+unordered_map<uint, string> blueprintMap;
 
 /// Maps of shortcut numbers to recipes to construct item.
 map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
@@ -819,6 +820,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("unlocked_by")) {
 						recipe.unlocked_by = CreateID(ini.get_value_string(0));
+						blueprintMap.insert(make_pair(recipe.unlocked_by, ini.get_value_string(0)));
 					}
 					else if (ini.is_value("affiliation_bonus"))
 					{

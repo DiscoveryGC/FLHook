@@ -345,7 +345,7 @@ void PlayerBase::Load()
 					}
 					else if (ini.is_value("blueprint"))
 					{
-						available_blueprints.insert(ini.get_value_int(0));
+						available_blueprints.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("crew_supplied"))
 					{
@@ -459,7 +459,11 @@ void PlayerBase::Save()
 		}
 		for (auto i : available_blueprints) 
 		{
-			fprintf(file, "blueprint = %u\n", i);
+			auto blueprint = blueprintMap.find(i);
+			if (blueprint != blueprintMap.end())
+			{
+				fprintf(file, "blueprint = %s\n", blueprint->second.c_str());
+			}
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);

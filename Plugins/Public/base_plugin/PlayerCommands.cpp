@@ -1366,6 +1366,11 @@ namespace PlayerCommands
 					continue;
 				}
 
+				if (!base->HasMarketItem(i.first))
+				{
+					continue;
+				}
+
 				PrintUserCmdText(client, L"%|  %u. %ls", counter, HkGetWStringFromIDS(gi->iIDSName).c_str());
 				counter++;
 			}

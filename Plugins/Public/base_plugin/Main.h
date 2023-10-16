@@ -45,6 +45,7 @@ struct RECIPE
 	uint credit_cost = 0;
 	uint reqlevel = 0;
 	uint unlocked_by = 0;
+	string unlocked_by_nickname = "";
 	unordered_map<uint, float> affiliationBonus;
 };
 
@@ -617,6 +618,7 @@ extern int set_plugin_debug;
 
 /// Global recipe map
 extern unordered_map<uint, RECIPE> recipeMap;
+extern unordered_map<uint, string> blueprintMap;
 /// Maps of shortcut numbers to recipes to construct item.
 extern map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
 extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;

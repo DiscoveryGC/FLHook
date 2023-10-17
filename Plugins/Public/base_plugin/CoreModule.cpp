@@ -344,7 +344,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 {
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
-	if (base->shield_strength_multiplier >= 1.0f || isGlobalBaseInvulnerabilityActive || base->invulnerable == 1)
+	if (!base->vulnerableWindowStatus || base->invulnerable == 1 || base->shield_strength_multiplier >= 1.0f)
 	{
 		// base invulnerable, keep current health value
 		return curr_hitpoints;
@@ -377,6 +377,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		base->shield_strength_multiplier += shield_reinforcement_increment;
 	}
 
+	base->base_health -= damageTaken;
 	return curr_hitpoints - damageTaken;
 }
 

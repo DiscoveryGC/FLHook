@@ -55,6 +55,10 @@ wstring FactoryModule::GetInfo(bool xml)
 		{
 			uint good = i.first;
 			uint quantity = i.second;
+			if (!quantity)
+			{
+				continue;
+			}
 
 			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
@@ -193,23 +197,26 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	for (auto& i : active_recipe.consumed_items)
+	for (auto& i = active_recipe.consumed_items.begin(); i != active_recipe.consumed_items.end(); i++)
 	{
-		uint good = i.first;
-		uint quantity = min(active_recipe.cooking_rate, i.second);
+		uint good = i->first;
+		uint quantity = min(active_recipe.cooking_rate, i->second);
 		if (!quantity)
 		{
 			continue;
 		}
-		cooked = false;
 		auto market_item = base->market_items.find(good);
 		if (market_item != base->market_items.end()
 			&& market_item->second.quantity >= quantity)
 		{
-			i.second -= quantity;
+			i->second -= quantity;
 			base->RemoveMarketGood(good, quantity);
-			return false;
 		}
+		if (i->second || distance(active_recipe.consumed_items.begin(), i) != (active_recipe.consumed_items.size() - 1))
+		{
+			cooked = false;
+		}
+		break;
 	}
 
 	// Do nothing if cooking is not finished
@@ -316,7 +323,10 @@ void FactoryModule::SaveState(FILE* file)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (auto& i : active_recipe.consumed_items)
 		{
-			fprintf(file, "consumed = %u, %u\n", i.first, i.second);
+			if (i.second)
+			{
+				fprintf(file, "consumed = %u, %u\n", i.first, i.second);
+			}
 		}
 	}
 	for (uint i : build_queue)

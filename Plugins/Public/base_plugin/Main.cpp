@@ -63,7 +63,7 @@ vector<REPAIR_ITEM> set_base_repair_items;
 vector<uint> set_base_crew_consumption_items;
 vector<uint> set_base_crew_food_items;
 
-uint set_crew_check_frequency = 43200;
+uint set_crew_check_frequency = 60 * 60 * 12; // 12 hours
 
 /// The commodity used as crew for the base
 uint set_base_crew_type;
@@ -121,12 +121,15 @@ unordered_map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
+int vulnerability_window_length = 120; // 2 hours
+
+int vulnerability_window_change_cooldown = 3600 * 24 * 30; // 30 days
+
+int vulnerability_window_minimal_spread = 60 * 8; // 8 hours
+
+bool single_vulnerability_window = false;
+
 const uint shield_fuse = CreateID("player_base_shield");
-
-// decides if bases are globally immune, based on server time
-bool isGlobalBaseInvulnerabilityActive;
-
-vector<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
 
 /// List of commodities forbidden to store on POBs
 unordered_set<uint> forbidden_player_base_commodity_set;
@@ -549,12 +552,13 @@ void LoadSettingsActual()
 					{
 						base_shield_strength = ini.get_value_float(0);
 					}
-					else if (ini.is_value("base_vulnerability_window"))
+					else if (ini.is_value("base_vulnerability_window_length"))
 					{
-						BASE_VULNERABILITY_WINDOW damageWindow;
-						damageWindow.start = ini.get_value_int(0);
-						damageWindow.end = ini.get_value_int(1);
-						baseVulnerabilityWindows.emplace_back(damageWindow);
+						vulnerability_window_length = ini.get_value_int(0);
+					}
+					else if (ini.is_value("single_vulnerability_window"))
+					{
+						single_vulnerability_window = ini.get_value_bool(0);
 					}
 					else if (ini.is_value("construction_shiparch"))
 					{
@@ -691,6 +695,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("siege_gun"))
 					{
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+					}
+					else if (ini.is_value("vulnerability_window_change_cooldown"))
+					{
+						vulnerability_window_change_cooldown = 3600 * 24 * ini.get_value_int(0);
 					}
 				}
 			}
@@ -1031,13 +1039,13 @@ void HkTimerCheckKick()
 		load_settings_required = false;
 		LoadSettingsActual();
 	}
-
+	uint counter = 1;
 	uint curr_time = (uint)time(0);
-	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
 	for(auto& iter : player_bases)
 	{
 		PlayerBase *base = iter.second;
 		base->Timer(curr_time);
+		counter++;
 	}
 	if (!player_bases.empty())
 	{
@@ -1482,6 +1490,18 @@ bool UserCmd_Process(uint client, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseSwapModule(client, args);
+		return true;
+	}
+	else if (args.find(L"/base setvulnerability") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseSetVulnerabilityWindow(client, args);
+		return true;
+	}
+	else if (args.find(L"/base checkvulnerability") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseCheckVulnerabilityWindow(client);
 		return true;
 	}
 	else if (args.find(L"/base") == 0)
@@ -2350,7 +2370,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			uint clientID = HkGetClientIDByShip(dmg->get_inflictor_id());
 			const wchar_t* playerName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(clientID));
-			AddLog("%s dealt impossible damage to base %s: %0.2f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
+			AddLog("%s dealt impossible damage to base %s: %0.0f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
 			return;
 		}
 	}
@@ -2568,17 +2588,17 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		if (billythecat == 0)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist lmao\n");
 			return true;
 		}
 
 		base->base_health = 0;
 		if (base->base_health < 1)
 		{
+			cmd->Print(L"Base despawned\n");
 			return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
 		}
 
-		//cmd->Print(L"OK Base is gone are you proud of yourself.");
 		return true;
 	}
 	else if (args.find(L"baserespawn") == 0)
@@ -2604,7 +2624,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		HANDLE h = FindFirstFile(path.c_str(), &findfile);
 		if (h == INVALID_HANDLE_VALUE)
 		{
-			cmd->Print(L"ERR Base file not found");
+			cmd->Print(L"ERR Base file not found\n");
 			return true;
 		}
 
@@ -3226,38 +3246,4 @@ void ResetAllBasesShieldStrength()
 		i.second->shield_strength_multiplier = base_shield_strength;
 		i.second->damage_taken_since_last_threshold = 0;
 	}
-}
-
-//return value:
-// false = all bases vulnerable, true = invulnerable
-bool checkBaseVulnerabilityStatus()
-{
-
-	if (baseVulnerabilityWindows.empty())
-	{
-		return false;
-	}
-
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	uint currHour = t->tm_hour;
-	// iterate over configured vulnerability periods to check if we're in one.
-	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
-	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
-	for (auto& i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i)
-	{
-		if((i->start < i->end 
-			&& i->start <= currHour && i->end > currHour)
-		|| (i->start > i->end
-			&& (i->start <= currHour || i->end > currHour)))
-		{
-			// if bases are going vulnerable in this tick, reset their damage resistance to default
-			if (isGlobalBaseInvulnerabilityActive)
-			{
-				ResetAllBasesShieldStrength();
-			}
-			return false;
-		}
-	}
-	return true;
 }

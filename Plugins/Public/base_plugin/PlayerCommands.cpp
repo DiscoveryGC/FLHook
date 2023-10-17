@@ -1087,7 +1087,7 @@ namespace PlayerCommands
 
 			if (cmd2.empty())
 			{
-				PrintUserCmdText(client, L"ERR Invalid command");
+				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
 				return;
 			}
 
@@ -1104,7 +1104,7 @@ namespace PlayerCommands
 			const RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
 			if (!buildRecipe)
 			{
-				PrintUserCmdText(client, L"ERR Invalid module name/number");
+				PrintUserCmdText(client, L"ERR Invalid module name/number, for more information use /build help");
 				return;
 			}
 
@@ -1198,12 +1198,12 @@ namespace PlayerCommands
 			}
 			else
 			{
-				PrintUserCmdText(client, L"ERR Invalid command");
+				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
 			}
 		}
 		else
 		{
-			PrintUserCmdText(client, L"ERR Invalid module list name");
+			PrintUserCmdText(client, L"ERR Invalid module list name, for more information use /build help");
 		}
 	}
 
@@ -1340,7 +1340,7 @@ namespace PlayerCommands
 		}
 		else if (!base->availableCraftList.count(craftType))
 		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1348,7 +1348,7 @@ namespace PlayerCommands
 		wstring param = GetParamToEnd(args, ' ', 3);
 		if (cmd.empty())
 		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1407,7 +1407,7 @@ namespace PlayerCommands
 
 		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume"))
 		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1415,7 +1415,7 @@ namespace PlayerCommands
 		{
 			if (!base->availableCraftList.count(recipe->craft_type))
 			{
-				PrintUserCmdText(client, L"ERR incorrect craftlist");
+				PrintUserCmdText(client, L"ERR incorrect craftlist, for more information use /craft help");
 				return;
 			}
 			FactoryModule* factory = base->craftTypeTofactoryModuleMap[recipe->craft_type];
@@ -2340,5 +2340,105 @@ namespace PlayerCommands
 
 		PrintUserCmdText(client, L"OK: Base deployed");
 		PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
+	}
+
+	void BaseSetVulnerabilityWindow(uint client, const wstring& cmd)
+	{
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
+
+		uint currTime = time(nullptr);
+
+		if (base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown > currTime )
+		{
+			PrintUserCmdText(client, L"ERR Can only change vulnerability windows once every %u days, %u days left", vulnerability_window_change_cooldown / (3600 * 24), 1 + ((base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown - currTime) / (3600 * 24)));
+			return;
+		}
+
+		int param1 = ToInt(GetParam(cmd, ' ', 2));
+		int param2 = ToInt(GetParam(cmd, ' ', 3));
+		if (param1 < 0 || param1 > 23
+			|| (!single_vulnerability_window && (param2 < 0 || param2 > 23)))
+		{
+			PrintUserCmdText(client, L"ERR Vulnerability windows can only be set to full hour values between 0 and 23");
+			return;
+		}
+
+		int vulnerabilityWindowOneStart = param1 * 60; // minutes
+		int vulnerabilityWindowOneEnd = (vulnerabilityWindowOneStart + vulnerability_window_length) % (60 * 24); // 
+
+		int vulnerabilityWindowTwoStart = param2 * 60;
+		int vulnerabilityWindowTwoEnd = vulnerabilityWindowTwoStart + vulnerability_window_length % (60 * 24);
+
+		if (single_vulnerability_window)
+		{
+			base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+			base->lastVulnerabilityWindowChange = currTime;
+			PrintUserCmdText(client, L"OK Vulnerability window set.");
+			return;
+		}
+
+		if ((vulnerabilityWindowOneStart < vulnerabilityWindowTwoStart && abs(vulnerabilityWindowOneEnd - vulnerabilityWindowTwoStart) < vulnerability_window_minimal_spread)
+			|| (vulnerabilityWindowOneStart > vulnerabilityWindowTwoStart && abs(vulnerabilityWindowOneStart - vulnerabilityWindowTwoEnd) < vulnerability_window_minimal_spread))
+		{
+			PrintUserCmdText(client, L"ERR Vulnerability windows must be at least %u hours apart!", vulnerability_window_minimal_spread / 60);
+			return;
+		}
+
+		base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+		if (!single_vulnerability_window)
+		{
+			base->vulnerabilityWindow2 = { vulnerabilityWindowTwoStart, vulnerabilityWindowTwoEnd };
+		}
+		base->lastVulnerabilityWindowChange = currTime;
+
+		PrintUserCmdText(client, L"OK Vulnerability window set.");
+	}
+
+	void BaseCheckVulnerabilityWindow(uint client)
+	{
+		uint ship;
+		pub::Player::GetShip(client, ship);
+
+		if (!ship)
+		{
+			PrintUserCmdText(client, L"ERR not in space!");
+			return;
+		}
+
+		uint target;
+		pub::SpaceObj::GetTarget(ship, target);
+
+		if (!target)
+		{
+			PrintUserCmdText(client, L"ERR no base targeted");
+			return;
+		}
+
+		PlayerBase* pb = GetPlayerBase(target);
+
+		if (!pb)
+		{
+			PrintUserCmdText(client, L"ERR no base targeted");
+			return;
+		}
+
+		if (single_vulnerability_window)
+		{
+			PrintUserCmdText(client, L"This base has its vulnerability window starting at %u:00", pb->vulnerabilityWindow1.start / 60);
+		}
+		else
+		{
+			PrintUserCmdText(client, L"This base has its vulnerability windows starting at %u:00 and %u:00", pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow2.start / 60);
+		}
 	}
 }

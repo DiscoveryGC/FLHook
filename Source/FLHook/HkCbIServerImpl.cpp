@@ -23,6 +23,17 @@
 	timer.stop(); \
 	}
 
+#define EXECUTE_SERVER_CALL_DEBUG(args, clientId, arg) \
+	{ \
+	static CTimer timer(__FUNCTION__,set_iTimerThreshold); \
+	timer.start(); \
+	try { \
+		args; \
+	} catch(...) { const wchar_t* playerName = (const wchar_t*)Players.GetActiveCharacterName(clientId);\
+		AddLog("ERROR: Exception in " __FUNCTION__ " on server call, charName=%s, arg2=%u", wstos(playerName).c_str(), arg); LOG_EXCEPTION; } \
+	timer.stop(); \
+	}
+
 #define CHECK_FOR_DISCONNECT \
 	{ \
 		if (ClientInfo[iClientID].bDisconnected) \
@@ -261,7 +272,7 @@ namespace HkIServerImpl
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_PlayerLaunch, __stdcall, (unsigned int iShip, unsigned int iClientID), (iShip, iClientID));
 
-		EXECUTE_SERVER_CALL(Server.PlayerLaunch(iShip, iClientID));
+		EXECUTE_SERVER_CALL_DEBUG(Server.PlayerLaunch(iShip, iClientID), iClientID, iShip);
 
 		try {
 			if (!ClientInfo[iClientID].iLastExitedBaseID)
@@ -293,7 +304,7 @@ namespace HkIServerImpl
 
 			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_FireWeapon, __stdcall, (unsigned int iClientID, struct XFireWeaponInfo const &wpn), (iClientID, wpn));
 
-		EXECUTE_SERVER_CALL(Server.FireWeapon(iClientID, wpn));
+		EXECUTE_SERVER_CALL_DEBUG(Server.FireWeapon(iClientID, wpn), iClientID, 0);
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_FireWeapon_AFTER, __stdcall, (unsigned int iClientID, struct XFireWeaponInfo const &wpn), (iClientID, wpn));
 	}
@@ -324,7 +335,7 @@ namespace HkIServerImpl
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SPMunitionCollision, __stdcall, (struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID), (ci, iClientID));
 
-		EXECUTE_SERVER_CALL(Server.SPMunitionCollision(ci, iClientID));
+		EXECUTE_SERVER_CALL_DEBUG(Server.SPMunitionCollision(ci, iClientID), iClientID, ci.iProjectileArchID);
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SPMunitionCollision_AFTER, __stdcall, (struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID), (ci, iClientID));
 	}
@@ -531,7 +542,7 @@ namespace HkIServerImpl
 		} catch(...) { AddLog("Exception in " __FUNCTION__ " on autobuy"); LOG_EXCEPTION }
 		*/
 
-		EXECUTE_SERVER_CALL(Server.BaseEnter(iBaseID, iClientID));
+		EXECUTE_SERVER_CALL_DEBUG(Server.BaseEnter(iBaseID, iClientID), iClientID, iBaseID);
 
 		try {
 			// adjust cash, this is necessary when cash was added while use was in charmenu/had other char selected

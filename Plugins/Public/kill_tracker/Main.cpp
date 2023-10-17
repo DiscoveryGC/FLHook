@@ -275,7 +275,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
-		auto& damageData = damageArray[pd->iOnlineID][clientVictim];
+		auto& damageData = damageArray[clientVictim][pd->iOnlineID];
 		float damageToAdd = GetDamageDone(damageData);
 		
 		if (damageToAdd == 0.0f)

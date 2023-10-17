@@ -56,7 +56,6 @@ namespace ADOCK
 namespace AP
 {
 	void LoadSettings();
-	bool AlleyCmd_Help(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool AlleyCmd_Chase(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool RacestartCmd(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool SystemSwitchOutComplete(unsigned int iShip, unsigned int iClientID);

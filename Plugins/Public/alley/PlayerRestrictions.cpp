@@ -810,12 +810,10 @@ USERCMD UserCmds[] =
 	{ L"/racestart", AP::RacestartCmd, L"Usage: /racestart" },
 	{ L"/gift", GiftCmd, L"Usage: /gift amount"},
 	{ L"/gift*", GiftCmd, L"Usage: /gift amount"},
-	{ L"$help", AP::AlleyCmd_Help, L"Usage: $help"},
-	{ L"$help*", AP::AlleyCmd_Help, L"Usage: $help"},
-	{ L"$chase", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
-	{ L"$chase*", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
-	{ L"/marktarget",			UserCmd_MarkObjGroup, L"Usage: /marktarget"},
-	{ L"/marktarget*",			UserCmd_MarkObjGroup, L"Usage: /marktarget"},
+	{ L"/chase", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
+	{ L"/chase*", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
+	{ L"/marktarget",	UserCmd_MarkObjGroup, L"Usage: /marktarget"},
+	{ L"/marktarget*",	UserCmd_MarkObjGroup, L"Usage: /marktarget"},
 	{ L"/jettisonall", UserCmd_JettisonAll, L"Usage: /jettisonall"},
 };
 

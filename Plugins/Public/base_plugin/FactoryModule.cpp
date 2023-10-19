@@ -78,13 +78,10 @@ wstring FactoryModule::GetInfo(bool xml)
 				info += L" [Insufficient cash]";
 			}
 		}
-		if (!sufficientCatalysts)
+		if (!active_recipe.catalyst_items.empty() && !sufficientCatalysts)
 		{
-			info += openLine + L"Insufficient catalysts/workforce";
-		}
-		if (!active_recipe.catalyst_items.empty())
-		{
-			info += openLine + L"Needed catalysts:";
+			info += openLine + L"Needed catalysts ";
+
 			for (const auto& catalyst : active_recipe.catalyst_items)
 			{
 				uint good = catalyst.first;
@@ -94,15 +91,10 @@ wstring FactoryModule::GetInfo(bool xml)
 				if (gi)
 				{
 					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					uint presentAmount = base->HasMarketItem(good);
-					if (presentAmount < quantity)
-					{
-						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-					}
 				}
 			}
 		}
-		if (!active_recipe.catalyst_workforce.empty())
+		if (!active_recipe.catalyst_workforce.empty() && !sufficientCatalysts)
 		{
 			info += openLine + L"Needed workforce:";
 			for (const auto& worker : active_recipe.catalyst_workforce)
@@ -114,11 +106,6 @@ wstring FactoryModule::GetInfo(bool xml)
 				if (gi)
 				{
 					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					uint presentAmount = base->HasMarketItem(good);
-					if (presentAmount < quantity)
-					{
-						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-					}
 				}
 			}
 		}

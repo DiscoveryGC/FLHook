@@ -366,9 +366,9 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		transferFlags[client] = CLIENT_STATE_NONE;
 		unsigned int returnPoint = ReadReturnPointForClient(client);
 
-		if (!returnPoint || !Universe::get_base(returnPoint))
+		if (!returnPoint)
 		{
-			PrintUserCmdText(client, L"Return point not found, contact admins. Base hash %u", returnPoint);
+			PrintUserCmdText(client, L"Return point not found, contact admins.");
 			return;
 		}
 

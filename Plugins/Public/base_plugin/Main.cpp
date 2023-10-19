@@ -81,7 +81,6 @@ unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
 unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
 unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 unordered_map<wstring, RECIPE> moduleNameRecipeMap;
-unordered_map<uint, RECIPE> moduleNumberRecipeMap;
 unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 unordered_set<wstring> buildingCraftLists;
 
@@ -90,6 +89,9 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 
 /// Map of space obj IDs to base modules to speed up damage algorithms.
 unordered_map<uint, Module*> spaceobj_modules;
+
+/// Map of core upgrade recipes
+unordered_map<uint, uint> core_upgrade_recipes;
 
 /// Path to shield status html page
 string set_status_path_html;
@@ -476,7 +478,6 @@ void LoadSettingsActual()
 	recipeCraftTypeNameMap.clear();
 	factoryNicknameToCraftTypeMap.clear();
 	moduleNameRecipeMap.clear();
-	moduleNumberRecipeMap.clear();
 	craftListNumberModuleMap.clear();
 	humanCargoList.clear();
 
@@ -699,6 +700,10 @@ void LoadSettingsActual()
 					else if (ini.is_value("vulnerability_window_change_cooldown"))
 					{
 						vulnerability_window_change_cooldown = 3600 * 24 * ini.get_value_int(0);
+					}
+					else if (ini.is_value("core_recipe"))
+					{
+						core_upgrade_recipes[ini.get_value_int(0)] = CreateID(ini.get_value_string(1));
 					}
 				}
 			}
@@ -2585,7 +2590,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			}
 		}
 
-
 		if (billythecat == 0)
 		{
 			cmd->Print(L"ERR Base doesn't exist lmao\n");
@@ -2596,7 +2600,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		if (base->base_health < 1)
 		{
 			cmd->Print(L"Base despawned\n");
-			return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
+			CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
 		}
 
 		return true;
@@ -3186,9 +3190,11 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
-	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
-	craftListNumberModuleMap[build_type][recipe_number] = recipe;
-	buildingCraftLists.insert(build_type);
+	if (!build_type.empty())
+	{
+		craftListNumberModuleMap[build_type][recipe_number] = recipe;
+		buildingCraftLists.insert(build_type);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

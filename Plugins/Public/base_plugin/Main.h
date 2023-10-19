@@ -596,6 +596,8 @@ extern unordered_map<uint, CLIENT_DATA> clients;
 
 extern unordered_map<uint, Module*> spaceobj_modules;
 
+extern unordered_map<uint, uint> core_upgrade_recipes;
+
 // Map of ingame hash to info
 extern unordered_map<uint, class PlayerBase*> player_bases;
 extern unordered_map<uint, PlayerBase*>::iterator baseSaveIterator;
@@ -624,7 +626,6 @@ extern unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
 extern unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
 extern unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 extern unordered_map<wstring, RECIPE> moduleNameRecipeMap;
-extern unordered_map<uint, RECIPE> moduleNumberRecipeMap;
 extern unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 extern unordered_set<wstring> buildingCraftLists;
 

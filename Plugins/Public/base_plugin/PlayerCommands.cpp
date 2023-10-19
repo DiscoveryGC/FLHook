@@ -1108,6 +1108,18 @@ namespace PlayerCommands
 				return;
 			}
 
+
+			if (buildRecipe->shortcut_number == Module::TYPE_CORE)
+			{
+				if (base->base_level >= 4)
+				{
+					PrintUserCmdText(client, L"ERR Upgrade not available");
+					return;
+				}
+
+				buildRecipe = &recipeMap[core_upgrade_recipes[base->base_level]];
+			}
+
 			if (cmd2 == L"info")
 			{
 				PrintUserCmdText(client, L"Construction materials for %ls", buildRecipe->infotext.c_str());
@@ -1116,15 +1128,13 @@ namespace PlayerCommands
 					const GoodInfo* gi = GoodList::find_by_id(material.first);
 					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), material.second);
 				}
+				if (buildRecipe->credit_cost)
+				{
+					PrintUserCmdText(client, L"|   $%u credits", buildRecipe->credit_cost);
+				}
 			}
 			else if (cmd2 == L"start")
 			{
-				if (buildRecipe->shortcut_number == Module::TYPE_CORE && base->base_level >= 4)
-				{
-					PrintUserCmdText(client, L"ERR Upgrade not available");
-					return;
-				}
-
 				for (const auto& module : base->modules)
 				{
 					BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
@@ -1140,6 +1150,24 @@ namespace PlayerCommands
 						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
 						return;
 					}
+				}
+
+				if (buildRecipe->shortcut_number == Module::TYPE_CORE)
+				{
+					if(base->base_level >= 4)
+					{
+						PrintUserCmdText(client, L"ERR Upgrade not available");
+						return;
+					}
+					if (base->modules.size() > (base->base_level * 3 + 1))
+					{
+						PrintUserCmdText(client, L"ERR Core upgrade already ongoing!");
+						return;
+					}
+					PrintUserCmdText(client, L"Core upgrade started");
+					base->modules.emplace_back(new BuildModule(base, buildRecipe));
+					base->Save();
+					return;
 				}
 
 				for (auto& modSlot : base->modules)
@@ -1228,6 +1256,12 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Can't swap a module with itself");
 			return;
 		}
+		const uint coreUpgradeIndex = (base->base_level * 3) + 1;
+		if (index1 == coreUpgradeIndex || index2 == coreUpgradeIndex)
+		{
+			PrintUserCmdText(client, L"ERR Can't swap core upgrade");
+			return;
+		}
 
 		Module* tempModulePtr = base->modules[index1];
 		base->modules[index1] = base->modules[index2];
@@ -1277,8 +1311,25 @@ namespace PlayerCommands
 				base->craftTypeTofactoryModuleMap.erase(craftType);
 			}
 		}
-		delete base->modules[index];
-		base->modules[index] = nullptr;
+		else if (base->modules[index]->type == Module::TYPE_BUILD)
+		{
+			BuildModule* bm = dynamic_cast<BuildModule*>(base->modules[index]);
+			if (!bm)
+			{
+				PrintUserCmdText(client, L"ERR Impossible destroy error, contact staff!");
+				return;
+			}
+			if (bm->active_recipe.shortcut_number == Module::TYPE_CORE)
+			{
+				delete base->modules[index];
+				base->modules.resize(base->modules.size() - 1);
+			}
+		}
+		else
+		{
+			delete base->modules[index];
+			base->modules[index] = nullptr;
+		}
 		base->Save();
 		PrintUserCmdText(client, L"OK Module destroyed");
 	}
@@ -1371,6 +1422,10 @@ namespace PlayerCommands
 			{
 				const GoodInfo* gi = GoodList::find_by_id(item.first);
 				PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
+			}
+			if (recipe->credit_cost)
+			{
+				PrintUserCmdText(client, L"|   $%u credits", recipe->credit_cost);
 			}
 			PrintUserCmdText(client, L"Produced goods:");
 			for (const auto& product : recipe->produced_items)

@@ -589,6 +589,8 @@ extern unordered_map<uint, CLIENT_DATA> clients;
 
 extern unordered_map<uint, Module*> spaceobj_modules;
 
+extern unordered_map<uint, uint> core_upgrade_recipes;
+
 // Map of ingame hash to info
 extern unordered_map<uint, class PlayerBase*> player_bases;
 extern unordered_map<uint, PlayerBase*>::iterator baseSaveIterator;
@@ -613,13 +615,12 @@ extern int set_plugin_debug;
 /// Global recipe map
 extern unordered_map<uint, RECIPE> recipeMap;
 /// Maps of shortcut numbers to recipes to construct item.
-extern map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
-extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
-extern map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
-extern map<wstring, RECIPE> moduleNameRecipeMap;
-extern map<uint, RECIPE> moduleNumberRecipeMap;
-extern map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
-extern set<wstring> buildingCraftLists;
+extern unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+extern unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+extern unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+extern unordered_map<wstring, RECIPE> moduleNameRecipeMap;
+extern unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+extern unordered_set<wstring> buildingCraftLists;
 
 struct REPAIR_ITEM
 {

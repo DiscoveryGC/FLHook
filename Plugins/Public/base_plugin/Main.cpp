@@ -77,19 +77,21 @@ PLUGIN_RETURNCODE returncode;
 unordered_map<uint, RECIPE> recipeMap;
 
 /// Maps of shortcut numbers to recipes to construct item.
-map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
-map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
-map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
-map<wstring, RECIPE> moduleNameRecipeMap;
-map<uint, RECIPE> moduleNumberRecipeMap;
-map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
-set<wstring> buildingCraftLists;
+unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+unordered_map<wstring, RECIPE> moduleNameRecipeMap;
+unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+unordered_set<wstring> buildingCraftLists;
 
 void AddFactoryRecipeToMaps(const RECIPE& recipe);
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
 
 /// Map of space obj IDs to base modules to speed up damage algorithms.
 unordered_map<uint, Module*> spaceobj_modules;
+
+/// Map of core upgrade recipes
+unordered_map<uint, uint> core_upgrade_recipes;
 
 /// Path to shield status html page
 string set_status_path_html;
@@ -468,7 +470,6 @@ void LoadSettingsActual()
 	recipeCraftTypeNameMap.clear();
 	factoryNicknameToCraftTypeMap.clear();
 	moduleNameRecipeMap.clear();
-	moduleNumberRecipeMap.clear();
 	craftListNumberModuleMap.clear();
 	humanCargoList.clear();
 
@@ -688,6 +689,14 @@ void LoadSettingsActual()
 					else if (ini.is_value("siege_gun"))
 					{
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+					}
+					else if (ini.is_value("vulnerability_window_change_cooldown"))
+					{
+						vulnerability_window_change_cooldown = 3600 * 24 * ini.get_value_int(0);
+					}
+					else if (ini.is_value("core_recipe"))
+					{
+						core_upgrade_recipes[ini.get_value_int(0)] = CreateID(ini.get_value_string(1));
 					}
 				}
 			}
@@ -2531,6 +2540,92 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		//cmd->Print(L"OK Base is gone are you proud of yourself.");
 		return true;
 	}
+	else if (args.find(L"basedespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		int billythecat = 0;
+		PlayerBase* base;
+		for (auto& i : player_bases)
+		{
+			if (i.second->basename == cmd->ArgStrToEnd(1))
+			{
+				base = i.second;
+				billythecat = 1;
+			}
+		}
+
+		if (billythecat == 0)
+		{
+			cmd->Print(L"ERR Base doesn't exist lmao\n");
+			return true;
+		}
+
+		base->base_health = 0;
+		if (base->base_health < 1)
+		{
+			cmd->Print(L"Base despawned\n");
+			CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
+		}
+
+		return true;
+	}
+	else if (args.find(L"baserespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+
+		// Create base account dir if it doesn't exist
+		string basedir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)";
+
+		wstring baseName = cmd->ArgStrToEnd(1);
+
+		// Load and spawn all bases
+		string path = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)" + wstos(baseName) + ".ini";
+
+		WIN32_FIND_DATA findfile;
+		HANDLE h = FindFirstFile(path.c_str(), &findfile);
+		if (h == INVALID_HANDLE_VALUE)
+		{
+			cmd->Print(L"ERR Base file not found\n");
+			return true;
+		}
+
+		uint baseNickname = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
+
+		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0)
+		{
+			cmd->Print(L"ERR Base already spwawned!\n");
+			return true;
+		}
+
+		PlayerBase* base = new PlayerBase(path);
+
+		FindClose(h);
+		if (base && !base->nickname.empty())
+		{
+			player_bases[base->base] = base;
+			base->Spawn();
+			cmd->Print(L"Base respawned!\n");
+		}
+		else
+		{
+			cmd->Print(L"ERROR POB file corrupted: %ls\n", stows(path).c_str());
+		}
+
+
+		return true;
+	}
 	else if (args.find(L"basetogglegod") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -3044,9 +3139,11 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
-	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
-	craftListNumberModuleMap[build_type][recipe_number] = recipe;
-	buildingCraftLists.insert(build_type);
+	if (!build_type.empty())
+	{
+		craftListNumberModuleMap[build_type][recipe_number] = recipe;
+		buildingCraftLists.insert(build_type);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

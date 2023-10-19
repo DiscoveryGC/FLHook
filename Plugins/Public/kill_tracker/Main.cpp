@@ -216,15 +216,17 @@ void ClearDamageDone(const uint inflictor, const bool isFullReset)
 	}
 }
 
-void ProcessNonPvPDeath(const wstring& message, const uint system)
+void ProcessNonPvPDeath(uint victimId, const wstring& message, const uint system)
 {
 	wstring deathMessage = L"<TRA data=\"0x0000CC01" // Red, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(message) + L"</TEXT>";
 
+	const CPlayerGroup* victimGroup = Players[victimId].PlayerGroup;
+
 	PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
-		if (pd->iSystemID == system)
+		if (pd->iSystemID == system || (victimGroup && pd->PlayerGroup == victimGroup))
 		{
 			HkFMsg(pd->iOnlineID, deathMessage);
 		}
@@ -290,7 +292,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	if (totalDamageTaken == 0.0f)
 	{
 		ClearDamageTaken(clientVictim);
-		ProcessNonPvPDeath(message, system);
+		ProcessNonPvPDeath(clientVictim, message, system);
 		return;
 	}
 
@@ -330,6 +332,8 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		}
 		killerCounter++;
 	}
+
+	AddLog("Player Death: %s %s", wstos(deathMessage).c_str(), wstos(assistMessage).c_str());
 
 	deathMessage = L"<TRA data=\"" + killMsgStyle +
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";

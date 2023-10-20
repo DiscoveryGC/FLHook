@@ -330,7 +330,7 @@ namespace Message
 
 	/** Replace #t and #c tags with current target name and current ship location.
 	Return false if tags cannot be replaced. */
-	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, wstring &wscMsg)
+	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, const wstring &wscParam, wstring &wscMsg)
 	{
 		if (wscMsg.find(L"#t") != -1)
 		{
@@ -738,7 +738,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendSystemChat(iClientID, wscMsg);
@@ -770,7 +770,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
@@ -820,7 +820,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
@@ -870,7 +870,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendGroupChat(iClientID, wscMsg);
@@ -908,7 +908,7 @@ namespace Message
 			}
 			// Replace the tag #t with name of the targeted player.
 			wscMsg = iter->second.slot[iMsgSlot];
-			if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+			if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 				return true;
 		}
 		else if (wscMsg.size() == 0)
@@ -960,7 +960,7 @@ namespace Message
 			}
 			// Replace the tag #t with name of the targeted player.
 			wscMsg = iter->second.slot[iMsgSlot];
-			if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+			if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 				return true;
 		}
 		else if (wscMsg.size() == 0)

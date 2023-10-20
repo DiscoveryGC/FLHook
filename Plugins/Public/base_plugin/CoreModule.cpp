@@ -213,11 +213,19 @@ void CoreModule::SetShieldState(const int shieldState)
 bool CoreModule::Timer(uint time)
 {
 	// Disable shield if time elapsed
-	if (base->shield_timeout < time)
+	if (base->shield_timeout && base->shield_timeout < time)
 	{
 		base->shield_timeout = 0;
 		base->shield_state = PlayerBase::SHIELD_STATE_ONLINE;
 		SetShieldState(base->shield_state);
+	}
+	
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	if ((time % 5) == 0)
+	{
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 	}
 
 	if ((time % set_tick_time) != 0 || set_holiday_mode)

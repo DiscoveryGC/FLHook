@@ -1031,7 +1031,6 @@ void HkTimerCheckKick()
 		load_settings_required = false;
 		LoadSettingsActual();
 	}
-	uint counter = 1;
 	uint curr_time = (uint)time(0);
 	for(auto& iter : player_bases)
 	{
@@ -1485,13 +1484,13 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseSwapModule(client, args);
 		return true;
 	}
-	else if (args.find(L"/base setvulnerability") == 0)
+	else if (args.find(L"/base setshield") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseSetVulnerabilityWindow(client, args);
 		return true;
 	}
-	else if (args.find(L"/base checkvulnerability") == 0)
+	else if (args.find(L"/vuln") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseCheckVulnerabilityWindow(client);
@@ -2538,7 +2537,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
-			if (i.second->basename == cmd->ArgStrToEnd(1))
+			if (i.second->basename == cmd->ArgStrToEnd(1) || stows(i.second->nickname) == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
 				billythecat = 1;
@@ -2573,7 +2572,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		PlayerBase* base;
 		for (auto& i : player_bases)
 		{
-			if (i.second->basename == cmd->ArgStrToEnd(1))
+			if (i.second->basename == cmd->ArgStrToEnd(1) || stows(i.second->nickname) == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
 				billythecat = 1;

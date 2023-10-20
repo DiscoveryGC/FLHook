@@ -45,6 +45,7 @@ CRITICAL_SECTION cs;
 
 FILE *fLog = 0;
 FILE *fLogDebug = 0;
+FILE *perfMonitorLog = 0;
 
 bool bExecuted = false;
 
@@ -249,6 +250,8 @@ void FLHookInit_Pre()
 		strftime(szDate, sizeof(szDate), "%d.%m.%Y_%H.%M", t);
 		sDebugLog = "./flhook_logs/debug/FLHookDebug_" + (string)szDate;
 		sDebugLog += ".log";
+
+		perfMonitorLog = fopen("./flhook_logs/perfTimer.log", "at");
 
 		//check what plugins should be loaded; we need to read out the settings ourselves cause LoadSettings() wasn't called yet
 		char szCurDir[MAX_PATH];
@@ -525,6 +528,7 @@ void FLHookShutdown()
 
 	// close log
 	fclose(fLog);
+	fclose(perfMonitorLog);
 	if (set_bDebug)
 		fclose(fLogDebug);
 
@@ -630,6 +634,26 @@ void ConPrint(wstring wscText, ...)
 	DWORD iCharsWritten;
 	string scText = wstos(wszBuf);
 	WriteConsole(hConsoleOut, scText.c_str(), (DWORD)scText.length(), &iCharsWritten, 0);
+}
+
+void AddPerfTimer(const char* szString, ...)
+{
+	char szBufString[1024];
+	va_list marker;
+	va_start(marker, szString);
+	_vsnprintf(szBufString, sizeof(szBufString) - 1, szString, marker);
+
+	if (perfMonitorLog) {
+		char szBuf[64];
+		time_t tNow = time(0);
+		struct tm* t = localtime(&tNow);
+		strftime(szBuf, sizeof(szBuf), "%S", t);
+		fprintf(perfMonitorLog, "%s %s\n", szBuf, szBufString);
+		fflush(perfMonitorLog);
+	}
+	else {
+		ConPrint(L"Failed to write log! This might be due to inability to create the directory - are you running as an administrator?\n");
+	}
 }
 
 /**************************************************************************************************************

@@ -215,7 +215,6 @@ void BuildModule::SaveState(FILE* file)
 {
 	fprintf(file, "[BuildModule]\n");
 	fprintf(file, "build_type = %s\n", active_recipe.nicknameString.c_str());
-	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
 	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{

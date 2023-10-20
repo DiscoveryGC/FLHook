@@ -134,11 +134,11 @@ bool PlayerBase::Timer(uint curr_time)
 	{
 		this->CheckVulnerabilityWindow(curr_time);
 	}
-	for (auto module : modules)
+	for (Module* pobModule : modules)
 	{
-		if (module)
+		if (pobModule)
 		{
-			bool is_deleted = module->Timer(curr_time);
+			bool is_deleted = pobModule->Timer(curr_time);
 			if (is_deleted)
 				return true;
 		}
@@ -213,7 +213,6 @@ void PlayerBase::Load()
 		{
 			if (ini.is_header("Base"))
 			{
-				int newsindex = 0;
 				int paraindex = 0;
 				invulnerable = 0;
 				logic = 1;

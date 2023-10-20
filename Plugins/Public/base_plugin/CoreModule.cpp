@@ -226,7 +226,7 @@ void CoreModule::EnableShieldFuse(bool shieldEnabled)
 bool CoreModule::Timer(uint time)
 {
 	// Disable shield if time elapsed
-	if (base->shield_timeout < time)
+	if (base->shield_timeout && base->shield_timeout < time)
 	{
 		base->shield_timeout = 0;
 		base->isShieldOn = false;
@@ -241,6 +241,14 @@ bool CoreModule::Timer(uint time)
 	if (set_holiday_mode)
 	{
 		return false;
+	}
+	
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	if ((time % 5) == 0)
+	{
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 	}
 
 	if ((time % set_tick_time) != 0)

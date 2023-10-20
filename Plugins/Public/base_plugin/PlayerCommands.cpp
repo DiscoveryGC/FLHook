@@ -18,7 +18,7 @@
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
-constexpr uint ITEMS_PER_PAGE = 40;
+constexpr uint ITEMS_PER_PAGE = 35;
 
 // Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
 const uint numPages = 4;
@@ -47,12 +47,14 @@ L"<TEXT>Set or clear the faction that this base is affiliated with. When setting
 L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
 
-L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Set the [price] of [item]. If the current stock is less than [min stock]"
-L" then the item cannot be bought by docked ships. If the current stock is more or equal"
-L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
-L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
-L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
+L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set the [price] of [item].</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/shop stock [item] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>If the current stock is less than [min stock] then the item cannot be bought by docked ships.</TEXT><PARA/>"
+L"<TEXT>If the current stock is more or equal to [max stock] then the item cannot be sold to the base by docked ships</TEXT><PARA/>"
+L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0.</TEXT><PARA/>"
+L"<TEXT>To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
 
 L"<TRA bold=\"true\"/><TEXT>/shop remove [item]</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
@@ -1065,6 +1067,15 @@ namespace PlayerCommands
 		}
 
 		wstring& cmd = GetParam(args, ' ', 1);
+		if (cmd.empty() || cmd == L"help")
+		{
+			PrintUserCmdText(client, L"/build list - lists available module lists");
+			PrintUserCmdText(client, L"/build <moduleList> list - lists modules available on the selected module list");
+			PrintUserCmdText(client, L"/build <moduleList> start <moduleName/Nr> - starts constructon of selected module");
+			PrintUserCmdText(client, L"/build <moduleList> resume <moduleName/Nr> - pauses selected module construction");
+			PrintUserCmdText(client, L"/build <moduleList> pause <moduleName/Nr> - resumes selected module construction");
+			PrintUserCmdText(client, L"/build <moduleList> info <moduleName/Nr> - provides construction material info for selected module");
+		}
 		if (cmd == L"list")
 		{
 			PrintUserCmdText(client, L"Available building lists:");
@@ -1077,6 +1088,12 @@ namespace PlayerCommands
 		{
 			wstring& cmd2 = GetParam(args, ' ', 2);
 			wstring& recipeName = GetParamToEnd(args, ' ', 3);
+
+			if (cmd2.empty())
+			{
+				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
+				return;
+			}
 
 			if (cmd2 == L"list")
 			{
@@ -1091,8 +1108,20 @@ namespace PlayerCommands
 			const RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
 			if (!buildRecipe)
 			{
-				PrintUserCmdText(client, L"ERR Invalid module selected");
+				PrintUserCmdText(client, L"ERR Invalid module name/number, for more information use /build help");
 				return;
+			}
+
+
+			if (buildRecipe->shortcut_number == Module::TYPE_CORE)
+			{
+				if (base->base_level >= 4)
+				{
+					PrintUserCmdText(client, L"ERR Upgrade not available");
+					return;
+				}
+
+				buildRecipe = &recipeMap[core_upgrade_recipes[base->base_level]];
 			}
 
 			if (cmd2 == L"info")
@@ -1103,15 +1132,13 @@ namespace PlayerCommands
 					const GoodInfo* gi = GoodList::find_by_id(material.first);
 					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), material.second);
 				}
+				if (buildRecipe->credit_cost)
+				{
+					PrintUserCmdText(client, L"|   $%u credits", buildRecipe->credit_cost);
+				}
 			}
 			else if (cmd2 == L"start")
 			{
-				if (buildRecipe->shortcut_number == Module::TYPE_CORE && base->base_level >= 4)
-				{
-					PrintUserCmdText(client, L"ERR Upgrade not available");
-					return;
-				}
-
 				for (const auto& module : base->modules)
 				{
 					BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
@@ -1127,6 +1154,24 @@ namespace PlayerCommands
 						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
 						return;
 					}
+				}
+
+				if (buildRecipe->shortcut_number == Module::TYPE_CORE)
+				{
+					if(base->base_level >= 4)
+					{
+						PrintUserCmdText(client, L"ERR Upgrade not available");
+						return;
+					}
+					if (base->modules.size() > (base->base_level * 3 + 1))
+					{
+						PrintUserCmdText(client, L"ERR Core upgrade already ongoing!");
+						return;
+					}
+					PrintUserCmdText(client, L"Core upgrade started");
+					base->modules.emplace_back(new BuildModule(base, buildRecipe));
+					base->Save();
+					return;
 				}
 
 				for (auto& modSlot : base->modules)
@@ -1185,19 +1230,12 @@ namespace PlayerCommands
 			}
 			else
 			{
-				PrintUserCmdText(client, L"ERR Invalid command");
+				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
 			}
 		}
 		else
 		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/build <list|buildlist> <list|start|resume|pause|info> <moduleName/Nr");
-			PrintUserCmdText(client, L"|  list - lists available module lists");
-			PrintUserCmdText(client, L"|  <buildlist> list - lists modules available on the selected module list");
-			PrintUserCmdText(client, L"|  <buildlist> start <moduleName/Nr> - starts constructon of selected module");
-			PrintUserCmdText(client, L"|  <buildlist> resume <moduleName/Nr> - pauses selected module construction");
-			PrintUserCmdText(client, L"|  <buildlist> pause <moduleName/Nr> - resumes selected module construction");
-			PrintUserCmdText(client, L"|  <buildlist> info <moduleName/Nr> - provides construction material info for selected module");
+			PrintUserCmdText(client, L"ERR Invalid module list name, for more information use /build help");
 		}
 	}
 
@@ -1220,6 +1258,12 @@ namespace PlayerCommands
 		if (index1 == index2)
 		{
 			PrintUserCmdText(client, L"ERR Can't swap a module with itself");
+			return;
+		}
+		const uint coreUpgradeIndex = (base->base_level * 3) + 1;
+		if (index1 == coreUpgradeIndex || index2 == coreUpgradeIndex)
+		{
+			PrintUserCmdText(client, L"ERR Can't swap core upgrade");
 			return;
 		}
 
@@ -1271,24 +1315,39 @@ namespace PlayerCommands
 				base->craftTypeTofactoryModuleMap.erase(craftType);
 			}
 		}
-		delete base->modules[index];
-		base->modules[index] = nullptr;
+		else if (base->modules[index]->type == Module::TYPE_BUILD)
+		{
+			BuildModule* bm = dynamic_cast<BuildModule*>(base->modules[index]);
+			if (!bm)
+			{
+				PrintUserCmdText(client, L"ERR Impossible destroy error, contact staff!");
+				return;
+			}
+			if (bm->active_recipe.shortcut_number == Module::TYPE_CORE)
+			{
+				delete base->modules[index];
+				base->modules.resize(base->modules.size() - 1);
+			}
+		}
+		else
+		{
+			delete base->modules[index];
+			base->modules[index] = nullptr;
+		}
 		base->Save();
 		PrintUserCmdText(client, L"OK Module destroyed");
 	}
 
 	void PrintCraftHelpMenu(uint client)
 	{
-		PrintUserCmdText(client, L"ERR Invalid parameters");
-		PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>]");
-		PrintUserCmdText(client, L"|  list - show available lists of craftble items");
-		PrintUserCmdText(client, L"|  stopall - stops all production on the base");
-		PrintUserCmdText(client, L"|  <craftList> start <name/itemNr> - adds selected item into the crafting queue");
-		PrintUserCmdText(client, L"|  <craftList> stop <name/itemNr> - stops crafting of selected item");
-		PrintUserCmdText(client, L"|  <craftList> pause <name/itemNr> - pauses crafting of selected item");
-		PrintUserCmdText(client, L"|  <craftList> resume <name/itemNr> - resumes crafting of selected item");
-		PrintUserCmdText(client, L"|  <craftList> list - list item recipes available for this crafting list");
-		PrintUserCmdText(client, L"|  <craftList> list <name/itemNr> - list materials necessary for selected item");
+		PrintUserCmdText(client, L"/craft list - show available lists of craftble items");
+		PrintUserCmdText(client, L"/craft stopall - stops all production on the base");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> list - list item recipes available for this crafting list");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> start <name/itemNr> - adds selected item into the crafting queue");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> stop <name/itemNr> - stops crafting of selected item");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> pause <name/itemNr> - pauses crafting of selected item");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> resume <name/itemNr> - resumes crafting of selected item");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> info <name/itemNr> - list materials necessary for selected item");
 	}
 
 	void UnlockRecipe(uint client, const wstring& args) 
@@ -1411,8 +1470,13 @@ namespace PlayerCommands
 		}
 
 		wstring& craftType = GetParam(args, ' ', 1);
-		int craftTypeNumber = ToInt(craftType);
-		if (craftTypeNumber && base->availableCraftList.size() <= craftTypeNumber)
+		if (craftType.empty() || craftType == L"help")
+		{
+			PrintCraftHelpMenu(client);
+			return;
+		}
+		uint craftTypeNumber = ToUInt(craftType);
+		if (craftTypeNumber && base->availableCraftList.size() >= craftTypeNumber)
 		{
 			craftType = *next(base->availableCraftList.begin(), craftTypeNumber - 1);
 		}
@@ -1435,7 +1499,7 @@ namespace PlayerCommands
 		}
 		else if (!base->availableCraftList.count(craftType))
 		{
-			PrintCraftHelpMenu(client);
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1443,7 +1507,7 @@ namespace PlayerCommands
 		wstring param = GetParamToEnd(args, ' ', 3);
 		if (cmd.empty())
 		{
-			PrintCraftHelpMenu(client);
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1457,60 +1521,62 @@ namespace PlayerCommands
 
 		if (cmd == L"list")
 		{
-			if (param.empty())
+			PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
+			for (wstring& infoLine : factory_recipe_map[craftType])
 			{
-				PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
-				for (wstring& infoLine : factory_recipe_map[craftType])
-				{
-					PrintUserCmdText(client, infoLine);
-				}
-				return;
+				PrintUserCmdText(client, infoLine);
 			}
-			else if (recipe)
+			return;
+		}
+		
+		if (cmd == L"info" && recipe)
+		{
+			PrintUserCmdText(client, L"Construction materials for %ls:", recipe->infotext.c_str());
+			for (const auto& item : recipe->consumed_items)
 			{
-				PrintUserCmdText(client, L"Construction materials for %ls:", recipe->infotext.c_str());
-				for (const auto& item : recipe->consumed_items)
-				{
-					const GoodInfo* gi = GoodList::find_by_id(item.first);
-					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
-				}
-				PrintUserCmdText(client, L"Produced goods:");
-				for (const auto& product : recipe->produced_items)
-				{
-					const GoodInfo* gi = GoodList::find_by_id(product.first);
-					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), product.second);
-				}
-				if (!recipe->catalyst_items.empty())
-				{
-					PrintUserCmdText(client, L"Production catalysts:");
-					for (const auto& catalyst : recipe->catalyst_items)
-					{
-						const GoodInfo* gi = GoodList::find_by_id(catalyst.first);
-						PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), catalyst.second);
-					}
-				}
-				if (!recipe->catalyst_workforce.empty())
-				{
-					PrintUserCmdText(client, L"Workers:");
-					for (const auto& workforce : recipe->catalyst_workforce)
-					{
-						const GoodInfo* gi = GoodList::find_by_id(workforce.first);
-						PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), workforce.second);
-					}
-				}
-				PrintUserCmdText(client, L"IFF bonuses:");
-				for (const auto& rep : recipe->affiliationBonus)
-				{
-					PrintUserCmdText(client, L"|   %ls - +%u%% efficiency bonus",
-						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), static_cast<uint>(((1.0f / rep.second) - 1.0f) * 100));
-				}
-				return;
+				const GoodInfo* gi = GoodList::find_by_id(item.first);
+				PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
 			}
+			if (recipe->credit_cost)
+			{
+				PrintUserCmdText(client, L"|   $%u credits", recipe->credit_cost);
+			}
+			PrintUserCmdText(client, L"Produced goods:");
+			for (const auto& product : recipe->produced_items)
+			{
+				const GoodInfo* gi = GoodList::find_by_id(product.first);
+				PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), product.second);
+			}
+			if (!recipe->catalyst_items.empty())
+			{
+				PrintUserCmdText(client, L"Production catalysts:");
+				for (const auto& catalyst : recipe->catalyst_items)
+				{
+					const GoodInfo* gi = GoodList::find_by_id(catalyst.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), catalyst.second);
+				}
+			}
+			if (!recipe->catalyst_workforce.empty())
+			{
+				PrintUserCmdText(client, L"Workers:");
+				for (const auto& workforce : recipe->catalyst_workforce)
+				{
+					const GoodInfo* gi = GoodList::find_by_id(workforce.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), workforce.second);
+				}
+			}
+			PrintUserCmdText(client, L"IFF bonuses:");
+			for (const auto& rep : recipe->affiliationBonus)
+			{
+				PrintUserCmdText(client, L"|   %ls - +%u%% efficiency bonus",
+					HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), static_cast<uint>(((1.0f / rep.second) - 1.0f) * 100));
+			}
+			return;
 		}
 
 		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume"))
 		{
-			PrintCraftHelpMenu(client);
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1518,7 +1584,7 @@ namespace PlayerCommands
 		{
 			if (!base->availableCraftList.count(recipe->craft_type))
 			{
-				PrintUserCmdText(client, L"ERR incorrect craftlist");
+				PrintUserCmdText(client, L"ERR incorrect craftlist, for more information use /craft help");
 				return;
 			}
 			FactoryModule* factory = base->craftTypeTofactoryModuleMap[recipe->craft_type];
@@ -1775,7 +1841,8 @@ namespace PlayerCommands
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
 		if (clients[client].admin)
 		{
-			status += L"<TEXT>  /shop price [item] [price] [min stock] [max stock]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop price [item] [price]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop stock [item] [min stock] [max stock]</TEXT><PARA/>";
 			status += L"<TEXT>  /shop remove [item]</TEXT><PARA/>";
 		}
 		status += L"<TEXT>  /shop [page]</TEXT><PARA/><TEXT>  /shop filter [substring] [page]</TEXT><PARA/><PARA/>";
@@ -1879,7 +1946,7 @@ namespace PlayerCommands
 			}
 			PrintUserCmdText(client, L"ERR Commodity does not exist");
 		}
-		if (cmd == L"stock")
+		else if (cmd == L"stock")
 		{
 			int item = ToInt(GetParam(args, ' ', 2));
 			uint min_stock = ToUInt(GetParam(args, ' ', 3));
@@ -2442,5 +2509,105 @@ namespace PlayerCommands
 
 		PrintUserCmdText(client, L"OK: Base deployed");
 		PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
+	}
+
+	void BaseSetVulnerabilityWindow(uint client, const wstring& cmd)
+	{
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
+
+		uint currTime = time(nullptr);
+
+		if (base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown > currTime )
+		{
+			PrintUserCmdText(client, L"ERR Can only change vulnerability windows once every %u days, %u days left", vulnerability_window_change_cooldown / (3600 * 24), 1 + ((base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown - currTime) / (3600 * 24)));
+			return;
+		}
+
+		int param1 = ToInt(GetParam(cmd, ' ', 2));
+		int param2 = ToInt(GetParam(cmd, ' ', 3));
+		if (param1 < 0 || param1 > 23
+			|| (!single_vulnerability_window && (param2 < 0 || param2 > 23)))
+		{
+			PrintUserCmdText(client, L"ERR Vulnerability windows can only be set to full hour values between 0 and 23");
+			return;
+		}
+
+		int vulnerabilityWindowOneStart = param1 * 60; // minutes
+		int vulnerabilityWindowOneEnd = (vulnerabilityWindowOneStart + vulnerability_window_length) % (60 * 24); // 
+
+		int vulnerabilityWindowTwoStart = param2 * 60;
+		int vulnerabilityWindowTwoEnd = vulnerabilityWindowTwoStart + vulnerability_window_length % (60 * 24);
+
+		if (single_vulnerability_window)
+		{
+			base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+			base->lastVulnerabilityWindowChange = currTime;
+			PrintUserCmdText(client, L"OK Vulnerability window set.");
+			return;
+		}
+
+		if ((vulnerabilityWindowOneStart < vulnerabilityWindowTwoStart && abs(vulnerabilityWindowOneEnd - vulnerabilityWindowTwoStart) < vulnerability_window_minimal_spread)
+			|| (vulnerabilityWindowOneStart > vulnerabilityWindowTwoStart && abs(vulnerabilityWindowOneStart - vulnerabilityWindowTwoEnd) < vulnerability_window_minimal_spread))
+		{
+			PrintUserCmdText(client, L"ERR Vulnerability windows must be at least %u hours apart!", vulnerability_window_minimal_spread / 60);
+			return;
+		}
+
+		base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+		if (!single_vulnerability_window)
+		{
+			base->vulnerabilityWindow2 = { vulnerabilityWindowTwoStart, vulnerabilityWindowTwoEnd };
+		}
+		base->lastVulnerabilityWindowChange = currTime;
+
+		PrintUserCmdText(client, L"OK Vulnerability window set.");
+	}
+
+	void BaseCheckVulnerabilityWindow(uint client)
+	{
+		uint ship;
+		pub::Player::GetShip(client, ship);
+
+		if (!ship)
+		{
+			PrintUserCmdText(client, L"ERR not in space!");
+			return;
+		}
+
+		uint target;
+		pub::SpaceObj::GetTarget(ship, target);
+
+		if (!target)
+		{
+			PrintUserCmdText(client, L"ERR no base targeted");
+			return;
+		}
+
+		PlayerBase* pb = GetPlayerBase(target);
+
+		if (!pb)
+		{
+			PrintUserCmdText(client, L"ERR no base targeted");
+			return;
+		}
+
+		if (single_vulnerability_window)
+		{
+			PrintUserCmdText(client, L"This base has its vulnerability window starting at %u:00", pb->vulnerabilityWindow1.start / 60);
+		}
+		else
+		{
+			PrintUserCmdText(client, L"This base has its vulnerability windows starting at %u:00 and %u:00", pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow2.start / 60);
+		}
 	}
 }

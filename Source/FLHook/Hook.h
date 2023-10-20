@@ -62,7 +62,6 @@
 #define ADDR_COMMON_VFTABLE_MUNITION 0x139CE8
 #define ADDR_COMMON_VFTABLE_ENGINE 0x139AAC
 
-
 #define HK_GET_CLIENTID(a, b) \
 	bool bIdString = false; \
 	if(b.find(L"id ") == 0) bIdString = true; \
@@ -150,6 +149,7 @@ struct PLUGIN_SORTCRIT {
 
 #define CALL_PLUGINS(callback_id,ret_type,calling_convention,arg_types,args) \
 { \
+	auto timeStart = std::chrono::high_resolution_clock::now();\
 	ret_type vPluginRet; \
 	bool bPluginReturn = false; \
 	g_bPlugin_nofunctioncall = false; \
@@ -160,9 +160,13 @@ struct PLUGIN_SORTCRIT {
 			if(itplugin->pFunc) { \
 				CTimer timer(itplugin->sPluginFunction,set_iTimerThreshold); \
 				timer.start(); \
+				auto timeHookStart = std::chrono::high_resolution_clock::now();\
 				try { \
 					vPluginRet = ((ret_type (calling_convention*) arg_types )itplugin->pFunc) args; \
 				} catch(...) { AddLog("ERROR: Exception in plugin '%s' in %s", itplugin->sName.c_str(), __FUNCTION__); LOG_EXCEPTION } \
+				if(set_hookPerfTimerLength && set_perfTimedHookName == __FUNCTION__) \
+					{auto timeHookStart = std::chrono::high_resolution_clock::now(); \
+					AddPerfTimer("%s %s %u", __FUNCTION__, itplugin->sName.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(timeHookStart - timeHookStart).count());}\
 				timer.stop(); \
 			} else  \
 				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
@@ -175,6 +179,8 @@ struct PLUGIN_SORTCRIT {
 			} else if(*itplugin->ePluginReturnCode == SKIPPLUGINS) \
 				break; \
 		} \
+		auto timeEnd = std::chrono::high_resolution_clock::now();\
+		if(set_logPerfTimers) AddPerfTimer("%s %u", __FUNCTION__, std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeStart).count()); \
 	} catch(...) { AddLog("ERROR: Exception %s", __FUNCTION__); LOG_EXCEPTION } \
 	if(bPluginReturn) \
 		return vPluginRet; \
@@ -185,6 +191,7 @@ struct PLUGIN_SORTCRIT {
 { \
 	bool bPluginReturn = false; \
 	g_bPlugin_nofunctioncall = false; \
+	auto timeStart = std::chrono::high_resolution_clock::now();\
 	try { \
 		foreach(pPluginHooks[(int)callback_id],PLUGIN_HOOKDATA, itplugin) { \
 			if(itplugin->bPaused) \
@@ -192,9 +199,13 @@ struct PLUGIN_SORTCRIT {
 			if(itplugin->pFunc) { \
 				CTimer timer(itplugin->sPluginFunction,set_iTimerThreshold); \
 				timer.start(); \
+				auto timeHookStart = std::chrono::high_resolution_clock::now();\
 				try { \
 					((void (calling_convention*) arg_types )itplugin->pFunc) args; \
 				} catch(...) { AddLog("ERROR: Exception in plugin '%s' in %s", itplugin->sName.c_str(), __FUNCTION__); LOG_EXCEPTION } \
+				if(set_hookPerfTimerLength && set_perfTimedHookName == __FUNCTION__) \
+					{auto timeHookStart = std::chrono::high_resolution_clock::now(); \
+					AddPerfTimer("%s %s %u", __FUNCTION__, itplugin->sName.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(timeHookStart - timeHookStart).count());}\
 				timer.stop(); \
 			} else  \
 				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
@@ -207,6 +218,8 @@ struct PLUGIN_SORTCRIT {
 			} else if(*itplugin->ePluginReturnCode == SKIPPLUGINS) \
 				break; \
 		} \
+		auto timeEnd = std::chrono::high_resolution_clock::now();\
+		if(set_logPerfTimers) AddPerfTimer("%s %u", __FUNCTION__, std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeStart).count()); \
 	} catch(...) { AddLog("ERROR: Exception %s", __FUNCTION__); LOG_EXCEPTION } \
 	if(bPluginReturn) \
 		return; \
@@ -216,6 +229,7 @@ struct PLUGIN_SORTCRIT {
 #define CALL_PLUGINS_NORET(callback_id,calling_convention,arg_types,args) \
 { \
 	g_bPlugin_nofunctioncall = false; \
+	auto timeStart = std::chrono::high_resolution_clock::now();\
 	try { \
 		foreach(pPluginHooks[(int)callback_id],PLUGIN_HOOKDATA, itplugin) { \
 			if(itplugin->bPaused) \
@@ -223,9 +237,13 @@ struct PLUGIN_SORTCRIT {
 			if(itplugin->pFunc) { \
 				CTimer timer(itplugin->sPluginFunction,set_iTimerThreshold); \
 				timer.start(); \
+				auto timeHookStart = std::chrono::high_resolution_clock::now();\
 				try { \
 					((void (calling_convention*) arg_types )itplugin->pFunc) args; \
 				} catch(...) { AddLog("ERROR: Exception in plugin '%s' in %s", itplugin->sName.c_str(), __FUNCTION__); LOG_EXCEPTION } \
+				if(set_hookPerfTimerLength && set_perfTimedHookName == __FUNCTION__) \
+					{auto timeHookStart = std::chrono::high_resolution_clock::now(); \
+					AddPerfTimer("%s %s %u", __FUNCTION__, itplugin->sName.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(timeHookStart - timeHookStart).count());}\
 				timer.stop(); \
 			} else  \
 				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
@@ -238,6 +256,8 @@ struct PLUGIN_SORTCRIT {
 			} else if(*itplugin->ePluginReturnCode == SKIPPLUGINS) \
 				break; \
 		} \
+		auto timeEnd = std::chrono::high_resolution_clock::now();\
+		if(set_logPerfTimers) AddPerfTimer("%s %u", __FUNCTION__, std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeStart).count()); \
 	} catch(...) { AddLog("ERROR: Exception %s", __FUNCTION__); LOG_EXCEPTION } \
 } \
 

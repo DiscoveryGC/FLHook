@@ -129,6 +129,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 void LoadSettings()
 {
+
+	returncode = DEFAULT_RETURNCODE;
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
 	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
@@ -260,6 +262,7 @@ void LoadSettings()
 
 void ClearClientInfo(uint iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	mapClientsCloak.erase(iClientID);
 	setJumpingClients.erase(iClientID);
 }
@@ -375,6 +378,7 @@ void InitCloakInfo(uint client, uint distance)
 
 void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
 		if (mapCloakDisruptors.find(item->iArchID) != mapCloakDisruptors.end())
@@ -442,12 +446,14 @@ void PlayerLaunch_AFTER(unsigned int iShip, unsigned int iClientID)
 
 void BaseEnter(unsigned int iBaseID, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	mapClientsCloak.erase(iClientID);
 	mapClientsCD.erase(iClientID);
 }
 
 void HkTimerCheckKick()
 {
+	returncode = DEFAULT_RETURNCODE;
 	mstime now = timeInMS();
 	uint curr_time = (uint)time(0);
 
@@ -938,13 +944,13 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	returncode = DEFAULT_RETURNCODE;
 	if (msg == CUSTOM_CLOAK_ALERT)
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		returncode = SKIPPLUGINS;
 		CUSTOM_CLOAK_ALERT_STRUCT* info = reinterpret_cast<CUSTOM_CLOAK_ALERT_STRUCT*>(data);
 		CloakAlert(info);
 	}
 	else if (msg == CUSTOM_CLOAK_CHECK)
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		returncode = SKIPPLUGINS;
 		CUSTOM_CLOAK_CHECK_STRUCT* info = reinterpret_cast<CUSTOM_CLOAK_CHECK_STRUCT*>(data);
 		auto cloakState = mapClientsCloak[info->clientId].iState;
 		if (cloakState == STATE_CLOAK_CHARGING || cloakState == STATE_CLOAK_ON)

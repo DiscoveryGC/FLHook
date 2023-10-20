@@ -57,13 +57,13 @@ map<uint, uint> construction_items;
 int construction_credit_cost = 0;
 
 /// list of items and quantity used to repair 10000 units of damage
-list<REPAIR_ITEM> set_base_repair_items;
+vector<REPAIR_ITEM> set_base_repair_items;
 
 /// list of items used by human crew
 vector<uint> set_base_crew_consumption_items;
 vector<uint> set_base_crew_food_items;
 
-uint set_crew_check_frequency = 43200;
+uint set_crew_check_frequency = 60 * 60 * 12; // 12 hours
 
 /// The commodity used as crew for the base
 uint set_base_crew_type;
@@ -78,13 +78,12 @@ unordered_map<uint, RECIPE> recipeMap;
 unordered_map<uint, string> blueprintMap;
 
 /// Maps of shortcut numbers to recipes to construct item.
-map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
-map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
-map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
-map<wstring, RECIPE> moduleNameRecipeMap;
-map<uint, RECIPE> moduleNumberRecipeMap;
-map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
-set<wstring> buildingCraftLists;
+unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+unordered_map<wstring, RECIPE> moduleNameRecipeMap;
+unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+unordered_set<wstring> buildingCraftLists;
 unordered_map<uint, RECIPE> blueprintRecipeMap;
 
 void AddFactoryRecipeToMaps(const RECIPE& recipe);
@@ -92,6 +91,9 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 
 /// Map of space obj IDs to base modules to speed up damage algorithms.
 unordered_map<uint, Module*> spaceobj_modules;
+
+/// Map of core upgrade recipes
+unordered_map<uint, uint> core_upgrade_recipes;
 
 /// Path to shield status html page
 string set_status_path_html;
@@ -101,10 +103,6 @@ string set_status_path_json;
 
 /// Damage to the base every tick
 uint set_damage_per_tick = 600;
-
-/// Damage multiplier for damaged/abandoned stations
-/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
 
 /// Additional damage penalty for stations without proper crew
 float no_crew_damage_multiplier = 1;
@@ -123,19 +121,22 @@ uint repair_per_repair_cycle = 60000;
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
 // threshold size is to be configured per core level.
-map<int, float> shield_reinforcement_threshold_map;
+unordered_map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
+int vulnerability_window_length = 120; // 2 hours
+
+int vulnerability_window_change_cooldown = 3600 * 24 * 30; // 30 days
+
+int vulnerability_window_minimal_spread = 60 * 8; // 8 hours
+
+bool single_vulnerability_window = false;
+
 const uint shield_fuse = CreateID("player_base_shield");
 
-// decides if bases are globally immune, based on server time
-bool isGlobalBaseInvulnerabilityActive;
-
-list<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
-
 /// List of commodities forbidden to store on POBs
-set<uint> forbidden_player_base_commodity_set;
+unordered_set<uint> forbidden_player_base_commodity_set;
 
 // If true, use the new solar based defense platform spawn 	 	
 bool set_new_spawn = true;
@@ -425,6 +426,7 @@ wstring HtmlEncode(wstring text)
 /// Clear client info when a client connects.
 void ClearClientInfo(uint client)
 {
+	returncode = DEFAULT_RETURNCODE;
 	clients.erase(client);
 }
 
@@ -437,6 +439,15 @@ void LoadSettings()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void ValidateItem(const char* goodName)
+{
+	const GoodInfo* gi = GoodList_get()->find_by_name(goodName);
+	if (!gi)
+	{
+		ConPrint(L"\n\nBASE ERROR Invalid good found in config: %ls\n\n", stows((string)goodName).c_str());
+	}
+}
 
 /// Load the configuration
 void LoadSettingsActual()
@@ -469,7 +480,6 @@ void LoadSettingsActual()
 	recipeCraftTypeNameMap.clear();
 	factoryNicknameToCraftTypeMap.clear();
 	moduleNameRecipeMap.clear();
-	moduleNumberRecipeMap.clear();
 	craftListNumberModuleMap.clear();
 	humanCargoList.clear();
 
@@ -517,14 +527,6 @@ void LoadSettingsActual()
 					{
 						set_damage_per_tick = ini.get_value_int(0);
 					}
-					else if (ini.is_value("damage_multiplier"))
-					{
-						WEAR_N_TEAR_MODIFIER mod;
-						mod.fromHP = ini.get_value_float(0);
-						mod.toHP = ini.get_value_float(1);
-						mod.modifier = ini.get_value_float(2);
-						wear_n_tear_mod_list.emplace_back(mod);
-					}
 					else if (ini.is_value("no_crew_damage_multiplier"))
 					{
 						no_crew_damage_multiplier = ini.get_value_float(0);
@@ -553,12 +555,13 @@ void LoadSettingsActual()
 					{
 						base_shield_strength = ini.get_value_float(0);
 					}
-					else if (ini.is_value("base_vulnerability_window"))
+					else if (ini.is_value("base_vulnerability_window_length"))
 					{
-						BASE_VULNERABILITY_WINDOW damageWindow;
-						damageWindow.start = ini.get_value_int(0);
-						damageWindow.end = ini.get_value_int(1);
-						baseVulnerabilityWindows.emplace_back(damageWindow);
+						vulnerability_window_length = ini.get_value_int(0);
+					}
+					else if (ini.is_value("single_vulnerability_window"))
+					{
+						single_vulnerability_window = ini.get_value_bool(0);
 					}
 					else if (ini.is_value("construction_shiparch"))
 					{
@@ -566,6 +569,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("construction_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						uint quantity = ini.get_value_int(1);
 						construction_items[good] = quantity;
@@ -576,15 +580,18 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						set_base_crew_type = CreateID(ini.get_value_string(0));
 						humanCargoList.insert(set_base_crew_type);
 					}
 					else if (ini.is_value("human_cargo_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						humanCargoList.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("base_repair_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						REPAIR_ITEM item;
 						item.good = CreateID(ini.get_value_string(0));
 						item.quantity = ini.get_value_int(1);
@@ -592,11 +599,13 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_consumption_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_consumption_items.emplace_back(good);
 					}
 					else if (ini.is_value("base_crew_food_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_food_items.emplace_back(good);
 					}
@@ -690,6 +699,14 @@ void LoadSettingsActual()
 					{
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
 					}
+					else if (ini.is_value("vulnerability_window_change_cooldown"))
+					{
+						vulnerability_window_change_cooldown = 3600 * 24 * ini.get_value_int(0);
+					}
+					else if (ini.is_value("core_recipe"))
+					{
+						core_upgrade_recipes[ini.get_value_int(0)] = CreateID(ini.get_value_string(1));
+					}
 				}
 			}
 		}
@@ -743,6 +760,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("reqlevel"))
@@ -772,6 +790,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("produced_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.produced_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("loop_production"))
@@ -800,10 +819,12 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("catalyst"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint cargoHash = CreateID(ini.get_value_string(0));
 						if (humanCargoList.count(cargoHash))
 						{
@@ -1029,15 +1050,14 @@ void HkTimerCheckKick()
 		load_settings_required = false;
 		LoadSettingsActual();
 	}
-
 	uint curr_time = (uint)time(0);
-	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
 	for(auto& iter : player_bases)
 	{
 		PlayerBase *base = iter.second;
 		base->Timer(curr_time);
+		counter++;
 	}
-	if (!player_bases.empty() && !set_holiday_mode)
+	if (!player_bases.empty())
 	{
 		if (baseSaveIterator == player_bases.end())
 		{
@@ -1056,30 +1076,29 @@ void HkTimerCheckKick()
 		}
 	}
 
-	//fix custom jump solars not being dockable
-	for (uint customSolar : customSolarList)
+	if (curr_time % 8 == 0)
 	{
-		uint type;
-		pub::SpaceObj::GetType(customSolar, type);
-		if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+		//fix custom jump solars not being dockable
+		for (uint customSolar : customSolarList)
 		{
-			pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			uint type;
+			pub::SpaceObj::GetType(customSolar, type);
+			if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+			{
+				pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			}
 		}
 	}
-
-	if (ExportType == 0 || ExportType == 2)
+	if ((curr_time % 60) == 0)
 	{
 		// Write status to an html formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_html.size() > 0)
+		if ((ExportType == 0 || ExportType == 2) && set_status_path_html.size() > 0)
 		{
 			ExportData::ToHTML();
 		}
-	}
 
-	if (ExportType == 1 || ExportType == 2)
-	{
 		// Write status to a json formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_json.size() > 0)
+		if ((ExportType == 1 || ExportType == 2) && set_status_path_json.size() > 0)
 		{
 			ExportData::ToJSON();
 		}
@@ -1489,6 +1508,18 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseSwapModule(client, args);
 		return true;
 	}
+	else if (args.find(L"/base setshield") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseSetVulnerabilityWindow(client, args);
+		return true;
+	}
+	else if (args.find(L"/vuln") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseCheckVulnerabilityWindow(client);
+		return true;
+	}
 	else if (args.find(L"/base") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1839,11 +1870,16 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
+
+	system_match = true;
+	player_launch_base = 0;
+
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 
 	if (!clients[client].last_player_base)
 		return;
+
 
 	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
 	mobileCheck.iClientID = client;
@@ -2314,13 +2350,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	{
 		return;
 	}
-	
-	if (set_holiday_mode)
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		iDmgToSpaceID = 0;
-		return;
-	}
 
 	// If this is an NPC hit then suppress the call completely
 	if (!dmg->is_inflictor_a_player())
@@ -2349,7 +2378,18 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 			ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
 		return;
 	}
-
+	if (curr - newHealth > 1500000)
+	{
+		CoreModule* coreModule = dynamic_cast<CoreModule*>(damagedModule);
+		if (coreModule)
+		{
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			uint clientID = HkGetClientIDByShip(dmg->get_inflictor_id());
+			const wchar_t* playerName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(clientID));
+			AddLog("%s dealt impossible damage to base %s: %0.0f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
+			return;
+		}
+	}
 	// This call is for us, skip all plugins.
 	iDmgToSpaceID = 0;
 	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
@@ -2519,7 +2559,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
-			if (i.second->basename == cmd->ArgStrToEnd(1))
+			if (i.second->basename == cmd->ArgStrToEnd(1) || stows(i.second->nickname) == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
 				billythecat = 1;
@@ -2540,6 +2580,92 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		}
 
 		//cmd->Print(L"OK Base is gone are you proud of yourself.");
+		return true;
+	}
+	else if (args.find(L"basedespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		int billythecat = 0;
+		PlayerBase* base;
+		for (auto& i : player_bases)
+		{
+			if (i.second->basename == cmd->ArgStrToEnd(1) || stows(i.second->nickname) == cmd->ArgStrToEnd(1))
+			{
+				base = i.second;
+				billythecat = 1;
+			}
+		}
+
+		if (billythecat == 0)
+		{
+			cmd->Print(L"ERR Base doesn't exist lmao\n");
+			return true;
+		}
+
+		base->base_health = 0;
+		if (base->base_health < 1)
+		{
+			cmd->Print(L"Base despawned\n");
+			CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
+		}
+
+		return true;
+	}
+	else if (args.find(L"baserespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+
+		// Create base account dir if it doesn't exist
+		string basedir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)";
+
+		wstring baseName = cmd->ArgStrToEnd(1);
+
+		// Load and spawn all bases
+		string path = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)" + wstos(baseName) + ".ini";
+
+		WIN32_FIND_DATA findfile;
+		HANDLE h = FindFirstFile(path.c_str(), &findfile);
+		if (h == INVALID_HANDLE_VALUE)
+		{
+			cmd->Print(L"ERR Base file not found\n");
+			return true;
+		}
+
+		uint baseNickname = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
+
+		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0)
+		{
+			cmd->Print(L"ERR Base already spwawned!\n");
+			return true;
+		}
+
+		PlayerBase* base = new PlayerBase(path);
+
+		FindClose(h);
+		if (base && !base->nickname.empty())
+		{
+			player_bases[base->base] = base;
+			base->Spawn();
+			cmd->Print(L"Base respawned!\n");
+		}
+		else
+		{
+			cmd->Print(L"ERROR POB file corrupted: %ls\n", stows(path).c_str());
+		}
+
+
 		return true;
 	}
 	else if (args.find(L"basetogglegod") == 0)
@@ -2921,13 +3047,34 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 				ConPrint(L" - %ls\n", base.second->basename.c_str());
 			}
 		}
+		return true;
 	}
+	else if (args.find(L"baselogin") == 0)
+	{
+		RIGHT_CHECK(RIGHT_SUPERADMIN);
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		if (client == -1)
+		{
+			ConPrint(L"Only usable ingame\n");
+			return true;
+		}
 
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (base)
+		{
+			clients[client].admin = true;
+			clients[client].admin = true;
+		}
+
+		PrintUserCmdText(client, L"Logged in as admin");
+		return true;
+	}
 	return false;
 }
 
 void DelayedDisconnect(uint clientId, uint shipId)
 {
+	returncode = DEFAULT_RETURNCODE;
 	HyperJump::CheckForUnchartedDisconnect(clientId, shipId);
 }
 
@@ -3058,9 +3205,11 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
-	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
-	craftListNumberModuleMap[build_type][recipe_number] = recipe;
-	buildingCraftLists.insert(build_type);
+	if (!build_type.empty())
+	{
+		craftListNumberModuleMap[build_type][recipe_number] = recipe;
+		buildingCraftLists.insert(build_type);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3118,38 +3267,4 @@ void ResetAllBasesShieldStrength()
 		i.second->shield_strength_multiplier = base_shield_strength;
 		i.second->damage_taken_since_last_threshold = 0;
 	}
-}
-
-//return value:
-// false = all bases vulnerable, true = invulnerable
-bool checkBaseVulnerabilityStatus()
-{
-
-	if (baseVulnerabilityWindows.empty())
-	{
-		return false;
-	}
-
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	uint currHour = t->tm_hour;
-	// iterate over configured vulnerability periods to check if we're in one.
-	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
-	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
-	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i)
-	{
-		if((i->start < i->end 
-			&& i->start <= currHour && i->end > currHour)
-		|| (i->start > i->end
-			&& (i->start <= currHour || i->end > currHour)))
-		{
-			// if bases are going vulnerable in this tick, reset their damage resistance to default
-			if (isGlobalBaseInvulnerabilityActive)
-			{
-				ResetAllBasesShieldStrength();
-			}
-			return false;
-		}
-	}
-	return true;
 }

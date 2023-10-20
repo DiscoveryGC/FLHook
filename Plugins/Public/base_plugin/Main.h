@@ -50,8 +50,8 @@ struct RECIPE
 };
 
 struct BASE_VULNERABILITY_WINDOW {
-	uint start;
-	uint end;
+	int start;
+	int end;
 };
 
 struct WEAR_N_TEAR_MODIFIER {
@@ -163,10 +163,10 @@ public:
 
 	bool Timer(uint time);
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
-	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true);
+	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true, bool broadcastDeath = true);
 	void SetReputation(int player_rep, float attitude);
 	float FindWearNTearModifier(float currHpPercentage);
-	void SetShieldState(const int shieldState);
+	void EnableShieldFuse(bool shieldState);
 
 	void RepairDamage(float max_base_health);
 };
@@ -313,6 +313,9 @@ public:
 	void SyncReputationForBaseObject(uint space_obj);
 
 	void SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
+	void CheckVulnerabilityWindow(uint currTime);
+
+	bool isFreshlyBuilt;
 
 	// The base nickname
 	string nickname;
@@ -426,21 +429,23 @@ public:
 	unordered_set<uint> available_blueprints;
 
 	// The state of the shield
-	static const int SHIELD_STATE_ONLINE = 0;
-	static const int SHIELD_STATE_ACTIVE = 1;
-	int shield_state;
+	bool isShieldOn;
 
 	// The number of seconds that shield will be active
-	uint shield_timeout;
-
-	// When this timer drops to less than 0 the base is saved	 
-	int save_timer;
+	int shield_timeout;
 
 	int logic;
 	int invulnerable;
 
 	//last player attacker
 	wstring last_attacker;
+
+	uint lastVulnerabilityWindowChange = 0;
+
+	BASE_VULNERABILITY_WINDOW vulnerabilityWindow1 = { 0, 0 };
+	BASE_VULNERABILITY_WINDOW vulnerabilityWindow2 = { 0, 0 };
+
+	bool vulnerableWindowStatus = false;
 
 	////////////Unique to Solars/////////////
 
@@ -571,6 +576,8 @@ namespace PlayerCommands
 	void BaseSwapModule(uint client, const wstring& args);
 	void GetNecessitiesStatus(uint client, const wstring& args);
 	bool CheckSolarDistances(uint client, uint systemID, Vector pos);
+	void BaseSetVulnerabilityWindow(uint client, const wstring& args);
+	void BaseCheckVulnerabilityWindow(uint client);
 
 	void BaseDeploy(uint client, const wstring& args);
 
@@ -594,6 +601,8 @@ namespace CreateSolar
 extern unordered_map<uint, CLIENT_DATA> clients;
 
 extern unordered_map<uint, Module*> spaceobj_modules;
+
+extern unordered_map<uint, uint> core_upgrade_recipes;
 
 // Map of ingame hash to info
 extern unordered_map<uint, class PlayerBase*> player_bases;
@@ -620,13 +629,12 @@ extern int set_plugin_debug;
 extern unordered_map<uint, RECIPE> recipeMap;
 extern unordered_map<uint, string> blueprintMap;
 /// Maps of shortcut numbers to recipes to construct item.
-extern map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
-extern map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
-extern map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
-extern map<wstring, RECIPE> moduleNameRecipeMap;
-extern map<uint, RECIPE> moduleNumberRecipeMap;
-extern map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
-extern set<wstring> buildingCraftLists;
+extern unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+extern unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+extern unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+extern unordered_map<wstring, RECIPE> moduleNameRecipeMap;
+extern unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+extern unordered_set<wstring> buildingCraftLists;
 extern unordered_map<uint, RECIPE> blueprintRecipeMap;
 
 struct REPAIR_ITEM
@@ -634,7 +642,7 @@ struct REPAIR_ITEM
 	uint good;
 	uint quantity;
 };
-extern list<REPAIR_ITEM> set_base_repair_items;
+extern vector<REPAIR_ITEM> set_base_repair_items;
 
 extern uint set_base_crew_type;
 
@@ -679,10 +687,6 @@ extern uint set_damage_per_10sec;
 /// Damage to the base every tick
 extern uint set_damage_per_tick;
 
-/// Damage multiplier for damaged/abandoned stations
-/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-extern vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
-
 /// Additional damage penalty for stations without proper crew
 extern float no_crew_damage_multiplier;
 
@@ -699,15 +703,19 @@ extern uint set_tick_time;
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
 // threshold size is to be configured per core level.
-extern map<int, float> shield_reinforcement_threshold_map;
+extern unordered_map<int, float> shield_reinforcement_threshold_map;
 extern float shield_reinforcement_increment;
 extern float base_shield_strength;
 
 extern const uint shield_fuse;
 
-extern bool isGlobalBaseInvulnerabilityActive;
+extern int vulnerability_window_length;
 
-bool checkBaseVulnerabilityStatus();
+extern int vulnerability_window_change_cooldown;
+
+extern int vulnerability_window_minimal_spread;
+
+extern bool single_vulnerability_window;
 
 /// Holiday mode
 extern bool set_holiday_mode;

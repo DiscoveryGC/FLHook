@@ -158,10 +158,11 @@ bool BuildModule::Timer(uint time)
 					base->SetupDefaults();
 
 					// Clear the build module slot.
-					base->modules[i] = 0;
+					base->modules[i] = nullptr;
 
 					// Delete and respawn the old core module
 					delete base->modules[0];
+
 					base->modules[0] = new CoreModule(base);
 					base->modules[0]->Spawn();
 
@@ -206,7 +207,12 @@ void BuildModule::LoadState(INI_Reader& ini)
 	{
 		if (ini.is_value("build_type"))
 		{
-			active_recipe = moduleNumberRecipeMap[ini.get_value_int(0)];
+			uint nickname = CreateID(ini.get_value_string());
+			if (!recipeMap.count(nickname))
+			{
+				return;
+			}
+			active_recipe = recipeMap.at(nickname);
 			active_recipe.consumed_items.clear();
 			active_recipe.credit_cost = 0;
 		}
@@ -224,8 +230,7 @@ void BuildModule::LoadState(INI_Reader& ini)
 void BuildModule::SaveState(FILE* file)
 {
 	fprintf(file, "[BuildModule]\n");
-	fprintf(file, "build_type = %u\n", active_recipe.shortcut_number);
-	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
+	fprintf(file, "build_type = %s\n", active_recipe.nicknameString.c_str());
 	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{

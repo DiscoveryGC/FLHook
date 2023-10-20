@@ -189,7 +189,7 @@ void __stdcall AddDamageEntry(DamageList* damageList, ushort subObjId, float& ne
 		const auto& inflictor = damageList->iInflictorPlayerID;
 		if (inflictor && inflictor != iDmgTo)
 		{
-			damageArray[inflictor][iDmgTo].currDamage += g_LastHitPts - newHitPoints;
+			damageArray[iDmgTo][inflictor].currDamage += g_LastHitPts - newHitPoints;
 		}
 	}
 }
@@ -216,15 +216,17 @@ void ClearDamageDone(const uint inflictor, const bool isFullReset)
 	}
 }
 
-void ProcessNonPvPDeath(const wstring& message, const uint system)
+void ProcessNonPvPDeath(uint victimId, const wstring& message, const uint system)
 {
 	wstring deathMessage = L"<TRA data=\"0x0000CC01" // Red, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(message) + L"</TEXT>";
 
+	const CPlayerGroup* victimGroup = Players[victimId].PlayerGroup;
+
 	PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
-		if (pd->iSystemID == system)
+		if (pd->iSystemID == system || (victimGroup && pd->PlayerGroup == victimGroup))
 		{
 			HkFMsg(pd->iOnlineID, deathMessage);
 		}
@@ -275,7 +277,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
-		auto& damageData = damageArray[pd->iOnlineID][clientVictim];
+		auto& damageData = damageArray[clientVictim][pd->iOnlineID];
 		float damageToAdd = GetDamageDone(damageData);
 		
 		if (damageToAdd == 0.0f)
@@ -290,7 +292,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	if (totalDamageTaken == 0.0f)
 	{
 		ClearDamageTaken(clientVictim);
-		ProcessNonPvPDeath(message, system);
+		ProcessNonPvPDeath(clientVictim, message, system);
 		return;
 	}
 
@@ -331,6 +333,8 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		killerCounter++;
 	}
 
+	AddLog("Player Death: %s %s", wstos(deathMessage).c_str(), wstos(assistMessage).c_str());
+
 	deathMessage = L"<TRA data=\"" + killMsgStyle +
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
 	if (!assistMessage.empty())
@@ -351,7 +355,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	while (pd = Players.traverse_active(pd))
 	{
 		uint playerId = pd->iOnlineID;
-		if (GetDamageDone(damageArray[playerId][clientVictim]) != 0.0f)
+		if (GetDamageDone(damageArray[clientVictim][playerId]) != 0.0f)
 		{
 			HkFMsg(playerId, deathMessage);
 			if (!assistMessage.empty())
@@ -390,6 +394,13 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	}
 
 	ClearDamageTaken(clientVictim);
+}
+
+void __stdcall DelayedDisconnect(uint client)
+{
+	returncode = DEFAULT_RETURNCODE;
+	ClearDamageTaken(client);
+	ClearDamageDone(client, true);
 }
 
 void __stdcall Disconnect(uint client, enum EFLConnection conn)
@@ -440,6 +451,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddDamageEntry, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DelayedDisconnect, PLUGIN_DelayedDisconnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Disconnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));

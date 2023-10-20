@@ -225,6 +225,7 @@ namespace Message
 	void SetTarget(uint uClientID, struct XSetTarget const &p2);
 	bool SubmitChat(CHAT_ID cId, unsigned long p1, const void *rdl, CHAT_ID cIdTo, int p2);
 	bool HkCb_SendChat(uint iClientID, uint iTo, uint iSize, void *pRDL);
+	void DelayedDisconnect(uint client);
 
 	bool UserCmd_SetMsg(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_ShowMsgs(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);

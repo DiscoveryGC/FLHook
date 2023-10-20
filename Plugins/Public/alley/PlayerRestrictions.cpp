@@ -810,12 +810,10 @@ USERCMD UserCmds[] =
 	{ L"/racestart", AP::RacestartCmd, L"Usage: /racestart" },
 	{ L"/gift", GiftCmd, L"Usage: /gift amount"},
 	{ L"/gift*", GiftCmd, L"Usage: /gift amount"},
-	{ L"$help", AP::AlleyCmd_Help, L"Usage: $help"},
-	{ L"$help*", AP::AlleyCmd_Help, L"Usage: $help"},
-	{ L"$chase", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
-	{ L"$chase*", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
-	{ L"/marktarget",			UserCmd_MarkObjGroup, L"Usage: /marktarget"},
-	{ L"/marktarget*",			UserCmd_MarkObjGroup, L"Usage: /marktarget"},
+	{ L"/chase", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
+	{ L"/chase*", AP::AlleyCmd_Chase, L"Usage: $chase <charname>"},
+	{ L"/marktarget",	UserCmd_MarkObjGroup, L"Usage: /marktarget"},
+	{ L"/marktarget*",	UserCmd_MarkObjGroup, L"Usage: /marktarget"},
 	{ L"/jettisonall", UserCmd_JettisonAll, L"Usage: /jettisonall"},
 };
 
@@ -1250,6 +1248,7 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 
 void __stdcall PlayerLaunch_AFTER(unsigned int iShip, unsigned int client)
 {
+	returncode = DEFAULT_RETURNCODE;
 	//wstring wscIp = L"???";
 	//HkGetPlayerIP(client, wscIp);
 	//string scText = wstos(wscIp);
@@ -1357,43 +1356,6 @@ void __stdcall ReqSetCash(int cash, unsigned int iClientID)
 	}
 }
 
-
-void __stdcall ReqEquipment(class EquipDescList const &edl, unsigned int iClientID)
-{
-
-
-	//PrintUserCmdText(iClientID, L"Triggered on equipment unmount");
-	//PrintUserCmdText(iClientID, L"Triggered on equipment mount");
-	//returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-}
-
-void __stdcall ReqModifyItem(unsigned short iArchID, char const *Hardpoint, int count, float p4, bool bMounted, unsigned int iClientID)
-{
-	//PrintUserCmdText(iClientID, L"smaller poop");
-}
-
-void __stdcall ReqRemoveItem(unsigned short slot, int amount, unsigned int iClientID)
-{
-	/*
-	for (EquipDescListItem *item = Players[iClientID].equipDescList.pFirst->next;
-		item != Players[iClientID].equipDescList.pFirst; item = item->next)
-	{
-		if (item->equip.sID == slot)
-		{
-			if (string(item->equip.szHardPoint.value) == "BAY")
-			{
-				PrintUserCmdText(iClientID, L"Triggered on cargo sale");
-				PrintUserCmdText(iClientID, L"I like %d", item->equip.get_count());
-			}
-			else
-			{
-				PrintUserCmdText(iClientID, L"Triggered on equip sale");
-			}
-		}
-	}
-	*/
-}
-
 void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -1408,6 +1370,8 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned
 
 void HkTimerCheckKick()
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	uint curr_time = (uint)time(0);
 	ADOCK::Timer();
 
@@ -1457,9 +1421,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqAddItem, PLUGIN_HkIServerImpl_ReqAddItem, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqEquipment, PLUGIN_HkIServerImpl_ReqEquipment, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqModifyItem, PLUGIN_HkIServerImpl_ReqModifyItem, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect_AFTER, PLUGIN_HkIServerImpl_CharacterSelect_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SetVisitedState, PLUGIN_HkIServerImpl_SetVisitedState, 0));

@@ -114,9 +114,22 @@ void CoreModule::Spawn()
 		float current;
 		pub::SpaceObj::GetHealth(space_obj, current, base->max_base_health);
 		if (base->base_health <= 0)
-			base->base_health = base->max_base_health * 0.05f;
+		{
+			if (base->isFreshlyBuilt)
+			{
+				base->base_health = base->max_base_health * 0.05f;
+			}
+			else
+			{
+				AddLog("ERROR: Failed to load health for base %s: read health: %f, compare with today and yesterday backups.\n", wstos(base->basename).c_str(), base->base_health);
+				base->base_health = base->max_base_health;
+			}
+		}
 		else if (base->base_health > base->max_base_health)
+		{
 			base->base_health = base->max_base_health;
+		}
+		
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
 		if (shield_reinforcement_threshold_map.count(base->base_level))
@@ -193,7 +206,7 @@ void CoreModule::RepairDamage(float max_base_health)
 	}
 }
 
-void CoreModule::SetShieldState(const int shieldState)
+void CoreModule::EnableShieldFuse(bool shieldEnabled)
 {
 	if (space_obj)
 	{
@@ -202,7 +215,7 @@ void CoreModule::SetShieldState(const int shieldState)
 		if (GetShipInspect(space_obj, inspect, dummy))
 		{
 			HkUnLightFuse((IObjRW*)inspect, shield_fuse, 0);
-			if (base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE)
+			if (shieldEnabled)
 			{
 				HkLightFuse((IObjRW*)inspect, shield_fuse, 0.0f, 0.0f, 0.0f);
 			}
@@ -213,14 +226,32 @@ void CoreModule::SetShieldState(const int shieldState)
 bool CoreModule::Timer(uint time)
 {
 	// Disable shield if time elapsed
-	if (base->shield_timeout < time)
+	if (base->shield_timeout && base->shield_timeout < time)
 	{
 		base->shield_timeout = 0;
-		base->shield_state = PlayerBase::SHIELD_STATE_ONLINE;
-		SetShieldState(base->shield_state);
+		base->isShieldOn = false;
+		EnableShieldFuse(false);
+	}
+	
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	float rhealth = base->base_health / base->max_base_health;
+	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+
+	if (set_holiday_mode)
+	{
+		return false;
+	}
+	
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	if ((time % 5) == 0)
+	{
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 	}
 
-	if ((time % set_tick_time) != 0 || set_holiday_mode)
+	if ((time % set_tick_time) != 0)
 	{
 		return false;
 	}
@@ -230,10 +261,6 @@ bool CoreModule::Timer(uint time)
 		return false;
 	}
 
-	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
-	// this allows clients to perceive those objects as dockable
-	float rhealth = base->base_health / base->max_base_health;
-	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 
 	// if health is 0 then the object will be destroyed but we won't
 	// receive a notification of this so emulate it.
@@ -254,10 +281,9 @@ bool CoreModule::Timer(uint time)
 	if (!dont_rust && ((time % set_damage_tick_time) == 0))
 	{
 		float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
-		float wear_n_tear_modifier = FindWearNTearModifier(base->base_health / base->max_base_health);
 		// Reduce hitpoints to reflect wear and tear. This will eventually
 		// destroy the base unless it is able to repair itself.
-		float damage_taken = (set_damage_per_tick + (set_damage_per_tick * base->base_level)) * wear_n_tear_modifier * no_crew_penalty;
+		float damage_taken = (set_damage_per_tick + (set_damage_per_tick * base->base_level)) * no_crew_penalty;
 		base->base_health -= damage_taken;
 	}
 
@@ -342,9 +368,10 @@ bool CoreModule::Timer(uint time)
 
 float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
+
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
-	if (base->shield_strength_multiplier >= 1.0f || isGlobalBaseInvulnerabilityActive || base->invulnerable == 1)
+	if (!base->vulnerableWindowStatus || base->invulnerable == 1 || base->shield_strength_multiplier >= 1.0f)
 	{
 		// base invulnerable, keep current health value
 		return curr_hitpoints;
@@ -377,10 +404,11 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		base->shield_strength_multiplier += shield_reinforcement_increment;
 	}
 
+	base->base_health -= damageTaken;
 	return curr_hitpoints - damageTaken;
 }
 
-bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile)
+bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile, bool broadcastDeath)
 {
 	if (this->space_obj == space_obj)
 	{
@@ -399,7 +427,10 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile)
 		struct PlayerData* pd = 0;
 		while (pd = Players.traverse_active(pd))
 		{
-			PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
+			if (broadcastDeath)
+			{
+				PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
+			}
 			if (pd->iSystemID == base->system)
 			{
 				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(pd->iOnlineID);
@@ -443,7 +474,7 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 {
 	if (space_obj)
 	{
-		SetShieldState(base->shield_state);
+		EnableShieldFuse(base->isShieldOn);
 
 		int obj_rep;
 		pub::SpaceObj::GetRep(this->space_obj, obj_rep);
@@ -452,16 +483,4 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 				player_rep, obj_rep, attitude, base->base);
 		pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
 	}
-}
-
-float CoreModule::FindWearNTearModifier(float currHpPercentage)
-{
-	for (auto& i : wear_n_tear_mod_list)
-	{
-		if (i.fromHP < currHpPercentage && i.toHP >= currHpPercentage)
-		{
-			return i.modifier;
-		}
-	}
-	return 1.0;
 }

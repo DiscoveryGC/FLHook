@@ -1151,8 +1151,8 @@ namespace HyperJump
 						{
 							if (!CheckBeaconFuel(jd.targetClient, true))
 							{
-								PrintUserCmdText(jd.targetClient, L"ERR insufficient fuel!");
-								PrintUserCmdText(iClientID, L"ERR Beacon ship is out of fuel!");
+								PrintUserCmdText(jd.targetClient, L"ERR Insufficient batteries to power the matrix!");
+								PrintUserCmdText(iClientID, L"ERR Beacon ship has insufficient batteries!");
 								ShutdownJumpDrive(iClientID);
 								continue;
 							}
@@ -1253,7 +1253,7 @@ namespace HyperJump
 					if (!successfulCharge)
 					{
 						jd.charging_on = false;
-						PrintUserCmdText(iClientID, L"Jump drive charging failed");
+						PrintUserCmdText(iClientID, L"Jump drive charging failed, out of batteries.");
 						ShutdownJumpDrive(iClientID);
 						continue;
 					}

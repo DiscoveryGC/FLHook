@@ -350,6 +350,17 @@ namespace Message
 			wscMsg = ReplaceStr(wscMsg, L"#c", wscCurrLocation.c_str());
 		}
 
+		if (wscMsg.find(L"#r") != -1)
+		{
+			if (wscParam.length() == 0)
+			{
+				PrintUserCmdText(iClientID, L"ERR Missing replacement text");
+				return false;
+			}
+
+			wscMsg = ReplaceStr(wscMsg, L"#r", wscParam);
+		}
+
 		return true;
 	}
 

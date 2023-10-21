@@ -60,7 +60,7 @@ void __stdcall LoadSettings()
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	srand(time(nullptr));
+	srand((uint)time(nullptr));
 
 	for (auto& subArray : damageArray)
 	{
@@ -156,6 +156,52 @@ void UserCmd_Kills(const uint client, const wstring& wscParam)
 	PrintUserCmdText(client, L"PvP kills: %u", kills);
 }
 
+void UserCmd_SetDeathMsg(const uint client, const wstring& wscParam)
+{
+	wstring param = ToLower(GetParam(wscParam, ' ', 1));
+	if (param.empty())
+	{
+		PrintUserCmdText(client, L"Usage: /set diemsg All|AllNoConn|System|Self|None");
+	}
+
+	DIEMSGTYPE dieMsg;
+	if (param == L"all")
+	{
+		dieMsg = DIEMSG_ALL;
+	}
+	else if (param == L"allnoconn")
+	{
+		dieMsg = DIEMSG_ALL_NOCONN;
+	}
+	else if (param == L"self")
+	{
+		dieMsg = DIEMSG_SELF;
+	}
+	else if (param == L"system")
+	{
+		dieMsg = DIEMSG_SYSTEM;
+	}
+	else if (param == L"none")
+	{
+		dieMsg = DIEMSG_NONE;
+	}
+	else
+	{
+		PrintUserCmdText(client, L"Usage: /set diemsg All|AllNoConn|Group|System|Self|None");
+		return;
+	}
+	
+	ClientInfo[client].dieMsg = dieMsg;
+	string scUserFile;
+	CAccount* acc = Players.FindAccountFromClientID(client);
+	wstring wscDir; HkGetAccountDirName(acc, wscDir);
+	scUserFile = scAcctPath + wstos(wscDir) + "\\flhookuser.ini";
+
+	IniWrite(scUserFile, "settings", "DieMsg", itos(dieMsg));
+
+	PrintUserCmdText(client, L"OK");
+}
+
 /** @ingroup KillTracker
  * @brief Hook on ShipDestroyed. Increments the number of kills of a player if there is one.
  */
@@ -216,19 +262,110 @@ void ClearDamageDone(const uint inflictor, const bool isFullReset)
 	}
 }
 
-void ProcessNonPvPDeath(uint victimId, const wstring& message, const uint system)
+void inline sendMsg(uint clientId, const wstring* message1, const wstring* message2, bool isPvP)
 {
-	wstring deathMessage = L"<TRA data=\"0x0000CC01" // Red, Bold
-		L"\" mask=\"-1\"/><TEXT>" + XMLText(message) + L"</TEXT>";
+
+}
+
+enum MessageType {
+	MSGNONE,
+	MSGBLUE,
+	MSGRED,
+	MSGDARKRED
+};
+
+MessageType inline getMessageType(const uint victimId, const PlayerData* pd, const uint system, bool isGroupInvolved)
+{
+	static const uint connID = CreateID("Li06");
+	DIEMSGTYPE dieMsg = ClientInfo[pd->iOnlineID].dieMsg;
+	if (dieMsg == DIEMSG_NONE)
+	{
+		return MSGNONE;
+	}
+	else if (isGroupInvolved)
+	{
+		return MSGBLUE;
+	}
+	else if (dieMsg == DIEMSG_SELF)
+	{
+		if (victimId == pd->iOnlineID)
+		{
+			return MSGBLUE;
+		}
+	}
+	else if (dieMsg == DIEMSG_SYSTEM)
+	{
+		if (pd->iSystemID == system)
+		{
+			return MSGRED;
+		}
+	}
+	else if (dieMsg == DIEMSG_ALL_NOCONN)
+	{
+		if (system == connID)
+		{
+			return MSGDARKRED;
+		}
+	}
+	else if (dieMsg == DIEMSG_ALL)
+	{
+		return MSGDARKRED;
+	}
+	return MSGNONE;
+}
+
+void ProcessDeath(uint victimId, const wstring* message1, const wstring* message2, const uint system, bool isPvP, set<CPlayerGroup*> involvedGroups)
+{
+	wstring deathMessageBlue1 = L"<TRA data=\"0xCC303001" // Blue, Bold
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message1) + L"</TEXT>";
+	wstring deathMessageBlue2 = L"<TRA data=\"0xCC303001" // Blue, Bold
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
+	wstring deathMessageRed1 = L"<TRA data=\"0x0000CC01" // Red, Bold
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message1) + L"</TEXT>";
+	wstring deathMessageRed2 = L"<TRA data=\"0x0000CC01" // Red, Bold
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
+	wstring deathMessageDarkRed = L"<TRA data=\"0x1919801" // Dark Red, Bold
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message1) + L"</TEXT>";
+
 
 	const CPlayerGroup* victimGroup = Players[victimId].PlayerGroup;
-
+	
 	PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
-		if (pd->iSystemID == system || (victimGroup && pd->PlayerGroup == victimGroup))
+		bool isInvolved = involvedGroups.count(pd->PlayerGroup);
+		MessageType msgType = getMessageType(victimId, pd, system, isInvolved);
+
+		if (msgType == MSGBLUE)
 		{
-			HkFMsg(pd->iOnlineID, deathMessage);
+			if (isPvP)
+			{
+				HkFMsg(pd->iOnlineID, deathMessageBlue1);
+				if (message2)
+				{
+					HkFMsg(pd->iOnlineID, deathMessageBlue2);
+				}
+			}
+			else
+			{
+				HkFMsg(pd->iOnlineID, deathMessageRed1);
+				if (message2)
+				{
+					HkFMsg(pd->iOnlineID, deathMessageRed2);
+				}
+			}
+		}
+		else if (msgType == MSGRED)
+		{
+			HkFMsg(pd->iOnlineID, deathMessageRed1);
+			if (message2)
+			{
+				HkFMsg(pd->iOnlineID, deathMessageRed2);
+			}
+		}
+		else if (msgType == MSGDARKRED)
+		{
+			HkFMsg(pd->iOnlineID, deathMessageDarkRed);
 		}
 	}
 }
@@ -271,7 +408,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 	returncode = NOFUNCTIONCALL;
 
 	map<float, uint> damageToInflictorMap; // damage is the key instead of value because keys are sorted, used to render top contributors in order
-	set<CPlayerGroup*> killerGroups;
+	set<CPlayerGroup*> involvedGroups;
 
 	float totalDamageTaken = 0.0f;
 	PlayerData* pd = nullptr;
@@ -280,19 +417,23 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		auto& damageData = damageArray[clientVictim][pd->iOnlineID];
 		float damageToAdd = GetDamageDone(damageData);
 		
+		if (pd->iOnlineID == clientVictim && pd->PlayerGroup)
+		{
+			involvedGroups.insert(pd->PlayerGroup);
+		}
 		if (damageToAdd == 0.0f)
 		{
 			continue;
 		}
 
 		damageToInflictorMap[damageToAdd] = pd->iOnlineID;
-		killerGroups.insert(pd->PlayerGroup);
+		involvedGroups.insert(pd->PlayerGroup);
 		totalDamageTaken += damageToAdd;
 	}
 	if (totalDamageTaken == 0.0f)
 	{
 		ClearDamageTaken(clientVictim);
-		ProcessNonPvPDeath(clientVictim, message, system);
+		ProcessDeath(clientVictim, &message, nullptr, system, false, involvedGroups);
 		return;
 	}
 
@@ -343,55 +484,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 			L"\" mask=\"-1\"/><TEXT>" + XMLText(assistMessage) + L"</TEXT>";
 	}
 
-	CPlayerGroup* victimGroup = Players[clientVictim].PlayerGroup;
-
-	uint systemId;
-	pub::Player::GetSystem(clientVictim, systemId);
-	Vector victimPos;
-	Matrix victimOri;
-	pub::SpaceObj::GetLocation(Players[clientVictim].iShipID, victimPos, victimOri);
-
-	pd = nullptr;
-	while (pd = Players.traverse_active(pd))
-	{
-		uint playerId = pd->iOnlineID;
-		if (GetDamageDone(damageArray[clientVictim][playerId]) != 0.0f)
-		{
-			HkFMsg(playerId, deathMessage);
-			if (!assistMessage.empty())
-			{
-				HkFMsg(playerId, assistMessage);
-			}
-			continue;
-		}
-		if (
-		(pd->PlayerGroup &&
-		  ((victimGroup && victimGroup == pd->PlayerGroup)
-		    || ( pd->PlayerGroup && killerGroups.count(pd->PlayerGroup))))
-		|| playerId == clientVictim)
-		{
-			HkFMsg(playerId, deathMessage);
-			if (!assistMessage.empty())
-			{
-				HkFMsg(playerId, assistMessage);
-			}
-			continue;
-		}
-		if (pd->iSystemID == systemId && Players[playerId].iShipID)
-		{
-			Vector pos;
-			Matrix ori;
-			pub::SpaceObj::GetLocation(Players[playerId].iShipID, pos, ori);
-			if (HkDistance3D(victimPos, pos) <= deathBroadcastRange)
-			{
-				HkFMsg(playerId, deathMessage);
-				if (!assistMessage.empty())
-				{
-					HkFMsg(playerId, assistMessage);
-				}
-			}
-		}
-	}
+	ProcessDeath(clientVictim, &deathMessage, &assistMessage, system, true, involvedGroups);
 
 	ClearDamageTaken(clientVictim);
 }
@@ -432,6 +525,11 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 	if (wscCmd.find(L"/kills") == 0)
 	{
 		UserCmd_Kills(client, wscCmd);
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+	}
+	else if (wscCmd.find(L"/set diemsg") == 0)
+	{
+		UserCmd_SetDeathMsg(client, wscCmd);
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	}
 	return true;

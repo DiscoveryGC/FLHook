@@ -334,13 +334,29 @@ namespace Message
 	{
 		if (wscMsg.find(L"#t") != -1)
 		{
-			if (clientData.uTargetClientID == -1)
+			wstring wscTargetName;
+			if (clientData.uTargetClientID != -1)
 			{
-				PrintUserCmdText(iClientID, L"ERR Target not available");
-				return false;
+				wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
+			}
+			else
+			{
+				uint iPlayerShip, iTargetID, iBaseID;
+				pub::Player::GetShip(iClientID, iPlayerShip);
+				pub::SpaceObj::GetTarget(iPlayerShip, iTargetID);
+				pub::SpaceObj::GetDockingTarget(iTargetID, iBaseID);
+				if (iBaseID)
+				{
+					Universe::IBase* base = Universe::get_base(iBaseID);
+					wscTargetName = HkGetWStringFromIDS(base->iBaseIDS);
+				}
+				else
+				{
+					PrintUserCmdText(iClientID, L"ERR Invalid target");
+					return false;
+				}
 			}
 
-			wstring wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#t", wscTargetName);
 		}
 

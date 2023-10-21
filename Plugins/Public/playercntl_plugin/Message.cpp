@@ -465,6 +465,19 @@ namespace Message
 		}
 	}
 
+	void Message::DelayedDisconnect(uint client)
+	{
+		map<uint, INFO>::iterator iter = mapInfo.begin();
+		while (iter != mapInfo.end())
+		{
+			if (iter->second.ulastPmClientID == client)
+				iter->second.ulastPmClientID = -1;
+			if (iter->second.uTargetClientID == client)
+				iter->second.uTargetClientID = -1;
+			++iter;
+		}
+	}
+
 	/// On client disconnect remove any references to this client.
 	void Message::DisConnect(uint iClientID, enum EFLConnection p2)
 	{

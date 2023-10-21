@@ -329,16 +329,20 @@ namespace Message
 	}
 
 	/** Replace #t and #c tags with current target name and current ship location.
+	Replace #r with all text after the preset invocation.
 	Return false if tags cannot be replaced. */
 	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, const wstring &wscParam, wstring &wscMsg)
 	{
 		if (wscMsg.find(L"#t") != -1)
 		{
 			wstring wscTargetName;
+			// If the player is targeting another player, use target's character name
 			if (clientData.uTargetClientID != -1)
 			{
 				wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
 			}
+			// If the player is targeting some other space object, use the name of
+			// the associated dockable, if possible
 			else
 			{
 				uint iPlayerShip, iTargetID, iBaseID;
@@ -347,11 +351,14 @@ namespace Message
 				pub::SpaceObj::GetDockingTarget(iTargetID, iBaseID);
 				if (iBaseID)
 				{
+					// Player is targeting a dockable space object
 					Universe::IBase* base = Universe::get_base(iBaseID);
 					wscTargetName = HkGetWStringFromIDS(base->iBaseIDS);
 				}
 				else
 				{
+					// Player is targeting a space object without a dockable
+					// (NPC ship, uninhabited planet, storage depot, etc.)
 					PrintUserCmdText(iClientID, L"ERR Invalid target");
 					return false;
 				}

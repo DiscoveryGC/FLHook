@@ -975,10 +975,11 @@ namespace Message
 			return true;
 		}
 
-		wstring wscMsg = GetParamToEnd(wscParam, ' ', 0);
+		wstring wscMsg;
+		wstring wscSlashCmdOnly = GetParam(wscCmd, ' ', 0);
 
-		// If this is a /tN command then setup the preset message
-		if (set_bSetMsg && wscCmd.size() == 3 && wscMsg.size() == 0)
+		// If this is a /tN command (size = 3) then setup the preset message
+		if (set_bSetMsg && wscSlashCmdOnly.size() == 3)
 		{
 			int iMsgSlot = ToInt(wscCmd.substr(2, 1));
 			if (iMsgSlot < 0 || iMsgSlot>9)
@@ -997,11 +998,16 @@ namespace Message
 			if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 				return true;
 		}
-		else if (wscMsg.size() == 0)
+		// If this is a /t or /target command then send message text directly
+		else
 		{
-			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
-			PrintUserCmdText(iClientID, usage);
-			return true;
+			wscMsg = GetParamToEnd(wscParam, ' ', 0);
+			if (wscMsg.size() == 0)
+			{
+				PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+				PrintUserCmdText(iClientID, usage);
+				return true;
+			}
 		}
 
 		if (iter->second.uTargetClientID == -1)

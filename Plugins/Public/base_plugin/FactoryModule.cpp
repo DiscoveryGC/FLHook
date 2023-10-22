@@ -182,21 +182,26 @@ bool FactoryModule::Timer(uint time)
 
 	for (auto& i : active_recipe.consumed_items)
 	{
-		uint good = i.first;
-		uint quantity = min(active_recipe.cooking_rate, i.second);
-		if (!quantity)
+		uint good = i->first;
+		uint quantity = min(active_recipe.cooking_rate, i->second);
+		auto market_item = base->market_items.find(good);
+		if (market_item == base->market_items.end()
+			|| market_item->second.quantity < quantity)
 		{
+			cooked = false;
 			continue;
 		}
-		cooked = false;
-		auto market_item = base->market_items.find(good);
-		if (market_item != base->market_items.end()
-			&& market_item->second.quantity >= quantity)
+		i->second -= quantity;
+		base->RemoveMarketGood(good, quantity);
+		if (!i->second)
 		{
-			i.second -= quantity;
-			base->RemoveMarketGood(good, quantity);
-			return false;
+			active_recipe.consumed_items.erase(i);
 		}
+		else
+		{
+			cooked = false;
+		}
+		break;
 	}
 
 	// Do nothing if cooking is not finished
@@ -269,9 +274,11 @@ void FactoryModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			if (active_recipe.nickname)
+			uint goodID = ini.get_value_int(0);
+			uint amount = ini.get_value_int(1);
+			if (active_recipe.nickname && amount)
 			{
-				active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+				active_recipe.consumed_items.emplace_back(make_pair(goodID, amount));
 			}
 		}
 		else if (ini.is_value("credit_cost"))

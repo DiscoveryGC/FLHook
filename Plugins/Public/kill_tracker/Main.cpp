@@ -158,7 +158,7 @@ void UserCmd_Kills(const uint client, const wstring& wscParam)
 
 void UserCmd_SetDeathMsg(const uint client, const wstring& wscParam)
 {
-	wstring param = ToLower(GetParam(wscParam, ' ', 1));
+	wstring param = ToLower(GetParam(wscParam, ' ', 2));
 	if (param.empty())
 	{
 		PrintUserCmdText(client, L"Usage: /set diemsg All|AllNoConn|System|Self|None");
@@ -295,20 +295,40 @@ MessageType inline getMessageType(const uint victimId, const PlayerData* pd, con
 	}
 	else if (dieMsg == DIEMSG_SYSTEM)
 	{
-		if (pd->iSystemID == system)
+		if (victimId == pd->iOnlineID)
+		{
+			return MSGBLUE;
+		}
+		if (system == pd->iSystemID)
 		{
 			return MSGRED;
 		}
 	}
 	else if (dieMsg == DIEMSG_ALL_NOCONN)
 	{
-		if (system == connID)
+		if (victimId == pd->iOnlineID)
+		{
+			return MSGBLUE;
+		}
+		if (system == pd->iSystemID)
+		{
+			return MSGRED;
+		}
+		if (system != connID)
 		{
 			return MSGDARKRED;
 		}
 	}
 	else if (dieMsg == DIEMSG_ALL)
 	{
+		if (victimId == pd->iOnlineID)
+		{
+			return MSGBLUE;
+		}
+		if (pd->iSystemID == system)
+		{
+			return MSGRED;
+		}
 		return MSGDARKRED;
 	}
 	return MSGNONE;
@@ -316,17 +336,23 @@ MessageType inline getMessageType(const uint victimId, const PlayerData* pd, con
 
 void ProcessDeath(uint victimId, const wstring* message1, const wstring* message2, const uint system, bool isPvP, set<CPlayerGroup*> involvedGroups)
 {
-	wstring deathMessageBlue1 = L"<TRA data=\"0xCC303001" // Blue, Bold
+	wstring deathMessageBlue1 = L"<TRA data=\"0xFF000001" // Blue, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message1) + L"</TEXT>";
-	wstring deathMessageBlue2 = L"<TRA data=\"0xCC303001" // Blue, Bold
-		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
 	wstring deathMessageRed1 = L"<TRA data=\"0x0000CC01" // Red, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message1) + L"</TEXT>";
-	wstring deathMessageRed2 = L"<TRA data=\"0x0000CC01" // Red, Bold
-		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
-	wstring deathMessageDarkRed = L"<TRA data=\"0x1919801" // Dark Red, Bold
+	wstring deathMessageDarkRed = L"<TRA data=\"0x18188c01" // Dark Red, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message1) + L"</TEXT>";
 
+	wstring deathMessageRed2;
+	wstring deathMessageBlue2;
+	if (message2)
+	{
+		deathMessageRed2 = L"<TRA data=\"0x0000CC01" // Red, Bold
+			L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
+		
+	wstring deathMessageBlue2 = L"<TRA data=\"0xCC303001" // Blue, Bold
+		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
+	} 
 
 	const CPlayerGroup* victimGroup = Players[victimId].PlayerGroup;
 	
@@ -476,16 +502,14 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 
 	AddLog("Player Death: %s %s", wstos(deathMessage).c_str(), wstos(assistMessage).c_str());
 
-	deathMessage = L"<TRA data=\"" + killMsgStyle +
-		L"\" mask=\"-1\"/><TEXT>" + XMLText(deathMessage) + L"</TEXT>";
-	if (!assistMessage.empty())
+	if (assistMessage.empty())
 	{
-		assistMessage = L"<TRA data=\"" + killMsgStyle +
-			L"\" mask=\"-1\"/><TEXT>" + XMLText(assistMessage) + L"</TEXT>";
+		ProcessDeath(clientVictim, &deathMessage, nullptr, system, true, involvedGroups);
 	}
-
-	ProcessDeath(clientVictim, &deathMessage, &assistMessage, system, true, involvedGroups);
-
+	else
+	{
+		ProcessDeath(clientVictim, &deathMessage, &assistMessage, system, true, involvedGroups);
+	}
 	ClearDamageTaken(clientVictim);
 }
 

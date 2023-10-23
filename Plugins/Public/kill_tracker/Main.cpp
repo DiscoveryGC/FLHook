@@ -130,32 +130,6 @@ void __stdcall LoadSettings()
 	}
 }
 
-/** @ingroup KillTracker
- * @brief Called when a player types "/kills".
- */
-void UserCmd_Kills(const uint client, const wstring& wscParam)
-{
-	wstring targetCharName = GetParam(wscParam, ' ', 1);
-	uint clientId;
-
-	if (!targetCharName.empty())
-	{
-		clientId = HkGetClientIdFromCharname(targetCharName);
-		if (!clientId)
-		{
-			PrintUserCmdText(client, L"Player not found");
-			return;
-		}
-	}
-	else
-	{
-		clientId = client;
-	}
-	int kills;
-	pub::Player::GetNumKills(clientId, kills);
-	PrintUserCmdText(client, L"PvP kills: %u", kills);
-}
-
 void UserCmd_SetDeathMsg(const uint client, const wstring& wscParam)
 {
 	wstring param = ToLower(GetParam(wscParam, ' ', 2));
@@ -187,7 +161,7 @@ void UserCmd_SetDeathMsg(const uint client, const wstring& wscParam)
 	}
 	else
 	{
-		PrintUserCmdText(client, L"Usage: /set diemsg All|AllNoConn|Group|System|Self|None");
+		PrintUserCmdText(client, L"Usage: /set diemsg All|AllNoConn|System|Self|None");
 		return;
 	}
 	
@@ -200,31 +174,6 @@ void UserCmd_SetDeathMsg(const uint client, const wstring& wscParam)
 	IniWrite(scUserFile, "settings", "DieMsg", itos(dieMsg));
 
 	PrintUserCmdText(client, L"OK");
-}
-
-/** @ingroup KillTracker
- * @brief Hook on ShipDestroyed. Increments the number of kills of a player if there is one.
- */
-void __stdcall ShipDestroyed(DamageList* dmg, DWORD* ecx, uint kill)
-{
-	returncode = DEFAULT_RETURNCODE;
-	if (kill == 1)
-	{
-		const CShip* cShip = reinterpret_cast<CShip*>(ecx[4]);
-
-		if (uint client = cShip->GetOwnerPlayer())
-		{
-			uint lastInflictorId = dmg->get_cause() == 0 ? ClientInfo[client].dmgLast.get_inflictor_id() : dmg->get_inflictor_id();
-			uint killerId = HkGetClientIDByShip(lastInflictorId);
-
-			if (killerId && killerId != client)
-			{
-				int kills;
-				pub::Player::GetNumKills(killerId, kills);
-				pub::Player::SetNumKills(killerId, ++kills);
-			}
-		}
-	}
 }
 
 void __stdcall AddDamageEntry(DamageList* damageList, ushort subObjId, float& newHitPoints, enum DamageEntry::SubObjFate fate)
@@ -334,7 +283,7 @@ MessageType inline getMessageType(const uint victimId, const PlayerData* pd, con
 	return MSGNONE;
 }
 
-void ProcessDeath(uint victimId, const wstring* message1, const wstring* message2, const uint system, bool isPvP, set<CPlayerGroup*> involvedGroups)
+void ProcessDeath(uint victimId, const wstring* message1, const wstring* message2, const uint system, bool isPvP, set<CPlayerGroup*> involvedGroups, set<uint> involvedPlayers)
 {
 	wstring deathMessageBlue1 = L"<TRA data=\"0xFF000001" // Blue, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message1) + L"</TEXT>";
@@ -350,7 +299,7 @@ void ProcessDeath(uint victimId, const wstring* message1, const wstring* message
 		deathMessageRed2 = L"<TRA data=\"0x0000CC01" // Red, Bold
 			L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
 		
-	wstring deathMessageBlue2 = L"<TRA data=\"0xCC303001" // Blue, Bold
+		deathMessageBlue2 = L"<TRA data=\"0xCC303001" // Blue, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
 	} 
 
@@ -359,7 +308,7 @@ void ProcessDeath(uint victimId, const wstring* message1, const wstring* message
 	PlayerData* pd = nullptr;
 	while (pd = Players.traverse_active(pd))
 	{
-		bool isInvolved = involvedGroups.count(pd->PlayerGroup);
+		bool isInvolved = involvedGroups.count(pd->PlayerGroup) || involvedPlayers.count(pd->iOnlineID);
 		MessageType msgType = getMessageType(victimId, pd, system, isInvolved);
 
 		if (msgType == MSGBLUE)
@@ -435,6 +384,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 
 	map<float, uint> damageToInflictorMap; // damage is the key instead of value because keys are sorted, used to render top contributors in order
 	set<CPlayerGroup*> involvedGroups;
+	set<uint> involvedPlayers;
 
 	float totalDamageTaken = 0.0f;
 	PlayerData* pd = nullptr;
@@ -443,9 +393,13 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		auto& damageData = damageArray[clientVictim][pd->iOnlineID];
 		float damageToAdd = GetDamageDone(damageData);
 		
-		if (pd->iOnlineID == clientVictim && pd->PlayerGroup)
+		if (pd->PlayerGroup && (pd->iOnlineID == clientVictim || damageToAdd > 0.0f))
 		{
 			involvedGroups.insert(pd->PlayerGroup);
+		}
+		else if (damageToAdd)
+		{
+			involvedPlayers.insert(pd->iOnlineID);
 		}
 		if (damageToAdd == 0.0f)
 		{
@@ -453,13 +407,12 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		}
 
 		damageToInflictorMap[damageToAdd] = pd->iOnlineID;
-		involvedGroups.insert(pd->PlayerGroup);
 		totalDamageTaken += damageToAdd;
 	}
 	if (totalDamageTaken == 0.0f)
 	{
 		ClearDamageTaken(clientVictim);
-		ProcessDeath(clientVictim, &message, nullptr, system, false, involvedGroups);
+		ProcessDeath(clientVictim, &message, nullptr, system, false, involvedGroups, involvedPlayers);
 		return;
 	}
 
@@ -504,11 +457,11 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 
 	if (assistMessage.empty())
 	{
-		ProcessDeath(clientVictim, &deathMessage, nullptr, system, true, involvedGroups);
+		ProcessDeath(clientVictim, &deathMessage, nullptr, system, true, involvedGroups, involvedPlayers);
 	}
 	else
 	{
-		ProcessDeath(clientVictim, &deathMessage, &assistMessage, system, true, involvedGroups);
+		ProcessDeath(clientVictim, &deathMessage, &assistMessage, system, true, involvedGroups, involvedPlayers);
 	}
 	ClearDamageTaken(clientVictim);
 }
@@ -546,12 +499,7 @@ bool UserCmd_Process(uint client, const wstring &wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (wscCmd.find(L"/kills") == 0)
-	{
-		UserCmd_Kills(client, wscCmd);
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-	}
-	else if (wscCmd.find(L"/set diemsg") == 0)
+	if (wscCmd.find(L"/set diemsg") == 0)
 	{
 		UserCmd_SetDeathMsg(client, wscCmd);
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -570,7 +518,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ShipDestroyed, PLUGIN_ShipDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddDamageEntry, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DelayedDisconnect, PLUGIN_DelayedDisconnect, 0));

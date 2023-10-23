@@ -1,7 +1,7 @@
 #include "Main.h"
 
 FactoryModule::FactoryModule(PlayerBase* the_base)
-	: Module(0), base(the_base)
+	: Module(Module::TYPE_FACTORY), base(the_base)
 {
 	active_recipe.nickname = 0;
 }
@@ -206,9 +206,11 @@ bool FactoryModule::Timer(uint time)
 		if (market_item != base->market_items.end()
 			&& market_item->second.quantity >= quantity)
 		{
-			i.second -= quantity;
-			base->RemoveMarketGood(good, quantity);
-			return false;
+			active_recipe.consumed_items.erase(i);
+			if (!active_recipe.consumed_items.empty())
+			{
+				cooked = false;
+			}
 		}
 	}
 

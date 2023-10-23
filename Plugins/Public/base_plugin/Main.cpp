@@ -1057,30 +1057,29 @@ void HkTimerCheckKick()
 		}
 	}
 
-	//fix custom jump solars not being dockable
-	for (uint customSolar : customSolarList)
+	if (curr_time % 8 == 0)
 	{
-		uint type;
-		pub::SpaceObj::GetType(customSolar, type);
-		if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+		//fix custom jump solars not being dockable
+		for (uint customSolar : customSolarList)
 		{
-			pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			uint type;
+			pub::SpaceObj::GetType(customSolar, type);
+			if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+			{
+				pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			}
 		}
 	}
-
-	if (ExportType == 0 || ExportType == 2)
+	if ((curr_time % 60) == 0)
 	{
 		// Write status to an html formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_html.size() > 0)
+		if ((ExportType == 0 || ExportType == 2) && set_status_path_html.size() > 0)
 		{
 			ExportData::ToHTML();
 		}
-	}
 
-	if (ExportType == 1 || ExportType == 2)
-	{
 		// Write status to a json formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_json.size() > 0)
+		if ((ExportType == 1 || ExportType == 2) && set_status_path_json.size() > 0)
 		{
 			ExportData::ToJSON();
 		}
@@ -2342,7 +2341,18 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 			ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
 		return;
 	}
-
+	if (curr - newHealth > 1500000)
+	{
+		CoreModule* coreModule = dynamic_cast<CoreModule*>(damagedModule);
+		if (coreModule)
+		{
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			uint clientID = HkGetClientIDByShip(dmg->get_inflictor_id());
+			const wchar_t* playerName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(clientID));
+			AddLog("%s dealt impossible damage to base %s: %0.2f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
+			return;
+		}
+	}
 	// This call is for us, skip all plugins.
 	iDmgToSpaceID = 0;
 	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
@@ -2457,7 +2467,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		wstring basename = cmd->ArgStrToEnd(2);
 
 		// Fall back to default behaviour.
-		if (cmd->rights != RIGHT_SUPERADMIN)
+		if (!(cmd->rights & RIGHT_BEAMKILL))
 		{
 			return false;
 		}

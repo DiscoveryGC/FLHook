@@ -114,9 +114,22 @@ void CoreModule::Spawn()
 		float current;
 		pub::SpaceObj::GetHealth(space_obj, current, base->max_base_health);
 		if (base->base_health <= 0)
-			base->base_health = base->max_base_health * 0.05f;
+		{
+			if (base->isFreshlyBuilt)
+			{
+				base->base_health = base->max_base_health * 0.05f;
+			}
+			else
+			{
+				AddLog("ERROR: Failed to load health for base %s: read health: %f, compare with today and yesterday backups.\n", wstos(base->basename).c_str(), base->base_health);
+				base->base_health = base->max_base_health;
+			}
+		}
 		else if (base->base_health > base->max_base_health)
+		{
 			base->base_health = base->max_base_health;
+		}
+		
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
 		if (shield_reinforcement_threshold_map.count(base->base_level))

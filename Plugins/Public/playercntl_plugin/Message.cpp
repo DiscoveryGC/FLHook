@@ -34,8 +34,6 @@
 
 #include <hookext_exports.h>
 
-/// Local chat range
-float set_iLocalChatRangeUtl = 9999;
 
 /// Record people using /pm /r and /t
 /// TODO: Turn this into a generic logging function and move it to PluginUtilities
@@ -56,17 +54,6 @@ void PMLogging(const char *szString, ...)
 	fflush(PMLogfile);
 	fclose(PMLogfile);
 	PMLogfile = fopen("./flhook_logs/private_chats.log", "at");
-}
-
-/// Load the configuration
-void LoadSettingsUtl()
-{
-	// The path to the configuration file.
-	char szCurDir[MAX_PATH];
-	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\playercntl.cfg";
-
-	set_iLocalChatRangeUtl = IniGetF(scPluginCfgFile, "General", "LocalChatRange", 0);
 }
 
 /** Send a player to local system message */
@@ -103,11 +90,8 @@ void SendLocalSystemChat(uint iFromClientID, const wstring &wscText)
 		Matrix mShipDir;
 		pub::SpaceObj::GetLocation(iShip, vShipLoc, mShipDir);
 
-		// Cheat in the distance calculation. Ignore the y-axis.
-		float fDistance = sqrtf(powf(vShipLoc.x - vFromShipLoc.x, 2) + powf(vShipLoc.z - vFromShipLoc.z, 2));
-
 		//Is player within scanner range (15K) of the sending char.
-		if (fDistance > set_iLocalChatRangeUtl)
+		if (HkDistance3D(vShipLoc, vFromShipLoc) > set_iLocalChatRange)
 			continue;
 
 		// Send the message a player in this system.
@@ -462,6 +446,19 @@ namespace Message
 		{
 			iStandardBannerTimer = 0;
 			ShowStandardBanner();
+		}
+	}
+
+	void Message::DelayedDisconnect(uint client)
+	{
+		map<uint, INFO>::iterator iter = mapInfo.begin();
+		while (iter != mapInfo.end())
+		{
+			if (iter->second.ulastPmClientID == client)
+				iter->second.ulastPmClientID = -1;
+			if (iter->second.uTargetClientID == client)
+				iter->second.uTargetClientID = -1;
+			++iter;
 		}
 	}
 

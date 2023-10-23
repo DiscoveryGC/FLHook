@@ -199,6 +199,10 @@ void BuildModule::LoadState(INI_Reader& ini)
 			active_recipe.consumed_items.clear();
 			active_recipe.credit_cost = 0;
 		}
+		else if (ini.is_value("paused"))
+		{
+			Paused = ini.get_value_bool(0);
+		}
 		else if (ini.is_value("consumed"))
 		{
 			active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
@@ -214,7 +218,7 @@ void BuildModule::SaveState(FILE* file)
 {
 	fprintf(file, "[BuildModule]\n");
 	fprintf(file, "build_type = %s\n", active_recipe.nicknameString.c_str());
-	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
+	fprintf(file, "paused = %d\n", Paused);
 	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{

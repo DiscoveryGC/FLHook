@@ -198,9 +198,9 @@ void CoreModule::RepairDamage(float max_base_health)
 		if (base->base_health >= max_base_health)
 			return;
 
-		if (base->HasMarketItem(item.good) >= item.quantity * base->base_level)
+		if (base->HasMarketItem(item.good) >= item.quantity)
 		{
-			base->RemoveMarketGood(item.good, item.quantity * base->base_level);
+			base->RemoveMarketGood(item.good, item.quantity);
 			base->base_health += repair_per_repair_cycle * base->base_level;
 		}
 	}
@@ -275,7 +275,7 @@ bool CoreModule::Timer(uint time)
 		float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
 		// Reduce hitpoints to reflect wear and tear. This will eventually
 		// destroy the base unless it is able to repair itself.
-		float damage_taken = (set_damage_per_tick + (set_damage_per_tick * base->base_level)) * no_crew_penalty;
+		float damage_taken = (set_damage_per_tick * base->base_level) * no_crew_penalty;
 		base->base_health -= damage_taken;
 	}
 

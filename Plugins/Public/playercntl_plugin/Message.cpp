@@ -921,7 +921,7 @@ namespace Message
 			return true;
 		}
 
-		if (iter->second.ulastPmClientID == -1)
+		if (iter->second.ulastPmClientID == -1 || !HkIsValidClientID(iter->second.ulastPmClientID))
 		{
 			PrintUserCmdText(iClientID, L"ERR PM sender not available");
 			return true;

@@ -32,8 +32,8 @@ bool			set_bPerfTimer;
 uint			set_iTimerThreshold;
 uint			set_iTimerDebugThreshold;
 bool			set_logPerfTimers;
-int				set_perfTimerLength;
-int				set_hookPerfTimerLength;
+int			set_perfTimerLength;
+int			set_hookPerfTimerLength;
 string			set_perfTimedHookName;
 
 // Kick

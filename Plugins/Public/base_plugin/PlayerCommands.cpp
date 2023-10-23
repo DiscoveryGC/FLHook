@@ -1148,6 +1148,7 @@ namespace PlayerCommands
 						{
 							buildmod->Paused = false;
 							PrintUserCmdText(client, L"Module construction resumed");
+							base->Save();
 						}
 						else
 						{
@@ -1169,6 +1170,7 @@ namespace PlayerCommands
 						{
 							buildmod->Paused = true;
 							PrintUserCmdText(client, L"Module construction paused");
+							base->Save();
 						}
 						else
 						{
@@ -2329,5 +2331,107 @@ namespace PlayerCommands
 
 		PrintUserCmdText(client, L"OK: Base deployed");
 		PrintUserCmdText(client, L"Default administration password is %s", password.c_str());
+	}
+
+	void BaseSetVulnerabilityWindow(uint client, const wstring& cmd)
+	{
+		PlayerBase* base = GetPlayerBaseForClient(client);
+		if (!base)
+		{
+			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
+
+		uint currTime = time(nullptr);
+
+		if (base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown > currTime )
+		{
+			PrintUserCmdText(client, L"ERR Can only change vulnerability windows once every %u days, %u days left", vulnerability_window_change_cooldown / (3600 * 24), 1 + ((base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown - currTime) / (3600 * 24)));
+			return;
+		}
+		wstring param1Str = GetParam(cmd, ' ', 2);
+		wstring param2Str = GetParam(cmd, ' ', 3);
+
+		int param1 = ToInt(GetParam(cmd, ' ', 2));
+		int param2 = ToInt(GetParam(cmd, ' ', 3));
+		if (param1Str.empty() || param1 < 0 || param1 > 23
+			|| (!single_vulnerability_window && (param2 < 0 || param2 > 23)))
+		{
+			PrintUserCmdText(client, L"ERR Vulnerability windows can only be set to full hour values between 0 and 23");
+			return;
+		}
+
+		int vulnerabilityWindowOneStart = param1 * 60; // minutes
+		int vulnerabilityWindowOneEnd = (vulnerabilityWindowOneStart + vulnerability_window_length) % (60 * 24); // 
+
+		int vulnerabilityWindowTwoStart = param2 * 60;
+		int vulnerabilityWindowTwoEnd = vulnerabilityWindowTwoStart + vulnerability_window_length % (60 * 24);
+
+		if (single_vulnerability_window)
+		{
+			base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+			base->lastVulnerabilityWindowChange = currTime;
+			PrintUserCmdText(client, L"OK Vulnerability window set.");
+			return;
+		}
+
+		if ((vulnerabilityWindowOneStart < vulnerabilityWindowTwoStart && abs(vulnerabilityWindowOneEnd - vulnerabilityWindowTwoStart) < vulnerability_window_minimal_spread)
+			|| (vulnerabilityWindowOneStart > vulnerabilityWindowTwoStart && abs(vulnerabilityWindowOneStart - vulnerabilityWindowTwoEnd) < vulnerability_window_minimal_spread))
+		{
+			PrintUserCmdText(client, L"ERR Vulnerability windows must be at least %u hours apart!", vulnerability_window_minimal_spread / 60);
+			return;
+		}
+
+		base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+		if (!single_vulnerability_window)
+		{
+			base->vulnerabilityWindow2 = { vulnerabilityWindowTwoStart, vulnerabilityWindowTwoEnd };
+		}
+		base->lastVulnerabilityWindowChange = currTime;
+
+		PrintUserCmdText(client, L"OK Vulnerability window set.");
+	}
+
+	void BaseCheckVulnerabilityWindow(uint client)
+	{
+		uint ship;
+		pub::Player::GetShip(client, ship);
+
+		if (!ship)
+		{
+			PrintUserCmdText(client, L"ERR not in space!");
+			return;
+		}
+
+		uint target;
+		pub::SpaceObj::GetTarget(ship, target);
+
+		if (!target)
+		{
+			PrintUserCmdText(client, L"ERR no base targeted");
+			return;
+		}
+
+		PlayerBase* pb = GetPlayerBase(target);
+
+		if (!pb)
+		{
+			PrintUserCmdText(client, L"ERR no base targeted");
+			return;
+		}
+
+		if (single_vulnerability_window)
+		{
+			PrintUserCmdText(client, L"This base has its vulnerability window starting at %u:00", pb->vulnerabilityWindow1.start / 60);
+		}
+		else
+		{
+			PrintUserCmdText(client, L"This base has its vulnerability windows starting at %u:00 and %u:00", pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow2.start / 60);
+		}
 	}
 }

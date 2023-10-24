@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @date Unknown
  * @author ||KOS||Acid (Ported by Raikkonen)
  * @defgroup KillTracker Kill Tracker
@@ -211,11 +211,6 @@ void ClearDamageDone(const uint inflictor, const bool isFullReset)
 	}
 }
 
-void inline sendMsg(uint clientId, const wstring* message1, const wstring* message2, bool isPvP)
-{
-
-}
-
 enum MessageType {
 	MSGNONE,
 	MSGBLUE,
@@ -299,7 +294,7 @@ void ProcessDeath(uint victimId, const wstring* message1, const wstring* message
 		deathMessageRed2 = L"<TRA data=\"0x0000CC01" // Red, Bold
 			L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
 		
-		deathMessageBlue2 = L"<TRA data=\"0xCC303001" // Blue, Bold
+		deathMessageBlue2 = L"<TRA data=\"0xFF000001" // Blue, Bold
 		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
 	} 
 
@@ -397,7 +392,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		{
 			involvedGroups.insert(pd->PlayerGroup);
 		}
-		else if (damageToAdd)
+		else if (damageToAdd > 0.0f)
 		{
 			involvedPlayers.insert(pd->iOnlineID);
 		}
@@ -453,7 +448,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		killerCounter++;
 	}
 
-	AddLog("Player Death: %s %s", wstos(deathMessage).c_str(), wstos(assistMessage).c_str());
+	AddLog("Player Death: %s %s, total %0.0f", wstos(deathMessage).c_str(), wstos(assistMessage).c_str(), totalDamageTaken);
 
 	if (assistMessage.empty())
 	{
@@ -484,7 +479,7 @@ void __stdcall PlayerLaunch(uint shipId, uint client)
 {
 	returncode = DEFAULT_RETURNCODE;
 	ClearDamageTaken(client);
-	ClearDamageDone(client, false);
+	ClearDamageDone(client, true);
 }
 
 void __stdcall CharacterSelect(CHARACTER_ID const& cid, uint client)

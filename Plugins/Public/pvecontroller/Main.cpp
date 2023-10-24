@@ -63,6 +63,7 @@ multimap<uint, stWarzone> mmapBountyWarzoneScales;
 unordered_set<uint> setBountyAwardedShips;
 
 multimap<uint, stDropInfo> mmapDropInfo;
+unordered_set<uint> mapDropExcludedArchetypes;
 unordered_map<uint, uint> mapShipClassTypes;
 map<int, float> mapClassDiffMultipliers;
 
@@ -297,6 +298,16 @@ void LoadSettingsNPCDrops()
 						++iLoadedNPCDropClasses;
 						if (set_iPluginDebug)
 							ConPrint(L"PVECONTROLLER: Loaded class %u drop %s (0x%08X), %f chance.\n", iClass, stows(szGood).c_str(), CreateID(szGood.c_str()), drop.fChance);
+					}
+				}
+			}
+			if (ini.is_header("NPCDropsExclusions"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("excludedShipArch"))
+					{
+						mapDropExcludedArchetypes.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -716,7 +727,7 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 	}
 
 	// Process drops if enabled.
-	if (!set_bDropsEnabled)
+	if (!set_bDropsEnabled || mapDropExcludedArchetypes.count(uArchID))
 	{
 		return;
 	}

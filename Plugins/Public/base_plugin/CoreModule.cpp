@@ -393,7 +393,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	return curr_hitpoints - damageTaken;
 }
 
-bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile)
+bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile, bool broadcastDeath)
 {
 	if (this->space_obj == space_obj)
 	{
@@ -412,7 +412,10 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile)
 		struct PlayerData* pd = 0;
 		while (pd = Players.traverse_active(pd))
 		{
-			PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
+			if (broadcastDeath)
+			{
+				PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
+			}
 			if (pd->iSystemID == base->system)
 			{
 				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(pd->iOnlineID);

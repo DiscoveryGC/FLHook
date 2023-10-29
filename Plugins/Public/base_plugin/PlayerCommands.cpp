@@ -1399,7 +1399,8 @@ namespace PlayerCommands
 
 		if (cmd == L"list")
 		{
-			if (param.empty())
+			PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
+			for (wstring& infoLine : factory_recipe_map[craftType])
 			{
 				PrintUserCmdText(client, infoLine);
 			}

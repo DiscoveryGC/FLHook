@@ -1057,30 +1057,29 @@ void HkTimerCheckKick()
 		}
 	}
 
-	//fix custom jump solars not being dockable
-	for (uint customSolar : customSolarList)
+	if (curr_time % 8 == 0)
 	{
-		uint type;
-		pub::SpaceObj::GetType(customSolar, type);
-		if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+		//fix custom jump solars not being dockable
+		for (uint customSolar : customSolarList)
 		{
-			pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			uint type;
+			pub::SpaceObj::GetType(customSolar, type);
+			if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+			{
+				pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			}
 		}
 	}
-
-	if (ExportType == 0 || ExportType == 2)
+	if ((curr_time % 60) == 0)
 	{
 		// Write status to an html formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_html.size() > 0)
+		if ((ExportType == 0 || ExportType == 2) && set_status_path_html.size() > 0)
 		{
 			ExportData::ToHTML();
 		}
-	}
 
-	if (ExportType == 1 || ExportType == 2)
-	{
 		// Write status to a json formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_json.size() > 0)
+		if ((ExportType == 1 || ExportType == 2) && set_status_path_json.size() > 0)
 		{
 			ExportData::ToJSON();
 		}
@@ -2482,7 +2481,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		wstring basename = cmd->ArgStrToEnd(2);
 
 		// Fall back to default behaviour.
-		if (cmd->rights != RIGHT_SUPERADMIN)
+		if (!(cmd->rights & RIGHT_BEAMKILL))
 		{
 			return false;
 		}

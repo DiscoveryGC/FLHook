@@ -104,7 +104,8 @@ public:
 	void CmdGetAdmin(const wstring &wscCharname);
 	void CmdDelAdmin(const wstring &wscCharname);
 	void CmdRehash();
-	void CmdUnload(const wstring &wscParam);
+	void CmdSetPerfTimer(int time);
+	void CmdSetHookPerfTimer(string hookName, int time);
 
 	void CmdLoadPlugins();
 	void CmdLoadPlugin(const wstring &wscPlugin);

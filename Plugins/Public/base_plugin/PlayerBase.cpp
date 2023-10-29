@@ -4,7 +4,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	: basename(the_basename),
 	base(0), money(0), base_health(0),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	shield_timeout(0), isShieldOn(false), isFreshlyBuilt(true),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	nickname = CreateBaseNickname(wstos(basename));
@@ -38,7 +38,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 PlayerBase::PlayerBase(const string &the_path)
 	: path(the_path), base(0), money(0),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
-	shield_timeout(0), shield_state(PlayerBase::SHIELD_STATE_ONLINE),
+	shield_timeout(0), isShieldOn(false), isFreshlyBuilt(false),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
 {
 	// Load and spawn base modules

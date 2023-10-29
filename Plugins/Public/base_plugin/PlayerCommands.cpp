@@ -1430,7 +1430,8 @@ namespace PlayerCommands
 				PrintUserCmdText(client, L"Production catalysts:");
 				for (const auto& catalyst : recipe->catalyst_items)
 				{
-					PrintUserCmdText(client, infoLine);
+					const GoodInfo* gi = GoodList::find_by_id(catalyst.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), catalyst.second);
 				}
 				return;
 			}

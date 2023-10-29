@@ -169,6 +169,8 @@ unordered_set<uint> customSolarList;
 //siege weaponry definitions
 unordered_map<uint, float> siegeWeaponryMap;
 
+uint vulnerability_window_change_cooldown = 0;
+
 uint GetAffliationFromClient(uint client)
 {
 	int rep;

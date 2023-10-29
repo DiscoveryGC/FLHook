@@ -180,7 +180,7 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	for (auto& i : active_recipe.consumed_items)
+	for (auto& i = active_recipe.consumed_items.begin() ; i != active_recipe.consumed_items.end() ; i++)
 	{
 		uint good = i->first;
 		uint quantity = min(active_recipe.cooking_rate, i->second);

@@ -191,7 +191,7 @@ void BuildModule::LoadState(INI_Reader& ini)
 	{
 		if (ini.is_value("build_type"))
 		{
-			active_recipe = moduleNumberRecipeMap[ini.get_value_int(0)];
+			active_recipe = recipeMap[CreateID(ini.get_value_string(0))];
 			active_recipe.consumed_items.clear();
 			active_recipe.credit_cost = 0;
 		}

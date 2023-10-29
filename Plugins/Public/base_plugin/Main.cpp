@@ -2535,7 +2535,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		RIGHT_CHECK(RIGHT_BASES)
 
-			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		PlayerBase* base;
 		for (auto& i : player_bases)
@@ -2569,7 +2569,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		RIGHT_CHECK(RIGHT_BASES)
 
-			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		char datapath[MAX_PATH];
 		GetUserDataPath(datapath);

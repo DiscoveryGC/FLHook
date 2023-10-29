@@ -243,11 +243,6 @@ bool CoreModule::Timer(uint time)
 		return false;
 	}
 
-	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
-	// this allows clients to perceive those objects as dockable
-	float rhealth = base->base_health / base->max_base_health;
-	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-
 	// if health is 0 then the object will be destroyed but we won't
 	// receive a notification of this so emulate it.
 	if (base->base_health < 1)

@@ -2528,7 +2528,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist");
 			return true;
 		}
 
@@ -2648,7 +2648,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist");
 			return true;
 		}
 

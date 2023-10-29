@@ -148,9 +148,6 @@ bool PlayerBase::Timer(uint curr_time)
 
 void PlayerBase::SetupDefaults()
 {
-	// Resize the to appropriate number of modules.
-	modules.resize((base_level * 3) + 1);
-
 	// Calculate the hash of the nickname
 	if (!proxy_base)
 	{
@@ -207,6 +204,9 @@ void PlayerBase::SetupDefaults()
 void PlayerBase::Load()
 {
 	INI_Reader ini;
+	BuildModule* coreConstruction = nullptr;
+	uint moduleCounter = 0;
+	modules.resize(1);
 	if (ini.open(path.c_str(), false))
 	{
 		while (ini.read_header())
@@ -239,6 +239,7 @@ void PlayerBase::Load()
 					else if (ini.is_value("upgrade"))
 					{
 						base_level = ini.get_value_int(0);
+						modules.resize((base_level * 3) + 1);
 					}
 					else if (ini.is_value("affiliation"))
 					{
@@ -433,32 +434,48 @@ void PlayerBase::Load()
 			{
 				CoreModule* mod = new CoreModule(this);
 				mod->LoadState(ini);
-				modules.emplace_back(mod);
+				modules.at(moduleCounter) = mod;
+				moduleCounter++;
 			}
 			else if (ini.is_header("BuildModule"))
 			{
 				BuildModule* mod = new BuildModule(this);
 				mod->LoadState(ini);
-				modules.emplace_back(mod);
+				if (mod->active_recipe.shortcut_number == Module::TYPE_CORE)
+				{
+					coreConstruction = mod;
+				}
+				else
+				{
+					modules.at(moduleCounter) = mod;
+					moduleCounter++;
+				}
 			}
 			else if (ini.is_header("StorageModule"))
 			{
 				StorageModule* mod = new StorageModule(this);
 				mod->LoadState(ini);
-				modules.emplace_back(mod);
+				modules.at(moduleCounter) = mod;
+				moduleCounter++;
 			}
 			else if (ini.is_header("DefenseModule"))
 			{
 				DefenseModule* mod = new DefenseModule(this);
 				mod->LoadState(ini);
-				modules.emplace_back(mod);
+				modules.at(moduleCounter) = mod;
+				moduleCounter++;
 			}
 			else if (ini.is_header("FactoryModule"))
 			{
 				FactoryModule* mod = new FactoryModule(this);
 				mod->LoadState(ini);
-				modules.emplace_back(mod);
+				modules.at(moduleCounter) = mod;
+				moduleCounter++;
 			}
+		}
+		if (coreConstruction)
+		{
+			modules.emplace_back(coreConstruction);
 		}
 		ini.close();
 	}

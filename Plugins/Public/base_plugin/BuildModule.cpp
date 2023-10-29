@@ -142,10 +142,11 @@ bool BuildModule::Timer(uint time)
 					base->SetupDefaults();
 
 					// Clear the build module slot.
-					base->modules[i] = 0;
+					base->modules[i] = nullptr;
 
 					// Delete and respawn the old core module
 					delete base->modules[0];
+
 					base->modules[0] = new CoreModule(base);
 					base->modules[0]->Spawn();
 
@@ -190,7 +191,7 @@ void BuildModule::LoadState(INI_Reader& ini)
 	{
 		if (ini.is_value("build_type"))
 		{
-			active_recipe = moduleNumberRecipeMap[ini.get_value_int(0)];
+			active_recipe = recipeMap[CreateID(ini.get_value_string(0))];
 			active_recipe.consumed_items.clear();
 			active_recipe.credit_cost = 0;
 		}

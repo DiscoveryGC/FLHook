@@ -200,7 +200,8 @@ namespace HkIServerImpl
 			ISERVER_LOGARG_I(g_iTextLen);
 
 			// check for user cmds
-			if (UserCmd_Process(iClientID, wscBuf))
+			if (wszBuf[0] == '/' 
+			&& UserCmd_Process(iClientID, wscBuf))
 				return;
 
 			if (wszBuf[0] == '.')

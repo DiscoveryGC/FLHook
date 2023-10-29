@@ -241,7 +241,20 @@ bool CoreModule::Timer(uint time)
 		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 	}
 
-	if ((time % set_tick_time) != 0 || set_holiday_mode)
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	if ((time % 5) == 0)
+	{
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+	}
+
+	if (set_holiday_mode)
+	{
+		return false;
+	}
+
+	if ((time % set_tick_time) != 0)
 	{
 		return false;
 	}
@@ -250,11 +263,6 @@ bool CoreModule::Timer(uint time)
 	{
 		return false;
 	}
-
-	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
-	// this allows clients to perceive those objects as dockable
-	float rhealth = base->base_health / base->max_base_health;
-	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 
 	// if health is 0 then the object will be destroyed but we won't
 	// receive a notification of this so emulate it.
@@ -402,7 +410,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	return curr_hitpoints - damageTaken;
 }
 
-bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile)
+bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile, bool broadcastDeath)
 {
 	if (this->space_obj == space_obj)
 	{
@@ -421,7 +429,10 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile)
 		struct PlayerData* pd = 0;
 		while (pd = Players.traverse_active(pd))
 		{
-			PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
+			if (broadcastDeath)
+			{
+				PrintUserCmdText(pd->iOnlineID, L"Base %s destroyed", base->basename.c_str());
+			}
 			if (pd->iSystemID == base->system)
 			{
 				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(pd->iOnlineID);

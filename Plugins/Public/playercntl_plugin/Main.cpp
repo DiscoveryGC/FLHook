@@ -523,6 +523,8 @@ namespace HkIServerImpl
 
 	void __stdcall RequestEvent_AFTER(int iEventType, unsigned int iShip, unsigned int iTargetObj, unsigned int p4, unsigned long p5, unsigned int iClientID)
 	{
+		returncode = DEFAULT_RETURNCODE;
+
 		if (iClientID)
 		{
 			if (iEventType == 1 // formation request
@@ -559,6 +561,8 @@ namespace HkIServerImpl
 
 	bool __stdcall Base_Land(uint iClientID, FLPACKET_LAND& pLand)
 	{
+		returncode = DEFAULT_RETURNCODE;
+
 		uint landingClientId = HkGetClientIDByShip(pLand.iShip);
 		if (landingClientId && landingClientId == iClientID)
 		{
@@ -584,6 +588,7 @@ namespace HkIServerImpl
 
 	void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 	{
+		returncode = DEFAULT_RETURNCODE;
 		float fValue;
 		if (HKGetShipValue((const wchar_t*)Players.GetActiveCharacterName(iClientID), fValue) == HKE_OK)
 		{
@@ -651,6 +656,7 @@ namespace HkIServerImpl
 
 	void __stdcall SystemSwitchOut(uint iClientID, FLPACKET_SYSTEM_SWITCH_OUT& switchOutPacket)
 	{
+		returncode = DEFAULT_RETURNCODE;
 		if (iClientID != HkGetClientIDByShip(switchOutPacket.shipId))
 		{
 			return;
@@ -836,10 +842,10 @@ namespace HkIServerImpl
 
 	void __stdcall ReqChangeCash(int iMoneyDiff, unsigned int iClientID)
 	{
+		returncode = DEFAULT_RETURNCODE;
 		if (Rename::IsLockedShip(iClientID, 2))
 			PurchaseRestrictions::ReqChangeCashHappenedStatus(iClientID, true);
 
-		returncode = DEFAULT_RETURNCODE;
 		if (PurchaseRestrictions::ReqChangeCash(iMoneyDiff, iClientID))
 		{
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1008,6 +1014,7 @@ namespace HkIServerImpl
 	// Save after jettison to reduce chance of duplication on crash
 	void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const &objs)
 	{
+		returncode = DEFAULT_RETURNCODE;
 		if (mapSaveTimes[iClientID] == 0)
 		{
 			mapSaveTimes[iClientID] = GetTimeInMS() + 60000;
@@ -1129,6 +1136,7 @@ USERCMD UserCmds[] =
 	{ L"/showitems",	PimpShip::UserCmd_ShowItems,	L"Usage: /showitems" },
 	{ L"/setitem",		PimpShip::UserCmd_ChangeItem,	L"Usage: /setitem" },
 	{ L"/renameme",		Rename::UserCmd_RenameMe,		L"Usage: /renameme <charname> [password]" },
+	{ L"/rename",		Rename::UserCmd_RenameMe,		L"Usage: /rename <charname> [password]" },
 	{ L"/movechar",		Rename::UserCmd_MoveChar,		L"Usage: /movechar <charname> <code>" },
 	{ L"/set movecharcode",	Rename::UserCmd_SetMoveCharCode,	L"Usage: /set movecharcode <code>" },
 	{ L"/restart",		Restart::UserCmd_Restart,		L"Usage: /restart <faction>" },

@@ -172,12 +172,6 @@ void LoadSettings()
 	ConPrint(L"MARKETFUCKER: Loaded %u items for %u bases \n", commodamount2, commodamount1);
 }
 
-
-void HkTimerCheckKick()
-{
-	mstime now = timeInMS();
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define IS_CMD(a) !wscCmd.compare(L##a)
@@ -480,6 +474,7 @@ void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 
 void __stdcall PlayerLaunch(unsigned int iShip, unsigned int client)
 {
+	returncode = DEFAULT_RETURNCODE;
 	//PrintUserCmdText(client, L"Cleared info");
 	ClearClientInfo(client);
 }
@@ -497,7 +492,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->ePluginReturnCode = &returncode;
 
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkTimerCheckKick, PLUGIN_HkTimerCheckKick, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ExecuteCommandString_Callback, PLUGIN_ExecuteCommandString_Callback, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodBuy, PLUGIN_HkIServerImpl_GFGoodBuy, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 0));

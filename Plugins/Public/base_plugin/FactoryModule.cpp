@@ -78,13 +78,10 @@ wstring FactoryModule::GetInfo(bool xml)
 				info += L" [Insufficient cash]";
 			}
 		}
-		if (!sufficientCatalysts)
+		if (!active_recipe.catalyst_items.empty() && !sufficientCatalysts)
 		{
-			info += openLine + L"Insufficient catalysts/workforce";
-		}
-		if (!active_recipe.catalyst_items.empty())
-		{
-			info += openLine + L"Needed catalysts:";
+			info += openLine + L"Needed catalysts ";
+
 			for (const auto& catalyst : active_recipe.catalyst_items)
 			{
 				uint good = catalyst.first;
@@ -94,15 +91,10 @@ wstring FactoryModule::GetInfo(bool xml)
 				if (gi)
 				{
 					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					uint presentAmount = base->HasMarketItem(good);
-					if (presentAmount < quantity)
-					{
-						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-					}
 				}
 			}
 		}
-		if (!active_recipe.catalyst_workforce.empty())
+		if (!active_recipe.catalyst_workforce.empty() && !sufficientCatalysts)
 		{
 			info += openLine + L"Needed workforce:";
 			for (const auto& worker : active_recipe.catalyst_workforce)
@@ -114,11 +106,6 @@ wstring FactoryModule::GetInfo(bool xml)
 				if (gi)
 				{
 					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					uint presentAmount = base->HasMarketItem(good);
-					if (presentAmount < quantity)
-					{
-						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-					}
 				}
 			}
 		}
@@ -197,22 +184,24 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	for (auto& i = active_recipe.consumed_items.begin(); i != active_recipe.consumed_items.end(); i++)
+	for (auto& i = active_recipe.consumed_items.begin() ; i != active_recipe.consumed_items.end() ; i++)
 	{
 		uint good = i->first;
 		uint quantity = min(active_recipe.cooking_rate, i->second);
-		if (!quantity)
+		auto market_item = base->market_items.find(good);
+		if (market_item == base->market_items.end()
+			|| market_item->second.quantity < quantity)
 		{
+			cooked = false;
 			continue;
 		}
-		auto market_item = base->market_items.find(good);
-		if (market_item != base->market_items.end()
-			&& market_item->second.quantity >= quantity)
+		i->second -= quantity;
+		base->RemoveMarketGood(good, quantity);
+		if (!i->second)
 		{
-			i->second -= quantity;
-			base->RemoveMarketGood(good, quantity);
+			active_recipe.consumed_items.erase(i);
 		}
-		if (i->second || distance(active_recipe.consumed_items.begin(), i) != (active_recipe.consumed_items.size() - 1))
+		else
 		{
 			cooked = false;
 		}
@@ -289,9 +278,11 @@ void FactoryModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			if (active_recipe.nickname)
+			uint goodID = ini.get_value_int(0);
+			uint amount = ini.get_value_int(1);
+			if (active_recipe.nickname && amount)
 			{
-				active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+				active_recipe.consumed_items.emplace_back(make_pair(goodID, amount));
 			}
 		}
 		else if (ini.is_value("credit_cost"))

@@ -28,6 +28,10 @@ unordered_map<uint,uint> jettisonedShipsQueue;
 
 unordered_set<uint> bannedSystems;
 
+string scCarrierDataFile1;
+string scCarrierDataFile2;
+
+
 std::mutex saveMutex;
 std::thread saveThread;
 
@@ -59,6 +63,79 @@ bool disableRegensOnDockAttempt = true;
 
 void MoveOfflineShipToLastDockedSolar(const wstring& charName);
 
+void LoadDockingModules(const string& path, int& carrierCount, int& dockedCount)
+{
+	INI_Reader ini;
+	if (ini.open(path.c_str(), false))
+	{
+		std::lock_guard<std::mutex> saveLock(saveMutex);
+		time_t curTime = time(0);
+		while (ini.read_header())
+		{
+			if (ini.is_header("CarrierData"))
+			{
+				CARRIERINFO ci;
+				wstring carrierName;
+				boolean doLoad = true;
+				while (ini.read_value())
+				{
+					if (ini.is_value("carrier"))
+					{
+						carrierName = stows(ini.get_value_string(0));
+						const auto& accData = HkGetAccountByCharname(carrierName);
+						// don't load renamed/deleted ships
+						if (!accData)
+						{
+							doLoad = false;
+						}
+					}
+					else if (ini.is_value("lastLogin"))
+					{
+						if (forgetCarrierDataInSeconds != 0
+							&& (curTime - forgetCarrierDataInSeconds > ini.get_value_int(0)))
+						{
+							doLoad = false;
+						}
+						else
+						{
+							ci.lastCarrierLogin = ini.get_value_int(0);
+						}
+					}
+					else if (ini.is_value("docked"))
+					{
+						wstring& dockedShipName = stows(ini.get_value_string(0));
+						const auto& accData = HkGetAccountByCharname(dockedShipName);
+						// skip loading renamed/deleted docked ships
+						if (!accData)
+						{
+							continue;
+						}
+
+						nameToDockedInfoMap[dockedShipName].carrierName = carrierName.c_str();
+						nameToDockedInfoMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
+
+						ci.dockedShipList.emplace_back(dockedShipName);
+						dockedCount++;
+					}
+				}
+				if (doLoad)
+				{
+					nameToCarrierInfoMap[carrierName] = ci;
+					carrierCount++;
+				}
+				else
+				{
+					for (const wstring& dockedShipName : ci.dockedShipList)
+					{
+						MoveOfflineShipToLastDockedSolar(dockedShipName);
+					}
+				}
+			}
+		}
+		ini.close();
+	}
+}
+
 // Load the configuration
 void LoadSettings()
 {
@@ -72,7 +149,8 @@ void LoadSettings()
 	string moddir = string(datapath) + "\\Accts\\MultiPlayer\\docking_module\\";
 	CreateDirectoryA(moddir.c_str(), 0);
 
-	string scCarrierDataFile = moddir + "mobile_docking.ini";
+	scCarrierDataFile1 = moddir + "mobile_docking1.ini";
+	scCarrierDataFile2 = moddir + "mobile_docking2.ini";
 
 	// Plugin configuration
 	char szCurDir[MAX_PATH];
@@ -145,74 +223,10 @@ void LoadSettings()
 		}
 		ini.close();
 	}
-
-	if (ini.open(scCarrierDataFile.c_str(), false))
+	LoadDockingModules(scCarrierDataFile1, carrierCount, dockedCount);
+	if (carrierCount == 0)
 	{
-		std::lock_guard<std::mutex> saveLock(saveMutex);
-		time_t curTime = time(0);
-		while (ini.read_header())
-		{
-			if (ini.is_header("CarrierData"))
-			{
-				CARRIERINFO ci;
-				wstring carrierName;
-				boolean doLoad = true;
-				while (ini.read_value())
-				{
-					if (ini.is_value("carrier"))
-					{
-						carrierName = stows(ini.get_value_string(0));
-						const auto& accData = HkGetAccountByCharname(carrierName);
-						// don't load renamed/deleted ships
-						if (!accData)
-						{
-							doLoad = false;
-						}
-					}
-					else if (ini.is_value("lastLogin"))
-					{
-						if (forgetCarrierDataInSeconds != 0
-							&& (curTime - forgetCarrierDataInSeconds > ini.get_value_int(0)))
-						{
-							doLoad = false;
-						}
-						else
-						{
-							ci.lastCarrierLogin = ini.get_value_int(0);
-						}
-					}
-					else if (ini.is_value("docked"))
-					{
-						wstring& dockedShipName = stows(ini.get_value_string(0));
-						const auto& accData = HkGetAccountByCharname(dockedShipName);
-						// skip loading renamed/deleted docked ships
-						if (!accData)
-						{
-							continue;
-						}
-
-						nameToDockedInfoMap[dockedShipName].carrierName = carrierName.c_str();
-						nameToDockedInfoMap[dockedShipName].lastDockedSolar = CreateID(ini.get_value_string(1));
-
-						ci.dockedShipList.emplace_back(dockedShipName);
-						dockedCount++;
-					}
-				}
-				if (doLoad)
-				{
-					nameToCarrierInfoMap[carrierName] = ci;
-					carrierCount++;
-				}
-				else
-				{
-					for (const auto& dockedShipName : ci.dockedShipList)
-					{
-						MoveOfflineShipToLastDockedSolar(dockedShipName);
-					}
-				}
-			}
-		}
-		ini.close();
+		LoadDockingModules(scCarrierDataFile2, carrierCount, dockedCount);
 	}
 	ConPrint(L"DockingModules: Loaded %u equipment\n", dockingModAmount);
 	ConPrint(L"DockingModules: Found %u ships docked on %u carriers\n", dockedCount, carrierCount);
@@ -225,6 +239,7 @@ void SaveData()
 	{
 		while (true)
 		{
+			static bool firstFile = true;
 			std::this_thread::sleep_for(std::chrono::minutes(1));
 
 			if (nameToCarrierInfoMap.empty())
@@ -234,7 +249,8 @@ void SaveData()
 
 			char datapath[MAX_PATH];
 			GetUserDataPath(datapath);
-			string path = string(datapath) + R"(\Accts\MultiPlayer\docking_module\mobile_docking.ini)";
+			string& path = firstFile ? scCarrierDataFile1 : scCarrierDataFile2;
+			firstFile = !firstFile;
 			FILE* file = fopen(path.c_str(), "w");
 			if (file)
 			{
@@ -1065,9 +1081,10 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 
 void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 {
+	returncode = DEFAULT_RETURNCODE;
 	if (idToCarrierInfoMap.count(iClientID))
 	{
-		for (const auto& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)
+		for (const wstring& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(dockedPlayer.c_str());
 			if (dockedClientID != -1)
@@ -1096,11 +1113,11 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 	
-	auto charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+	wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
 	if (nameToCarrierInfoMap.count(charname))
 	{
 		idToCarrierInfoMap[iClientID] = &nameToCarrierInfoMap[charname];
-		for (const auto& dockedShipName : idToCarrierInfoMap[iClientID]->dockedShipList)
+		for (const wstring& dockedShipName : idToCarrierInfoMap[iClientID]->dockedShipList)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(dockedShipName.c_str());
 			if (dockedClientID != -1)
@@ -1137,7 +1154,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 				Matrix ori;
 				pub::SpaceObj::GetLocation(carrierInfo.iShipID, pos, ori);
 				wstring& sector = VectorToSectorCoord(sysInfo->id, pos);
-				PrintUserCmdText(iClientID, L"Carrier in flight, %ls %ls", sysName.c_str(), sector.c_str());
+				PrintUserCmdText(iClientID, L"Carrier %ls in flight, %ls %ls", idToDockedInfoMap[iClientID]->carrierName.c_str(), sysName.c_str(), sector.c_str());
 			}
 			else if (carrierInfo.iBaseID)
 			{

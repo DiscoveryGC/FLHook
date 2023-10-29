@@ -38,7 +38,7 @@ struct SYSTEMJUMPCOORDS
 	Matrix ornt;
 };
 
-void HyperJump::CheckForUnchartedDisconnect(uint ship, uint client)
+void HyperJump::CheckForUnchartedDisconnect(uint client, uint ship)
 {
 	if (unchartedSystems.count(Players[client].iSystemID))
 	{
@@ -150,7 +150,7 @@ void HyperJump::InitJumpHoleConfig()
 		wstring fileName = stows(pbase->path.substr(pbase->path.find_last_of('\\') + 1));
 		ConPrint(L"ERROR: Jump Base %ls's jump target/target system does not exist, despawning it to prevent issues\ntargetObject: %u, targetSystem: %u\nfilename: %ls\n", stows(pbase->nickname).c_str(), pbase->destObject, pbase->destSystem, fileName.c_str());
 		pbase->base_health = 0;
-		CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false);
+		CoreModule(pbase).SpaceObjDestroyed(CoreModule(pbase).space_obj, false, false);
 	}
 }
 

@@ -77,19 +77,21 @@ PLUGIN_RETURNCODE returncode;
 unordered_map<uint, RECIPE> recipeMap;
 
 /// Maps of shortcut numbers to recipes to construct item.
-map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
-map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
-map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
-map<wstring, RECIPE> moduleNameRecipeMap;
-map<uint, RECIPE> moduleNumberRecipeMap;
-map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
-set<wstring> buildingCraftLists;
+unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
+unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
+unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
+unordered_map<wstring, RECIPE> moduleNameRecipeMap;
+unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
+unordered_set<wstring> buildingCraftLists;
 
 void AddFactoryRecipeToMaps(const RECIPE& recipe);
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
 
 /// Map of space obj IDs to base modules to speed up damage algorithms.
 unordered_map<uint, Module*> spaceobj_modules;
+
+/// Map of core upgrade recipes
+unordered_map<uint, uint> core_upgrade_recipes;
 
 /// Path to shield status html page
 string set_status_path_html;
@@ -166,6 +168,8 @@ unordered_set<uint> customSolarList;
 
 //siege weaponry definitions
 unordered_map<uint, float> siegeWeaponryMap;
+
+uint vulnerability_window_change_cooldown = 0;
 
 uint GetAffliationFromClient(uint client)
 {
@@ -423,6 +427,7 @@ wstring HtmlEncode(wstring text)
 /// Clear client info when a client connects.
 void ClearClientInfo(uint client)
 {
+	returncode = DEFAULT_RETURNCODE;
 	clients.erase(client);
 }
 
@@ -467,7 +472,6 @@ void LoadSettingsActual()
 	recipeCraftTypeNameMap.clear();
 	factoryNicknameToCraftTypeMap.clear();
 	moduleNameRecipeMap.clear();
-	moduleNumberRecipeMap.clear();
 	craftListNumberModuleMap.clear();
 	humanCargoList.clear();
 
@@ -687,6 +691,14 @@ void LoadSettingsActual()
 					else if (ini.is_value("siege_gun"))
 					{
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+					}
+					else if (ini.is_value("vulnerability_window_change_cooldown"))
+					{
+						vulnerability_window_change_cooldown = 3600 * 24 * ini.get_value_int(0);
+					}
+					else if (ini.is_value("core_recipe"))
+					{
+						core_upgrade_recipes[ini.get_value_int(0)] = CreateID(ini.get_value_string(1));
 					}
 				}
 			}
@@ -1050,30 +1062,29 @@ void HkTimerCheckKick()
 		}
 	}
 
-	//fix custom jump solars not being dockable
-	for (uint customSolar : customSolarList)
+	if (curr_time % 8 == 0)
 	{
-		uint type;
-		pub::SpaceObj::GetType(customSolar, type);
-		if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+		//fix custom jump solars not being dockable
+		for (uint customSolar : customSolarList)
 		{
-			pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			uint type;
+			pub::SpaceObj::GetType(customSolar, type);
+			if (type & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+			{
+				pub::SpaceObj::SetRelativeHealth(customSolar, 1);
+			}
 		}
 	}
-
-	if (ExportType == 0 || ExportType == 2)
+	if ((curr_time % 60) == 0)
 	{
 		// Write status to an html formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_html.size() > 0)
+		if ((ExportType == 0 || ExportType == 2) && set_status_path_html.size() > 0)
 		{
 			ExportData::ToHTML();
 		}
-	}
 
-	if (ExportType == 1 || ExportType == 2)
-	{
 		// Write status to a json formatted page every 60 seconds
-		if ((curr_time % 60) == 0 && set_status_path_json.size() > 0)
+		if ((ExportType == 1 || ExportType == 2) && set_status_path_json.size() > 0)
 		{
 			ExportData::ToJSON();
 		}
@@ -2337,7 +2348,18 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 			ConPrint(L"HkCb_AddDmgEntry[1] - invalid damage?\n");
 		return;
 	}
-
+	if (curr - newHealth > 1500000)
+	{
+		CoreModule* coreModule = dynamic_cast<CoreModule*>(damagedModule);
+		if (coreModule)
+		{
+			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+			uint clientID = HkGetClientIDByShip(dmg->get_inflictor_id());
+			const wchar_t* playerName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(clientID));
+			AddLog("%s dealt impossible damage to base %s: %0.2f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
+			return;
+		}
+	}
 	// This call is for us, skip all plugins.
 	iDmgToSpaceID = 0;
 	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
@@ -2452,7 +2474,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		wstring basename = cmd->ArgStrToEnd(2);
 
 		// Fall back to default behaviour.
-		if (cmd->rights != RIGHT_SUPERADMIN)
+		if (!(cmd->rights & RIGHT_BEAMKILL))
 		{
 			return false;
 		}
@@ -2580,6 +2602,88 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		uint baseNickname = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
 
 		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0) // -2 for nonexistant object, 0 for existing and alive
+		{
+			cmd->Print(L"ERR Base already spwawned!\n");
+			return true;
+		}
+
+		PlayerBase* base = new PlayerBase(path);
+
+		FindClose(h);
+		if (base && !base->nickname.empty())
+		{
+			player_bases[base->base] = base;
+			base->Spawn();
+			cmd->Print(L"Base respawned!\n");
+		}
+		else
+		{
+			cmd->Print(L"ERROR POB file corrupted: %ls\n", stows(path).c_str());
+		}
+
+
+		return true;
+	}
+	else if (args.find(L"basedespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		PlayerBase* base;
+		for (auto& i : player_bases)
+		{
+			if (i.second->basename == cmd->ArgStrToEnd(1))
+			{
+				base = i.second;
+				break;
+			}
+		}
+
+		if (!base)
+		{
+			cmd->Print(L"ERR Base doesn't exist\n");
+			return true;
+		}
+
+		base->base_health = 0;
+		if (base->base_health < 1)
+		{
+			cmd->Print(L"Base despawned\n");
+			CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
+		}
+
+		return true;
+	}
+	else if (args.find(L"baserespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+
+		wstring baseName = cmd->ArgStrToEnd(1);
+
+		// Load and spawn all bases
+		string path = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)" + wstos(baseName) + ".ini";
+
+		WIN32_FIND_DATA findfile;
+		HANDLE h = FindFirstFile(path.c_str(), &findfile);
+		if (h == INVALID_HANDLE_VALUE)
+		{
+			cmd->Print(L"ERR Base file not found\n");
+			return true;
+		}
+
+		uint baseNicknameHash = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
+
+		if (pub::SpaceObj::ExistsAndAlive(baseNicknameHash) == 0) // function returns -2 for nonexistant object, 0 for existing one
 		{
 			cmd->Print(L"ERR Base already spwawned!\n");
 			return true;
@@ -3002,6 +3106,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 void DelayedDisconnect(uint clientId, uint shipId)
 {
+	returncode = DEFAULT_RETURNCODE;
 	HyperJump::CheckForUnchartedDisconnect(clientId, shipId);
 }
 
@@ -3128,9 +3233,11 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
-	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
-	craftListNumberModuleMap[build_type][recipe_number] = recipe;
-	buildingCraftLists.insert(build_type);
+	if (!build_type.empty())
+	{
+		craftListNumberModuleMap[build_type][recipe_number] = recipe;
+		buildingCraftLists.insert(build_type);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3147,6 +3254,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
   
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
+	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&DelayedDisconnect, PLUGIN_DelayedDisconnect, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&RequestEvent, PLUGIN_HkIServerImpl_RequestEvent, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&LaunchPosHook, PLUGIN_LaunchPosHook, 0));
@@ -3157,7 +3265,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
-
 
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 15));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 15));

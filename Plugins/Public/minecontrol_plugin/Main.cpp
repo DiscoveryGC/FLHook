@@ -230,6 +230,7 @@ EXPORT void HkTimerCheckKick()
 /// Clear client info when a client connects.
 EXPORT void ClearClientInfo(uint iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	auto& cd = mapClients[iClientID];
 	cd.equippedID = 0;
 	cd.itemCount = 0;
@@ -411,9 +412,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 bool UserCmd_Process(uint client, const wstring& args)
 {
+	returncode = DEFAULT_RETURNCODE;
+
 	if (args.find(L"/cs") != 0 && args.find(L"/cargostored") != 0)
 	{
-		return true;
+		return false;
 	}
 	uint targetId;
 	uint shipId;

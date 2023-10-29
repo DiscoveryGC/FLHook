@@ -114,9 +114,22 @@ void CoreModule::Spawn()
 		float current;
 		pub::SpaceObj::GetHealth(space_obj, current, base->max_base_health);
 		if (base->base_health <= 0)
-			base->base_health = base->max_base_health * 0.05f;
+		{
+			if (base->isFreshlyBuilt)
+			{
+				base->base_health = base->max_base_health * 0.05f;
+			}
+			else
+			{
+				AddLog("ERROR: Failed to load health for base %s: read health: %f, compare with today and yesterday backups.\n", wstos(base->basename).c_str(), base->base_health);
+				base->base_health = base->max_base_health;
+			}
+		}
 		else if (base->base_health > base->max_base_health)
+		{
 			base->base_health = base->max_base_health;
+		}
+		
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
 		if (shield_reinforcement_threshold_map.count(base->base_level))
@@ -220,7 +233,20 @@ bool CoreModule::Timer(uint time)
 		SetShieldState(base->shield_state);
 	}
 
-	if ((time % set_tick_time) != 0 || set_holiday_mode)
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	if ((time % 5) == 0)
+	{
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+	}
+
+	if (set_holiday_mode)
+	{
+		return false;
+	}
+
+	if ((time % set_tick_time) != 0)
 	{
 		return false;
 	}
@@ -229,11 +255,6 @@ bool CoreModule::Timer(uint time)
 	{
 		return false;
 	}
-
-	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
-	// this allows clients to perceive those objects as dockable
-	float rhealth = base->base_health / base->max_base_health;
-	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 
 	// if health is 0 then the object will be destroyed but we won't
 	// receive a notification of this so emulate it.

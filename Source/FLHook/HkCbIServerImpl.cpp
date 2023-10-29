@@ -55,7 +55,7 @@ namespace HkIServerImpl
 
 	int __stdcall Update(void)
 	{
-
+		static auto lastUpdate = std::chrono::high_resolution_clock::now();
 		static bool bFirstTime = true;
 		if (bFirstTime)
 		{
@@ -77,6 +77,25 @@ namespace HkIServerImpl
 		memcpy(&pData, g_FLServerDataPtr + 0x40, 4);
 		memcpy(&g_iServerLoad, pData + 0x204, 4);
 		memcpy(&g_iPlayerCount, pData + 0x208, 4);
+
+		if (set_logPerfTimers)
+		{
+			auto currTime = std::chrono::high_resolution_clock::now();
+			AddPerfTimer("serverUpdate %u", std::chrono::duration_cast<std::chrono::microseconds>(currTime - lastUpdate).count());
+			lastUpdate = currTime;
+
+			if (set_perfTimerLength < time(0))
+			{
+				set_logPerfTimers = false;
+				set_perfTimerLength = 0;
+			}
+		}
+		if (set_hookPerfTimerLength && set_hookPerfTimerLength < time(0))
+		{
+			set_hookPerfTimerLength = 0;
+			set_perfTimedHookName = "";
+		}
+
 
 		CALL_PLUGINS(PLUGIN_HkIServerImpl_Update, int, __stdcall, (), ());
 
@@ -181,7 +200,8 @@ namespace HkIServerImpl
 			ISERVER_LOGARG_I(g_iTextLen);
 
 			// check for user cmds
-			if (UserCmd_Process(iClientID, wscBuf))
+			if (wszBuf[0] == '/' 
+			&& UserCmd_Process(iClientID, wscBuf))
 				return;
 
 			if (wszBuf[0] == '.')

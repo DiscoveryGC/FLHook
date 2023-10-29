@@ -367,7 +367,10 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		unsigned int returnPoint = ReadReturnPointForClient(client);
 
 		if (!returnPoint)
+		{
+			PrintUserCmdText(client, L"Return point not found, contact admins.");
 			return;
+		}
 
 		MoveClient(client, returnPoint);
 		HookExt::IniSetI(client, "conn.retbase", 0);

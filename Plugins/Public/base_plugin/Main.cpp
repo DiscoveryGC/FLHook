@@ -2585,9 +2585,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		char datapath[MAX_PATH];
 		GetUserDataPath(datapath);
 
-		// Create base account dir if it doesn't exist
-		string basedir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)";
-
 		wstring baseName = cmd->ArgStrToEnd(1);
 
 		// Load and spawn all bases

@@ -2503,21 +2503,20 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
-		int billythecat = 0;
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
-				billythecat = 1;
+				break;
 			}
 		}
 
 
-		if (billythecat == 0)
+		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist");
 			return true;
 		}
 
@@ -2538,21 +2537,20 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
-		int billythecat = 0;
 		PlayerBase* base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
-				billythecat = 1;
+				break;
 			}
 		}
 
 
-		if (billythecat == 0)
+		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist");
 			return true;
 		}
 
@@ -2626,24 +2624,20 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		bool optype = cmd->ArgInt(1);
 
-		//return SpaceObjDestroyed(space_obj);
-		//alleynote1
-		int billythecat = 0;
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(2))
 			{
 				base = i.second;
-				billythecat = 1;
 				break;
 			}
 		}
 
 
-		if (billythecat == 0)
+		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist");
 			return true;
 		}
 

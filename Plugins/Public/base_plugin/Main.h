@@ -161,7 +161,7 @@ public:
 
 	bool Timer(uint time);
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
-	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true);
+	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true, bool broadcastDeath = true);
 	void SetReputation(int player_rep, float attitude);
 	float FindWearNTearModifier(float currHpPercentage);
 	void SetShieldState(const int shieldState);

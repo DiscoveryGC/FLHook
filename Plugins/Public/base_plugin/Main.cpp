@@ -2513,19 +2513,18 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
-		int billythecat = 0;
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
-				billythecat = 1;
+				break;
 			}
 		}
 
 
-		if (billythecat == 0)
+		if (!base)
 		{
 			cmd->Print(L"ERR Base doesn't exist lmao");
 			return true;
@@ -2546,22 +2545,21 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		RIGHT_CHECK(RIGHT_BASES)
 
-			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
-		int billythecat = 0;
 		PlayerBase* base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
-				billythecat = 1;
+				break;
 			}
 		}
 
-		if (billythecat == 0)
+		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao\n");
+			cmd->Print(L"ERR Base doesn't exist\n");
 			return true;
 		}
 
@@ -2580,7 +2578,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		RIGHT_CHECK(RIGHT_BASES)
 
-			uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
 		char datapath[MAX_PATH];
 		GetUserDataPath(datapath);
@@ -2601,9 +2599,9 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			return true;
 		}
 
-		uint baseNickname = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
+		uint baseNicknameHash = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
 
-		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0)
+		if (pub::SpaceObj::ExistsAndAlive(baseNicknameHash) == 0) // function returns -2 for nonexistant object, 0 for existing one
 		{
 			cmd->Print(L"ERR Base already spwawned!\n");
 			return true;
@@ -2635,22 +2633,18 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		bool optype = cmd->ArgInt(1);
 
-		//return SpaceObjDestroyed(space_obj);
-		//alleynote1
-		int billythecat = 0;
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(2))
 			{
 				base = i.second;
-				billythecat = 1;
 				break;
 			}
 		}
 
 
-		if (billythecat == 0)
+		if (!base)
 		{
 			cmd->Print(L"ERR Base doesn't exist lmao");
 			return true;

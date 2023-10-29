@@ -2521,13 +2521,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		}
 
 		base->base_health = 0;
-		if (base->base_health < 1)
-		{
-			return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj);
-		}
+		return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj);
 
-		//cmd->Print(L"OK Base is gone are you proud of yourself.");
-		return true;
 	}
 	else if (args.find(L"basedespawn") == 0)
 	{
@@ -2555,13 +2550,8 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		}
 
 		base->base_health = 0;
-		if (base->base_health < 1)
-		{
-			return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
-		}
+		return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
 
-		//cmd->Print(L"OK Base is gone are you proud of yourself.");
-		return true;
 	}
 	else if (args.find(L"baserespawn") == 0)
 	{
@@ -2573,9 +2563,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		char datapath[MAX_PATH];
 		GetUserDataPath(datapath);
-
-		// Create base account dir if it doesn't exist
-		string basedir = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)";
 
 		wstring baseName = cmd->ArgStrToEnd(1);
 
@@ -2592,7 +2579,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		uint baseNickname = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
 
-		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0)
+		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0) // -2 for nonexistant object, 0 for existing and alive
 		{
 			cmd->Print(L"ERR Base already spwawned!\n");
 			return true;
@@ -3004,7 +2991,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (base)
 		{
-			clients[client].admin = true;
 			clients[client].admin = true;
 		}
 

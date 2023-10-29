@@ -915,7 +915,12 @@ void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float
 				ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
 			}
 		}
+	}
 
-		this->shield_timeout = time(nullptr) + 60;
+	this->shield_timeout = time(nullptr) + 60;
+	if (!this->isShieldOn)
+	{
+		this->isShieldOn = true;
+		((CoreModule*)this->modules[0])->EnableShieldFuse(true);
 	}
 }

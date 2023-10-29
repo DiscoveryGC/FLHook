@@ -206,7 +206,7 @@ void CoreModule::RepairDamage(float max_base_health)
 	}
 }
 
-void CoreModule::SetShieldState(const int shieldState)
+void CoreModule::EnableShieldFuse(bool shieldEnabled)
 {
 	if (space_obj)
 	{
@@ -215,7 +215,7 @@ void CoreModule::SetShieldState(const int shieldState)
 		if (GetShipInspect(space_obj, inspect, dummy))
 		{
 			HkUnLightFuse((IObjRW*)inspect, shield_fuse, 0);
-			if (base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE)
+			if (shieldEnabled)
 			{
 				HkLightFuse((IObjRW*)inspect, shield_fuse, 0.0f, 0.0f, 0.0f);
 			}
@@ -229,8 +229,8 @@ bool CoreModule::Timer(uint time)
 	if (base->shield_timeout && base->shield_timeout < time)
 	{
 		base->shield_timeout = 0;
-		base->shield_state = PlayerBase::SHIELD_STATE_ONLINE;
-		SetShieldState(base->shield_state);
+		base->isShieldOn = false;
+		EnableShieldFuse(false);
 	}
 	
 	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
@@ -476,7 +476,7 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 {
 	if (space_obj)
 	{
-		SetShieldState(base->shield_state);
+		EnableShieldFuse(base->isShieldOn);
 
 		int obj_rep;
 		pub::SpaceObj::GetRep(this->space_obj, obj_rep);

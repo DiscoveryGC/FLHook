@@ -164,7 +164,7 @@ public:
 	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true, bool broadcastDeath = true);
 	void SetReputation(int player_rep, float attitude);
 	float FindWearNTearModifier(float currHpPercentage);
-	void SetShieldState(const int shieldState);
+	void EnableShieldFuse(bool shieldState);
 
 	void RepairDamage(float max_base_health);
 };
@@ -424,9 +424,7 @@ public:
 	map<uint, int> reservedCatalystMap;
 
 	// The state of the shield
-	static const int SHIELD_STATE_ONLINE = 0;
-	static const int SHIELD_STATE_ACTIVE = 1;
-	int shield_state;
+	bool isShieldOn;
 
 	// The number of seconds that shield will be active
 	int shield_timeout;

@@ -46,7 +46,7 @@ void HkTimerCheckKick()
 	CALL_PLUGINS_V(PLUGIN_HkTimerCheckKick, , (), ());
 
 
-	try {
+	TRY_HOOK {
 		// for all players
 		struct PlayerData *pPD = 0;
 		while (pPD = Players.traverse_active(pPD))
@@ -97,8 +97,7 @@ void HkTimerCheckKick()
 			}
 
 		}
-	}
-	catch (...) { LOG_EXCEPTION }
+	} CATCH_HOOK({})
 }
 
 /**************************************************************************************************************
@@ -109,7 +108,7 @@ void HkTimerNPCAndF1Check()
 {
 	//CALL_PLUGINS_V(PLUGIN_HkTimerNPCAndF1Check, , (), ());
 
-	try {
+	TRY_HOOK {
 		struct PlayerData *pPD = 0;
 		while (pPD = Players.traverse_active(pPD))
 		{
@@ -144,6 +143,5 @@ void HkTimerNPCAndF1Check()
 			HkChangeNPCSpawn(true); // serverload too high, disable npcs
 		else
 			HkChangeNPCSpawn(false);
-	}
-	catch (...) { LOG_EXCEPTION }
+	} CATCH_HOOK({})
 }

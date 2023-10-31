@@ -4,7 +4,7 @@
 
 int __stdcall DisconnectPacketSent(uint iClientID)
 {
-	try {
+	TRY_HOOK {
 		uint iShip = 0;
 		pub::Player::GetShip(iClientID, iShip);
 		if (set_iDisconnectDelay && iShip)
@@ -13,8 +13,7 @@ int __stdcall DisconnectPacketSent(uint iClientID)
 			CALL_PLUGINS_NORET(PLUGIN_DelayedDisconnect, , (uint, uint), (iClientID, iShip));
 			return 0; // don't pass on
 		}
-	}
-	catch (...) { LOG_EXCEPTION }
+	} CATCH_HOOK({})
 	return 1; // pass on
 }
 

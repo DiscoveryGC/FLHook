@@ -141,9 +141,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     <ProjectReference Include="..\hookext_plugin\HookExt Plugin.vcxproj">
       <Project>{81d33b95-1ddd-4f58-a24c-e2ec4a143dd0}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\JSONBuddy\JSONBuddy.vcxproj">
-      <Project>{097bffbb-2bbe-4e16-b2fb-3ed8e90ecbd7}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h" />

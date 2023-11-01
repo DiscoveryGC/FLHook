@@ -48,7 +48,7 @@ uint forgetCarrierDataInSeconds = 31556926; // since it's all kept in a single f
 uint dockingPeriod = 0;
 
 // Above how much cargo capacity, should a ship be rejected as a docking user?
-int cargoCapacityLimit = 275;
+float cargoCapacityLimit = 275.0f;
 
 float mobileDockingRange = 500.0f;
 
@@ -176,7 +176,7 @@ void LoadSettings()
 					}
 					else if (ini.is_value("cargo_capacity_limit"))
 					{
-						cargoCapacityLimit = ini.get_value_int(0);
+						cargoCapacityLimit = ini.get_value_float(0);
 					}
 					else if (ini.is_value("carrier_data_wipe_period"))
 					{
@@ -230,7 +230,7 @@ void LoadSettings()
 	}
 	ConPrint(L"DockingModules: Loaded %u equipment\n", dockingModAmount);
 	ConPrint(L"DockingModules: Found %u ships docked on %u carriers\n", dockedCount, carrierCount);
-	ConPrint(L"DockingModules: Allowing ships below the cargo capacity of %i to dock\n", cargoCapacityLimit);
+	ConPrint(L"DockingModules: Allowing ships below the cargo capacity of %0.0f to dock\n", cargoCapacityLimit);
 }
 
 void SaveData()
@@ -290,6 +290,20 @@ void SaveData()
 	}
 }
 
+bool CheckDockingCargoUsage(uint client)
+{
+	// Check that the requesting ship is of the appropriate size to dock.
+	const auto& shipInfo = Archetype::GetShip(Players[client].iShipArchetype);
+	float fRemHold;
+	pub::Player::GetRemainingHoldSize(client, fRemHold);
+	if (shipInfo->fHoldSize - fRemHold > cargoCapacityLimit)
+	{
+		PrintUserCmdText(client, L"You are carrying too much cargo to dock, %u/%u allowed.", static_cast<uint>(shipInfo->fHoldSize - fRemHold), static_cast<uint>(cargoCapacityLimit));
+		return false;
+	}
+	return true;
+}
+
 wstring GetLastBaseName(uint client)
 {
 	const auto& dockedInfo = idToDockedInfoMap[client];
@@ -336,8 +350,7 @@ JettisonResult RemoveShipFromLists(const wstring& dockedShipName, bool forcedLau
 	if (forcedLaunch)
 	{
 		uint carrierId = HkGetClientIdFromCharname(idToDockedInfoMap[dockedClientID]->carrierName);
-		jettisonedShipsQueue[dockedClientID] = carrierId;
-		ForceLaunch(dockedClientID);
+		jettisonedShipsQueue[dockedClientID] = idToDockedInfoMap[dockedClientID]->lastDockedSolar;
 
 		wstring newBaseInfo = GetLastBaseName(dockedClientID);
 		PrintUserCmdText(dockedClientID, L"You've been forcefully jettisoned by the carrier.");
@@ -355,7 +368,7 @@ JettisonResult RemoveShipFromLists(const wstring& dockedShipName, bool forcedLau
 	}
 	//clear the carrier list info
 	auto& carrierDockList = nameToCarrierInfoMap[carrierName].dockedShipList;
-	for (auto& dockIter = carrierDockList.begin() ; dockIter != carrierDockList.end() ; )
+	for (auto& dockIter = carrierDockList.begin() ; dockIter != carrierDockList.end() ; dockIter++)
 	{
 		if (*dockIter == dockedShipName)
 		{
@@ -462,7 +475,10 @@ void HkTimerCheckKick()
 				dockdata = dockingInProgress.erase(dockdata);
 				continue;
 			}
-			DockShipOnCarrier(dd.dockingID, dd.carrierID);
+			if (CheckDockingCargoUsage(dd.dockingID))
+			{
+				DockShipOnCarrier(dd.dockingID, dd.carrierID);
+			}
 			dockdata = dockingInProgress.erase(dockdata);
 			continue;
 		}
@@ -570,7 +586,7 @@ void StartDockingProcedure(uint dockingID, uint carrierID)
 		wstring message = dockingName + L" has begun docking on " + carrierName;
 		PrintLocalUserCmdText(dockingID, message, 10000);
 	}
-	else
+	else if(CheckDockingCargoUsage(dockingID))
 	{
 		DockShipOnCarrier(dockingID, carrierID);
 	}
@@ -685,10 +701,8 @@ void ReturnCraftToLastDockedBase(uint dockingID)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void __stdcall BaseExit(uint iBaseID, uint iClientID)
+void CountAvailableModuleSlots(uint iClientID)
 {
-	returncode = DEFAULT_RETURNCODE;
-
 	mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 	
 	if (idToCarrierInfoMap.count(iClientID))
@@ -707,6 +721,13 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	uint shipType;
+	pub::SpaceObj::GetType(ship, shipType);
+	if (shipType & (OBJ_CRUISER | OBJ_CAPITAL))
+	{
+		CountAvailableModuleSlots(client);
+	}
+
 	// If not docked on another ship, skip processing.
 	if (Players[client].iLastBaseID != mobileDockingProxyBase || 
 		(!idToDockedInfoMap.count(client) && !jettisonedShipsQueue.count(client)))
@@ -714,16 +735,14 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		return;
 	}
 
-	uint carrierClientID = -1;
 	if (jettisonedShipsQueue.count(client))
 	{
-		carrierClientID = jettisonedShipsQueue[client];
+		HkBeamById(client, jettisonedShipsQueue.at(client));
 		jettisonedShipsQueue.erase(client);
+		return;
 	}
-	else
-	{
-		carrierClientID = HkGetClientIdFromCharname(idToDockedInfoMap[client]->carrierName.c_str());
-	}
+	
+	uint carrierClientID = HkGetClientIdFromCharname(idToDockedInfoMap[client]->carrierName.c_str());
 
 	// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
 	if (carrierClientID != -1)
@@ -780,7 +799,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	//carrier not online, return to last docked base
 	ReturnCraftToLastDockedBase(client);
 }
-
 // If this is a docking request at a player ship then process it.
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, int& dockPort, enum DOCK_HOST_RESPONSE& response)
 {
@@ -793,13 +811,25 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 		// If target not a player in FREIGHTER class ship, ignore request
 		returncode = SKIPPLUGINS;
 
-		uint iType;
-		pub::SpaceObj::GetType(iTargetID, iType);
-		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
+		uint iTargetType;
+		pub::SpaceObj::GetType(iTargetID, iTargetType);
+		if (!(iTargetType & (OBJ_CRUISER | OBJ_CAPITAL)))
 		{
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 		
+		uint iShipType;
+		pub::SpaceObj::GetType(iShip, iShipType);
+		if (!(iShipType & (OBJ_FIGHTER | OBJ_FREIGHTER)))
+		{
+			PrintUserCmdText(client, L"ERR Your ship is too large for mobile docking!");
+			dockPort = -1;
+			response = DOCK_DENIED;
+			return 0;
+		}
+
 		uint systemId;
 		pub::SpaceObj::GetSystem(iShip, systemId);
 		if (bannedSystems.count(systemId))
@@ -862,11 +892,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 			return 0;
 		}
 
-		// Check that the requesting ship is of the appropriate size to dock.
-		const auto& shipInfo = Archetype::GetShip(Players[client].iShipArchetype);
-		if (shipInfo->fHoldSize > cargoCapacityLimit)
+		if (!CheckDockingCargoUsage(client))
 		{
-			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
 			dockPort = -1;
 			response = DOCK_DENIED;
 			return 0;
@@ -958,7 +985,7 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 		}
 		if (mobiledockClients[client].iDockingModulesAvailable)
 		{
-			PrintUserCmdText(client, L"Remaining free capacity: %u", mobiledockClients[client].iDockingModulesAvailable);
+			PrintUserCmdText(client, L"Remaining free capacity: %d", mobiledockClients[client].iDockingModulesAvailable);
 		}
 		return true;
 	}
@@ -1263,7 +1290,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 3));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 12));
 
 	saveThread = std::thread(SaveData);

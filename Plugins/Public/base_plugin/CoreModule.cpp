@@ -233,6 +233,13 @@ bool CoreModule::Timer(uint time)
 		EnableShieldFuse(false);
 	}
 
+	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
+	// this allows clients to perceive those objects as dockable
+	if ((time % 5) == 0)
+	{
+		float rhealth = base->base_health / base->max_base_health;
+		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
+	}
 	if (set_holiday_mode)
 	{
 		return false;

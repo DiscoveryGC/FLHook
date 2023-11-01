@@ -57,13 +57,13 @@ map<uint, uint> construction_items;
 int construction_credit_cost = 0;
 
 /// list of items and quantity used to repair 10000 units of damage
-list<REPAIR_ITEM> set_base_repair_items;
+vector<REPAIR_ITEM> set_base_repair_items;
 
 /// list of items used by human crew
 vector<uint> set_base_crew_consumption_items;
 vector<uint> set_base_crew_food_items;
 
-uint set_crew_check_frequency = 43200;
+uint set_crew_check_frequency = 60 * 60 * 12; // 12 hours
 
 /// The commodity used as crew for the base
 uint set_base_crew_type;
@@ -102,10 +102,6 @@ string set_status_path_json;
 /// Damage to the base every tick
 uint set_damage_per_tick = 600;
 
-/// Damage multiplier for damaged/abandoned stations
-/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
-
 /// Additional damage penalty for stations without proper crew
 float no_crew_damage_multiplier = 1;
 
@@ -123,19 +119,22 @@ uint repair_per_repair_cycle = 60000;
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
 // threshold size is to be configured per core level.
-map<int, float> shield_reinforcement_threshold_map;
+unordered_map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
+int vulnerability_window_length = 120; // 2 hours
+
+int vulnerability_window_change_cooldown = 3600 * 24 * 30; // 30 days
+
+int vulnerability_window_minimal_spread = 60 * 8; // 8 hours
+
+bool single_vulnerability_window = false;
+
 const uint shield_fuse = CreateID("player_base_shield");
 
-// decides if bases are globally immune, based on server time
-bool isGlobalBaseInvulnerabilityActive;
-
-list<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
-
 /// List of commodities forbidden to store on POBs
-set<uint> forbidden_player_base_commodity_set;
+unordered_set<uint> forbidden_player_base_commodity_set;
 
 // If true, use the new solar based defense platform spawn 	 	
 bool set_new_spawn = true;
@@ -168,8 +167,6 @@ unordered_set<uint> customSolarList;
 
 //siege weaponry definitions
 unordered_map<uint, float> siegeWeaponryMap;
-
-uint vulnerability_window_change_cooldown = 0;
 
 uint GetAffliationFromClient(uint client)
 {
@@ -278,6 +275,7 @@ void RespawnBase(PlayerBase* base)
 	string filepath = base->path;
 	player_bases.erase(base->base);
 	delete base;
+	base = nullptr;
 	PlayerBase* newBase = new PlayerBase(filepath);
 	player_bases[newBase->base] = newBase;
 	newBase->Spawn();
@@ -441,6 +439,15 @@ void LoadSettings()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void ValidateItem(const char* goodName)
+{
+	const GoodInfo* gi = GoodList_get()->find_by_name(goodName);
+	if (!gi)
+	{
+		ConPrint(L"\n\nBASE ERROR Invalid good found in config: %ls\n\n", stows((string)goodName).c_str());
+	}
+}
+
 /// Load the configuration
 void LoadSettingsActual()
 {
@@ -519,14 +526,6 @@ void LoadSettingsActual()
 					{
 						set_damage_per_tick = ini.get_value_int(0);
 					}
-					else if (ini.is_value("damage_multiplier"))
-					{
-						WEAR_N_TEAR_MODIFIER mod;
-						mod.fromHP = ini.get_value_float(0);
-						mod.toHP = ini.get_value_float(1);
-						mod.modifier = ini.get_value_float(2);
-						wear_n_tear_mod_list.emplace_back(mod);
-					}
 					else if (ini.is_value("no_crew_damage_multiplier"))
 					{
 						no_crew_damage_multiplier = ini.get_value_float(0);
@@ -555,12 +554,13 @@ void LoadSettingsActual()
 					{
 						base_shield_strength = ini.get_value_float(0);
 					}
-					else if (ini.is_value("base_vulnerability_window"))
+					else if (ini.is_value("base_vulnerability_window_length"))
 					{
-						BASE_VULNERABILITY_WINDOW damageWindow;
-						damageWindow.start = ini.get_value_int(0);
-						damageWindow.end = ini.get_value_int(1);
-						baseVulnerabilityWindows.emplace_back(damageWindow);
+						vulnerability_window_length = ini.get_value_int(0);
+					}
+					else if (ini.is_value("single_vulnerability_window"))
+					{
+						single_vulnerability_window = ini.get_value_bool(0);
 					}
 					else if (ini.is_value("construction_shiparch"))
 					{
@@ -568,6 +568,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("construction_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						uint quantity = ini.get_value_int(1);
 						construction_items[good] = quantity;
@@ -578,15 +579,18 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						set_base_crew_type = CreateID(ini.get_value_string(0));
 						humanCargoList.insert(set_base_crew_type);
 					}
 					else if (ini.is_value("human_cargo_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						humanCargoList.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("base_repair_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						REPAIR_ITEM item;
 						item.good = CreateID(ini.get_value_string(0));
 						item.quantity = ini.get_value_int(1);
@@ -594,11 +598,13 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_consumption_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_consumption_items.emplace_back(good);
 					}
 					else if (ini.is_value("base_crew_food_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_food_items.emplace_back(good);
 					}
@@ -753,6 +759,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("reqlevel"))
@@ -782,6 +789,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("produced_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.produced_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("loop_production"))
@@ -810,10 +818,12 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("catalyst"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint cargoHash = CreateID(ini.get_value_string(0));
 						if (humanCargoList.count(cargoHash))
 						{
@@ -1035,15 +1045,13 @@ void HkTimerCheckKick()
 		load_settings_required = false;
 		LoadSettingsActual();
 	}
-
 	uint curr_time = (uint)time(0);
-	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
 	for(auto& iter : player_bases)
 	{
 		PlayerBase *base = iter.second;
 		base->Timer(curr_time);
 	}
-	if (!player_bases.empty() && !set_holiday_mode)
+	if (!player_bases.empty())
 	{
 		if (baseSaveIterator == player_bases.end())
 		{
@@ -1272,6 +1280,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			delete base.second;
 		}
+		player_bases.clear();
 
 		for (uint customSolar : customSolarList)
 		{
@@ -1488,6 +1497,18 @@ bool UserCmd_Process(uint client, const wstring &args)
 		PlayerCommands::BaseSwapModule(client, args);
 		return true;
 	}
+	else if (args.find(L"/base setshield") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseSetVulnerabilityWindow(client, args);
+		return true;
+	}
+	else if (args.find(L"/vuln") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseCheckVulnerabilityWindow(client);
+		return true;
+	}
 	else if (args.find(L"/base") == 0)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
@@ -1556,6 +1577,20 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	}
 
 	return false;
+}
+
+void __stdcall SetTarget(uint iClientID, XSetTarget const& setTarget)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (setTarget.iSlot)
+	{
+		return;
+	}
+	if (player_bases.count(setTarget.iSpaceID))
+	{
+		PlayerBase* base = player_bases.at(setTarget.iSpaceID);
+		pub::SpaceObj::SetRelativeHealth(setTarget.iSpaceID, base->base_health / base->max_base_health);
+	}
 }
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& iCancel, enum DOCK_HOST_RESPONSE& response)
@@ -1838,11 +1873,16 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
+
+	system_match = true;
+	player_launch_base = 0;
+
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 
 	if (!clients[client].last_player_base)
 		return;
+
 
 	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
 	mobileCheck.iClientID = client;
@@ -1927,25 +1967,6 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		uint count = gsi.iCount;
 		int price = (int)item.price * count;
 
-		// base money check //
-		if (count > ULONG_MAX / item.price)
-		{
-			clients[client].reverse_sell = true;
-			PrintUserCmdText(client, L"KITTY ALERT. Illegal sale detected.");
-
-			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-			wstring wscMsgU = L"KITTY ALERT: Possible type 3 POB cheating by %name (Count = %count, Price = %price)\n";
-			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
-			wscMsgU = ReplaceStr(wscMsgU, L"%count", stows(itos(count)).c_str());
-			wscMsgU = ReplaceStr(wscMsgU, L"%price", stows(itos((int)item.price)).c_str());
-
-			ConPrint(wscMsgU);
-			LogCheater(client, wscMsgU);
-
-			return;
-		}
-
 		if (price < 0)
 		{
 			clients[client].reverse_sell = true;
@@ -1977,6 +1998,25 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		{
 			PrintUserCmdText(client, L"ERR: Base cannot accept goods, stock limit reached");
 			clients[client].reverse_sell = true;
+			return;
+		}
+
+		if (count > LONG_MAX / item.price)
+		{
+			clients[client].reverse_sell = true;
+			PrintUserCmdText(client, L"KITTY ALERT. Illegal sale detected.");
+
+			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
+			wstring wscMsgU = L"KITTY ALERT: Possible type 3 POB cheating by %name (Base = %base, Count = %count, Price = %price)\n";
+			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%count", stows(itos(count)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%price", stows(itos((int)item.price)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%base", base->basename.c_str());
+
+			ConPrint(wscMsgU);
+			LogCheater(client, wscMsgU);
+
 			return;
 		}
 
@@ -2313,13 +2353,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	{
 		return;
 	}
-	
-	if (set_holiday_mode)
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		iDmgToSpaceID = 0;
-		return;
-	}
 
 	// If this is an NPC hit then suppress the call completely
 	if (!dmg->is_inflictor_a_player())
@@ -2356,7 +2389,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			uint clientID = HkGetClientIDByShip(dmg->get_inflictor_id());
 			const wchar_t* playerName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(clientID));
-			AddLog("%s dealt impossible damage to base %s: %0.2f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
+			AddLog("%s dealt impossible damage to base %s: %0.0f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
 			return;
 		}
 	}
@@ -2528,7 +2561,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
-			if (i.second->basename == cmd->ArgStrToEnd(1))
+			if (i.second->basename == cmd->ArgStrToEnd(1) || stows(i.second->nickname) == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
 				break;
@@ -3081,6 +3114,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 				ConPrint(L" - %ls\n", base.second->basename.c_str());
 			}
 		}
+		return true;
 	}
 	else if (args.find(L"baselogin") == 0)
 	{
@@ -3265,6 +3299,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
+	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&SetTarget, PLUGIN_HkIServerImpl_SetTarget, 0));
 
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 15));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 15));
@@ -3295,38 +3330,4 @@ void ResetAllBasesShieldStrength()
 		i.second->shield_strength_multiplier = base_shield_strength;
 		i.second->damage_taken_since_last_threshold = 0;
 	}
-}
-
-//return value:
-// false = all bases vulnerable, true = invulnerable
-bool checkBaseVulnerabilityStatus()
-{
-
-	if (baseVulnerabilityWindows.empty())
-	{
-		return false;
-	}
-
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	uint currHour = t->tm_hour;
-	// iterate over configured vulnerability periods to check if we're in one.
-	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
-	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
-	for (list<BASE_VULNERABILITY_WINDOW>::iterator i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i)
-	{
-		if((i->start < i->end 
-			&& i->start <= currHour && i->end > currHour)
-		|| (i->start > i->end
-			&& (i->start <= currHour || i->end > currHour)))
-		{
-			// if bases are going vulnerable in this tick, reset their damage resistance to default
-			if (isGlobalBaseInvulnerabilityActive)
-			{
-				ResetAllBasesShieldStrength();
-			}
-			return false;
-		}
-	}
-	return true;
 }

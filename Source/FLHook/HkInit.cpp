@@ -166,7 +166,7 @@ clear the clientinfo
 
 void ClearClientInfo(uint iClientID)
 {
-	ClientInfo[iClientID].dieMsg = DIEMSG_ALL;
+	ClientInfo[iClientID].dieMsg = DIEMSG_ALL_NOCONN;
 	ClientInfo[iClientID].iShip = 0;
 	ClientInfo[iClientID].iShipOld = 0;
 	ClientInfo[iClientID].tmProtectedUntil = 0;
@@ -218,7 +218,7 @@ void LoadUserSettings(uint iClientID)
 	string scUserFile = scAcctPath + wstos(wscDir) + "\\flhookuser.ini";
 
 	// read diemsg settings
-	ClientInfo[iClientID].dieMsg = (DIEMSGTYPE)IniGetI(scUserFile, "settings", "DieMsg", DIEMSG_ALL);
+	ClientInfo[iClientID].dieMsg = (DIEMSGTYPE)IniGetI(scUserFile, "settings", "DieMsg", DIEMSG_ALL_NOCONN);
 	ClientInfo[iClientID].dieMsgSize = (CHATSIZE)IniGetI(scUserFile, "settings", "DieMsgSize", CS_DEFAULT);
 
 	// read chatstyle settings

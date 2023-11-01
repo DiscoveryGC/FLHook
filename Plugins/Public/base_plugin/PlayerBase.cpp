@@ -33,7 +33,6 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 	// Setup derived fields
 	SetupDefaults();
 
-	save_timer = rand() % 60;
 }
 
 PlayerBase::PlayerBase(const string &the_path)
@@ -48,7 +47,6 @@ PlayerBase::PlayerBase(const string &the_path)
 	// Setup derived fields
 	SetupDefaults();
 
-	save_timer = rand() % 60;
 }
 
 PlayerBase::~PlayerBase()
@@ -75,21 +73,72 @@ void PlayerBase::Spawn()
 	SyncReputationForBase();
 }
 
+bool IsVulnerabilityWindowActive(BASE_VULNERABILITY_WINDOW window, int timeOfDay)
+{
+	return ((window.start < window.end
+			&& window.start <= timeOfDay && window.end > timeOfDay)
+		|| (window.start > window.end
+			&& (window.start <= timeOfDay || window.end > timeOfDay)));
+}
+
+void PlayerBase::CheckVulnerabilityWindow(uint currTime)
+{
+	int timeOfDay = (currTime % (3600 * 24)) / 60;
+	if (IsVulnerabilityWindowActive(vulnerabilityWindow1, timeOfDay))
+	{
+		if (!vulnerableWindowStatus)
+		{
+			//Reset the base defenses to default only on the opening of the first vulnerability window
+			siege_mode = true;
+			SyncReputationForBase();
+			shield_strength_multiplier = base_shield_strength;
+			damage_taken_since_last_threshold = 0;
+			if (shield_reinforcement_threshold_map.count(base_level))
+			{
+				base_shield_reinforcement_threshold = shield_reinforcement_threshold_map[base_level];
+			}
+			else
+			{
+				base_shield_reinforcement_threshold = FLT_MAX;
+			}
+		}
+		vulnerableWindowStatus = true;
+	}
+	else if (!single_vulnerability_window && IsVulnerabilityWindowActive(vulnerabilityWindow2, timeOfDay))
+	{
+		if (!vulnerableWindowStatus)
+		{
+			vulnerableWindowStatus = true;
+			siege_mode = true;
+			SyncReputationForBase();
+		}
+	}
+	else if (vulnerableWindowStatus)
+	{
+		vulnerableWindowStatus = false;
+		siege_mode = false;
+		SyncReputationForBase();
+	}
+}
+
 // Dispatch timer to modules and exit immediately if the timer indicates
 // that this base has been deleted.
 bool PlayerBase::Timer(uint curr_time)
 {
-	if ((curr_time % set_tick_time) != 0 &&
-		logic)
+	if ((curr_time % set_tick_time) == 0 && logic)
 	{
 		reservedCatalystMap.clear();
 		reservedCatalystMap[set_base_crew_type] = base_level * 200;
 	}
-	for (auto module : modules)
+	if ((curr_time % 60) == 0 && !invulnerable)
 	{
-		if (module)
+		this->CheckVulnerabilityWindow(curr_time);
+	}
+	for (Module* pobModule : modules)
+	{
+		if (pobModule)
 		{
-			bool is_deleted = module->Timer(curr_time);
+			bool is_deleted = pobModule->Timer(curr_time);
 			if (is_deleted)
 				return true;
 		}
@@ -143,6 +192,13 @@ void PlayerBase::SetupDefaults()
 			affiliation = 0;
 		}
 	}
+
+	if (vulnerabilityWindow1.start == 0 && vulnerabilityWindow2.start == 0)
+	{
+		vulnerabilityWindow1 = { 10 * 60, (10 * 60) + vulnerability_window_length };
+		vulnerabilityWindow2 = { 20 * 60, (20 * 60) + vulnerability_window_length };
+	}
+	CheckVulnerabilityWindow(time(nullptr));
 }
 
 void PlayerBase::Load()
@@ -157,7 +213,6 @@ void PlayerBase::Load()
 		{
 			if (ini.is_header("Base"))
 			{
-				int newsindex = 0;
 				int paraindex = 0;
 				invulnerable = 0;
 				logic = 1;
@@ -259,6 +314,18 @@ void PlayerBase::Load()
 					else if (ini.is_value("shielddmgtaken"))
 					{
 						damage_taken_since_last_threshold = ini.get_value_float(0);
+					}
+					else if (ini.is_value("last_vulnerability_change"))
+					{
+						lastVulnerabilityWindowChange = ini.get_value_int(0);
+					}
+					else if (ini.is_value("vulnerability_windows"))
+					{
+						vulnerabilityWindow1 = { ini.get_value_int(0) * 60, (ini.get_value_int(0) * 60) + vulnerability_window_length };
+						if (!single_vulnerability_window)
+						{
+							vulnerabilityWindow2 = { ini.get_value_int(1) * 60, (ini.get_value_int(1) * 60) + vulnerability_window_length };
+						}
 					}
 					else if (ini.is_value("infoname"))
 					{
@@ -428,9 +495,11 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
-		fprintf(file, "crew_supplied = %u\n", isCrewSupplied);
+		fprintf(file, "crew_supplied = %u\n", isCrewSupplied ? 1 : 0);
 		fprintf(file, "shieldstrength = %f\n", shield_strength_multiplier);
 		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
+		fprintf(file, "last_vulnerability_change = %u\n", lastVulnerabilityWindowChange);
+		fprintf(file, "vulnerability_windows = %u, %u\n", vulnerabilityWindow1.start / 60, vulnerabilityWindow2.start / 60);
 
 		fprintf(file, "money = %I64d\n", money);
 		auto sysInfo = Universe::get_system(system);
@@ -780,68 +849,73 @@ void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float
 
 	// Make sure that the attacking player is hostile.
 	uint client = HkGetClientIDByShip(attacking_space_obj);
-	if (client)
+	if (!client)
+	{
+		return;
+	}
+	const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+	last_attacker = charname;
+
+	if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
+		hostile_tags_damage[charname] = 0;
+
+	hostile_tags_damage[charname] += incoming_damage;
+
+	// Allies are allowed to shoot at the base without the base becoming hostile. We do the ally search
+	// after checking to see if this player is on the hostile list because allies don't normally
+	// shoot at bases and so this is more efficient than searching the ally list first.
+	if (hostile_tags.find(charname) == hostile_tags.end())
+	{
+		bool is_ally = false;
+		for (list<wstring>::iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
+		{
+			if (charname.find(*i) == 0)
+			{
+				is_ally = true;
+				break;
+			}
+		}
+
+		if (!is_ally && (hostile_tags_damage[charname]) > damage_threshold)
+		{
+			hostile_tags[charname] = charname;
+
+			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
+
+			SyncReputationForBase();
+
+			if (siege_mode)
+				SiegeModChainReaction(client);
+		}
+	}
+
+	if (!siege_mode && (hostile_tags_damage[charname]) > siege_mode_damage_trigger_level)
 	{
 		const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		last_attacker = charname;
+		ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
 
-		if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
-			hostile_tags_damage[charname] = 0;
+		siege_mode = true;
+		SiegeModChainReaction(client);
+	}
 
-		hostile_tags_damage[charname] += incoming_damage;
-
-		// Allies are allowed to shoot at the base without the base becoming hostile. We do the ally search
-		// after checking to see if this player is on the hostile list because allies don't normally
-		// shoot at bases and so this is more efficient than searching the ally list first.
-		if (hostile_tags.find(charname) == hostile_tags.end())
+	// If the shield is not active but could be set a time 
+	// to request that it is activated.
+	if (!this->shield_timeout && this->isShieldOn == false
+		&& this->vulnerableWindowStatus)
+	{
+		const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		ReportAttack(this->basename, charname, this->system);
+		if (set_plugin_debug > 1)
 		{
-			bool is_ally = false;
-			for (list<wstring>::iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
-			{
-				if (charname.find(*i) == 0)
-				{
-					is_ally = true;
-					break;
-				}
-			}
-
-			if (!is_ally && (hostile_tags_damage[charname]) > damage_threshold)
-			{
-				hostile_tags[charname] = charname;
-
-				const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-				ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
-
-				SyncReputationForBase();
-
-				if (siege_mode)
-					SiegeModChainReaction(client);
-			}
+			ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
 		}
+	}
 
-		if (!siege_mode && (hostile_tags_damage[charname]) > siege_mode_damage_trigger_level)
-		{
-			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
-
-			siege_mode = true;
-			SiegeModChainReaction(client);
-		}
-
-
-		// If the shield is not active but could be set a time 
-		// to request that it is activated.
-		if (!this->shield_timeout && this->shield_state == SHIELD_STATE_ONLINE
-			&& !isGlobalBaseInvulnerabilityActive)
-		{
-			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			ReportAttack(this->basename, charname, this->system);
-			if (set_plugin_debug > 1)
-			{
-				ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
-			}
-		}
-
-		this->shield_timeout = time(nullptr) + 60;
+	this->shield_timeout = time(nullptr) + 60;
+	if (!this->isShieldOn)
+	{
+		this->isShieldOn = true;
+		((CoreModule*)this->modules[0])->EnableShieldFuse(true);
 	}
 }

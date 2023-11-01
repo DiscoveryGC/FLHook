@@ -142,12 +142,6 @@ bool PlayerBase::Timer(uint curr_time)
 			if (is_deleted)
 				return true;
 		}
-		
-		bool is_deleted = pobModule->Timer(curr_time);
-		if (is_deleted)
-		{
-			return true;
-		}
 	}
 	return false;
 }

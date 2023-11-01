@@ -314,6 +314,8 @@ public:
 	void SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
 	void CheckVulnerabilityWindow(uint currTime);
 
+	bool isFreshlyBuilt;
+
 	// The base nickname
 	string nickname;
 

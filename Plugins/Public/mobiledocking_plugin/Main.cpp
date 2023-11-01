@@ -813,14 +813,16 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 
 		uint iTargetType;
 		pub::SpaceObj::GetType(iTargetID, iTargetType);
-		if (!(iTargetType & (OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
+		if (!(iTargetType & (OBJ_CRUISER | OBJ_CAPITAL)))
 		{
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 		
 		uint iShipType;
 		pub::SpaceObj::GetType(iShip, iShipType);
-		if (iShipType & (OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL))
+		if (!(iShipType & (OBJ_FIGHTER | OBJ_FREIGHTER)))
 		{
 			PrintUserCmdText(client, L"ERR Your ship is too large for mobile docking!");
 			dockPort = -1;

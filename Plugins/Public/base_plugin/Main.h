@@ -261,8 +261,9 @@ public:
 	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;
+	bool pendingSpace = false;
 	bool ToggleQueuePaused(bool NewState);
-	void AddToQueue(uint product);
+	bool AddToQueue(uint product);
 	bool ClearQueue();
 	void ClearRecipe();
 };

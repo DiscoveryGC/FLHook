@@ -1310,6 +1310,8 @@ namespace PlayerCommands
 				base->availableCraftList.erase(craftType);
 				base->craftTypeTofactoryModuleMap.erase(craftType);
 			}
+			delete base->modules[index];
+			base->modules[index] = nullptr;
 		}
 		else if (base->modules[index]->type == Module::TYPE_BUILD)
 		{
@@ -1322,6 +1324,7 @@ namespace PlayerCommands
 			if (bm->active_recipe.shortcut_number == Module::TYPE_CORE)
 			{
 				delete base->modules[index];
+				base->modules[index] = nullptr;
 				base->modules.resize(base->modules.size() - 1);
 			}
 			else
@@ -1485,6 +1488,16 @@ namespace PlayerCommands
 				}
 				return;
 			}
+			if (!recipe->affiliationBonus.empty())
+			{
+				PrintUserCmdText(client, L"IFF bonuses:");
+				for (const auto& rep : recipe->affiliationBonus)
+				{
+					PrintUserCmdText(client, L"|   %ls - +%u%% efficiency bonus",
+						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), static_cast<uint>(((1.0f / rep.second) - 1.0f) * 100));
+				}
+			}
+			return;
 		}
 
 		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume"))
@@ -1506,9 +1519,15 @@ namespace PlayerCommands
 				PrintUserCmdText(client, L"ERR Impossible factory error, contact staff");
 				return;
 			}
-			factory->AddToQueue(recipe->nickname);
-			PrintUserCmdText(client, L"OK Item added to build queue");
-			base->Save();
+			if (factory->AddToQueue(recipe->nickname))
+			{
+				PrintUserCmdText(client, L"OK Item added to build queue");
+				base->Save();
+			}
+			else
+			{
+				PrintUserCmdText(client, L"ERR This auto-looping recipe is already active");
+			}
 			return;
 		}
 
@@ -1642,7 +1661,11 @@ namespace PlayerCommands
 		}
 
 		const wstring& cmd = GetParam(args, ' ', 1);
-		int money = ToInt(GetParam(args, ' ', 2));
+		wstring& moneyStr = GetParam(args, ' ', 2);
+		moneyStr = ReplaceStr(moneyStr, L".", L"");
+		moneyStr = ReplaceStr(moneyStr, L",", L"");
+		moneyStr = ReplaceStr(moneyStr, L"$", L"");
+		int money = ToInt(moneyStr);
 
 		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 

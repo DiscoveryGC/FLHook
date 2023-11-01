@@ -30,6 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 unordered_set<uint> unchartedSystems;
+uint unchartedSystemToExclude;
 
 struct SYSTEMJUMPCOORDS
 {
@@ -185,6 +186,10 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 					{
 						randomizationCooldown = ini.get_value_int(0);
 					}
+					if (ini.is_value("systemToExclude"))
+					{
+						unchartedSystemToExclude = CreateID(ini.get_value_string(0));
+					}
 				}
 			}
 			else if (ini.is_header("uncharted_systems"))
@@ -280,6 +285,10 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 							ConPrint(L"HYPERSPACE HUB: Warning! Uncharted to Hub jumphole %s not found, check config!\n", stows(nickname).c_str());
 							continue;
 						}
+						if (player_bases.at(nicknameHash)->system == unchartedSystemToExclude)
+						{
+							continue;
+						}
 						unchartedToHubJumpHoles.push_back(nicknameHash);
 					}
 				}
@@ -338,6 +347,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 		RespawnBase(pb);
 	}
 
+	bool isFirst = true;
 	for (uint unchartedJH : hubToUnchartedJumpHoles)
 	{
 		PlayerBase* originJumpHole = player_bases[unchartedJH];
@@ -371,6 +381,13 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 		targetJumpHole->Save();
 		RespawnBase(originJumpHole);
 		RespawnBase(targetJumpHole);
+
+		if (isFirst)
+		{
+			isFirst = false;
+			auto systemInfo = Universe::get_system(originJumpHole->destSystem);
+			WritePrivateProfileStringA("Timer", "systemToExclude", systemInfo->nickname, cfg_filehyperspaceHubTimer.c_str());
+		}
 	}
 
 	WritePrivateProfileString("Timer", "lastRandomization", itos((int)currTime).c_str(), cfg_filehyperspaceHubTimer.c_str());

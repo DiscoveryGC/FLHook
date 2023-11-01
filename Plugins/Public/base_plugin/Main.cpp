@@ -278,6 +278,7 @@ void RespawnBase(PlayerBase* base)
 	string filepath = base->path;
 	player_bases.erase(base->base);
 	delete base;
+	base = nullptr;
 	PlayerBase* newBase = new PlayerBase(filepath);
 	player_bases[newBase->base] = newBase;
 	newBase->Spawn();
@@ -1272,6 +1273,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			delete base.second;
 		}
+		player_bases.clear();
 
 		for (uint customSolar : customSolarList)
 		{
@@ -1556,6 +1558,20 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	}
 
 	return false;
+}
+
+void __stdcall SetTarget(uint iClientID, XSetTarget const& setTarget)
+{
+	returncode = DEFAULT_RETURNCODE;
+	if (setTarget.iSlot)
+	{
+		return;
+	}
+	if (player_bases.count(setTarget.iSpaceID))
+	{
+		PlayerBase* base = player_bases.at(setTarget.iSpaceID);
+		pub::SpaceObj::SetRelativeHealth(setTarget.iSpaceID, base->base_health / base->max_base_health);
+	}
 }
 
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& iCancel, enum DOCK_HOST_RESPONSE& response)
@@ -1927,25 +1943,6 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		uint count = gsi.iCount;
 		int price = (int)item.price * count;
 
-		// base money check //
-		if (count > ULONG_MAX / item.price)
-		{
-			clients[client].reverse_sell = true;
-			PrintUserCmdText(client, L"KITTY ALERT. Illegal sale detected.");
-
-			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
-			wstring wscMsgU = L"KITTY ALERT: Possible type 3 POB cheating by %name (Count = %count, Price = %price)\n";
-			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
-			wscMsgU = ReplaceStr(wscMsgU, L"%count", stows(itos(count)).c_str());
-			wscMsgU = ReplaceStr(wscMsgU, L"%price", stows(itos((int)item.price)).c_str());
-
-			ConPrint(wscMsgU);
-			LogCheater(client, wscMsgU);
-
-			return;
-		}
-
 		if (price < 0)
 		{
 			clients[client].reverse_sell = true;
@@ -1977,6 +1974,25 @@ void __stdcall GFGoodSell(struct SGFGoodSellInfo const &gsi, unsigned int client
 		{
 			PrintUserCmdText(client, L"ERR: Base cannot accept goods, stock limit reached");
 			clients[client].reverse_sell = true;
+			return;
+		}
+
+		if (count > LONG_MAX / item.price)
+		{
+			clients[client].reverse_sell = true;
+			PrintUserCmdText(client, L"KITTY ALERT. Illegal sale detected.");
+
+			wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
+			pub::Player::SendNNMessage(client, pub::GetNicknameId("nnv_anomaly_detected"));
+			wstring wscMsgU = L"KITTY ALERT: Possible type 3 POB cheating by %name (Base = %base, Count = %count, Price = %price)\n";
+			wscMsgU = ReplaceStr(wscMsgU, L"%name", wscCharname.c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%count", stows(itos(count)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%price", stows(itos((int)item.price)).c_str());
+			wscMsgU = ReplaceStr(wscMsgU, L"%base", base->basename.c_str());
+
+			ConPrint(wscMsgU);
+			LogCheater(client, wscMsgU);
+
 			return;
 		}
 
@@ -3265,6 +3281,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
+	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&SetTarget, PLUGIN_HkIServerImpl_SetTarget, 0));
 
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 15));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 15));

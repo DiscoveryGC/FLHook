@@ -233,14 +233,6 @@ bool CoreModule::Timer(uint time)
 		SetShieldState(base->shield_state);
 	}
 
-	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
-	// this allows clients to perceive those objects as dockable
-	if ((time % 5) == 0)
-	{
-		float rhealth = base->base_health / base->max_base_health;
-		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-	}
-
 	if (set_holiday_mode)
 	{
 		return false;
@@ -287,12 +279,6 @@ bool CoreModule::Timer(uint time)
 	if (isCrewSufficient)
 	{
 		RepairDamage(base->max_base_health);
-		if (dont_eat)
-		{
-			// We won't save base health below, so do it here
-			float rhealth = base->base_health / base->max_base_health;
-			pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
-		}
 	}
 
 	if (base->base_health > base->max_base_health)

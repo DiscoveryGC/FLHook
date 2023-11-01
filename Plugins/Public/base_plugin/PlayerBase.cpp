@@ -87,11 +87,19 @@ bool PlayerBase::Timer(uint curr_time)
 	}
 	for (auto module : modules)
 	{
-		if (module)
+		this->CheckVulnerabilityWindow(curr_time);
+	}
+	for (Module* pobModule : modules)
+	{
+		if (!pobModule)
 		{
-			bool is_deleted = module->Timer(curr_time);
-			if (is_deleted)
-				return true;
+			continue;
+		}
+		
+		bool is_deleted = pobModule->Timer(curr_time);
+		if (is_deleted)
+		{
+			return true;
 		}
 	}
 	return false;

@@ -119,14 +119,26 @@ void ExportData::ToJSON()
 	writer.write("timestamp", pt::to_iso_string(pt::second_clock::local_time()));
 	minijson::object_writer pwc = writer.nested_object("bases");
 
+	static unordered_map<uint, string> itemNameMap;
+	static unordered_map<uint, string> repNameMap;
 	for (auto& iter : player_bases)
 	{
 		PlayerBase* base = iter.second;
 		//grab the affiliation before we begin
-		wstring theaffiliation = HtmlEncode(HkGetWStringFromIDS(Reputation::get_name(base->affiliation)));
-		if (theaffiliation == L"Object Unknown")
+		string theaffiliation;
+		if (repNameMap.count(base->affiliation))
 		{
-			theaffiliation = L"No Affiliation";
+			theaffiliation = repNameMap.at(base->affiliation);
+		}
+		else
+		{
+			string& repName = wstos(HtmlEncode(HkGetWStringFromIDS(Reputation::get_name(base->affiliation))));
+			if (repName == "Object Unknown")
+			{
+				repName = "No Affiliation";
+			}
+			repNameMap[base->affiliation] = repName;
+			theaffiliation = repName;
 		}
 
 		//begin the object writer
@@ -145,9 +157,14 @@ void ExportData::ToJSON()
 		}
 		pwds.close();
 
+		/* Commenting out until necessary and appropriate async processing is done.
 		minijson::array_writer shop = pw.nested_array("shop_items");
 		for (auto i : base->market_items)
 		{
+			if (!i.second.is_public)
+			{
+				continue;
+			}
 			try {
 				minijson::object_writer item = shop.nested_object();
 				item.write("quantity", i.second.quantity);
@@ -158,8 +175,16 @@ void ExportData::ToJSON()
 
 				const GoodInfo* gi = GoodList::find_by_id(i.first);
 
-				wstring name = HkGetWStringFromIDS(gi->iIDSName);
-				item.write("name", wstos(name).c_str());
+				if (itemNameMap.count(gi->iArchID))
+				{
+					item.write("name", itemNameMap.at(gi->iArchID).c_str());
+				}
+				else
+				{
+					string& itemName = wstos(HkGetWStringFromIDS(gi->iIDSName));
+					itemNameMap[gi->iArchID] = itemName;
+					item.write("name", itemName.c_str());
+				}
 				item.write("name_id", gi->iIDSName);
 				item.write("id", i.first);
 				item.write("nickname", EquipmentUtilities::FindNickname(i.first));
@@ -172,9 +197,10 @@ void ExportData::ToJSON()
 			}
 		}
 		shop.close();
+		*/
 
 		//add basic elements
-		pw.write("affiliation", wstos(HtmlEncode(theaffiliation)).c_str());
+		pw.write("affiliation", theaffiliation.c_str());
 		pw.write("type", base->basetype.c_str());
 		pw.write("solar", base->basesolar.c_str());
 		pw.write("loadout", base->baseloadout.c_str());

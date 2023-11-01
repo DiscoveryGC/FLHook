@@ -94,7 +94,7 @@ bool BuildModule::Timer(uint time)
 
 	if (active_recipe.credit_cost)
 	{
-		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
+		uint moneyToRemove = min(active_recipe.cooking_rate * 100, active_recipe.credit_cost);
 		if (base->money >= moneyToRemove)
 		{
 			base->money -= moneyToRemove;
@@ -106,29 +106,39 @@ bool BuildModule::Timer(uint time)
 		}
 	}
 
-	// Consume goods at the cooking rate.
-	for (auto& i = active_recipe.consumed_items.begin();
-		i != active_recipe.consumed_items.end(); ++i)
+
+	for (auto& i = active_recipe.consumed_items.begin(); i != active_recipe.consumed_items.end(); i++)
 	{
 		uint good = i->first;
-		uint quantity = i->second > active_recipe.cooking_rate ? active_recipe.cooking_rate : i->second;
-		if (quantity)
+		uint quantity = min(active_recipe.cooking_rate, i->second);
+		auto market_item = base->market_items.find(good);
+		if (market_item == base->market_items.end()
+			|| market_item->second.quantity < quantity)
 		{
 			cooked = false;
-			auto market_item = base->market_items.find(good);
-			if (market_item != base->market_items.end()
-				&& (market_item->second.quantity >= quantity))
+			continue;
+		}
+		i->second -= quantity;
+		base->RemoveMarketGood(good, quantity);
+		if (!i->second)
+		{
+			active_recipe.consumed_items.erase(i);
+			if (!active_recipe.consumed_items.empty())
 			{
-				i->second -= quantity;
-				base->RemoveMarketGood(good, quantity);
-				return false;
+				cooked = false;
 			}
 		}
+		else
+		{
+			cooked = false;
+		}
+		break;
 	}
 
 	// Once cooked turn this into the build type
 	if (cooked)
 	{
+		bool builtCore = false;
 		for (uint i = 0; i < base->modules.size(); i++)
 		{
 			if (base->modules[i] == this)
@@ -143,6 +153,7 @@ bool BuildModule::Timer(uint time)
 
 					// Clear the build module slot.
 					base->modules[i] = nullptr;
+					builtCore = true;
 
 					// Delete and respawn the old core module
 					delete base->modules[0];
@@ -180,6 +191,11 @@ bool BuildModule::Timer(uint time)
 				return false;
 			}
 		}
+
+		if (builtCore)
+		{
+			base->modules.resize((base->base_level * 3) + 1);
+		}
 	}
 
 	return false;
@@ -197,7 +213,12 @@ void BuildModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+			uint good = ini.get_value_int(0);
+			uint quantity = ini.get_value_int(1);
+			if (quantity)
+			{
+				active_recipe.consumed_items.emplace_back(make_pair(good, quantity));
+			}
 		}
 		else if (ini.is_value("credit_cost"))
 		{
@@ -214,7 +235,10 @@ void BuildModule::SaveState(FILE* file)
 	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
-		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+		if (i->second)
+		{
+			fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+		}
 	}
 	if (active_recipe.credit_cost)
 	{

@@ -261,8 +261,9 @@ public:
 	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;
+	bool pendingSpace = false;
 	bool ToggleQueuePaused(bool NewState);
-	void AddToQueue(uint product);
+	bool AddToQueue(uint product);
 	bool ClearQueue();
 	void ClearRecipe();
 };
@@ -311,8 +312,6 @@ public:
 	void SyncReputationForBaseObject(uint space_obj);
 
 	void SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
-
-	bool isFreshlyBuilt;
 
 	// The base nickname
 	string nickname;

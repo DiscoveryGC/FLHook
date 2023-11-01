@@ -49,6 +49,23 @@ wstring FactoryModule::GetInfo(bool xml)
 	}
 	if (active_recipe.nickname)
 	{
+		if (pendingSpace)
+		{
+			info += openLine + active_recipe.infotext + L": Waiting for free cargo storage" + openLine + L"or available max stock limit to drop off:";
+			for (auto item : active_recipe.produced_items)
+			{
+				if (!item.second)
+				{
+					continue;
+				}
+				uint good = item.first;
+				uint quantity = item.second;
+				const GoodInfo* gi = GoodList::find_by_id(good);
+				info += openLine + L"- " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+			}
+			return info;
+		}
+
 		info += openLine + L"Crafting " + Status + active_recipe.infotext + L". Waiting for:";
 
 		for (auto& i : active_recipe.consumed_items)
@@ -136,6 +153,7 @@ bool FactoryModule::Timer(uint time)
 
 	// Consume goods at the cooking rate.
 	bool cooked = true;
+	pendingSpace = false;
 
 	for (const auto& catalyst : active_recipe.catalyst_items)
 	{
@@ -168,7 +186,7 @@ bool FactoryModule::Timer(uint time)
 	
 	if (active_recipe.credit_cost)
 	{
-		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
+		uint moneyToRemove = min(active_recipe.cooking_rate * 100, active_recipe.credit_cost);
 		if (base->money >= moneyToRemove)
 		{
 			base->money -= moneyToRemove;
@@ -216,6 +234,7 @@ bool FactoryModule::Timer(uint time)
 	{
 		if (!base->AddMarketGood(item.first, item.second))
 		{
+			pendingSpace = true;
 			return false;
 		}
 		else
@@ -224,16 +243,16 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	if (active_recipe.loop_production)
-	{
-		// If recipe is set to automatically loop, refresh the recipe data
-		SetActiveRecipe(active_recipe.nickname);
-	}
-	else if (!build_queue.empty())
+	if (!build_queue.empty())
 	{
 		// Load next item in the queue
 		SetActiveRecipe(build_queue.front());
 		build_queue.pop_front();
+	}
+	else if (active_recipe.loop_production)
+	{
+		// If recipe is set to automatically loop, refresh the recipe data
+		SetActiveRecipe(active_recipe.nickname);
 	}
 	else
 	{
@@ -334,15 +353,21 @@ void FactoryModule::SetActiveRecipe(uint product)
 	}
 }
 
-void FactoryModule::AddToQueue(uint product)
+bool FactoryModule::AddToQueue(uint product)
 {
-	if (build_queue.empty())
+	if (!active_recipe.nickname)
 	{
 		SetActiveRecipe(product);
+		return true;
+	}
+	else if(active_recipe.loop_production && active_recipe.nickname == product)
+	{
+		return false;
 	}
 	else
 	{
 		build_queue.emplace_back(product);
+		return true;
 	}
 }
 

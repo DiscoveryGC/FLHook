@@ -1051,7 +1051,7 @@ bool SetShipArch(uint iClientID, uint ship)
 		{
 			if (eq.iCount > shipData->iMaxShieldBats)
 			{
-				uint battsToSell = eq.iCount - shipData->iMaxNanobots;
+				uint battsToSell = eq.iCount - shipData->iMaxShieldBats;
 				pub::Player::RemoveCargo(iClientID, eq.sID, battsToSell);
 				const GoodInfo* gi = GoodList::find_by_id(battArch);
 				pub::Player::AdjustCash(iClientID, static_cast<int>(gi->fPrice * static_cast<float>(battsToSell)));

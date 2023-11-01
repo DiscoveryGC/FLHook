@@ -982,10 +982,10 @@ namespace Message
 		}
 
 		wstring wscMsg;
-		wstring wscSlashCmdOnly = GetParam(wscCmd, ' ', 0);
 
-		// If this is a /tN command (size = 3) then setup the preset message
-		if (set_bSetMsg && wscSlashCmdOnly.size() == 3)
+		// If this is a /tN command then setup the preset message
+		// looks a little weird to make it O(1)
+		if (set_bSetMsg && ((wscCmd.length() == 3 && wscCmd[2] != ' ') || (wscCmd.length() > 3 && wscCmd[3] == ' ')))
 		{
 			int iMsgSlot = ToInt(wscCmd.substr(2, 1));
 			if (iMsgSlot < 0 || iMsgSlot>9)

@@ -370,7 +370,7 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 		if (item->iCount >= totalFuelUsage)
 		{
 			info.lastFoundFuel = fuelUsage;
-			if (totalFuelUsage >= 25)
+			if (totalFuelUsage >= 25) // Wait until the fuel usage reaches 25 to actually call RemoveCargo, as it's an expensive operation.
 			{
 				info.fuelUsageCounter -= static_cast<float>(totalFuelUsage);
 				pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);

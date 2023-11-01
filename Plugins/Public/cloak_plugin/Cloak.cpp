@@ -50,7 +50,7 @@ struct CLOAK_ARCH
 	int iWarmupTime;
 	int activationPeriod;
 	uint availableShipClasses;
-	map<uint, CLOAK_FUEL_USAGE> mapFuelToUsage;
+	unordered_map<uint, CLOAK_FUEL_USAGE> mapFuelToUsage;
 	bool bDropShieldsOnUncloak;
 	bool bBreakOnProximity;
 	float fRange;
@@ -67,6 +67,7 @@ struct CLOAK_INFO
 		iState = STATE_CLOAK_INVALID;
 		bAdmin = false;
 
+		lastFoundFuel = nullptr;
 		arch = nullptr;
 	}
 
@@ -78,6 +79,7 @@ struct CLOAK_INFO
 	bool bAdmin;
 	int DisruptTime;
 
+	CLOAK_FUEL_USAGE* lastFoundFuel;
 	CLOAK_ARCH* arch;
 };
 
@@ -99,7 +101,7 @@ struct CLIENTCDSTRUCT
 };
 
 static unordered_map<uint, CLOAK_INFO> mapClientsCloak;
-static map<uint, CLIENTCDSTRUCT> mapClientsCD;
+static unordered_map<uint, CLIENTCDSTRUCT> mapClientsCD;
 
 static map<uint, CLOAK_ARCH> mapCloakingDevices;
 static map<uint, CDSTRUCT> mapCloakDisruptors;
@@ -333,37 +335,51 @@ static bool ProcessFuel(uint iClientID, CLOAK_INFO &info, uint iShipID)
 	if (info.bAdmin)
 		return true;
 
-	if(setJumpingClients.find(iClientID) != setJumpingClients.end())
+	if(setJumpingClients.count(iClientID))
 		return true;
 
 	for (list<EquipDesc>::iterator item = Players[iClientID].equipDescList.equip.begin(); item != Players[iClientID].equipDescList.equip.end(); item++)
 	{
-		if (info.arch->mapFuelToUsage.find(item->iArchID) != info.arch->mapFuelToUsage.end())
+		CLOAK_FUEL_USAGE* fuelUsage;
+		if (info.lastFoundFuel)
 		{
-			const auto& fuelUsage = info.arch->mapFuelToUsage[item->iArchID];
-			float currFuelUsage = fuelUsage.usageStatic;
-			if (fuelUsage.usageLinear != 0.0f || fuelUsage.usageSquare != 0.0f) {
-				Vector dir1;
-				Vector dir2;
-				pub::SpaceObj::GetMotion(iShipID, dir1, dir2);
-				float vecLength = sqrtf(dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z);
-				
-				currFuelUsage += fuelUsage.usageLinear * vecLength;
-				currFuelUsage += fuelUsage.usageSquare * vecLength * vecLength;
-			}
-			info.fuelUsageCounter += currFuelUsage;
-			uint totalFuelUsage = static_cast<uint>(max(info.fuelUsageCounter, 0.0f));
-			info.fuelUsageCounter -= static_cast<float>(totalFuelUsage);
-			if (item->iCount >= totalFuelUsage)
+			fuelUsage = info.lastFoundFuel;
+		}
+		else if (!info.arch->mapFuelToUsage.count(item->iArchID))
+		{
+			continue;
+		}
+		else
+		{
+			fuelUsage = &info.arch->mapFuelToUsage.at(item->iArchID);
+		}
+
+		float currFuelUsage = fuelUsage->usageStatic;
+		if (fuelUsage->usageLinear != 0.0f || fuelUsage->usageSquare != 0.0f)
+		{
+			Vector dir1;
+			Vector dir2;
+			pub::SpaceObj::GetMotion(iShipID, dir1, dir2);
+			float vecLength = sqrtf(dir1.x * dir1.x + dir1.y * dir1.y + dir1.z * dir1.z);
+			
+			currFuelUsage += fuelUsage->usageLinear * vecLength;
+			currFuelUsage += fuelUsage->usageSquare * vecLength * vecLength;
+		}
+		info.fuelUsageCounter += currFuelUsage;
+		uint totalFuelUsage = static_cast<uint>(max(info.fuelUsageCounter, 0.0f));
+		if (item->iCount >= totalFuelUsage)
+		{
+			info.lastFoundFuel = fuelUsage;
+			if (totalFuelUsage >= 25) // Wait until the fuel usage reaches 25 to actually call RemoveCargo, as it's an expensive operation.
 			{
-				if (totalFuelUsage)
-				{
-					pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);
-				}
-				return true;
+				info.fuelUsageCounter -= static_cast<float>(totalFuelUsage);
+				pub::Player::RemoveCargo(iClientID, item->sID, totalFuelUsage);
 			}
-			if(info.arch->mapFuelToUsage.size() == 1)
-				break;
+			return true;
+		}
+		else
+		{
+			info.lastFoundFuel = nullptr;
 		}
 	}
 	return false;
@@ -455,8 +471,6 @@ void HkTimerCheckKick()
 {
 	returncode = DEFAULT_RETURNCODE;
 	mstime now = timeInMS();
-	uint curr_time = (uint)time(0);
-
 
 	for (auto& ci = mapClientsCloak.begin(); ci != mapClientsCloak.end(); ++ci)
 	{
@@ -481,18 +495,21 @@ void HkTimerCheckKick()
 
 		if (iShipID && info.bCanCloak)
 		{
+			uint timeNow = time(0);
 			switch (info.iState)
 			{
 			case STATE_CLOAK_OFF:
-				// Send cloak state for uncloaked cloak-able players (only for them in space)
-				// this is the code to fix the bug where players wouldnt always see uncloaked players
-				XActivateEquip ActivateEq;
-				ActivateEq.bActivate = false;
-				ActivateEq.iSpaceID = iShipID;
-				ActivateEq.sID = info.iCloakSlot;
-				Server.ActivateEquip(iClientID, ActivateEq);
+				if (timeNow % 3 == 0)
+				{
+					// Send cloak state for uncloaked cloak-able players (only for them in space) 
+					// this is the code to fix the bug where players wouldnt always see uncloaked players 
+					XActivateEquip ActivateEq;
+					ActivateEq.bActivate = false;
+					ActivateEq.iSpaceID = iShipID;
+					ActivateEq.sID = info.iCloakSlot;
+					Server.ActivateEquip(iClientID, ActivateEq);
+				}
 				break;
-
 			case STATE_CLOAK_CHARGING:
 				if (!ProcessFuel(iClientID, info, iShipID))
 				{
@@ -531,7 +548,7 @@ void HkTimerCheckKick()
 			}
 		}
 	}
-	for (map<uint, CLIENTCDSTRUCT>::iterator cd = mapClientsCD.begin(); cd != mapClientsCD.end(); ++cd)
+	for (auto& cd = mapClientsCD.begin(); cd != mapClientsCD.end(); ++cd)
 	{
 		if (cd->second.cdwn >= 2)
 		{

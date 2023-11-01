@@ -88,6 +88,7 @@ void PlayerBase::CheckVulnerabilityWindow(uint currTime)
 	{
 		if (!vulnerableWindowStatus)
 		{
+			//Reset the base defenses to default only on the opening of the first vulnerability window
 			siege_mode = true;
 			SyncReputationForBase();
 			shield_strength_multiplier = base_shield_strength;

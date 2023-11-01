@@ -88,7 +88,6 @@ void PlayerBase::CheckVulnerabilityWindow(uint currTime)
 	{
 		if (!vulnerableWindowStatus)
 		{
-			vulnerableWindowStatus = true;
 			siege_mode = true;
 			SyncReputationForBase();
 			shield_strength_multiplier = base_shield_strength;
@@ -908,12 +907,7 @@ void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float
 		ReportAttack(this->basename, charname, this->system);
 		if (set_plugin_debug > 1)
 		{
-			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			ReportAttack(this->basename, charname, this->system);
-			if (set_plugin_debug > 1)
-			{
-				ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
-			}
+			ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
 		}
 	}
 

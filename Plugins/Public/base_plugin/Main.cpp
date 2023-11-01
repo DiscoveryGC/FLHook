@@ -63,7 +63,7 @@ vector<REPAIR_ITEM> set_base_repair_items;
 vector<uint> set_base_crew_consumption_items;
 vector<uint> set_base_crew_food_items;
 
-uint set_crew_check_frequency = 43200;
+uint set_crew_check_frequency = 60 * 60 * 12; // 12 hours
 
 /// The commodity used as crew for the base
 uint set_base_crew_type;
@@ -81,7 +81,6 @@ unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
 unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
 unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 unordered_map<wstring, RECIPE> moduleNameRecipeMap;
-unordered_map<uint, RECIPE> moduleNumberRecipeMap;
 unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 unordered_set<wstring> buildingCraftLists;
 
@@ -90,6 +89,9 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 
 /// Map of space obj IDs to base modules to speed up damage algorithms.
 unordered_map<uint, Module*> spaceobj_modules;
+
+/// Map of core upgrade recipes
+unordered_map<uint, uint> core_upgrade_recipes;
 
 /// Path to shield status html page
 string set_status_path_html;
@@ -121,12 +123,15 @@ unordered_map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
+int vulnerability_window_length = 120; // 2 hours
+
+int vulnerability_window_change_cooldown = 3600 * 24 * 30; // 30 days
+
+int vulnerability_window_minimal_spread = 60 * 8; // 8 hours
+
+bool single_vulnerability_window = false;
+
 const uint shield_fuse = CreateID("player_base_shield");
-
-// decides if bases are globally immune, based on server time
-bool isGlobalBaseInvulnerabilityActive;
-
-vector<BASE_VULNERABILITY_WINDOW> baseVulnerabilityWindows;
 
 /// List of commodities forbidden to store on POBs
 unordered_set<uint> forbidden_player_base_commodity_set;
@@ -419,6 +424,7 @@ wstring HtmlEncode(wstring text)
 /// Clear client info when a client connects.
 void ClearClientInfo(uint client)
 {
+	returncode = DEFAULT_RETURNCODE;
 	clients.erase(client);
 }
 
@@ -472,7 +478,6 @@ void LoadSettingsActual()
 	recipeCraftTypeNameMap.clear();
 	factoryNicknameToCraftTypeMap.clear();
 	moduleNameRecipeMap.clear();
-	moduleNumberRecipeMap.clear();
 	craftListNumberModuleMap.clear();
 	humanCargoList.clear();
 
@@ -548,12 +553,13 @@ void LoadSettingsActual()
 					{
 						base_shield_strength = ini.get_value_float(0);
 					}
-					else if (ini.is_value("base_vulnerability_window"))
+					else if (ini.is_value("base_vulnerability_window_length"))
 					{
-						BASE_VULNERABILITY_WINDOW damageWindow;
-						damageWindow.start = ini.get_value_int(0);
-						damageWindow.end = ini.get_value_int(1);
-						baseVulnerabilityWindows.emplace_back(damageWindow);
+						vulnerability_window_length = ini.get_value_int(0);
+					}
+					else if (ini.is_value("single_vulnerability_window"))
+					{
+						single_vulnerability_window = ini.get_value_bool(0);
 					}
 					else if (ini.is_value("construction_shiparch"))
 					{
@@ -690,6 +696,14 @@ void LoadSettingsActual()
 					else if (ini.is_value("siege_gun"))
 					{
 						siegeWeaponryMap[CreateID(ini.get_value_string(0))] = ini.get_value_float(1);
+					}
+					else if (ini.is_value("vulnerability_window_change_cooldown"))
+					{
+						vulnerability_window_change_cooldown = 3600 * 24 * ini.get_value_int(0);
+					}
+					else if (ini.is_value("core_recipe"))
+					{
+						core_upgrade_recipes[ini.get_value_int(0)] = CreateID(ini.get_value_string(1));
 					}
 				}
 			}
@@ -1030,9 +1044,7 @@ void HkTimerCheckKick()
 		load_settings_required = false;
 		LoadSettingsActual();
 	}
-
 	uint curr_time = (uint)time(0);
-	isGlobalBaseInvulnerabilityActive = checkBaseVulnerabilityStatus();
 	for(auto& iter : player_bases)
 	{
 		PlayerBase *base = iter.second;
@@ -1481,6 +1493,18 @@ bool UserCmd_Process(uint client, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseSwapModule(client, args);
+		return true;
+	}
+	else if (args.find(L"/base setshield") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseSetVulnerabilityWindow(client, args);
+		return true;
+	}
+	else if (args.find(L"/vuln") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::BaseCheckVulnerabilityWindow(client);
 		return true;
 	}
 	else if (args.find(L"/base") == 0)
@@ -2349,7 +2373,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 			returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 			uint clientID = HkGetClientIDByShip(dmg->get_inflictor_id());
 			const wchar_t* playerName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(clientID));
-			AddLog("%s dealt impossible damage to base %s: %0.2f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
+			AddLog("%s dealt impossible damage to base %s: %0.0f\n", wstos(playerName).c_str(), wstos(coreModule->base->basename).c_str(), curr - newHealth);
 			return;
 		}
 	}
@@ -2518,31 +2542,185 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 
-		int billythecat = 0;
 		PlayerBase *base;
+		for (auto& i : player_bases)
+		{
+			if (i.second->basename == cmd->ArgStrToEnd(1) || stows(i.second->nickname) == cmd->ArgStrToEnd(1))
+			{
+				base = i.second;
+				break;
+			}
+		}
+
+
+		if (!base)
+		{
+			cmd->Print(L"ERR Base doesn't exist");
+			return true;
+		}
+
+		base->base_health = 0;
+		return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj);
+
+	}
+	else if (args.find(L"basedespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		PlayerBase* base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(1))
 			{
 				base = i.second;
-				billythecat = 1;
+				break;
 			}
 		}
 
 
-		if (billythecat == 0)
+		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist");
+			return true;
+		}
+
+		base->base_health = 0;
+		return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
+
+	}
+	else if (args.find(L"baserespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+
+		wstring baseName = cmd->ArgStrToEnd(1);
+
+		// Load and spawn all bases
+		string path = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)" + wstos(baseName) + ".ini";
+
+		WIN32_FIND_DATA findfile;
+		HANDLE h = FindFirstFile(path.c_str(), &findfile);
+		if (h == INVALID_HANDLE_VALUE)
+		{
+			cmd->Print(L"ERR Base file not found");
+			return true;
+		}
+
+		uint baseNickname = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
+
+		if (pub::SpaceObj::ExistsAndAlive(baseNickname) == 0) // -2 for nonexistant object, 0 for existing and alive
+		{
+			cmd->Print(L"ERR Base already spwawned!\n");
+			return true;
+		}
+
+		PlayerBase* base = new PlayerBase(path);
+
+		FindClose(h);
+		if (base && !base->nickname.empty())
+		{
+			player_bases[base->base] = base;
+			base->Spawn();
+			cmd->Print(L"Base respawned!\n");
+		}
+		else
+		{
+			cmd->Print(L"ERROR POB file corrupted: %ls\n", stows(path).c_str());
+		}
+
+
+		return true;
+	}
+	else if (args.find(L"basedespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		PlayerBase* base;
+		for (auto& i : player_bases)
+		{
+			if (i.second->basename == cmd->ArgStrToEnd(1))
+			{
+				base = i.second;
+				break;
+			}
+		}
+
+		if (!base)
+		{
+			cmd->Print(L"ERR Base doesn't exist\n");
 			return true;
 		}
 
 		base->base_health = 0;
 		if (base->base_health < 1)
 		{
-			return CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj);
+			cmd->Print(L"Base despawned\n");
+			CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
 		}
 
-		//cmd->Print(L"OK Base is gone are you proud of yourself.");
+		return true;
+	}
+	else if (args.find(L"baserespawn") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+
+		RIGHT_CHECK(RIGHT_BASES)
+
+		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+
+		char datapath[MAX_PATH];
+		GetUserDataPath(datapath);
+
+		wstring baseName = cmd->ArgStrToEnd(1);
+
+		// Load and spawn all bases
+		string path = string(datapath) + R"(\Accts\MultiPlayer\player_bases\)" + wstos(baseName) + ".ini";
+
+		WIN32_FIND_DATA findfile;
+		HANDLE h = FindFirstFile(path.c_str(), &findfile);
+		if (h == INVALID_HANDLE_VALUE)
+		{
+			cmd->Print(L"ERR Base file not found\n");
+			return true;
+		}
+
+		uint baseNicknameHash = CreateID(IniGetS(path, "Base", "nickname", "").c_str());
+
+		if (pub::SpaceObj::ExistsAndAlive(baseNicknameHash) == 0) // function returns -2 for nonexistant object, 0 for existing one
+		{
+			cmd->Print(L"ERR Base already spwawned!\n");
+			return true;
+		}
+
+		PlayerBase* base = new PlayerBase(path);
+
+		FindClose(h);
+		if (base && !base->nickname.empty())
+		{
+			player_bases[base->base] = base;
+			base->Spawn();
+			cmd->Print(L"Base respawned!\n");
+		}
+		else
+		{
+			cmd->Print(L"ERROR POB file corrupted: %ls\n", stows(path).c_str());
+		}
+
+
 		return true;
 	}
 	else if (args.find(L"basetogglegod") == 0)
@@ -2554,24 +2732,20 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
 		bool optype = cmd->ArgInt(1);
 
-		//return SpaceObjDestroyed(space_obj);
-		//alleynote1
-		int billythecat = 0;
 		PlayerBase *base;
 		for (auto& i : player_bases)
 		{
 			if (i.second->basename == cmd->ArgStrToEnd(2))
 			{
 				base = i.second;
-				billythecat = 1;
 				break;
 			}
 		}
 
 
-		if (billythecat == 0)
+		if (!base)
 		{
-			cmd->Print(L"ERR Base doesn't exist lmao");
+			cmd->Print(L"ERR Base doesn't exist");
 			return true;
 		}
 
@@ -2930,13 +3104,19 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 	{
 		RIGHT_CHECK(RIGHT_SUPERADMIN);
 		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
+		if (client == -1)
+		{
+			ConPrint(L"Only usable ingame\n");
+			return true;
+		}
 
 		PlayerBase* base = GetPlayerBaseForClient(client);
 		if (base)
 		{
 			clients[client].admin = true;
-			clients[client].admin = true;
 		}
+
+		PrintUserCmdText(client, L"Logged in as admin");
 		return true;
 	}
 	return false;
@@ -2944,6 +3124,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 
 void DelayedDisconnect(uint clientId, uint shipId)
 {
+	returncode = DEFAULT_RETURNCODE;
 	HyperJump::CheckForUnchartedDisconnect(clientId, shipId);
 }
 
@@ -3070,9 +3251,11 @@ void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_typ
 	}
 	recipeMap[recipe.nickname] = recipe;
 	moduleNameRecipeMap[recipeNameKey] = recipe;
-	moduleNumberRecipeMap[recipe.shortcut_number] = recipe;
-	craftListNumberModuleMap[build_type][recipe_number] = recipe;
-	buildingCraftLists.insert(build_type);
+	if (!build_type.empty())
+	{
+		craftListNumberModuleMap[build_type][recipe_number] = recipe;
+		buildingCraftLists.insert(build_type);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3089,6 +3272,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
   
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
+	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&DelayedDisconnect, PLUGIN_DelayedDisconnect, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&RequestEvent, PLUGIN_HkIServerImpl_RequestEvent, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&LaunchPosHook, PLUGIN_LaunchPosHook, 0));
@@ -3099,7 +3283,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
-
 
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&GFGoodSell, PLUGIN_HkIServerImpl_GFGoodSell, 15));
 	p_PI->lstHooks.emplace_back(PLUGIN_HOOKINFO((FARPROC*)&ReqRemoveItem, PLUGIN_HkIServerImpl_ReqRemoveItem, 15));
@@ -3130,38 +3313,4 @@ void ResetAllBasesShieldStrength()
 		i.second->shield_strength_multiplier = base_shield_strength;
 		i.second->damage_taken_since_last_threshold = 0;
 	}
-}
-
-//return value:
-// false = all bases vulnerable, true = invulnerable
-bool checkBaseVulnerabilityStatus()
-{
-
-	if (baseVulnerabilityWindows.empty())
-	{
-		return false;
-	}
-
-	time_t tNow = time(0);
-	struct tm *t = localtime(&tNow);
-	uint currHour = t->tm_hour;
-	// iterate over configured vulnerability periods to check if we're in one.
-	// - in case of timeStart < timeEnd, eg. 5-10, the base will be vulnerable between 5AM and 10AM.
-	// - in case of timeStart > timeEnd, eg. 23-2, the base will be vulnerable after 11PM or before 2AM.
-	for (auto& i = baseVulnerabilityWindows.begin(); i != baseVulnerabilityWindows.end(); ++i)
-	{
-		if((i->start < i->end 
-			&& i->start <= currHour && i->end > currHour)
-		|| (i->start > i->end
-			&& (i->start <= currHour || i->end > currHour)))
-		{
-			// if bases are going vulnerable in this tick, reset their damage resistance to default
-			if (isGlobalBaseInvulnerabilityActive)
-			{
-				ResetAllBasesShieldStrength();
-			}
-			return false;
-		}
-	}
-	return true;
 }

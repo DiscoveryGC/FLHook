@@ -226,17 +226,12 @@ void CoreModule::EnableShieldFuse(bool shieldEnabled)
 bool CoreModule::Timer(uint time)
 {
 	// Disable shield if time elapsed
-	if (base->shield_timeout < time)
+	if (base->shield_timeout && base->shield_timeout < time)
 	{
 		base->shield_timeout = 0;
 		base->isShieldOn = false;
 		EnableShieldFuse(false);
 	}
-	
-	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
-	// this allows clients to perceive those objects as dockable
-	float rhealth = base->base_health / base->max_base_health;
-	pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 
 	if (set_holiday_mode)
 	{
@@ -252,7 +247,6 @@ bool CoreModule::Timer(uint time)
 	{
 		return false;
 	}
-
 
 	// if health is 0 then the object will be destroyed but we won't
 	// receive a notification of this so emulate it.
@@ -363,7 +357,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
-	if (base->shield_strength_multiplier >= 1.0f || isGlobalBaseInvulnerabilityActive || base->invulnerable == 1)
+	if (!base->vulnerableWindowStatus || base->invulnerable == 1 || base->shield_strength_multiplier >= 1.0f)
 	{
 		// base invulnerable, keep current health value
 		return curr_hitpoints;
@@ -396,6 +390,7 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		base->shield_strength_multiplier += shield_reinforcement_increment;
 	}
 
+	base->base_health -= damageTaken;
 	return curr_hitpoints - damageTaken;
 }
 

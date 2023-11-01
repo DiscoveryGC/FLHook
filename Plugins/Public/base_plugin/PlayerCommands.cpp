@@ -1083,6 +1083,12 @@ namespace PlayerCommands
 			wstring& cmd2 = GetParam(args, ' ', 2);
 			wstring& recipeName = GetParamToEnd(args, ' ', 3);
 
+			if (cmd2.empty())
+			{
+				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
+				return;
+			}
+
 			if (cmd2 == L"list")
 			{
 				PrintUserCmdText(client, L"Modules available in %ls category:", cmd.c_str());
@@ -1096,8 +1102,20 @@ namespace PlayerCommands
 			const RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
 			if (!buildRecipe)
 			{
-				PrintUserCmdText(client, L"ERR Invalid module selected");
+				PrintUserCmdText(client, L"ERR Invalid module name/number, for more information use /build help");
 				return;
+			}
+
+
+			if (buildRecipe->shortcut_number == Module::TYPE_CORE)
+			{
+				if (base->base_level >= 4)
+				{
+					PrintUserCmdText(client, L"ERR Upgrade not available");
+					return;
+				}
+
+				buildRecipe = &recipeMap[core_upgrade_recipes[base->base_level]];
 			}
 
 			if (cmd2 == L"info")
@@ -1108,15 +1126,13 @@ namespace PlayerCommands
 					const GoodInfo* gi = GoodList::find_by_id(material.first);
 					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), material.second);
 				}
+				if (buildRecipe->credit_cost)
+				{
+					PrintUserCmdText(client, L"|   $%u credits", buildRecipe->credit_cost);
+				}
 			}
 			else if (cmd2 == L"start")
 			{
-				if (buildRecipe->shortcut_number == Module::TYPE_CORE && base->base_level >= 4)
-				{
-					PrintUserCmdText(client, L"ERR Upgrade not available");
-					return;
-				}
-
 				for (const auto& module : base->modules)
 				{
 					BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
@@ -1132,6 +1148,24 @@ namespace PlayerCommands
 						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
 						return;
 					}
+				}
+
+				if (buildRecipe->shortcut_number == Module::TYPE_CORE)
+				{
+					if(base->base_level >= 4)
+					{
+						PrintUserCmdText(client, L"ERR Upgrade not available");
+						return;
+					}
+					if (base->modules.size() > (base->base_level * 3 + 1))
+					{
+						PrintUserCmdText(client, L"ERR Core upgrade already ongoing!");
+						return;
+					}
+					PrintUserCmdText(client, L"Core upgrade started");
+					base->modules.emplace_back(new BuildModule(base, buildRecipe));
+					base->Save();
+					return;
 				}
 
 				for (auto& modSlot : base->modules)
@@ -1192,19 +1226,12 @@ namespace PlayerCommands
 			}
 			else
 			{
-				PrintUserCmdText(client, L"ERR Invalid command");
+				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
 			}
 		}
 		else
 		{
-			PrintUserCmdText(client, L"ERR Invalid parameters");
-			PrintUserCmdText(client, L"/build <list|buildlist> <list|start|resume|pause|info> <moduleName/Nr");
-			PrintUserCmdText(client, L"|  list - lists available module lists");
-			PrintUserCmdText(client, L"|  <buildlist> list - lists modules available on the selected module list");
-			PrintUserCmdText(client, L"|  <buildlist> start <moduleName/Nr> - starts constructon of selected module");
-			PrintUserCmdText(client, L"|  <buildlist> resume <moduleName/Nr> - pauses selected module construction");
-			PrintUserCmdText(client, L"|  <buildlist> pause <moduleName/Nr> - resumes selected module construction");
-			PrintUserCmdText(client, L"|  <buildlist> info <moduleName/Nr> - provides construction material info for selected module");
+			PrintUserCmdText(client, L"ERR Invalid module list name, for more information use /build help");
 		}
 	}
 
@@ -1227,6 +1254,12 @@ namespace PlayerCommands
 		if (index1 == index2)
 		{
 			PrintUserCmdText(client, L"ERR Can't swap a module with itself");
+			return;
+		}
+		const uint coreUpgradeIndex = (base->base_level * 3) + 1;
+		if (index1 == coreUpgradeIndex || index2 == coreUpgradeIndex)
+		{
+			PrintUserCmdText(client, L"ERR Can't swap core upgrade");
 			return;
 		}
 
@@ -1278,8 +1311,30 @@ namespace PlayerCommands
 				base->craftTypeTofactoryModuleMap.erase(craftType);
 			}
 		}
-		delete base->modules[index];
-		base->modules[index] = nullptr;
+		else if (base->modules[index]->type == Module::TYPE_BUILD)
+		{
+			BuildModule* bm = dynamic_cast<BuildModule*>(base->modules[index]);
+			if (!bm)
+			{
+				PrintUserCmdText(client, L"ERR Impossible destroy error, contact staff!");
+				return;
+			}
+			if (bm->active_recipe.shortcut_number == Module::TYPE_CORE)
+			{
+				delete base->modules[index];
+				base->modules.resize(base->modules.size() - 1);
+			}
+			else
+			{
+				delete base->modules[index];
+				base->modules[index] = nullptr;
+			}
+		}
+		else
+		{
+			delete base->modules[index];
+			base->modules[index] = nullptr;
+		}
 		base->Save();
 		PrintUserCmdText(client, L"OK Module destroyed");
 	}
@@ -1338,7 +1393,7 @@ namespace PlayerCommands
 		}
 		else if (!base->availableCraftList.count(craftType))
 		{
-			PrintCraftHelpMenu(client);
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1346,7 +1401,7 @@ namespace PlayerCommands
 		wstring param = GetParamToEnd(args, ' ', 3);
 		if (cmd.empty())
 		{
-			PrintCraftHelpMenu(client);
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1354,12 +1409,39 @@ namespace PlayerCommands
 
 		if (cmd == L"list")
 		{
-			if (param.empty())
+			PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
+			for (wstring& infoLine : factory_recipe_map[craftType])
 			{
-				PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
-				for (wstring& infoLine : factory_recipe_map[craftType])
+				PrintUserCmdText(client, infoLine);
+			}
+			return;
+		}
+		
+		if (cmd == L"info" && recipe)
+		{
+			PrintUserCmdText(client, L"Construction materials for %ls:", recipe->infotext.c_str());
+			for (const auto& item : recipe->consumed_items)
+			{
+				const GoodInfo* gi = GoodList::find_by_id(item.first);
+				PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
+			}
+			if (recipe->credit_cost)
+			{
+				PrintUserCmdText(client, L"|   $%u credits", recipe->credit_cost);
+			}
+			PrintUserCmdText(client, L"Produced goods:");
+			for (const auto& product : recipe->produced_items)
+			{
+				const GoodInfo* gi = GoodList::find_by_id(product.first);
+				PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), product.second);
+			}
+			if (!recipe->catalyst_items.empty())
+			{
+				PrintUserCmdText(client, L"Production catalysts:");
+				for (const auto& catalyst : recipe->catalyst_items)
 				{
-					PrintUserCmdText(client, infoLine);
+					const GoodInfo* gi = GoodList::find_by_id(catalyst.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), catalyst.second);
 				}
 				return;
 			}
@@ -1407,7 +1489,7 @@ namespace PlayerCommands
 
 		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume"))
 		{
-			PrintCraftHelpMenu(client);
+			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -1415,7 +1497,7 @@ namespace PlayerCommands
 		{
 			if (!base->availableCraftList.count(recipe->craft_type))
 			{
-				PrintUserCmdText(client, L"ERR incorrect craftlist");
+				PrintUserCmdText(client, L"ERR incorrect craftlist, for more information use /craft help");
 				return;
 			}
 			FactoryModule* factory = base->craftTypeTofactoryModuleMap[recipe->craft_type];
@@ -1447,10 +1529,10 @@ namespace PlayerCommands
 		else if (cmd == L"pause")
 		{
 			if (factory->ToggleQueuePaused(true))
-				PrintUserCmdText(client, L"OK Build queue resumed");
+				PrintUserCmdText(client, L"OK Build queue paused");
 			else
 			{
-				PrintUserCmdText(client, L"ERR Build queue is already ongoing");
+				PrintUserCmdText(client, L"ERR Build queue is already paused");
 				return;
 			}
 		}
@@ -2363,12 +2445,10 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Can only change vulnerability windows once every %u days, %u days left", vulnerability_window_change_cooldown / (3600 * 24), 1 + ((base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown - currTime) / (3600 * 24)));
 			return;
 		}
-		wstring param1Str = GetParam(cmd, ' ', 2);
-		wstring param2Str = GetParam(cmd, ' ', 3);
 
 		int param1 = ToInt(GetParam(cmd, ' ', 2));
 		int param2 = ToInt(GetParam(cmd, ' ', 3));
-		if (param1Str.empty() || param1 < 0 || param1 > 23
+		if (param1 < 0 || param1 > 23
 			|| (!single_vulnerability_window && (param2 < 0 || param2 > 23)))
 		{
 			PrintUserCmdText(client, L"ERR Vulnerability windows can only be set to full hour values between 0 and 23");
@@ -2379,7 +2459,7 @@ namespace PlayerCommands
 		int vulnerabilityWindowOneEnd = (vulnerabilityWindowOneStart + vulnerability_window_length) % (60 * 24); // 
 
 		int vulnerabilityWindowTwoStart = param2 * 60;
-		int vulnerabilityWindowTwoEnd = vulnerabilityWindowTwoStart + vulnerability_window_length % (60 * 24);
+		int vulnerabilityWindowTwoEnd = (vulnerabilityWindowTwoStart + vulnerability_window_length) % (60 * 24);
 
 		if (single_vulnerability_window)
 		{
@@ -2436,11 +2516,14 @@ namespace PlayerCommands
 
 		if (single_vulnerability_window)
 		{
-			PrintUserCmdText(client, L"This base has its vulnerability window starting at %u:00", pb->vulnerabilityWindow1.start / 60);
+			PrintUserCmdText(client, L"This base has its vulnerability window between %u:00-%u:%u", 
+				pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow1.end / 60, pb->vulnerabilityWindow1.end % 60);
 		}
 		else
 		{
-			PrintUserCmdText(client, L"This base has its vulnerability windows starting at %u:00 and %u:00", pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow2.start / 60);
+			PrintUserCmdText(client, L"This base has its vulnerability windows between %u:00-%u:%u and %u:00-%u:%u", 
+				pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow1.end / 60, pb->vulnerabilityWindow1.end % 60,
+				pb->vulnerabilityWindow2.start / 60, pb->vulnerabilityWindow2.end / 60, pb->vulnerabilityWindow2.end % 60);
 		}
 	}
 }

@@ -48,8 +48,8 @@ struct RECIPE
 };
 
 struct BASE_VULNERABILITY_WINDOW {
-	uint start;
-	uint end;
+	int start;
+	int end;
 };
 
 struct WEAR_N_TEAR_MODIFIER {
@@ -311,6 +311,7 @@ public:
 	void SyncReputationForBaseObject(uint space_obj);
 
 	void SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
+	void CheckVulnerabilityWindow(uint currTime);
 
 	bool isFreshlyBuilt;
 
@@ -426,16 +427,20 @@ public:
 	bool isShieldOn;
 
 	// The number of seconds that shield will be active
-	uint shield_timeout;
-
-	// When this timer drops to less than 0 the base is saved	 
-	int save_timer;
+	int shield_timeout;
 
 	int logic;
 	int invulnerable;
 
 	//last player attacker
 	wstring last_attacker;
+
+	uint lastVulnerabilityWindowChange = 0;
+
+	BASE_VULNERABILITY_WINDOW vulnerabilityWindow1 = { 0, 0 };
+	BASE_VULNERABILITY_WINDOW vulnerabilityWindow2 = { 0, 0 };
+
+	bool vulnerableWindowStatus = false;
 
 	////////////Unique to Solars/////////////
 
@@ -525,7 +530,7 @@ namespace HyperJump
 	void InitJumpHole(uint baseId, uint destSystem, uint destObject);
 	void LoadHyperspaceHubConfig(const string& configPath);
 	void InitJumpHoleConfig();
-	void CheckForUnchartedDisconnect(uint ship, uint client);
+	void CheckForUnchartedDisconnect(uint client, uint ship);
 	void ClearClientInfo(uint iClientID);
 }
 
@@ -565,6 +570,8 @@ namespace PlayerCommands
 	void BaseSwapModule(uint client, const wstring& args);
 	void GetNecessitiesStatus(uint client, const wstring& args);
 	bool CheckSolarDistances(uint client, uint systemID, Vector pos);
+	void BaseSetVulnerabilityWindow(uint client, const wstring& args);
+	void BaseCheckVulnerabilityWindow(uint client);
 
 	void BaseDeploy(uint client, const wstring& args);
 
@@ -588,6 +595,8 @@ namespace CreateSolar
 extern unordered_map<uint, CLIENT_DATA> clients;
 
 extern unordered_map<uint, Module*> spaceobj_modules;
+
+extern unordered_map<uint, uint> core_upgrade_recipes;
 
 // Map of ingame hash to info
 extern unordered_map<uint, class PlayerBase*> player_bases;
@@ -693,9 +702,13 @@ extern float base_shield_strength;
 
 extern const uint shield_fuse;
 
-extern bool isGlobalBaseInvulnerabilityActive;
+extern int vulnerability_window_length;
 
-bool checkBaseVulnerabilityStatus();
+extern int vulnerability_window_change_cooldown;
+
+extern int vulnerability_window_minimal_spread;
+
+extern bool single_vulnerability_window;
 
 /// Holiday mode
 extern bool set_holiday_mode;

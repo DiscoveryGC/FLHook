@@ -107,7 +107,7 @@ Check if NPC spawns should be disabled
 
 void HkTimerNPCAndF1Check()
 {
-	CALL_PLUGINS_V(PLUGIN_HkTimerNPCAndF1Check, , (), ());
+	//CALL_PLUGINS_V(PLUGIN_HkTimerNPCAndF1Check, , (), ());
 
 	try {
 		struct PlayerData *pPD = 0;

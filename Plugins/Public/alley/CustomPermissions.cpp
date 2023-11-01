@@ -220,43 +220,6 @@ void AP::BaseEnter_AFTER(uint base, uint iClientID)
 	}
 }
 
-
-
-bool AP::AlleyCmd_Help(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
-{
-	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	wstring rights;
-
-	bool isAngel = false;
-
-	// is it an admin		
-	if (HkGetAdmin((const wchar_t*)Players.GetActiveCharacterName(iClientID), rights) == HKE_OK)
-	{
-		//PrintUserCmdText(iClientID, L"You are a platinum level Admin. Use $help for a list of available commands.");
-		isAngel = true;
-	}
-
-	// is it an angel
-	list<wstring>::iterator iter = angels.begin();
-	while (iter != angels.end())
-	{
-		if (*iter == wscCharname)
-			isAngel = true;
-		iter++;
-	}
-
-	if (isAngel == false)
-	{
-		PrintUserCmdText(iClientID, L"You are not an Angel. You will now be permabanned.");
-		return true;
-	}
-
-	//PrintUserCmdText(iClientID, L"You are a platinum level Angel. Use $help for a list of available commands.");
-	PrintUserCmdText(iClientID, L"The following commands are available to platinum level Angels:");
-	PrintUserCmdText(iClientID, L"Command: $chase <charname> - Teleports you through bob to the desired player");
-	return true;
-}
-
 bool AP::AlleyCmd_Chase(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
 	wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(iClientID);

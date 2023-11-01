@@ -30,6 +30,7 @@
 #include <unordered_map>
 
 static uint maxJettisonCount = 25;
+static uint maxJettisonCountNoOwner = 100;
 static uint lootCleanupFrequency = 420;
 
 namespace pt = boost::posix_time;
@@ -279,6 +280,10 @@ void LoadSettings()
 					if (ini.is_value("MaxJettisonCount"))
 					{
 						maxJettisonCount = ini.get_value_int(0);
+					}
+					else if (ini.is_value("MaxJettisonCountNoOwner"))
+					{
+						maxJettisonCountNoOwner = ini.get_value_int(0);
 					}
 					else if (ini.is_value("LootCleanupFrequency"))
 					{
@@ -698,18 +703,23 @@ void RemoveSurplusJettisonItems()
 	auto cObj = dynamic_cast<CLoot*>(CObject::FindFirst(CObject::CLOOT_OBJECT));
 	for (; cObj; cObj = dynamic_cast<CLoot*>(CObject::FindNext()))
 	{
-		uint ownerSpaceObjID = cObj->get_owner();
-		if (ownerSpaceObjID)
-		{
-			jettisonedItemsMap[ownerSpaceObjID].push_back(cObj->iSpaceID);
-		}
+		jettisonedItemsMap[cObj->get_owner()].emplace_back(cObj->iSpaceID);
 	}
 	for (const auto& jettisonData : jettisonedItemsMap)
 	{
-		if (jettisonData.second.size() <= maxJettisonCount)
+		uint itemLimit;
+		if (jettisonData.first == 0)
+		{
+			itemLimit = maxJettisonCountNoOwner;
+		}
+		else
+		{
+			itemLimit = maxJettisonCount;
+		}
+		if (jettisonData.second.size() <= itemLimit)
 			continue;
-		//iterate from the beginning until the 25th last element
-		for (uint i = 0; i < jettisonData.second.size() - maxJettisonCount; i++)
+		//iterate from the beginning until the defined amount of elements remain
+		for (uint i = 0; i < jettisonData.second.size() - itemLimit; i++)
 		{
 			pub::SpaceObj::Destroy(jettisonData.second[i], DestroyType::VANISH);
 		}

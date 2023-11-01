@@ -18,7 +18,6 @@
 #include <math.h>
 #include <list>
 #include <set>
-#include <unordered_set>
 
 
 #include <PluginUtilities.h>
@@ -45,6 +44,7 @@ bool set_bEnableRestart = false;
 bool set_bEnableGiveCash = false;
 bool set_bEnableDeathMsg = false;
 bool set_bLocalTime = false;
+unordered_set<uint> doNotDisturbClients;
 
 /// Local chat range
 float set_iLocalChatRange = 9999;
@@ -1021,10 +1021,13 @@ namespace HkIServerImpl
 		}
 	}
 
-	void __stdcall SetTarget(uint uClientID, struct XSetTarget const &p2)
+	void __stdcall SetTarget(uint uClientID, struct XSetTarget const& p2)
 	{
 		returncode = DEFAULT_RETURNCODE;
-		Message::SetTarget(uClientID, p2);
+		if (!p2.iSlot)
+		{
+			Message::SetTarget(uClientID, p2);
+		}
 	}
 
 	void __stdcall CharacterInfoReq(unsigned int iClientID, bool p2)
@@ -1227,6 +1230,7 @@ USERCMD UserCmds[] =
 	{ L"/factioninvite",Message::UserCmd_FactionInvite, L"Usage: /factioninvite <tag> or /fi ..."},
 	{ L"/fi",			Message::UserCmd_FactionInvite, L"Usage: /factioninvite <tag> or /fi ..."},
 	{ L"/lastpm",       Message::UserCmd_ShowLastPMSender, L""},
+	{ L"/dnd",			Message::UserCmd_SetDoNotDisturb, L"" },
 	{ L"/set chattime", Message::UserCmd_SetChatTime, L"Usage: /set chattime [on|off]"},
 	{ L"/set dietime",  Message::UserCmd_SetDeathTime, L"Usage: /set dietime [on|off]"},
 	{ L"/help",			Message::UserCmd_CustomHelp, L""},

@@ -17,9 +17,9 @@
 	{ \
 	static CTimer timer(__FUNCTION__,set_iTimerThreshold); \
 	timer.start(); \
-	try { \
+	TRY_HOOK { \
 		args; \
-	} catch(...) { AddLog("ERROR: Exception in " __FUNCTION__ " on server call"); LOG_EXCEPTION; } \
+	} CATCH_HOOK ({ AddLog("ERROR: Exception in " __FUNCTION__ " on server call"); } ) \
 	timer.stop(); \
 	}
 
@@ -126,7 +126,7 @@ namespace HkIServerImpl
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SubmitChat, __stdcall, (struct CHAT_ID cId, unsigned long lP1, void const *rdlReader, struct CHAT_ID cIdTo, int iP2), (cId, lP1, rdlReader, cIdTo, iP2));
 
-		try {
+		TRY_HOOK {
 
 			// Group join/leave commands
 			if (cIdTo.iID == 0x10004)
@@ -233,8 +233,7 @@ namespace HkIServerImpl
 				if ((ToLower(wscBuf)).find(ToLower(*i)) == 0)
 					return;
 			}
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		// send
 		g_bInSubmitChat = true;
@@ -256,7 +255,7 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
-			try {
+			TRY_HOOK {
 			ClientInfo[iClientID].iShip = iShip;
 			ClientInfo[iClientID].iKillsInARow = 0;
 			ClientInfo[iClientID].bCruiseActivated = false;
@@ -275,14 +274,13 @@ namespace HkIServerImpl
 					break;
 				}
 			}
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_PlayerLaunch, __stdcall, (unsigned int iShip, unsigned int iClientID), (iShip, iClientID));
 
 		EXECUTE_SERVER_CALL(Server.PlayerLaunch(iShip, iClientID));
 
-		try {
+		TRY_HOOK {
 			if (!ClientInfo[iClientID].iLastExitedBaseID)
 			{
 				ClientInfo[iClientID].iLastExitedBaseID = 1;
@@ -293,8 +291,7 @@ namespace HkIServerImpl
 					iClientID,
 					HkGetPlayerSystem(iClientID).c_str());
 			}
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, __stdcall, (unsigned int iShip, unsigned int iClientID), (iShip, iClientID));
 	}
@@ -332,11 +329,10 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
-			try {
+			TRY_HOOK {
 			iClientIDTarget = HkGetClientIDByShip(ci.dwTargetShip);
 
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		iDmgTo = iClientIDTarget;
 		iDmgMunitionID = ci.iProjectileArchID;
@@ -429,7 +425,7 @@ namespace HkIServerImpl
 		ISERVER_LOGARG_UI(iBaseID);
 		ISERVER_LOGARG_UI(iShip);
 
-		try
+		TRY_HOOK
 		{
 
 			uint iClientID = HkGetClientIDByShip(iShip);
@@ -444,8 +440,7 @@ namespace HkIServerImpl
 				iClientID,
 				HkGetBaseNickByID(ClientInfo[iClientID].iLastExitedBaseID).c_str(),
 				HkGetPlayerSystem(iClientID).c_str());
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_LaunchComplete, __stdcall, (unsigned int iBaseID, unsigned int iShip), (iBaseID, iShip));
 
@@ -469,20 +464,19 @@ namespace HkIServerImpl
 			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_CharacterSelect, __stdcall, (struct CHARACTER_ID const & cId, unsigned int iClientID), (cId, iClientID));
 
 		wstring wscCharBefore;
-		try {
+		TRY_HOOK {
 			const wchar_t *wszCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
 			wscCharBefore = wszCharname ? (wchar_t*)Players.GetActiveCharacterName(iClientID) : L"";
 			ClientInfo[iClientID].iLastExitedBaseID = 0;
 			ClientInfo[iClientID].iTradePartner = 0;
 			Server.CharacterSelect(cId, iClientID);
-		}
-		catch (...) {
+		} CATCH_HOOK( {
 			HkAddKickLog(iClientID, L"Corrupt charfile?");
 			HkKick(ARG_CLIENTID(iClientID));
 			return;
-		}
+		})
 
-		try {
+		TRY_HOOK {
 			wstring wscCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
 
 			if (wscCharBefore.compare(wscCharname) != 0) {
@@ -522,8 +516,7 @@ namespace HkIServerImpl
 					iClientID,
 					pi.wscIP.c_str());
 			}
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_CharacterSelect_AFTER, __stdcall, (struct CHARACTER_ID const & cId, unsigned int iClientID), (cId, iClientID));
 	}
@@ -552,7 +545,7 @@ namespace HkIServerImpl
 
 		EXECUTE_SERVER_CALL(Server.BaseEnter(iBaseID, iClientID));
 
-		try {
+		TRY_HOOK {
 			// adjust cash, this is necessary when cash was added while use was in charmenu/had other char selected
 			wstring wscCharname = ToLower((wchar_t*)Players.GetActiveCharacterName(iClientID));
 			foreach(ClientInfo[iClientID].lstMoneyFix, MONEY_FIX, i)
@@ -574,8 +567,7 @@ namespace HkIServerImpl
 				iClientID,
 				HkGetBaseNickByID(iBaseID).c_str(),
 				HkGetPlayerSystem(iClientID).c_str());
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_BaseEnter_AFTER, __stdcall, (unsigned int iBaseID, unsigned int iClientID), (iBaseID, iClientID));
 	}
@@ -592,17 +584,16 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
-			try {
+			TRY_HOOK {
 			ClientInfo[iClientID].iBaseEnterTime = 0;
 			ClientInfo[iClientID].iLastExitedBaseID = iBaseID;
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_BaseExit, __stdcall, (unsigned int iBaseID, unsigned int iClientID), (iBaseID, iClientID));
 
 		EXECUTE_SERVER_CALL(Server.BaseExit(iBaseID, iClientID));
 
-		try {
+		TRY_HOOK {
 			const wchar_t *wszCharname = (wchar_t*)Players.GetActiveCharacterName(iClientID);
 
 			// event
@@ -611,8 +602,7 @@ namespace HkIServerImpl
 				iClientID,
 				HkGetBaseNickByID(iBaseID).c_str(),
 				HkGetPlayerSystem(iClientID).c_str());
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_BaseExit_AFTER, __stdcall, (unsigned int iBaseID, unsigned int iClientID), (iBaseID, iClientID));
 	}
@@ -625,7 +615,7 @@ namespace HkIServerImpl
 		ISERVER_LOG();
 		ISERVER_LOGARG_UI(iClientID);
 
-		try {
+		TRY_HOOK {
 			// If ID is too high due to disconnect buffer time then manually drop the connection.
 			if (iClientID > MAX_CLIENT_ID)
 			{
@@ -650,23 +640,21 @@ namespace HkIServerImpl
 
 			ClientInfo[iClientID].iConnects++;
 			ClearClientInfo(iClientID);
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_OnConnect, __stdcall, (unsigned int iClientID), (iClientID));
 
 		EXECUTE_SERVER_CALL(Server.OnConnect(iClientID));
 
-		try {
+		TRY_HOOK {
 			// event
 			wstring wscIP;
 			HkGetPlayerIP(iClientID, wscIP);
 			ProcessEvent(L"connect id=%d ip=%s",
 				iClientID,
 				wscIP.c_str());
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_OnConnect_AFTER, __stdcall, (unsigned int iClientID), (iClientID));
 	}
@@ -682,7 +670,7 @@ namespace HkIServerImpl
 		ISERVER_LOGARG_UI(p2);
 
 		wstring wscCharname;
-		try
+		TRY_HOOK
 		{
 			if (!ClientInfo[iClientID].bDisconnected)
 			{
@@ -700,12 +688,7 @@ namespace HkIServerImpl
 				EXECUTE_SERVER_CALL(Server.DisConnect(iClientID, p2));
 				CALL_PLUGINS_V(PLUGIN_HkIServerImpl_DisConnect_AFTER, __stdcall, (unsigned int iClientID, enum EFLConnection p2), (iClientID, p2));
 			}
-		}
-		catch (...)
-		{
-			AddLog("ERROR: Exception in " __FUNCTION__ "@loc2 charname=%s iClientID=%u", wstos(wscCharname).c_str(), iClientID);
-			LOG_EXCEPTION;
-		}
+		} CATCH_HOOK({ AddLog("ERROR: Exception in " __FUNCTION__ "@loc2 charname=%s iClientID=%u", wstos(wscCharname).c_str(), iClientID); })
 	}
 
 	/**************************************************************************************************************
@@ -724,7 +707,7 @@ namespace HkIServerImpl
 
 		EXECUTE_SERVER_CALL(Server.TerminateTrade(iClientID, iAccepted));
 
-		try {
+		TRY_HOOK {
 			if (iAccepted)
 			{ // save both chars to prevent cheating in case of server crash
 				HkSaveChar(ARG_CLIENTID(iClientID));
@@ -736,8 +719,7 @@ namespace HkIServerImpl
 				ClientInfo[ClientInfo[iClientID].iTradePartner].iTradePartner = 0;
 			ClientInfo[iClientID].iTradePartner = 0;
 
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_TerminateTrade_AFTER, __stdcall, (unsigned int iClientID, int iAccepted), (iClientID, iAccepted));
 	}
@@ -752,12 +734,11 @@ namespace HkIServerImpl
 		ISERVER_LOGARG_UI(iClientID1);
 		ISERVER_LOGARG_UI(iClientID2);
 
-		try {
+		TRY_HOOK {
 			// save traders client-ids
 			ClientInfo[iClientID1].iTradePartner = iClientID2;
 			ClientInfo[iClientID2].iTradePartner = iClientID1;
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_InitiateTrade, __stdcall, (unsigned int iClientID1, unsigned int iClientID2), (iClientID1, iClientID2));
 
@@ -777,7 +758,7 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
-			try {
+			TRY_HOOK {
 
 			list<CARGO_INFO> lstCargo;
 			int iRem;
@@ -797,8 +778,7 @@ namespace HkIServerImpl
 				}
 			}
 
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_ActivateEquip, __stdcall, (unsigned int iClientID, struct XActivateEquip const &aq), (iClientID, aq));
 
@@ -818,10 +798,9 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
-			try {
+			TRY_HOOK {
 			ClientInfo[iClientID].bCruiseActivated = ac.bActivate;
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_ActivateCruise, __stdcall, (unsigned int iClientID, struct XActivateCruise const &ac), (iClientID, ac));
 
@@ -841,10 +820,9 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
-			try {
+			TRY_HOOK {
 			ClientInfo[iClientID].bThrusterActivated = at.bActivate;
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_ActivateThrusters, __stdcall, (unsigned int iClientID, struct XActivateThrusters const &at), (iClientID, at));
 
@@ -865,7 +843,7 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
-			try {
+			TRY_HOOK {
 			// anti-cheat check
 			list <CARGO_INFO> lstCargo;
 			int iHold;
@@ -907,7 +885,7 @@ namespace HkIServerImpl
 				return;
 			}
 		}
-		catch (...) { AddLog("Exception in %s (iClientID=%u (%x))", __FUNCTION__, iClientID, Players.GetActiveCharacterName(iClientID)); }
+		CATCH_HOOK ({ AddLog("Exception in %s (iClientID=%u (%x))", __FUNCTION__, iClientID, Players.GetActiveCharacterName(iClientID)); } )
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_GFGoodSell, __stdcall, (struct SGFGoodSellInfo const &gsi, unsigned int iClientID), (gsi, iClientID));
 
@@ -968,7 +946,7 @@ namespace HkIServerImpl
 
 		EXECUTE_SERVER_CALL(Server.JumpInComplete(iSystemID, iShip));
 
-		try {
+		TRY_HOOK {
 			uint iClientID = HkGetClientIDByShip(iShip);
 			if (!iClientID)
 				return;
@@ -978,8 +956,7 @@ namespace HkIServerImpl
 				(wchar_t*)Players.GetActiveCharacterName(iClientID),
 				iClientID,
 				HkGetSystemNickByID(iSystemID).c_str());
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_JumpInComplete_AFTER, __stdcall, (unsigned int iSystemID, unsigned int iShip), (iSystemID, iShip));
 	}
@@ -1002,14 +979,13 @@ namespace HkIServerImpl
 
 		EXECUTE_SERVER_CALL(Server.SystemSwitchOutComplete(iShip, iClientID));
 
-		try {
+		TRY_HOOK {
 			// event
 			ProcessEvent(L"switchout char=%s id=%d system=%s",
 				(wchar_t*)Players.GetActiveCharacterName(iClientID),
 				iClientID,
 				wscSystem.c_str());
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_SystemSwitchOutComplete_AFTER, __stdcall, (unsigned int iShip, unsigned int iClientID), (iShip, iClientID));
 	}
@@ -1024,7 +1000,7 @@ namespace HkIServerImpl
 		ISERVER_LOGARG_WS(&li);
 		ISERVER_LOGARG_UI(iClientID);
 
-		try {
+		TRY_HOOK {
 			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_Login_BEFORE, __stdcall, (struct SLoginInfo const &li, unsigned int iClientID), (li, iClientID));
 
 			Server.Login(li, iClientID);
@@ -1089,16 +1065,13 @@ namespace HkIServerImpl
 			if (set_bLogConnects)
 				HkAddConnectLog(iClientID, wscIP);
 
-		}
-		catch (...)
-		{
-			LOG_EXCEPTION
-				CAccount *acc = Players.FindAccountFromClientID(iClientID);
+		} CATCH_HOOK({
+			CAccount *acc = Players.FindAccountFromClientID(iClientID);
 			if (acc)
 			{
 				acc->ForceLogout();
 			}
-		}
+		})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_Login_AFTER, __stdcall, (struct SLoginInfo const &li, unsigned int iClientID), (li, iClientID));
 	}
@@ -1134,24 +1107,22 @@ namespace HkIServerImpl
 		ISERVER_LOG();
 		ISERVER_LOGARG_UI(iClientID);
 
-		try {
+		TRY_HOOK {
 			ClientInfo[iClientID].bTradelane = true;
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_GoTradelane, __stdcall, (unsigned int iClientID, struct XGoTradelane const &gtl), (iClientID, gtl));
 
-		try
+		TRY_HOOK
 		{
 			Server.GoTradelane(iClientID, gtl);
-		}
-		catch (...)
+		} CATCH_HOOK(
 		{
 			uint iSystem;
 			pub::Player::GetSystem(iClientID, iSystem);
 			AddLog("ERROR: Exception in HkIServerImpl::GoTradelane charname=%s sys=%08x arch=%08x arch2=%08x",
 				wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(), iSystem, gtl.iTradelaneSpaceObj1, gtl.iTradelaneSpaceObj2);
-		}
+		})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_GoTradelane_AFTER, __stdcall, (unsigned int iClientID, struct XGoTradelane const &gtl), (iClientID, gtl));
 	}
@@ -1167,10 +1138,9 @@ namespace HkIServerImpl
 		ISERVER_LOGARG_UI(p3);
 		ISERVER_LOGARG_UI(p4);
 
-		try {
+		TRY_HOOK {
 			ClientInfo[iClientID].bTradelane = false;
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_StopTradelane, __stdcall, (unsigned int iClientID, unsigned int p2, unsigned int p3, unsigned int p4), (iClientID, p2, p3, p4));
 

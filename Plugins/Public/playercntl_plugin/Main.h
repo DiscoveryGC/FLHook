@@ -11,7 +11,7 @@
 
 #include <FLHook.h>
 
-void AddExceptionInfoLog(LPEXCEPTION_POINTERS pep);
+void AddExceptionInfoLog(struct SEHException* pep);
 #define LOG_EXCEPTION { AddLog("ERROR Exception in %s", __FUNCTION__); AddExceptionInfoLog(0); }
 
 int extern set_iPluginDebug;

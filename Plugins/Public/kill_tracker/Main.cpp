@@ -295,7 +295,7 @@ void ProcessDeath(uint victimId, const wstring* message1, const wstring* message
 			L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
 		
 		deathMessageBlue2 = L"<TRA data=\"0xFF000001" // Blue, Bold
-		L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
+			L"\" mask=\"-1\"/><TEXT>" + XMLText(*message2) + L"</TEXT>";
 	} 
 
 	const CPlayerGroup* victimGroup = Players[victimId].PlayerGroup;

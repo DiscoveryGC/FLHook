@@ -57,7 +57,7 @@ map<uint, uint> construction_items;
 int construction_credit_cost = 0;
 
 /// list of items and quantity used to repair 10000 units of damage
-list<REPAIR_ITEM> set_base_repair_items;
+vector<REPAIR_ITEM> set_base_repair_items;
 
 /// list of items used by human crew
 vector<uint> set_base_crew_consumption_items;
@@ -102,10 +102,6 @@ string set_status_path_json;
 /// Damage to the base every tick
 uint set_damage_per_tick = 600;
 
-/// Damage multiplier for damaged/abandoned stations
-/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
-
 /// Additional damage penalty for stations without proper crew
 float no_crew_damage_multiplier = 1;
 
@@ -123,7 +119,7 @@ uint repair_per_repair_cycle = 60000;
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
 // threshold size is to be configured per core level.
-map<int, float> shield_reinforcement_threshold_map;
+unordered_map<int, float> shield_reinforcement_threshold_map;
 float shield_reinforcement_increment = 0.0f;
 float base_shield_strength = 0.97f;
 
@@ -138,7 +134,7 @@ bool single_vulnerability_window = false;
 const uint shield_fuse = CreateID("player_base_shield");
 
 /// List of commodities forbidden to store on POBs
-set<uint> forbidden_player_base_commodity_set;
+unordered_set<uint> forbidden_player_base_commodity_set;
 
 // If true, use the new solar based defense platform spawn 	 	
 bool set_new_spawn = true;
@@ -442,6 +438,15 @@ void LoadSettings()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void ValidateItem(const char* goodName)
+{
+	const GoodInfo* gi = GoodList_get()->find_by_name(goodName);
+	if (!gi)
+	{
+		ConPrint(L"\n\nBASE ERROR Invalid good found in config: %ls\n\n", stows((string)goodName).c_str());
+	}
+}
+
 /// Load the configuration
 void LoadSettingsActual()
 {
@@ -520,14 +525,6 @@ void LoadSettingsActual()
 					{
 						set_damage_per_tick = ini.get_value_int(0);
 					}
-					else if (ini.is_value("damage_multiplier"))
-					{
-						WEAR_N_TEAR_MODIFIER mod;
-						mod.fromHP = ini.get_value_float(0);
-						mod.toHP = ini.get_value_float(1);
-						mod.modifier = ini.get_value_float(2);
-						wear_n_tear_mod_list.emplace_back(mod);
-					}
 					else if (ini.is_value("no_crew_damage_multiplier"))
 					{
 						no_crew_damage_multiplier = ini.get_value_float(0);
@@ -570,6 +567,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("construction_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						uint quantity = ini.get_value_int(1);
 						construction_items[good] = quantity;
@@ -580,15 +578,18 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						set_base_crew_type = CreateID(ini.get_value_string(0));
 						humanCargoList.insert(set_base_crew_type);
 					}
 					else if (ini.is_value("human_cargo_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						humanCargoList.insert(CreateID(ini.get_value_string(0)));
 					}
 					else if (ini.is_value("base_repair_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						REPAIR_ITEM item;
 						item.good = CreateID(ini.get_value_string(0));
 						item.quantity = ini.get_value_int(1);
@@ -596,11 +597,13 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("base_crew_consumption_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_consumption_items.emplace_back(good);
 					}
 					else if (ini.is_value("base_crew_food_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint good = CreateID(ini.get_value_string(0));
 						set_base_crew_food_items.emplace_back(good);
 					}
@@ -755,6 +758,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("reqlevel"))
@@ -784,6 +788,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("produced_item"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.produced_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("loop_production"))
@@ -812,10 +817,12 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("consumed"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						recipe.consumed_items.emplace_back(make_pair(CreateID(ini.get_value_string(0)), ini.get_value_int(1)));
 					}
 					else if (ini.is_value("catalyst"))
 					{
+						ValidateItem(ini.get_value_string(0));
 						uint cargoHash = CreateID(ini.get_value_string(0));
 						if (humanCargoList.count(cargoHash))
 						{
@@ -1043,7 +1050,7 @@ void HkTimerCheckKick()
 		PlayerBase *base = iter.second;
 		base->Timer(curr_time);
 	}
-	if (!player_bases.empty() && !set_holiday_mode)
+	if (!player_bases.empty())
 	{
 		if (baseSaveIterator == player_bases.end())
 		{
@@ -1850,11 +1857,16 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
+
+	system_match = true;
+	player_launch_base = 0;
+
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 
 	if (!clients[client].last_player_base)
 		return;
+
 
 	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
 	mobileCheck.iClientID = client;
@@ -2323,13 +2335,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	Module* damagedModule = spaceobj_modules[iDmgToSpaceID];
 	if(damagedModule->mining)
 	{
-		return;
-	}
-	
-	if (set_holiday_mode)
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-		iDmgToSpaceID = 0;
 		return;
 	}
 
@@ -3093,6 +3098,7 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 				ConPrint(L" - %ls\n", base.second->basename.c_str());
 			}
 		}
+		return true;
 	}
 	else if (args.find(L"baselogin") == 0)
 	{

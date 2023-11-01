@@ -495,7 +495,7 @@ void PlayerBase::Save()
 		fprintf(file, "affiliation = %u\n", affiliation);
 		fprintf(file, "logic = %u\n", logic);
 		fprintf(file, "invulnerable = %u\n", invulnerable);
-		fprintf(file, "crew_supplied = %u\n", isCrewSupplied);
+		fprintf(file, "crew_supplied = %u\n", isCrewSupplied ? 1 : 0);
 		fprintf(file, "shieldstrength = %f\n", shield_strength_multiplier);
 		fprintf(file, "shielddmgtaken = %f\n", damage_taken_since_last_threshold);
 		fprintf(file, "last_vulnerability_change = %u\n", lastVulnerabilityWindowChange);

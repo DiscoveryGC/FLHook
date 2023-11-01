@@ -1,7 +1,7 @@
 #include "Main.h"
 
 FactoryModule::FactoryModule(PlayerBase* the_base)
-	: Module(0), base(the_base)
+	: Module(Module::TYPE_FACTORY), base(the_base)
 {
 	active_recipe.nickname = 0;
 }
@@ -265,7 +265,6 @@ void FactoryModule::LoadState(INI_Reader& ini)
 				base->availableCraftList.insert(craftType);
 				base->craftTypeTofactoryModuleMap[craftType] = this;
 			}
-			break;
 		}
 		else if (ini.is_value("nickname"))
 		{

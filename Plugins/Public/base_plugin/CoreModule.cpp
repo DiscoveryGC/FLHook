@@ -198,9 +198,9 @@ void CoreModule::RepairDamage(float max_base_health)
 		if (base->base_health >= max_base_health)
 			return;
 
-		if (base->HasMarketItem(item.good) >= item.quantity * base->base_level)
+		if (base->HasMarketItem(item.good) >= item.quantity)
 		{
-			base->RemoveMarketGood(item.good, item.quantity * base->base_level);
+			base->RemoveMarketGood(item.good, item.quantity);
 			base->base_health += repair_per_repair_cycle * base->base_level;
 		}
 	}
@@ -232,7 +232,7 @@ bool CoreModule::Timer(uint time)
 		base->isShieldOn = false;
 		EnableShieldFuse(false);
 	}
-	
+
 	// we need to periodically set the health of all POBs to trigger a clientside 'refresh'
 	// this allows clients to perceive those objects as dockable
 	if ((time % 5) == 0)
@@ -240,7 +240,6 @@ bool CoreModule::Timer(uint time)
 		float rhealth = base->base_health / base->max_base_health;
 		pub::SpaceObj::SetRelativeHealth(space_obj, rhealth);
 	}
-
 	if (set_holiday_mode)
 	{
 		return false;
@@ -275,10 +274,9 @@ bool CoreModule::Timer(uint time)
 	if (!dont_rust && ((time % set_damage_tick_time) == 0))
 	{
 		float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
-		float wear_n_tear_modifier = FindWearNTearModifier(base->base_health / base->max_base_health);
 		// Reduce hitpoints to reflect wear and tear. This will eventually
 		// destroy the base unless it is able to repair itself.
-		float damage_taken = (set_damage_per_tick + (set_damage_per_tick * base->base_level)) * wear_n_tear_modifier * no_crew_penalty;
+		float damage_taken = (set_damage_per_tick * base->base_level) * no_crew_penalty;
 		base->base_health -= damage_taken;
 	}
 
@@ -363,6 +361,7 @@ bool CoreModule::Timer(uint time)
 
 float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
+
 	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
 
 	if (!base->vulnerableWindowStatus || base->invulnerable == 1 || base->shield_strength_multiplier >= 1.0f)
@@ -477,16 +476,4 @@ void CoreModule::SetReputation(int player_rep, float attitude)
 				player_rep, obj_rep, attitude, base->base);
 		pub::Reputation::SetAttitude(obj_rep, player_rep, attitude);
 	}
-}
-
-float CoreModule::FindWearNTearModifier(float currHpPercentage)
-{
-	for (auto& i : wear_n_tear_mod_list)
-	{
-		if (i.fromHP < currHpPercentage && i.toHP >= currHpPercentage)
-		{
-			return i.modifier;
-		}
-	}
-	return 1.0;
 }

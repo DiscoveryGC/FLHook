@@ -1061,6 +1061,15 @@ namespace PlayerCommands
 		}
 
 		wstring& cmd = GetParam(args, ' ', 1);
+		if (cmd.empty() || cmd == L"help")
+		{
+			PrintUserCmdText(client, L"/build list - lists available module lists");
+			PrintUserCmdText(client, L"/build <moduleList> list - lists modules available on the selected module list");
+			PrintUserCmdText(client, L"/build <moduleList> start <moduleName/Nr> - starts constructon of selected module");
+			PrintUserCmdText(client, L"/build <moduleList> resume <moduleName/Nr> - resumes selected module construction");
+			PrintUserCmdText(client, L"/build <moduleList> pause <moduleName/Nr> - pauses selected module construction");
+			PrintUserCmdText(client, L"/build <moduleList> info <moduleName/Nr> - provides construction material info for selected module");
+		}
 		if (cmd == L"list")
 		{
 			PrintUserCmdText(client, L"Available building lists:");
@@ -1182,6 +1191,7 @@ namespace PlayerCommands
 						{
 							buildmod->Paused = false;
 							PrintUserCmdText(client, L"Module construction resumed");
+							base->Save();
 						}
 						else
 						{
@@ -1203,6 +1213,7 @@ namespace PlayerCommands
 						{
 							buildmod->Paused = true;
 							PrintUserCmdText(client, L"Module construction paused");
+							base->Save();
 						}
 						else
 						{
@@ -1743,7 +1754,8 @@ namespace PlayerCommands
 		status += L"<TEXT>Available commands:</TEXT><PARA/>";
 		if (clients[client].admin)
 		{
-			status += L"<TEXT>  /shop price [item] [price] [min stock] [max stock]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop price [item] [price]</TEXT><PARA/>";
+			status += L"<TEXT>  /shop stock [item] [min stock] [max stock]</TEXT><PARA/>";
 			status += L"<TEXT>  /shop remove [item]</TEXT><PARA/>";
 		}
 		status += L"<TEXT>  /shop [page]</TEXT><PARA/><TEXT>  /shop filter [substring] [page]</TEXT><PARA/><PARA/>";

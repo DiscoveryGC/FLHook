@@ -634,7 +634,7 @@ struct REPAIR_ITEM
 	uint good;
 	uint quantity;
 };
-extern list<REPAIR_ITEM> set_base_repair_items;
+extern vector<REPAIR_ITEM> set_base_repair_items;
 
 extern uint set_base_crew_type;
 
@@ -679,10 +679,6 @@ extern uint set_damage_per_10sec;
 /// Damage to the base every tick
 extern uint set_damage_per_tick;
 
-/// Damage multiplier for damaged/abandoned stations
-/// In case of overlapping modifiers, only the first one specified in .cfg file will apply
-extern vector<WEAR_N_TEAR_MODIFIER> wear_n_tear_mod_list;
-
 /// Additional damage penalty for stations without proper crew
 extern float no_crew_damage_multiplier;
 
@@ -699,7 +695,7 @@ extern uint set_tick_time;
 // POB starts at base_shield_strength, then every 'threshold' of damage taken, 
 // shield goes up in absorption by the 'increment'
 // threshold size is to be configured per core level.
-extern map<int, float> shield_reinforcement_threshold_map;
+extern unordered_map<int, float> shield_reinforcement_threshold_map;
 extern float shield_reinforcement_increment;
 extern float base_shield_strength;
 

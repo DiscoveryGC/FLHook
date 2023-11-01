@@ -22,7 +22,6 @@ namespace Condata
 	void SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID);
 	int Update();
 	void PlayerLaunch(unsigned int iShip, unsigned int iClientID);
-	void PlayerLaunchAfter(unsigned int iClientID);
 	bool UserCmd_Ping(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_PingTarget(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 }

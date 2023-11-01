@@ -349,18 +349,18 @@ void Condata::SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClien
 	if (set_iLagDetectionFrame && (tmNow - ConData[iClientID].tmLastObjUpdate) > 1000 && (HkGetEngineState(iClientID) != ES_TRADELANE) && (ui.cState != 7))
 	{
 		mstime tmTimestamp = (mstime)(ui.fTimestamp * 1000);
-		double iTimeDiff = static_cast<double>(tmNow - ConData[iClientID].tmLastObjUpdate);
-		double iTimestampDiff = static_cast<double>(tmTimestamp - ConData[iClientID].tmLastObjTimestamp);
-		double iDiff = sqrt(pow((iTimeDiff - iTimestampDiff), 2));
-		iDiff -= g_iServerLoad;
-		if (iDiff < 0)
-			iDiff = 0;
+		double dTimeDiff = static_cast<double>(tmNow - ConData[iClientID].tmLastObjUpdate);
+		double dTimestampDiff = static_cast<double>(tmTimestamp - ConData[iClientID].tmLastObjTimestamp);
+		double dDiff = abs(dTimeDiff - dTimestampDiff);
+		dDiff -= g_iServerLoad;
+		if (dDiff < 0)
+			dDiff = 0;
 
-		double iPerc;
-		if (iTimestampDiff != 0)
-			iPerc = (iDiff / iTimestampDiff)*100.0;
+		double dPerc;
+		if (dTimestampDiff != 0)
+			dPerc = (dDiff / dTimestampDiff)*100.0;
 		else
-			iPerc = 0;
+			dPerc = 0;
 
 		auto& updateIntervals = ConData[iClientID].lstObjUpdateIntervalls;
 		if (updateIntervals.size() >= set_iLagDetectionFrame)
@@ -371,14 +371,15 @@ void Condata::SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClien
 				if (it > set_iLagDetectionMinimum)
 				{
 					iLags++;
-			}}
+				}
+			}
 
 			ConData[iClientID].iLags = (iLags * 100) / set_iLagDetectionFrame;
 
 			updateIntervals.erase(updateIntervals.begin());
 		}
 
-		updateIntervals.push_back(static_cast<uint>(iPerc));
+		updateIntervals.emplace_back(static_cast<uint>(dPerc));
 
 		ConData[iClientID].tmLastObjUpdate = tmNow;
 		ConData[iClientID].tmLastObjTimestamp = tmTimestamp;

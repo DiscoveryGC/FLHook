@@ -626,7 +626,6 @@ extern unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
 extern unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
 extern unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 extern unordered_map<wstring, RECIPE> moduleNameRecipeMap;
-extern unordered_map<uint, RECIPE> moduleNumberRecipeMap;
 extern unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 extern unordered_set<wstring> buildingCraftLists;
 

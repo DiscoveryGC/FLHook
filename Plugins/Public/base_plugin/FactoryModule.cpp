@@ -1,7 +1,7 @@
 #include "Main.h"
 
 FactoryModule::FactoryModule(PlayerBase* the_base)
-	: Module(0), base(the_base)
+	: Module(Module::TYPE_FACTORY), base(the_base)
 {
 	active_recipe.nickname = 0;
 }
@@ -72,6 +72,10 @@ wstring FactoryModule::GetInfo(bool xml)
 		{
 			uint good = i.first;
 			uint quantity = i.second;
+			if (!quantity)
+			{
+				continue;
+			}
 
 			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
@@ -198,7 +202,7 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	for (auto& i = active_recipe.consumed_items.begin() ; i != active_recipe.consumed_items.end() ; i++)
+	for (auto& i = active_recipe.consumed_items.begin(); i != active_recipe.consumed_items.end(); i++)
 	{
 		uint good = i->first;
 		uint quantity = min(active_recipe.cooking_rate, i->second);
@@ -214,6 +218,10 @@ bool FactoryModule::Timer(uint time)
 		if (!i->second)
 		{
 			active_recipe.consumed_items.erase(i);
+			if (!active_recipe.consumed_items.empty())
+			{
+				cooked = false;
+			}
 		}
 		else
 		{
@@ -276,7 +284,6 @@ void FactoryModule::LoadState(INI_Reader& ini)
 				base->availableCraftList.insert(craftType);
 				base->craftTypeTofactoryModuleMap[craftType] = this;
 			}
-			break;
 		}
 		else if (ini.is_value("nickname"))
 		{
@@ -329,7 +336,10 @@ void FactoryModule::SaveState(FILE* file)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (auto& i : active_recipe.consumed_items)
 		{
-			fprintf(file, "consumed = %u, %u\n", i.first, i.second);
+			if (i.second)
+			{
+				fprintf(file, "consumed = %u, %u\n", i.first, i.second);
+			}
 		}
 	}
 	for (uint i : build_queue)

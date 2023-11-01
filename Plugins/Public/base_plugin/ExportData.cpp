@@ -62,7 +62,7 @@ void ExportData::ToHTML()
 			fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(base->basename)).c_str());
 			fprintf(file, "<td class=\"column0\">%s</td>", wstos(HtmlEncode(theaffiliation)).c_str());
 			fprintf(file, "<td class=\"column0\">%0.0f</td>", 100 * (base->base_health / base->max_base_health));
-			fprintf(file, "<td class=\"column0\">%s</td>", base->shield_state == PlayerBase::SHIELD_STATE_ACTIVE ? "On" : "Off");
+			fprintf(file, "<td class=\"column0\">%s</td>", base->isShieldOn ? "On" : "Off");
 			fprintf(file, "<td class=\"column0\">%I64d</td>", base->money);
 
 
@@ -208,7 +208,7 @@ void ExportData::ToJSON()
 		pw.write("money", base->money);
 		pw.write("health", 100 * (base->base_health / base->max_base_health));
 		pw.write("defensemode", base->defense_mode);
-		pw.write("shieldstate", base->shield_state);
+		pw.write("shieldstate", base->isShieldOn);
 		pw.close();
 
 	}

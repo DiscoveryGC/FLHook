@@ -66,7 +66,7 @@ bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS& coords, uint exitJump
 	{
 		return false;
 	}
-	string baseNickName = "custom_return_hole_exit_" + (string)systemInfo->nickname;
+	string baseNickName = "custom_return_hole_exit_" + (string)systemInfo->nickname + itos(counter);
 	counter++;
 
 	if (pub::SpaceObj::ExistsAndAlive(CreateID(baseNickName.c_str())) == 0) //0 means alive, -2 dead
@@ -98,6 +98,7 @@ bool SetupCustomExitHole(PlayerBase* pb, SYSTEMJUMPCOORDS& coords, uint exitJump
 	memcpy((uint*)solar + 0x6e, &pb->destObject, 4);
 
 	customSolarList.insert(info.iSpaceObjId);
+	AddLog("ReturnJH to %s created\n", ((string)systemInfo->nickname).c_str());
 	return true;
 }
 
@@ -165,7 +166,6 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 	vector<uint> returnJumpHoles;
 	vector<uint> hubToUnchartedJumpHoles;
 	vector<uint> unchartedToHubJumpHoles;
-	map<uint, wstring> systemNameMap;
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	uint lastJumpholeRandomization = 0;
 	uint randomizationCooldown = 3600 * 23;

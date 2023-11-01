@@ -92,6 +92,23 @@ struct ZONE_BONUS
 };
 unordered_map<uint, ZONE_BONUS> set_mapZoneBonus;
 
+struct CONTAINER_DATA
+{
+	uint loot1Id = 0;
+	uint loot1Count = 0;
+	wstring loot1Name;
+	uint lootCrate1Id = 0;
+	uint loot2Id = 0;
+	uint loot2Count = 0;
+	wstring loot2Name;
+	uint lootCrate2Id = 0;
+	uint nameIDS = 0;
+	wstring solarName;
+	uint systemId = 0;
+	Vector jettisonPos;
+	uint clientId = 0;
+};
+
 struct CLIENT_DATA
 {
 	CLIENT_DATA() = default;
@@ -103,20 +120,12 @@ struct CLIENT_DATA
 	uint miningSampleStart = 0;
 	float overminedFraction = 0;
 	uint deployedContainerId = 0;
+	uint lastValidTargetId = 0;
+	uint lastValidPlayerId = 0;
+	uint lastValidContainerId = 0;
+	CONTAINER_DATA* lastValidContainer = nullptr;
 
 	uint LastTimeMessageAboutBeingFull = 0;
-};
-
-struct CONTAINER_DATA
-{
-	uint lootId = 0;
-	uint lootCount = 0;
-	uint nameIDS = 0;
-	wstring solarName;
-	uint systemId = 0;
-	Vector jettisonPos;
-	uint clientId = 0;
-	uint lootCrateId = 0;
 };
 unordered_map<uint, CLIENT_DATA> mapClients;
 unordered_map<uint, CONTAINER_DATA> mapMiningContainers;
@@ -165,9 +174,13 @@ void DestroyContainer(const uint clientID)
 		if (iter->second.deployedContainerId)
 		{
 			const auto& cd = mapMiningContainers[iter->second.deployedContainerId];
-			if (cd.lootCount)
+			if (cd.loot1Count)
 			{
-				Server.MineAsteroid(cd.systemId, cd.jettisonPos, cd.lootCrateId, cd.lootId, cd.lootCount, cd.clientId);
+				Server.MineAsteroid(cd.systemId, cd.jettisonPos, cd.lootCrate1Id, cd.loot1Id, cd.loot1Count, cd.clientId);
+			}
+			if (cd.loot2Count)
+			{
+				Server.MineAsteroid(cd.systemId, cd.jettisonPos, cd.lootCrate2Id, cd.loot2Id, cd.loot2Count, cd.clientId);
 			}
 			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
 			mapMiningContainers.erase(iter->second.deployedContainerId);
@@ -434,7 +447,20 @@ bool UserCmd_Process(uint client, const wstring& args)
 		return true;
 	}
 
-	PrintUserCmdText(client, L"Container holds %u units of cargo", container->second.lootCount);
+	if (!container->second.loot1Count && !container->second.loot2Count)
+	{
+		PrintUserCmdText(client, L"Container is empty!");
+	}
+	else if (!container->second.loot2Id)
+	{
+		PrintUserCmdText(client, L"Container holds %u units of %ls", container->second.loot1Count, container->second.loot1Name.c_str());
+	}
+	else
+	{
+		PrintUserCmdText(client, L"Container holds %u units of %ls and %u units of %ls", 
+			container->second.loot1Count, container->second.loot1Name.c_str(), container->second.loot2Count, container->second.loot2Name.c_str());
+	}
+
 	
 	return true;
 }
@@ -535,31 +561,77 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		uint iTargetObj;
 		bool foundContainer = false;
 		pub::SpaceObj::GetTarget(iShip, iTargetObj);
-		if (iTargetObj && HkDistance3DByShip(iShip, iTargetObj) < 1000.0f)
-		{
-			uint iTargetClientID = HkGetClientIDByShip(iTargetObj);
-			if (iTargetClientID)
-			{
-				iSendToClientID = iTargetClientID;
-			}
-			else
-			{
-				const auto& container = mapMiningContainers.find(iTargetObj);
-				if (container != mapMiningContainers.end() && container->second.lootId == lootId)
-				{
-					foundContainer = true;
-					container->second.lootCount += static_cast<uint>(miningYield * set_containerModifier);
 
-					uint amountToJettison = static_cast<uint>(static_cast<float>(set_containerJettisonCount) / lootInfo->fVolume);
-					if (container->second.lootCount >= amountToJettison)
+
+		//auto timerQ = chrono::high_resolution_clock::now();
+		//ConPrint(L"qtim %u\n", chrono::duration_cast<chrono::microseconds>(timerQ - timerStart).count());
+		if (iTargetObj)
+		{
+			uint objType;
+			pub::SpaceObj::GetType(iTargetObj, objType);
+			if ((objType & (OBJ_FIGHTER | OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL | OBJ_DESTROYABLE_DEPOT)) && HkDistance3DByShip(iShip, iTargetObj) < 1000.0f)
+			{
+
+				CONTAINER_DATA* container = nullptr;
+				if (cd.lastValidTargetId == iTargetObj)
+				{
+					iSendToClientID = cd.lastValidPlayerId;
+				}
+				else if (cd.lastValidContainerId == iTargetObj)
+				{
+					container = cd.lastValidContainer;
+				}
+				else
+				{
+					uint iTargetClientID = HkGetClientIDByShip(iTargetObj);
+					if (iTargetClientID)
 					{
-						Server.MineAsteroid(container->second.systemId, container->second.jettisonPos, set_containerLootCrateID, container->second.lootId, amountToJettison, container->second.clientId);
-						container->second.lootCount -= amountToJettison;
+						iSendToClientID = iTargetClientID;
+						cd.lastValidTargetId = iTargetObj;
+						cd.lastValidPlayerId = iTargetClientID;
+					}
+					else
+					{
+						const auto& containerIter = mapMiningContainers.find(iTargetObj);
+						if (containerIter != mapMiningContainers.end())
+						{
+							container = &containerIter->second;
+							cd.lastValidContainer = container;
+							cd.lastValidContainerId = iTargetObj;
+						}
+					}
+				}
+
+				if (container)
+				{
+					uint* lootCount = nullptr;
+					if (container->loot1Id == lootId)
+					{
+						foundContainer = true;
+						lootCount = &container->loot1Count;
+					}
+					else if (container->loot2Id == lootId)
+					{
+						foundContainer = true;
+						lootCount = &container->loot2Count;
+					}
+					if (foundContainer)
+					{
+						*lootCount += static_cast<uint>(miningYield * set_containerModifier);
+
+						uint amountToJettison = static_cast<uint>(static_cast<float>(set_containerJettisonCount) / lootInfo->fVolume);
+						if (*lootCount >= amountToJettison)
+						{
+							Server.MineAsteroid(container->systemId, container->jettisonPos, set_containerLootCrateID, lootId, amountToJettison, container->clientId);
+							*lootCount -= amountToJettison;
+						}
 					}
 				}
 			}
 		}
 
+		//auto timerHalf = chrono::high_resolution_clock::now();
+		//ConPrint(L"half %u\n", chrono::duration_cast<chrono::microseconds>(timerHalf - timerStart).count());
 		uint miningYieldInt = static_cast<uint>(miningYield);
 		cd.overminedFraction = miningYield - miningYieldInt; // save the unused decimal portion for the next mining event.
 
@@ -606,9 +678,11 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		else
 		{
 			pub::Player::AddCargo(iSendToClientID, lootId, miningYieldInt, 1.0, false);
+			return;
 		}
 		return;
 	}
+
 }
 
 void __stdcall MineAsteroid(uint iClientSystemID, class Vector const& vPos, uint iCrateID, uint iLootID, uint iCount, uint iClientID)
@@ -650,8 +724,10 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 		uint systemId;
 		Vector pos;
 		Matrix ori;
-		wstring commodityName;
-		uint lootId = 0;
+		wstring commodityName1;
+		wstring commodityName2;
+		uint loot1Id = 0;
+		uint loot2Id = 0;
 		pub::Player::GetShip(iClientID, shipId);
 		pub::Player::GetSystem(iClientID, systemId);
 		pub::SpaceObj::GetLocation(shipId, pos, ori);
@@ -664,9 +740,11 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 			return;
 		}
 
+		bool alreadyFoundFirstMineable = false;
 		// Find asteroid field that matches the best.
 		for (CmnAsteroid::CAsteroidField* cfield = csys->FindFirst(); cfield; cfield = csys->FindNext())
 		{
+			uint tempLootId;
 			if (!cfield->near_field(pos))
 			{
 				continue;
@@ -679,30 +757,51 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 			const auto& zoneBonusData = set_mapZoneBonus.find(zone->iZoneID);
 			if (zoneBonusData != set_mapZoneBonus.end() && zoneBonusData->second.iReplacementLootID)
 			{
-				lootId = zoneBonusData->second.iReplacementLootID;
-				const GoodInfo* gi = GoodList::find_by_id(lootId);
-				commodityName = HkGetWStringFromIDS(gi->iIDSName);
+				tempLootId = zoneBonusData->second.iReplacementLootID;
 			}
 			else
 			{
-				lootId = zone->lootableZone->dynamic_loot_commodity;
-				const GoodInfo* gi = GoodList::find_by_id(lootId);
-				commodityName = HkGetWStringFromIDS(gi->iIDSName);
+				tempLootId = zone->lootableZone->dynamic_loot_commodity;
 			}
-			break;
+
+			const GoodInfo* gi = GoodList::find_by_id(tempLootId);
+			if (!alreadyFoundFirstMineable)
+			{
+				loot1Id = tempLootId;
+				alreadyFoundFirstMineable = true;
+				commodityName1 = HkGetWStringFromIDS(gi->iIDSName);
+			}
+			else
+			{
+				loot2Id = tempLootId;
+				commodityName2 = HkGetWStringFromIDS(gi->iIDSName);
+				break;
+			}
+
 		}
 
-		if (!lootId)
+		if (!loot1Id)
 		{
 			PrintUserCmdText(iClientID, L"ERR Not in a mineable field!");
 			return;
+		}
+
+
+		wstring fullContainerName;
+		if (loot2Id)
+		{
+			fullContainerName = commodityName1 + L"/" + commodityName2 + L" Container";
+		}
+		else
+		{
+			fullContainerName = commodityName1 + L" Container";
 		}
 
 		SPAWN_SOLAR_STRUCT data;
 		data.iSystemId = systemId;
 		data.pos = pos;
 		data.ori = ori;
-		data.overwrittenName = commodityName + L" Container";
+		data.overwrittenName = fullContainerName;
 		data.nickname = "player_mining_container_"+itos(iClientID);
 		data.solar_ids = 540999 + iClientID;
 		data.solarArchetypeId = set_containerSolarArchetypeID;
@@ -716,11 +815,18 @@ void __stdcall JettisonCargo(unsigned int iClientID, struct XJettisonCargo const
 			cd.systemId = systemId;
 			pos.y -= 30;
 			cd.jettisonPos = pos;
-			cd.lootId = lootId;
+			cd.loot1Id = loot1Id;
+			cd.loot1Name = commodityName1;
+			cd.lootCrate1Id = Archetype::GetEquipment(loot1Id)->get_loot_appearance()->iArchID;
+			if (loot2Id)
+			{
+				cd.loot2Id = loot2Id;
+				cd.loot2Name = commodityName2;
+				cd.lootCrate2Id = Archetype::GetEquipment(loot2Id)->get_loot_appearance()->iArchID;
+			}
 			cd.nameIDS = data.solar_ids;
 			cd.solarName = data.overwrittenName;
 			cd.clientId = iClientID;
-			cd.lootCrateId = Archetype::GetEquipment(lootId)->get_loot_appearance()->iArchID;
 			mapMiningContainers[data.iSpaceObjId] = cd;
 			mapClients[iClientID].deployedContainerId = data.iSpaceObjId;
 			pub::Player::RemoveCargo(iClientID, item->sID, 1);
@@ -777,9 +883,13 @@ void BaseDestroyed(uint space_obj, uint client)
 		const CONTAINER_DATA& cd = i->second;
 		mapClients[cd.clientId].deployedContainerId = 0;
 		// container destruction drop all contents as well as 'packed up' container.
-		if (cd.lootCount)
+		if (cd.loot1Count)
 		{
-			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.lootId, cd.lootCount, cd.clientId);
+			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.loot1Id, cd.loot1Count, cd.clientId);
+		}
+		if (cd.loot2Count)
+		{
+			Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, cd.loot2Id, cd.loot2Count, cd.clientId);
 		}
 		Server.MineAsteroid(cd.systemId, cd.jettisonPos, set_containerLootCrateID, set_deployableContainerCommodity, 1, cd.clientId);
 		mapMiningContainers.erase(space_obj);

@@ -752,16 +752,16 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 			Matrix mRot;
 			pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
 			vLoc.x += 30.0;
-			uint amountDropped;
+			uint finalAmount;
 			if (dropData.uAmountDroppedMax)
 			{
-				amountDropped = dropData.uAmountDroppedMin + (rand() % (dropData.uAmountDroppedMax - dropData.uAmountDroppedMin + 1));
+				finalAmount = dropData.uAmountDroppedMin + (rand() % (dropData.uAmountDroppedMax - dropData.uAmountDroppedMin + 1));
 			}
 			else
 			{
-				amountDropped = dropData.uAmountDroppedMin;
+				finalAmount = dropData.uAmountDroppedMin;
 			}
-			Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, dropData.uGoodID, dropData.uAmountDroppedMin, iKillerClientId);
+			Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, dropData.uGoodID, finalAmount, iKillerClientId);
 		}
 		iter++;
 	}

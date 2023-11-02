@@ -266,7 +266,8 @@ enum PLUGIN_MESSAGE
 	CUSTOM_CLOAK_CHECK = 56,
 	CUSTOM_RENAME_NOTIFICATION = 57,
 	CUSTOM_RESTART_NOTIFICATION = 58,
-	CUSTOM_CLOAK_ALERT = 60
+	CUSTOM_CLOAK_ALERT = 60,
+	CUSTOM_POB_DOCK_ALERT = 61
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -448,6 +449,13 @@ struct CUSTOM_RENAME_NOTIFICATION_STRUCT
 struct CUSTOM_RESTART_NOTIFICATION_STRUCT
 {
 	wstring playerName;
+};
+
+struct CUSTOM_POB_DOCK_ALERT_STRUCT
+{
+	uint client;
+	float range;
+	wstring* msg;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

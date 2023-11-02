@@ -156,25 +156,36 @@ void SendBaseStatus(uint client, PlayerBase* base)
 	const Universe::ISystem* sys = Universe::get_system(base->system);
 
 	wstring base_status = L"<RDL><PUSH/>";
-	base_status += L"<TEXT>" + XMLText(base->basename) + L", " + HkGetWStringFromIDS(sys->strid_name) + L"</TEXT><PARA/><PARA/>";
+	base_status += L"<TEXT>" + XMLText(base->basename) + L", " + HkGetWStringFromIDS(sys->strid_name) + L"</TEXT><PARA/>";
+	
+	wstring affiliation_string = L"";
+	if (base->affiliation)
+	{
+		affiliation_string = HkGetWStringFromIDS(Reputation::get_name(base->affiliation));
+	}
+	else
+	{
+		affiliation_string = L"Unaffiliated";
+	}
+
+	base_status += L"<TEXT>Core " + IntToStr(base->base_level) + L" " + affiliation_string + L" Installation</TEXT><PARA/><PARA/>";
 
 	base_status += base->infocard;
 
-	base_status += L"<TEXT>Base Core: Level " + IntToStr(base->base_level) + L"</TEXT><PARA/>";
-	base_status += L"<TEXT>Free Cargo Storage: " + Int64ToPrettyStr(base->GetRemainingCargoSpace()) + L"</TEXT><PARA/>";
-	base_status += L"<TEXT>Max Cargo Storage: " + Int64ToPrettyStr(base->GetMaxCargoSpace()) + L"</TEXT><PARA/>";
+	base_status += L"<TEXT>Cargo Storage: " + Int64ToPrettyStr(base->GetRemainingCargoSpace()) + L" free of " + Int64ToPrettyStr(base->GetMaxCargoSpace()) + L"</TEXT><PARA/>";
 	base_status += L"<TEXT>Money: " + Int64ToPrettyStr(base->money) + L"</TEXT><PARA/>";
 	if (!base->invulnerable)
 	{
-		base_status += L"<TEXT>Hit Points: " + Int64ToPrettyStr((INT64)base->base_health) + L"</TEXT><PARA/>";
+		wstring max_hp_string;
 		if ((INT64)base->max_base_health != INT64_MIN) // prevent bases with no defined maxHP from displaying "Max Hit Points: -9quintillion"
 		{
-			base_status += L"<TEXT>Max Hit Points: " + Int64ToPrettyStr((INT64)base->max_base_health) + L"</TEXT><PARA/>";
+			max_hp_string = Int64ToPrettyStr((INT64)base->max_base_health);
 		}
 		else
 		{
-			base_status += L"<TEXT>Max Hit Points: Undefined</TEXT><PARA/>";
+			max_hp_string = L"Undefined";
 		}
+		base_status += L"<TEXT>Hit Points: " + Int64ToPrettyStr((INT64)base->base_health) + L" / " + max_hp_string + L"</TEXT><PARA/>";
 	}
 	else
 	{
@@ -182,25 +193,16 @@ void SendBaseStatus(uint client, PlayerBase* base)
 	}
 	base_status += L"<TEXT>Population: " + Int64ToPrettyStr((INT64)base->HasMarketItem(set_base_crew_type)) + L"</TEXT><PARA/>";
 
-	if (base->affiliation)
-	{
-		base_status += L"<TEXT>Affiliation: " + HkGetWStringFromIDS(Reputation::get_name(base->affiliation)) + L"</TEXT><PARA/>";
-	}
-	else
-	{
-		base_status += L"<TEXT>Affiliation: None</TEXT><PARA/>";
-	}
-
 	if (single_vulnerability_window)
 	{
 		wchar_t buf[75];
-		swprintf(buf, _countof(buf), L"<TEXT>Vulnerability Window: %u:00 - %u:%02u</TEXT><PARA/>", base->vulnerabilityWindow1.start/60, base->vulnerabilityWindow1.end/60, base->vulnerabilityWindow1.end%60);
+		swprintf(buf, _countof(buf), L"<TEXT>Vulnerability Window: %u:00 - %u:%02u</TEXT><PARA/>", base->vulnerabilityWindow1.start / 60, base->vulnerabilityWindow1.end / 60, base->vulnerabilityWindow1.end % 60);
 		base_status += buf;
 	}
 	else
 	{
 		wchar_t buf[125];
-		swprintf(buf, _countof(buf), L"<TEXT>Vulnerability Windows: %u:00 - %u:%02u, %u:00 - %u:%02u</TEXT><PARA/>", 
+		swprintf(buf, _countof(buf), L"<TEXT>Vulnerability Windows: %u:00 - %u:%02u, %u:00 - %u:%02u</TEXT><PARA/>",
 			base->vulnerabilityWindow1.start / 60, base->vulnerabilityWindow1.end / 60, base->vulnerabilityWindow1.end % 60,
 			base->vulnerabilityWindow2.start / 60, base->vulnerabilityWindow2.end / 60, base->vulnerabilityWindow2.end % 60);
 		base_status += buf;

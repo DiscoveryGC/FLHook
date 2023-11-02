@@ -133,11 +133,59 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("scene_toughness_threshold"))
 				{
-					job.scene_toughness_threshold = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					if (val == "easiest")
+					{
+						job.scene_toughness_threshold = 0;
+					}
+					else if (val == "easy")
+					{
+						job.scene_toughness_threshold = 1;
+					}
+					else if (val == "equal")
+					{
+						job.scene_toughness_threshold = 2;
+					}
+					else if (val == "hard")
+					{
+						job.scene_toughness_threshold = 3;
+					}
+					else if (val == "hardest")
+					{
+						job.scene_toughness_threshold = 4;
+					}
+					else
+					{
+						job.scene_toughness_threshold = 2;
+					}
 				}
 				else if (ini.is_value("flee_scene_threat_style"))
 				{
-					job.flee_scene_threat_style = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					if (val == "easiest")
+					{
+						job.flee_scene_threat_style = 0;
+					}
+					else if (val == "easy")
+					{
+						job.flee_scene_threat_style = 1;
+					}
+					else if (val == "equal")
+					{
+						job.flee_scene_threat_style = 2;
+					}
+					else if (val == "hard")
+					{
+						job.flee_scene_threat_style = 3;
+					}
+					else if (val == "hardest")
+					{
+						job.flee_scene_threat_style = 4;
+					}
+					else
+					{
+						job.flee_scene_threat_style = 2;
+					}
 				}
 				else if (ini.is_value("flee_when_hull_damaged_percent"))
 				{
@@ -149,11 +197,56 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("loot_flee_threshold"))
 				{
-					job.loot_flee_threshold = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					if (val == "easiest")
+					{
+						job.loot_flee_threshold = 0;
+					}
+					else if (val == "easy")
+					{
+						job.loot_flee_threshold = 1;
+					}
+					else if (val == "equal")
+					{
+						job.loot_flee_threshold = 2;
+					}
+					else if (val == "hard")
+					{
+						job.loot_flee_threshold = 3;
+					}
+					else if (val == "hardest")
+					{
+						job.loot_flee_threshold = 4;
+					}
+					else
+					{
+						job.loot_flee_threshold = 2;
+					}
 				}
 				else if (ini.is_value("field_targeting"))
 				{
-					job.field_targeting = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string());
+					if (val == "never")
+					{
+						job.field_targeting = 0;
+					}
+					else if (val == "low_density")
+					{
+						job.field_targeting = 1;
+					}
+					else if (val == "high_density")
+					{
+						job.field_targeting = 2;
+					}
+					else if (val == "always")
+					{
+						job.field_targeting = 3;
+					}
+					else
+					{
+						job.field_targeting = 1;
+					}
+
 				}
 				else if (ini.is_value("loot_preference"))
 				{
@@ -165,7 +258,38 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("attack_subtarget_order"))
 				{
-					job.attack_subtarget_order[attack_subtarget_counter] = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					int flag;
+					if (val == "anything")
+					{
+						flag = 6;
+					}
+					else if (val == "guns")
+					{
+						flag = 0;
+					}
+					else if (val == "turrets")
+					{
+						flag = 1;
+					}
+					else if (val == "launchers")
+					{
+						flag = 2;
+					}
+					else if (val == "towers")
+					{
+						flag = 3;
+					}
+					else if (val == "engines")
+					{
+						flag = 4;
+					}
+					else if (val == "hull")
+					{
+						flag = 5;
+					}
+
+					job.attack_subtarget_order[attack_subtarget_counter] = flag;
 					attack_subtarget_counter++;
 				}
 				else if (ini.is_value("attack_preference"))
@@ -192,28 +316,22 @@ void DefenseModule::LoadSettings(const string& path)
 						shipIndex = 11;
 
 					int flag = 0;
-					int index = 2;
-					string flagText = ToLower(ini.get_value_string(index));
-					while (!flagText.empty())
+					string flagText = ToLower(ini.get_value_string(2));
+					if (flagText.find("guns") != string::npos)
 					{
-						if (flagText.find("guns") != string::npos)
-						{
-							flag += 1;
-						}
-						if (flagText.find("guided") != string::npos)
-						{
-							flag += 2;
-						}
-						if (flagText.find("unguided") != string::npos)
-						{
-							flag += 4;
-						}
-						if (flagText.find("torpedo") != string::npos)
-						{
-							flag += 8;
-						}
-						index++;
-						flagText = ToLower(ini.get_value_string(index));
+						flag += 1;
+					}
+					if (flagText.find("guided") != string::npos)
+					{
+						flag += 2;
+					}
+					if (flagText.find("unguided") != string::npos)
+					{
+						flag += 4;
+					}
+					if (flagText.find("torpedo") != string::npos)
+					{
+						flag += 8;
 					}
 
 					pub::AI::Personality::JobStruct::Tattack_order& atkOrder = job.attack_order[shipIndex];

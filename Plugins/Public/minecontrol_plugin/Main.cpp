@@ -562,9 +562,6 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		bool foundContainer = false;
 		pub::SpaceObj::GetTarget(iShip, iTargetObj);
 
-
-		//auto timerQ = chrono::high_resolution_clock::now();
-		//ConPrint(L"qtim %u\n", chrono::duration_cast<chrono::microseconds>(timerQ - timerStart).count());
 		if (iTargetObj)
 		{
 			uint objType;
@@ -630,8 +627,6 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 			}
 		}
 
-		//auto timerHalf = chrono::high_resolution_clock::now();
-		//ConPrint(L"half %u\n", chrono::duration_cast<chrono::microseconds>(timerHalf - timerStart).count());
 		uint miningYieldInt = static_cast<uint>(miningYield);
 		cd.overminedFraction = miningYield - miningYieldInt; // save the unused decimal portion for the next mining event.
 
@@ -678,9 +673,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 		else
 		{
 			pub::Player::AddCargo(iSendToClientID, lootId, miningYieldInt, 1.0, false);
-			return;
 		}
-		return;
 	}
 
 }

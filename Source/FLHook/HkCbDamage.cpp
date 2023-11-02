@@ -21,7 +21,7 @@ int __stdcall HkCB_MissileTorpHit(char *ECX, char *p1, DamageList *dmg)
 
 	CALL_PLUGINS(PLUGIN_HkCB_MissileTorpHit, int, __stdcall, (char*, char*, DamageList*), (ECX, p1, dmg));
 
-	try {
+	TRY_HOOK {
 		// get client id
 		char *szP;
 		memcpy(&szP, ECX + 0x10, 4);
@@ -49,8 +49,7 @@ int __stdcall HkCB_MissileTorpHit(char *ECX, char *p1, DamageList *dmg)
 					dmg->set_cause((enum DamageCause)0xC0); // change to sth else, so client won't recognize it as a disruptor
 			}
 		}
-	}
-	catch (...) { LOG_EXCEPTION }
+	} CATCH_HOOK({})
 	return 0;
 }
 
@@ -121,7 +120,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 	else
 		dmgList->add_damage_entry(p1, p2, p3);
 
-	try {
+	TRY_HOOK {
 		LastDmgList = *dmgList; // save
 
 //		float fHealth,fMaxHealth;32 256
@@ -143,8 +142,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 		}
 
 
-	}
-	catch (...) { LOG_EXCEPTION }
+	} CATCH_HOOK({})
 
 	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry_AFTER, __stdcall, (DamageList *, unsigned short, float&, DamageEntry::SubObjFate), (dmgList, p1, p2, p3));
 
@@ -179,15 +177,14 @@ void __stdcall HkCb_GeneralDmg(char *szECX)
 
 	CALL_PLUGINS_V(PLUGIN_HkCb_GeneralDmg, __stdcall, (char*), (szECX));
 
-	try {
+	TRY_HOOK {
 		CSimple* simple;
 		memcpy(&simple, szECX + 0x10, 4);
 
 		iDmgTo = simple->GetOwnerPlayer();
 		iDmgToSpaceID = simple->get_id();
 		g_LastHitPts = simple->get_hit_pts();
-	}
-	catch (...) { LOG_EXCEPTION }
+	} CATCH_HOOK({})
 }
 
 __declspec(naked) void _HkCb_GeneralDmg()

@@ -94,7 +94,7 @@ bool BuildModule::Timer(uint time)
 
 	if (active_recipe.credit_cost)
 	{
-		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
+		uint moneyToRemove = min(active_recipe.cooking_rate * 100, active_recipe.credit_cost);
 		if (base->money >= moneyToRemove)
 		{
 			base->money -= moneyToRemove;
@@ -106,29 +106,39 @@ bool BuildModule::Timer(uint time)
 		}
 	}
 
-	// Consume goods at the cooking rate.
-	for (auto& i = active_recipe.consumed_items.begin();
-		i != active_recipe.consumed_items.end(); ++i)
+
+	for (auto& i = active_recipe.consumed_items.begin(); i != active_recipe.consumed_items.end(); i++)
 	{
 		uint good = i->first;
-		uint quantity = i->second > active_recipe.cooking_rate ? active_recipe.cooking_rate : i->second;
-		if (quantity)
+		uint quantity = min(active_recipe.cooking_rate, i->second);
+		auto market_item = base->market_items.find(good);
+		if (market_item == base->market_items.end()
+			|| market_item->second.quantity < quantity)
 		{
 			cooked = false;
-			auto market_item = base->market_items.find(good);
-			if (market_item != base->market_items.end()
-				&& (market_item->second.quantity >= quantity))
+			continue;
+		}
+		i->second -= quantity;
+		base->RemoveMarketGood(good, quantity);
+		if (!i->second)
+		{
+			active_recipe.consumed_items.erase(i);
+			if (!active_recipe.consumed_items.empty())
 			{
-				i->second -= quantity;
-				base->RemoveMarketGood(good, quantity);
-				return false;
+				cooked = false;
 			}
 		}
+		else
+		{
+			cooked = false;
+		}
+		break;
 	}
 
 	// Once cooked turn this into the build type
 	if (cooked)
 	{
+		bool builtCore = false;
 		for (uint i = 0; i < base->modules.size(); i++)
 		{
 			if (base->modules[i] == this)
@@ -142,10 +152,12 @@ bool BuildModule::Timer(uint time)
 					base->SetupDefaults();
 
 					// Clear the build module slot.
-					base->modules[i] = 0;
+					base->modules[i] = nullptr;
+					builtCore = true;
 
 					// Delete and respawn the old core module
 					delete base->modules[0];
+
 					base->modules[0] = new CoreModule(base);
 					base->modules[0]->Spawn();
 
@@ -179,6 +191,11 @@ bool BuildModule::Timer(uint time)
 				return false;
 			}
 		}
+
+		if (builtCore)
+		{
+			base->modules.resize((base->base_level * 3) + 1);
+		}
 	}
 
 	return false;
@@ -190,13 +207,27 @@ void BuildModule::LoadState(INI_Reader& ini)
 	{
 		if (ini.is_value("build_type"))
 		{
-			active_recipe = moduleNumberRecipeMap[ini.get_value_int(0)];
+			uint nickname = CreateID(ini.get_value_string());
+			if (!recipeMap.count(nickname))
+			{
+				return;
+			}
+			active_recipe = recipeMap.at(nickname);
 			active_recipe.consumed_items.clear();
 			active_recipe.credit_cost = 0;
 		}
+		else if (ini.is_value("paused"))
+		{
+			Paused = ini.get_value_bool(0);
+		}
 		else if (ini.is_value("consumed"))
 		{
-			active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+			uint good = ini.get_value_int(0);
+			uint quantity = ini.get_value_int(1);
+			if (quantity)
+			{
+				active_recipe.consumed_items.emplace_back(make_pair(good, quantity));
+			}
 		}
 		else if (ini.is_value("credit_cost"))
 		{
@@ -208,12 +239,15 @@ void BuildModule::LoadState(INI_Reader& ini)
 void BuildModule::SaveState(FILE* file)
 {
 	fprintf(file, "[BuildModule]\n");
-	fprintf(file, "build_type = %u\n", active_recipe.shortcut_number);
-	fprintf(file, "infotext = %s\n", wstos(active_recipe.infotext).c_str());
+	fprintf(file, "build_type = %s\n", active_recipe.nicknameString.c_str());
+	fprintf(file, "paused = %d\n", Paused);
 	for (auto& i = active_recipe.consumed_items.begin();
 		i != active_recipe.consumed_items.end(); ++i)
 	{
-		fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+		if (i->second)
+		{
+			fprintf(file, "consumed = %u, %u\n", i->first, i->second);
+		}
 	}
 	if (active_recipe.credit_cost)
 	{

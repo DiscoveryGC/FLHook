@@ -102,7 +102,11 @@ void SendLocalSystemChat(uint iFromClientID, const wstring &wscText)
 /** Send a player to player message */
 void SendPrivateChat(uint iFromClientID, uint iToClientID, const wstring &wscText)
 {
-	wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
+	if (doNotDisturbClients.count(iToClientID))
+	{
+		PrintUserCmdText(iFromClientID, L"User is not receiving private messages");
+		return;
+	}
 
 	if (set_bUserCmdIgnore)
 	{
@@ -112,6 +116,8 @@ void SendPrivateChat(uint iFromClientID, uint iToClientID, const wstring &wscTex
 				return;
 		}
 	}
+
+	wstring wscSender = (const wchar_t*)Players.GetActiveCharacterName(iFromClientID);
 
 	// Send the message to both the sender and receiver.
 	FormatSendChat(iToClientID, wscSender, wscText, L"19BD3A");
@@ -491,6 +497,7 @@ namespace Message
 
 	void Message::DelayedDisconnect(uint client)
 	{
+		doNotDisturbClients.erase(client);
 		map<uint, INFO>::iterator iter = mapInfo.begin();
 		while (iter != mapInfo.end())
 		{
@@ -505,6 +512,7 @@ namespace Message
 	/// On client disconnect remove any references to this client.
 	void Message::DisConnect(uint iClientID, enum EFLConnection p2)
 	{
+		doNotDisturbClients.erase(iClientID);
 		map<uint, INFO>::iterator iter = mapInfo.begin();
 		while (iter != mapInfo.end())
 		{
@@ -958,7 +966,7 @@ namespace Message
 			return true;
 		}
 
-		if (iter->second.ulastPmClientID == -1)
+		if (iter->second.ulastPmClientID == -1 || !HkIsValidClientID(iter->second.ulastPmClientID))
 		{
 			PrintUserCmdText(iClientID, L"ERR PM sender not available");
 			return true;
@@ -1048,6 +1056,21 @@ namespace Message
 			wscTargetCharname = (const wchar_t*)Players.GetActiveCharacterName(iter->second.uTargetClientID);
 
 		PrintUserCmdText(iClientID, L"OK sender=" + wscSenderCharname + L" target=" + wscTargetCharname);
+		return true;
+	}
+
+	bool Message::UserCmd_SetDoNotDisturb(uint iClientID, const wstring& wscCmd, const wstring& wscParam, const wchar_t* usage)
+	{
+		if (doNotDisturbClients.count(iClientID))
+		{
+			doNotDisturbClients.erase(iClientID);
+			PrintUserCmdText(iClientID, L"OK Do Not Disturb mode disabled");
+		}
+		else
+		{
+			doNotDisturbClients.insert(iClientID);
+			PrintUserCmdText(iClientID, L"OK Do Not Disturb mode enabled");
+		}
 		return true;
 	}
 

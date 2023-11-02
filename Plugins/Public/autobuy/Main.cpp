@@ -225,6 +225,56 @@ void LoadSettings()
 					++iLoaded;
 				}
 			}
+			else if (ini.is_header("CounterMeasure"))
+			{
+				uint itemname;
+				int itemlimit;
+				bool valid = false;
+
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						itemname = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("ammo_limit"))
+					{
+						valid = true;
+						itemlimit = ini.get_value_int(0);
+					}
+				}
+
+				if (valid == true)
+				{
+					mapAmmolimits[itemname] = itemlimit;
+					++iLoaded;
+				}
+			}
+			else if (ini.is_header("Mine"))
+			{
+				uint itemname;
+				int itemlimit;
+				bool valid = false;
+
+				while (ini.read_value())
+				{
+					if (ini.is_value("nickname"))
+					{
+						itemname = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("ammo_limit"))
+					{
+						valid = true;
+						itemlimit = ini.get_value_int(0);
+					}
+				}
+
+				if (valid == true)
+				{
+					mapAmmolimits[itemname] = itemlimit;
+					++iLoaded;
+				}
+			}
 		}
 		ini.close();
 	}
@@ -962,6 +1012,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned
 
 void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
+	returncode = DEFAULT_RETURNCODE;
 	pub::Player::GetBase(iClientID, iBaseID);
 	PlayerAutobuy(iClientID, iBaseID);
 
@@ -1000,7 +1051,7 @@ bool SetShipArch(uint iClientID, uint ship)
 		{
 			if (eq.iCount > shipData->iMaxShieldBats)
 			{
-				uint battsToSell = eq.iCount - shipData->iMaxNanobots;
+				uint battsToSell = eq.iCount - shipData->iMaxShieldBats;
 				pub::Player::RemoveCargo(iClientID, eq.sID, battsToSell);
 				const GoodInfo* gi = GoodList::find_by_id(battArch);
 				pub::Player::AdjustCash(iClientID, static_cast<int>(gi->fPrice * static_cast<float>(battsToSell)));

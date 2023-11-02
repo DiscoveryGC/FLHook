@@ -328,9 +328,11 @@ int Condata::Update()
 
 void Condata::PlayerLaunch(unsigned int iShip, unsigned int iClientID)
 {
-
+	uint dummy;
+	IObjInspectImpl* obj;
+	GetShipInspect(iShip, obj, dummy);
+	ConData[iClientID].obj = obj;
 	ConData[iClientID].tmLastObjUpdate = 0;
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -338,48 +340,51 @@ void Condata::PlayerLaunch(unsigned int iShip, unsigned int iClientID)
 void Condata::SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
 {
 	// lag detection
-	IObjInspectImpl *ins = HkGetInspect(iClientID);
-	if (!ins)
-		return; // ??? 8[
-
-	mstime tmNow = timeInMS();
-	mstime tmTimestamp = (mstime)(ui.fTimestamp * 1000);
-
-	if (set_iLagDetectionFrame && ConData[iClientID].tmLastObjUpdate && (HkGetEngineState(iClientID) != ES_TRADELANE) && (ui.cState != 7))
+	if (!ConData[iClientID].obj)
 	{
-		uint iTimeDiff = (uint)(tmNow - ConData[iClientID].tmLastObjUpdate);
-		uint iTimestampDiff = (uint)(tmTimestamp - ConData[iClientID].tmLastObjTimestamp);
-		int iDiff = (int)sqrt(pow((long double)((int)iTimeDiff - (int)iTimestampDiff), 2));
-		iDiff -= g_iServerLoad;
-		if (iDiff < 0)
-			iDiff = 0;
+		ConData[iClientID].obj = HkGetInspect(iClientID);
+		return; // ??? 8[
+	}
+	mstime tmNow = timeInMS();
+	if (set_iLagDetectionFrame && (tmNow - ConData[iClientID].tmLastObjUpdate) > 1000 && (HkGetEngineState(iClientID) != ES_TRADELANE) && (ui.cState != 7))
+	{
+		mstime tmTimestamp = (mstime)(ui.fTimestamp * 1000);
+		double dTimeDiff = static_cast<double>(tmNow - ConData[iClientID].tmLastObjUpdate);
+		double dTimestampDiff = static_cast<double>(tmTimestamp - ConData[iClientID].tmLastObjTimestamp);
+		double dDiff = abs(dTimeDiff - dTimestampDiff);
+		dDiff -= g_iServerLoad;
+		if (dDiff < 0)
+			dDiff = 0;
 
-		uint iPerc;
-		if (iTimestampDiff != 0)
-			iPerc = (uint)((float)((float)iDiff / (float)iTimestampDiff)*100.0);
+		double dPerc;
+		if (dTimestampDiff != 0)
+			dPerc = (dDiff / dTimestampDiff)*100.0;
 		else
-			iPerc = 0;
+			dPerc = 0;
 
-
-		if (ConData[iClientID].lstObjUpdateIntervalls.size() >= set_iLagDetectionFrame)
+		auto& updateIntervals = ConData[iClientID].lstObjUpdateIntervalls;
+		if (updateIntervals.size() >= set_iLagDetectionFrame)
 		{
 			uint iLags = 0;
-			foreach(ConData[iClientID].lstObjUpdateIntervalls, uint, it)
+			for (uint it : updateIntervals)
 			{
-				if ((*it) > set_iLagDetectionMinimum)
+				if (it > set_iLagDetectionMinimum)
+				{
 					iLags++;
+				}
 			}
 
 			ConData[iClientID].iLags = (iLags * 100) / set_iLagDetectionFrame;
-			while (ConData[iClientID].lstObjUpdateIntervalls.size() >= set_iLagDetectionFrame)
-				ConData[iClientID].lstObjUpdateIntervalls.pop_front();
+
+			updateIntervals.erase(updateIntervals.begin());
 		}
 
-		ConData[iClientID].lstObjUpdateIntervalls.push_back(iPerc);
+		updateIntervals.emplace_back(static_cast<uint>(dPerc));
+
+		ConData[iClientID].tmLastObjUpdate = tmNow;
+		ConData[iClientID].tmLastObjTimestamp = tmTimestamp;
 	}
 
-	ConData[iClientID].tmLastObjUpdate = tmNow;
-	ConData[iClientID].tmLastObjTimestamp = tmTimestamp;
 
 }
 

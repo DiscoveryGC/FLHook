@@ -1,7 +1,7 @@
 #include "Main.h"
 
 FactoryModule::FactoryModule(PlayerBase* the_base)
-	: Module(0), base(the_base)
+	: Module(Module::TYPE_FACTORY), base(the_base)
 {
 	active_recipe.nickname = 0;
 }
@@ -49,12 +49,33 @@ wstring FactoryModule::GetInfo(bool xml)
 	}
 	if (active_recipe.nickname)
 	{
+		if (pendingSpace)
+		{
+			info += openLine + active_recipe.infotext + L": Waiting for free cargo storage" + openLine + L"or available max stock limit to drop off:";
+			for (auto item : active_recipe.produced_items)
+			{
+				if (!item.second)
+				{
+					continue;
+				}
+				uint good = item.first;
+				uint quantity = item.second;
+				const GoodInfo* gi = GoodList::find_by_id(good);
+				info += openLine + L"- " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
+			}
+			return info;
+		}
+
 		info += openLine + L"Crafting " + Status + active_recipe.infotext + L". Waiting for:";
 
 		for (auto& i : active_recipe.consumed_items)
 		{
 			uint good = i.first;
 			uint quantity = i.second;
+			if (!quantity)
+			{
+				continue;
+			}
 
 			const GoodInfo* gi = GoodList::find_by_id(good);
 			if (gi)
@@ -74,13 +95,10 @@ wstring FactoryModule::GetInfo(bool xml)
 				info += L" [Insufficient cash]";
 			}
 		}
-		if (!sufficientCatalysts)
+		if (!active_recipe.catalyst_items.empty() && !sufficientCatalysts)
 		{
-			info += openLine + L"Insufficient catalysts/workforce";
-		}
-		if (!active_recipe.catalyst_items.empty())
-		{
-			info += openLine + L"Needed catalysts:";
+			info += openLine + L"Needed catalysts ";
+
 			for (const auto& catalyst : active_recipe.catalyst_items)
 			{
 				uint good = catalyst.first;
@@ -90,15 +108,10 @@ wstring FactoryModule::GetInfo(bool xml)
 				if (gi)
 				{
 					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					uint presentAmount = base->HasMarketItem(good);
-					if (presentAmount < quantity)
-					{
-						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-					}
 				}
 			}
 		}
-		if (!active_recipe.catalyst_workforce.empty())
+		if (!active_recipe.catalyst_workforce.empty() && !sufficientCatalysts)
 		{
 			info += openLine + L"Needed workforce:";
 			for (const auto& worker : active_recipe.catalyst_workforce)
@@ -110,11 +123,6 @@ wstring FactoryModule::GetInfo(bool xml)
 				if (gi)
 				{
 					info += openLine + L" - " + stows(itos(quantity)) + L"x " + HkGetWStringFromIDS(gi->iIDSName);
-					uint presentAmount = base->HasMarketItem(good);
-					if (presentAmount < quantity)
-					{
-						info += L" [Need " + stows(itos(quantity - presentAmount)) + L" more]";
-					}
 				}
 			}
 		}
@@ -149,6 +157,7 @@ bool FactoryModule::Timer(uint time)
 
 	// Consume goods at the cooking rate.
 	bool cooked = true;
+	pendingSpace = false;
 
 	for (const auto& catalyst : active_recipe.catalyst_items)
 	{
@@ -181,7 +190,7 @@ bool FactoryModule::Timer(uint time)
 	
 	if (active_recipe.credit_cost)
 	{
-		uint moneyToRemove = min(active_recipe.cooking_rate * 10, active_recipe.credit_cost);
+		uint moneyToRemove = min(active_recipe.cooking_rate * 100, active_recipe.credit_cost);
 		if (base->money >= moneyToRemove)
 		{
 			base->money -= moneyToRemove;
@@ -193,23 +202,32 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	for (auto& i : active_recipe.consumed_items)
+	for (auto& i = active_recipe.consumed_items.begin(); i != active_recipe.consumed_items.end(); i++)
 	{
-		uint good = i.first;
-		uint quantity = min(active_recipe.cooking_rate, i.second);
-		if (!quantity)
+		uint good = i->first;
+		uint quantity = min(active_recipe.cooking_rate, i->second);
+		auto market_item = base->market_items.find(good);
+		if (market_item == base->market_items.end()
+			|| market_item->second.quantity < quantity)
 		{
+			cooked = false;
 			continue;
 		}
-		cooked = false;
-		auto market_item = base->market_items.find(good);
-		if (market_item != base->market_items.end()
-			&& market_item->second.quantity >= quantity)
+		i->second -= quantity;
+		base->RemoveMarketGood(good, quantity);
+		if (!i->second)
 		{
-			i.second -= quantity;
-			base->RemoveMarketGood(good, quantity);
-			return false;
+			active_recipe.consumed_items.erase(i);
+			if (!active_recipe.consumed_items.empty())
+			{
+				cooked = false;
+			}
 		}
+		else
+		{
+			cooked = false;
+		}
+		break;
 	}
 
 	// Do nothing if cooking is not finished
@@ -224,6 +242,7 @@ bool FactoryModule::Timer(uint time)
 	{
 		if (!base->AddMarketGood(item.first, item.second))
 		{
+			pendingSpace = true;
 			return false;
 		}
 		else
@@ -232,16 +251,16 @@ bool FactoryModule::Timer(uint time)
 		}
 	}
 
-	if (active_recipe.loop_production)
-	{
-		// If recipe is set to automatically loop, refresh the recipe data
-		SetActiveRecipe(active_recipe.nickname);
-	}
-	else if (!build_queue.empty())
+	if (!build_queue.empty())
 	{
 		// Load next item in the queue
 		SetActiveRecipe(build_queue.front());
 		build_queue.pop_front();
+	}
+	else if (active_recipe.loop_production)
+	{
+		// If recipe is set to automatically loop, refresh the recipe data
+		SetActiveRecipe(active_recipe.nickname);
 	}
 	else
 	{
@@ -265,7 +284,6 @@ void FactoryModule::LoadState(INI_Reader& ini)
 				base->availableCraftList.insert(craftType);
 				base->craftTypeTofactoryModuleMap[craftType] = this;
 			}
-			break;
 		}
 		else if (ini.is_value("nickname"))
 		{
@@ -282,9 +300,11 @@ void FactoryModule::LoadState(INI_Reader& ini)
 		}
 		else if (ini.is_value("consumed"))
 		{
-			if (active_recipe.nickname)
+			uint goodID = ini.get_value_int(0);
+			uint amount = ini.get_value_int(1);
+			if (active_recipe.nickname && amount)
 			{
-				active_recipe.consumed_items.emplace_back(make_pair(ini.get_value_int(0), ini.get_value_int(1)));
+				active_recipe.consumed_items.emplace_back(make_pair(goodID, amount));
 			}
 		}
 		else if (ini.is_value("credit_cost"))
@@ -316,7 +336,10 @@ void FactoryModule::SaveState(FILE* file)
 			fprintf(file, "credit_cost = %u\n", active_recipe.credit_cost);
 		for (auto& i : active_recipe.consumed_items)
 		{
-			fprintf(file, "consumed = %u, %u\n", i.first, i.second);
+			if (i.second)
+			{
+				fprintf(file, "consumed = %u, %u\n", i.first, i.second);
+			}
 		}
 	}
 	for (uint i : build_queue)
@@ -340,15 +363,21 @@ void FactoryModule::SetActiveRecipe(uint product)
 	}
 }
 
-void FactoryModule::AddToQueue(uint product)
+bool FactoryModule::AddToQueue(uint product)
 {
-	if (build_queue.empty())
+	if (!active_recipe.nickname)
 	{
 		SetActiveRecipe(product);
+		return true;
+	}
+	else if(active_recipe.loop_production && active_recipe.nickname == product)
+	{
+		return false;
 	}
 	else
 	{
 		build_queue.emplace_back(product);
+		return true;
 	}
 }
 

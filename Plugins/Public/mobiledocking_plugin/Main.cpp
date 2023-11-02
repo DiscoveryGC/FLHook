@@ -28,6 +28,10 @@ unordered_map<uint,uint> jettisonedShipsQueue;
 
 unordered_set<uint> bannedSystems;
 
+string scCarrierDataFile1;
+string scCarrierDataFile2;
+
+
 std::mutex saveMutex;
 std::thread saveThread;
 
@@ -44,7 +48,7 @@ uint forgetCarrierDataInSeconds = 31556926; // since it's all kept in a single f
 uint dockingPeriod = 0;
 
 // Above how much cargo capacity, should a ship be rejected as a docking user?
-int cargoCapacityLimit = 275;
+float cargoCapacityLimit = 275.0f;
 
 float mobileDockingRange = 500.0f;
 
@@ -59,94 +63,10 @@ bool disableRegensOnDockAttempt = true;
 
 void MoveOfflineShipToLastDockedSolar(const wstring& charName);
 
-// Load the configuration
-void LoadSettings()
+void LoadDockingModules(const string& path, int& carrierCount, int& dockedCount)
 {
-	returncode = DEFAULT_RETURNCODE;
-
-	// The path to the data file.
-	char datapath[MAX_PATH];
-	GetUserDataPath(datapath);
-
-	// Create the directory if it doesn't exist
-	string moddir = string(datapath) + "\\Accts\\MultiPlayer\\docking_module\\";
-	CreateDirectoryA(moddir.c_str(), 0);
-
-	string scCarrierDataFile = moddir + "mobile_docking.ini";
-
-	// Plugin configuration
-	char szCurDir[MAX_PATH];
-	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
-	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\dockingmodules.cfg";
-
-	int dockingModAmount = 0;
-	int carrierCount = 0;
-	int dockedCount = 0;
 	INI_Reader ini;
-	if (ini.open(scPluginCfgFile.c_str(), false))
-	{
-		while (ini.read_header())
-		{
-			if (ini.is_header("Config"))
-			{
-				while (ini.read_value())
-				{
-					if (ini.is_value("module"))
-					{
-						dockingModuleEquipmentCapacityMap[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
-						dockingModAmount++;
-					}
-					else if (ini.is_value("cargo_capacity_limit"))
-					{
-						cargoCapacityLimit = ini.get_value_int(0);
-					}
-					else if (ini.is_value("carrier_data_wipe_period"))
-					{
-						forgetCarrierDataInSeconds = ini.get_value_int(0);
-					}
-					else if (ini.is_value("mobile_dock_range"))
-					{
-						mobileDockingRange = ini.get_value_float(0);
-					}
-					else if (ini.is_value("docking_period"))
-					{
-						dockingPeriod = ini.get_value_int(0);
-					}
-					else if (ini.is_value("docking_tolerance"))
-					{
-						maxDockingDistanceTolerance = ini.get_value_float(0);
-					}
-					else if (ini.is_value("default_return_system"))
-					{
-						defaultReturnSystem = ini.get_value_string(0);
-					}
-					else if (ini.is_value("default_return_base"))
-					{
-						defaultReturnBase = ini.get_value_string(0);
-					}
-					else if (ini.is_value("target_mobile_docking_base"))
-					{
-						mobileDockingProxyBase = CreateID(ini.get_value_string(0));
-					}
-					else if (ini.is_value("disable_docking_repairs"))
-					{
-						disableRegensOnDockAttempt = ini.get_value_bool(0);
-					}
-					else if (ini.is_value("docking_shield_drain"))
-					{
-						disableShieldsOnDockAttempt = ini.get_value_bool(0);
-					}
-					else if (ini.is_value("banned_system"))
-					{
-						bannedSystems.insert(CreateID(ini.get_value_string(0)));
-					}
-				}
-			}
-		}
-		ini.close();
-	}
-
-	if (ini.open(scCarrierDataFile.c_str(), false))
+	if (ini.open(path.c_str(), false))
 	{
 		std::lock_guard<std::mutex> saveLock(saveMutex);
 		time_t curTime = time(0);
@@ -205,7 +125,7 @@ void LoadSettings()
 				}
 				else
 				{
-					for (const auto& dockedShipName : ci.dockedShipList)
+					for (const wstring& dockedShipName : ci.dockedShipList)
 					{
 						MoveOfflineShipToLastDockedSolar(dockedShipName);
 					}
@@ -214,9 +134,103 @@ void LoadSettings()
 		}
 		ini.close();
 	}
+}
+
+// Load the configuration
+void LoadSettings()
+{
+	returncode = DEFAULT_RETURNCODE;
+
+	// The path to the data file.
+	char datapath[MAX_PATH];
+	GetUserDataPath(datapath);
+
+	// Create the directory if it doesn't exist
+	string moddir = string(datapath) + "\\Accts\\MultiPlayer\\docking_module\\";
+	CreateDirectoryA(moddir.c_str(), 0);
+
+	scCarrierDataFile1 = moddir + "mobile_docking1.ini";
+	scCarrierDataFile2 = moddir + "mobile_docking2.ini";
+
+	// Plugin configuration
+	char szCurDir[MAX_PATH];
+	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
+	string scPluginCfgFile = string(szCurDir) + "\\flhook_plugins\\dockingmodules.cfg";
+
+	int dockingModAmount = 0;
+	int carrierCount = 0;
+	int dockedCount = 0;
+	INI_Reader ini;
+	if (ini.open(scPluginCfgFile.c_str(), false))
+	{
+		while (ini.read_header())
+		{
+			if (ini.is_header("Config"))
+			{
+				while (ini.read_value())
+				{
+					if (ini.is_value("module"))
+					{
+						dockingModuleEquipmentCapacityMap[CreateID(ini.get_value_string(0))] = ini.get_value_int(1);
+						dockingModAmount++;
+					}
+					else if (ini.is_value("cargo_capacity_limit"))
+					{
+						cargoCapacityLimit = ini.get_value_float(0);
+					}
+					else if (ini.is_value("carrier_data_wipe_period"))
+					{
+						forgetCarrierDataInSeconds = ini.get_value_int(0);
+					}
+					else if (ini.is_value("mobile_dock_range"))
+					{
+						mobileDockingRange = ini.get_value_float(0);
+					}
+					else if (ini.is_value("docking_period"))
+					{
+						dockingPeriod = ini.get_value_int(0);
+					}
+					else if (ini.is_value("docking_tolerance"))
+					{
+						maxDockingDistanceTolerance = ini.get_value_float(0);
+					}
+					else if (ini.is_value("default_return_system"))
+					{
+						defaultReturnSystem = ini.get_value_string(0);
+					}
+					else if (ini.is_value("default_return_base"))
+					{
+						defaultReturnBase = ini.get_value_string(0);
+					}
+					else if (ini.is_value("target_mobile_docking_base"))
+					{
+						mobileDockingProxyBase = CreateID(ini.get_value_string(0));
+					}
+					else if (ini.is_value("disable_docking_repairs"))
+					{
+						disableRegensOnDockAttempt = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("docking_shield_drain"))
+					{
+						disableShieldsOnDockAttempt = ini.get_value_bool(0);
+					}
+					else if (ini.is_value("banned_system"))
+					{
+						bannedSystems.insert(CreateID(ini.get_value_string(0)));
+					}
+				}
+			}
+		}
+		ini.close();
+	}
+	LoadDockingModules(scCarrierDataFile1, carrierCount, dockedCount);
+	if (carrierCount == 0)
+	{
+		LoadDockingModules(scCarrierDataFile2, carrierCount, dockedCount);
+	}
 	ConPrint(L"DockingModules: Loaded %u equipment\n", dockingModAmount);
 	ConPrint(L"DockingModules: Found %u ships docked on %u carriers\n", dockedCount, carrierCount);
-	ConPrint(L"DockingModules: Allowing ships below the cargo capacity of %i to dock\n", cargoCapacityLimit);
+	ConPrint(L"DockingModules: Allowing ships below the cargo capacity of %0.0f to dock\n", cargoCapacityLimit);
 }
 
 void SaveData()
@@ -225,6 +239,7 @@ void SaveData()
 	{
 		while (true)
 		{
+			static bool firstFile = true;
 			std::this_thread::sleep_for(std::chrono::minutes(1));
 
 			if (nameToCarrierInfoMap.empty())
@@ -234,7 +249,8 @@ void SaveData()
 
 			char datapath[MAX_PATH];
 			GetUserDataPath(datapath);
-			string path = string(datapath) + R"(\Accts\MultiPlayer\docking_module\mobile_docking.ini)";
+			string& path = firstFile ? scCarrierDataFile1 : scCarrierDataFile2;
+			firstFile = !firstFile;
 			FILE* file = fopen(path.c_str(), "w");
 			if (file)
 			{
@@ -272,6 +288,20 @@ void SaveData()
 		AddLog("ERROR MOBILEDOCK SAVE: %s", e.what());
 		throw(e);
 	}
+}
+
+bool CheckDockingCargoUsage(uint client)
+{
+	// Check that the requesting ship is of the appropriate size to dock.
+	const auto& shipInfo = Archetype::GetShip(Players[client].iShipArchetype);
+	float fRemHold;
+	pub::Player::GetRemainingHoldSize(client, fRemHold);
+	if (shipInfo->fHoldSize - fRemHold > cargoCapacityLimit)
+	{
+		PrintUserCmdText(client, L"You are carrying too much cargo to dock, %u/%u allowed.", static_cast<uint>(shipInfo->fHoldSize - fRemHold), static_cast<uint>(cargoCapacityLimit));
+		return false;
+	}
+	return true;
 }
 
 wstring GetLastBaseName(uint client)
@@ -320,8 +350,7 @@ JettisonResult RemoveShipFromLists(const wstring& dockedShipName, bool forcedLau
 	if (forcedLaunch)
 	{
 		uint carrierId = HkGetClientIdFromCharname(idToDockedInfoMap[dockedClientID]->carrierName);
-		jettisonedShipsQueue[dockedClientID] = carrierId;
-		ForceLaunch(dockedClientID);
+		jettisonedShipsQueue[dockedClientID] = idToDockedInfoMap[dockedClientID]->lastDockedSolar;
 
 		wstring newBaseInfo = GetLastBaseName(dockedClientID);
 		PrintUserCmdText(dockedClientID, L"You've been forcefully jettisoned by the carrier.");
@@ -339,7 +368,7 @@ JettisonResult RemoveShipFromLists(const wstring& dockedShipName, bool forcedLau
 	}
 	//clear the carrier list info
 	auto& carrierDockList = nameToCarrierInfoMap[carrierName].dockedShipList;
-	for (auto& dockIter = carrierDockList.begin() ; dockIter != carrierDockList.end() ; )
+	for (auto& dockIter = carrierDockList.begin() ; dockIter != carrierDockList.end() ; dockIter++)
 	{
 		if (*dockIter == dockedShipName)
 		{
@@ -446,7 +475,10 @@ void HkTimerCheckKick()
 				dockdata = dockingInProgress.erase(dockdata);
 				continue;
 			}
-			DockShipOnCarrier(dd.dockingID, dd.carrierID);
+			if (CheckDockingCargoUsage(dd.dockingID))
+			{
+				DockShipOnCarrier(dd.dockingID, dd.carrierID);
+			}
 			dockdata = dockingInProgress.erase(dockdata);
 			continue;
 		}
@@ -554,7 +586,7 @@ void StartDockingProcedure(uint dockingID, uint carrierID)
 		wstring message = dockingName + L" has begun docking on " + carrierName;
 		PrintLocalUserCmdText(dockingID, message, 10000);
 	}
-	else
+	else if(CheckDockingCargoUsage(dockingID))
 	{
 		DockShipOnCarrier(dockingID, carrierID);
 	}
@@ -669,10 +701,8 @@ void ReturnCraftToLastDockedBase(uint dockingID)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void __stdcall BaseExit(uint iBaseID, uint iClientID)
+void CountAvailableModuleSlots(uint iClientID)
 {
-	returncode = DEFAULT_RETURNCODE;
-
 	mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 	
 	if (idToCarrierInfoMap.count(iClientID))
@@ -691,6 +721,13 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
+	uint shipType;
+	pub::SpaceObj::GetType(ship, shipType);
+	if (shipType & (OBJ_CRUISER | OBJ_CAPITAL))
+	{
+		CountAvailableModuleSlots(client);
+	}
+
 	// If not docked on another ship, skip processing.
 	if (Players[client].iLastBaseID != mobileDockingProxyBase || 
 		(!idToDockedInfoMap.count(client) && !jettisonedShipsQueue.count(client)))
@@ -698,16 +735,14 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 		return;
 	}
 
-	uint carrierClientID = -1;
 	if (jettisonedShipsQueue.count(client))
 	{
-		carrierClientID = jettisonedShipsQueue[client];
+		HkBeamById(client, jettisonedShipsQueue.at(client));
 		jettisonedShipsQueue.erase(client);
+		return;
 	}
-	else
-	{
-		carrierClientID = HkGetClientIdFromCharname(idToDockedInfoMap[client]->carrierName.c_str());
-	}
+	
+	uint carrierClientID = HkGetClientIdFromCharname(idToDockedInfoMap[client]->carrierName.c_str());
 
 	// If carrier is present at server - do it, if not - whatever. Plugin erases all associated client data after disconnect. 
 	if (carrierClientID != -1)
@@ -764,7 +799,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 	//carrier not online, return to last docked base
 	ReturnCraftToLastDockedBase(client);
 }
-
 // If this is a docking request at a player ship then process it.
 int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, int& dockPort, enum DOCK_HOST_RESPONSE& response)
 {
@@ -777,13 +811,25 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 		// If target not a player in FREIGHTER class ship, ignore request
 		returncode = SKIPPLUGINS;
 
-		uint iType;
-		pub::SpaceObj::GetType(iTargetID, iType);
-		if (!(iType & (OBJ_FREIGHTER | OBJ_TRANSPORT | OBJ_GUNBOAT | OBJ_CRUISER | OBJ_CAPITAL)))
+		uint iTargetType;
+		pub::SpaceObj::GetType(iTargetID, iTargetType);
+		if (!(iTargetType & (OBJ_CRUISER | OBJ_CAPITAL)))
 		{
+			dockPort = -1;
+			response = DOCK_DENIED;
 			return 0;
 		}
 		
+		uint iShipType;
+		pub::SpaceObj::GetType(iShip, iShipType);
+		if (!(iShipType & (OBJ_FIGHTER | OBJ_FREIGHTER)))
+		{
+			PrintUserCmdText(client, L"ERR Your ship is too large for mobile docking!");
+			dockPort = -1;
+			response = DOCK_DENIED;
+			return 0;
+		}
+
 		uint systemId;
 		pub::SpaceObj::GetSystem(iShip, systemId);
 		if (bannedSystems.count(systemId))
@@ -846,11 +892,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 			return 0;
 		}
 
-		// Check that the requesting ship is of the appropriate size to dock.
-		const auto& shipInfo = Archetype::GetShip(Players[client].iShipArchetype);
-		if (shipInfo->fHoldSize > cargoCapacityLimit)
+		if (!CheckDockingCargoUsage(client))
 		{
-			PrintUserCmdText(client, L"Target ship cannot dock a ship of your size.");
 			dockPort = -1;
 			response = DOCK_DENIED;
 			return 0;
@@ -942,7 +985,7 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 		}
 		if (mobiledockClients[client].iDockingModulesAvailable)
 		{
-			PrintUserCmdText(client, L"Remaining free capacity: %u", mobiledockClients[client].iDockingModulesAvailable);
+			PrintUserCmdText(client, L"Remaining free capacity: %d", mobiledockClients[client].iDockingModulesAvailable);
 		}
 		return true;
 	}
@@ -1065,9 +1108,10 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 
 void __stdcall DisConnect(unsigned int iClientID, enum  EFLConnection state)
 {
+	returncode = DEFAULT_RETURNCODE;
 	if (idToCarrierInfoMap.count(iClientID))
 	{
-		for (const auto& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)
+		for (const wstring& dockedPlayer : idToCarrierInfoMap[iClientID]->dockedShipList)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(dockedPlayer.c_str());
 			if (dockedClientID != -1)
@@ -1096,11 +1140,11 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 	// Update count of installed modules in case if client left his ship in open space before.
 	mobiledockClients[iClientID].iDockingModulesAvailable = mobiledockClients[iClientID].iDockingModulesInstalled = GetInstalledModules(iClientID);
 	
-	auto charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
+	wstring charname = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(iClientID));
 	if (nameToCarrierInfoMap.count(charname))
 	{
 		idToCarrierInfoMap[iClientID] = &nameToCarrierInfoMap[charname];
-		for (const auto& dockedShipName : idToCarrierInfoMap[iClientID]->dockedShipList)
+		for (const wstring& dockedShipName : idToCarrierInfoMap[iClientID]->dockedShipList)
 		{
 			uint dockedClientID = HkGetClientIdFromCharname(dockedShipName.c_str());
 			if (dockedClientID != -1)
@@ -1137,7 +1181,7 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const & cId, unsigned i
 				Matrix ori;
 				pub::SpaceObj::GetLocation(carrierInfo.iShipID, pos, ori);
 				wstring& sector = VectorToSectorCoord(sysInfo->id, pos);
-				PrintUserCmdText(iClientID, L"Carrier in flight, %ls %ls", sysName.c_str(), sector.c_str());
+				PrintUserCmdText(iClientID, L"Carrier %ls in flight, %ls %ls", idToDockedInfoMap[iClientID]->carrierName.c_str(), sysName.c_str(), sector.c_str());
 			}
 			else if (carrierInfo.iBaseID)
 			{
@@ -1246,7 +1290,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 3));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Dock_Call, PLUGIN_HkCb_Dock_Call, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseExit, PLUGIN_HkIServerImpl_BaseExit, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Plugin_Communication_CallBack, PLUGIN_Plugin_Communication, 12));
 
 	saveThread = std::thread(SaveData);

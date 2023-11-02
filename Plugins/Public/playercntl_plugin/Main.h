@@ -10,8 +10,9 @@
 #define __MAIN_H__ 1
 
 #include <FLHook.h>
+#include <unordered_set>
 
-void AddExceptionInfoLog(LPEXCEPTION_POINTERS pep);
+void AddExceptionInfoLog(struct SEHException* pep);
 #define LOG_EXCEPTION { AddLog("ERROR Exception in %s", __FUNCTION__); AddExceptionInfoLog(0); }
 
 int extern set_iPluginDebug;
@@ -21,6 +22,8 @@ bool extern set_bEnableMoveChar;
 bool extern set_bLocalTime;
 bool extern set_bEnableDeathMsg;
 float extern set_iLocalChatRange;
+unordered_set<uint> extern doNotDisturbClients;
+
 
 bool GetUserFilePath(string &path, const wstring &wscCharname, const string &extension);
 string GetUserFilePath(const wstring &wscCharname, const string &extension);
@@ -252,6 +255,7 @@ namespace Message
 	bool UserCmd_BuiltInCmdHelp(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_MailShow(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
 	bool UserCmd_MailDel(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage);
+	bool UserCmd_SetDoNotDisturb(uint iClientID, const wstring& wscCmd, const wstring& wscParam, const wchar_t* usage);
 	void UserCmd_Process(uint iClientID, const wstring &wscCmd);
 
 	void AdminCmd_SendMail(CCmds *cmds, const wstring &wscCharname, const wstring &wscMsg);

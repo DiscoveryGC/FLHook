@@ -44,9 +44,11 @@ struct CONNECTION_DATA
 	uint		iLastPacketsReceived;
 	uint		iLastPacketsDropped;
 	uint		iLags;
-	list<uint>	lstObjUpdateIntervalls;
+	vector<uint>	lstObjUpdateIntervalls;
 	mstime		tmLastObjUpdate;
 	mstime		tmLastObjTimestamp;
+	IObjInspectImpl* obj;
+
 
 	// exception
 	bool		bException;

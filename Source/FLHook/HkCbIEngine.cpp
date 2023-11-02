@@ -87,12 +87,12 @@ namespace HkIEngine
 
 	void __cdecl Update_Time(double dInterval)
 	{
-
-		CALL_PLUGINS_V(PLUGIN_HkCb_Update_Time, , (double), (dInterval));
+		
+		//CALL_PLUGINS_V(PLUGIN_HkCb_Update_Time, , (double), (dInterval));
 
 		Timing::UpdateGlobalTime(dInterval);
 
-		CALL_PLUGINS_V(PLUGIN_HkCb_Update_Time_AFTER, , (double), (dInterval));
+		//CALL_PLUGINS_V(PLUGIN_HkCb_Update_Time_AFTER, , (double), (dInterval));
 	}
 
 	/**************************************************************************************************************
@@ -104,11 +104,11 @@ namespace HkIEngine
 	void __stdcall Elapse_Time(float p1)
 	{
 
-		CALL_PLUGINS_V(PLUGIN_HkCb_Elapse_Time, __stdcall, (float), (p1));
+		//CALL_PLUGINS_V(PLUGIN_HkCb_Elapse_Time, __stdcall, (float), (p1));
 
 		Server.ElapseTime(p1);
 
-		CALL_PLUGINS_V(PLUGIN_HkCb_Elapse_Time_AFTER, __stdcall, (float), (p1));
+		//CALL_PLUGINS_V(PLUGIN_HkCb_Elapse_Time_AFTER, __stdcall, (float), (p1));
 
 		// low serverload missile jitter bugfix
 		uint iCurLoad = GetTickCount() - iLastTicks;
@@ -138,10 +138,9 @@ namespace HkIEngine
 
 		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call, int, , (unsigned int const &, unsigned int const &, int&, DOCK_HOST_RESPONSE&), (uShipID, uSpaceID, iDockPort, dockResponse));
 
-		try {
+		TRY_HOOK {
 			returnValue = pub::SpaceObj::Dock(uShipID, uSpaceID, iDockPort, dockResponse);
-		}
-		catch (...) { LOG_EXCEPTION }
+		} CATCH_HOOK({})
 
 		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call_AFTER, int, , (unsigned int const &, unsigned int const &, int&, DOCK_HOST_RESPONSE&), (uShipID, uSpaceID, iDockPort, dockResponse));
 

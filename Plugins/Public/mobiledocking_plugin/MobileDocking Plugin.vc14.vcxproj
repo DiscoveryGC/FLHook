@@ -71,7 +71,7 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
       <Outputs>..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll;..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).pdb;%(Outputs)</Outputs>
     </CustomBuildStep>
     <ClCompile>
-      <Optimization>Disabled</Optimization>
+      <Optimization>Full</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
@@ -103,16 +103,17 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
       <Outputs>..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).dll;..\..\..\Binaries\bin-vc14\flhook_plugins\public\$(TargetName).pdb;%(Outputs)</Outputs>
     </CustomBuildStep>
     <ClCompile>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Full</Optimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -139,9 +140,6 @@ copy /Y $(OutDir)$(TargetName).pdb  ..\..\..\Binaries\bin-vc14\flhook_plugins\pu
     </ProjectReference>
     <ProjectReference Include="..\hookext_plugin\HookExt Plugin.vcxproj">
       <Project>{81d33b95-1ddd-4f58-a24c-e2ec4a143dd0}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\JSONBuddy\JSONBuddy.vcxproj">
-      <Project>{097bffbb-2bbe-4e16-b2fb-3ed8e90ecbd7}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -17,13 +17,24 @@ Connecticut Plugin by MadHunter
 #include <hookext_exports.h>
 #include <PluginUtilities.h>
 #include <unordered_set>
+#include <unordered_map>
 #include <math.h>
 
-#define CLIENT_STATE_NONE		0
-#define CLIENT_STATE_TRANSFER	1
-#define CLIENT_STATE_RETURN		2
+enum ClientState
+{
+	NONE,
+	TRANSFER,
+	RETURN
+};
 
-int transferFlags[MAX_CLIENT_ID + 1];
+struct CONNDATA
+{
+	ClientState clientState = NONE;
+	uint retBase = 0;
+	uint retSystemBackup = 0;
+};
+
+CONNDATA connInfo[MAX_CLIENT_ID + 1];
 
 const std::wstring STR_INFO1 = L"Please dock at nearest base";
 const std::wstring STR_INFO2 = L"Cargo hold is not empty";
@@ -49,15 +60,15 @@ PLUGIN_RETURNCODE returncode;
 /// Clear client info when a client connects.
 void ClearClientInfo(uint iClientID)
 {
-	transferFlags[iClientID] = CLIENT_STATE_NONE;
+	connInfo[iClientID].clientState = NONE;
+	connInfo[iClientID].retBase = 0;
+	connInfo[iClientID].retSystemBackup = 0;
 }
 
 /// Load the configuration
 void LoadSettings()
 {
 	returncode = DEFAULT_RETURNCODE;
-
-	memset(transferFlags, 0, sizeof(int) * (MAX_CLIENT_ID + 1));
 
 	// The path to the configuration file.
 	char szCurDir[MAX_PATH];
@@ -161,7 +172,7 @@ bool ValidateCargo(unsigned int client)
 	return true;
 }
 
-void StoreReturnPointForClient(unsigned int client)
+void StoreCurrentBase(uint client)
 {
 	CUSTOM_BASE_IS_DOCKED_STRUCT info;
 	info.iClientID = client;
@@ -170,20 +181,31 @@ void StoreReturnPointForClient(unsigned int client)
 	// It's not docked at a custom base, check for a regular base
 	if (info.iDockedBaseID)
 	{
-		HookExt::IniSetI(client, "conn.retbase", info.iDockedBaseID);
-		HookExt::IniSetI(client, "conn.retsystembackup", Players[client].iSystemID);
+		connInfo[client].retBase = info.iDockedBaseID;
+		connInfo[client].retSystemBackup = Players[client].iSystemID;
 	}
 	else
 	{
-		uint base;
-		pub::Player::GetBase(client, base);
-		HookExt::IniSetI(client, "conn.retbase", base);
+		uint currBase;
+		pub::Player::GetBase(client, currBase);
+		connInfo[client].retBase = currBase;
+		connInfo[client].retSystemBackup = 0;
 	}
 }
 
-unsigned int ReadReturnPointForClient(unsigned int client)
+void StoreReturnPointForClient(unsigned int client)
 {
-	return HookExt::IniGetI(client, "conn.retbase");
+	if (connInfo[client].retBase)
+	{
+		HookExt::IniSetI(client, "conn.retbase", connInfo[client].retBase);
+	}
+	if (connInfo[client].retSystemBackup)
+	{
+		HookExt::IniSetI(client, "conn.retsystembackup", connInfo[client].retSystemBackup);
+	}
+	connInfo[client].clientState = NONE;
+	connInfo[client].retBase = 0;
+	connInfo[client].retSystemBackup = 0;
 }
 
 void SimulateF1(uint client, uint baseId)
@@ -255,6 +277,13 @@ bool CheckReturnDock(unsigned int client, unsigned int target)
 	return false;
 }
 
+unsigned int ReadReturnPointForClient(unsigned int client)
+{
+	uint returnPoint = HookExt::IniGetI(client, "conn.retbase");
+	connInfo[client].retBase = returnPoint;
+	return returnPoint;
+}
+
 bool UserCmd_Process(uint client, const wstring &cmd)
 {
 	returncode = DEFAULT_RETURNCODE;
@@ -290,21 +319,14 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 		{
 			return true;
 		}
-
-		StoreReturnPointForClient(client);
+		StoreCurrentBase(client);
 		PrintUserCmdText(client, L"Redirecting undock to Connecticut.");
-		transferFlags[client] = CLIENT_STATE_TRANSFER;
+		connInfo[client].clientState = TRANSFER;
 
 		return true;
 	}
 	else if (!cmd.compare(L"/return"))
 	{
-		if (!ReadReturnPointForClient(client))
-		{
-			PrintUserCmdText(client, L"No return possible");
-			return true;
-		}
-
 		if (!IsDockedClient(client))
 		{
 			PrintUserCmdText(client, STR_INFO1);
@@ -323,8 +345,14 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 			return true;
 		}
 
+		if (!connInfo[client].retBase && !ReadReturnPointForClient(client))
+		{
+			PrintUserCmdText(client, L"No return possible");
+			return true;
+		}
+
 		PrintUserCmdText(client, L"Redirecting undock to previous base");
-		transferFlags[client] = CLIENT_STATE_RETURN;
+		connInfo[client].clientState = RETURN;
 
 		return true;
 	}
@@ -335,14 +363,16 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 void __stdcall CharacterSelect(struct CHARACTER_ID const &charid, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
-	transferFlags[client] = CLIENT_STATE_NONE;
+	connInfo[client].clientState = NONE;
+	connInfo[client].retBase = 0;
+	connInfo[client].retSystemBackup = 0;
 }
 
 void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (transferFlags[client] == CLIENT_STATE_TRANSFER)
+	if (connInfo[client].clientState == TRANSFER)
 	{
 		if (!ValidateCargo(client))
 		{
@@ -350,12 +380,13 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			return;
 		}
 
-		transferFlags[client] = CLIENT_STATE_NONE;
+		connInfo[client].clientState = NONE;
 		MoveClient(client, set_iTargetBaseID);
+		StoreReturnPointForClient(client);
 		return;
 	}
 
-	if (transferFlags[client] == CLIENT_STATE_RETURN)
+	if (connInfo[client].clientState == RETURN)
 	{
 		if (!ValidateCargo(client))
 		{
@@ -363,15 +394,18 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 			return;
 		}
 
-		transferFlags[client] = CLIENT_STATE_NONE;
-		unsigned int returnPoint = ReadReturnPointForClient(client);
+		connInfo[client].clientState = NONE;
+		unsigned int returnPoint = connInfo[client].retBase;
 
 		if (!returnPoint)
+		{
+			PrintUserCmdText(client, L"Return point not found, contact admins.");
 			return;
+		}
 
 		MoveClient(client, returnPoint);
-		HookExt::IniSetI(client, "conn.retbase", 0);
-		HookExt::IniSetI(client, "conn.retsystembackup", 0);
+		connInfo[client].retBase = 0;
+		connInfo[client].retSystemBackup = 0;
 		return;
 	}
 }

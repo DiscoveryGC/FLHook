@@ -625,6 +625,7 @@ namespace HkIServerImpl
 
 	void DelayedDisconnect(uint client, uint ship)
 	{
+		returncode = DEFAULT_RETURNCODE;
 		Message::DelayedDisconnect(client);
 	}
 

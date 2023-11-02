@@ -291,6 +291,7 @@ void LoadSettingsNPCDrops()
 						drop.uGoodID = CreateID(szGood.c_str());
 						drop.fChance = ini.get_value_float(2);
 						drop.uAmountDroppedMin = ini.get_value_int(3);
+						drop.uAmountDroppedMax = ini.get_value_int(4);
 						if (drop.uAmountDroppedMin == 0)
 						{
 							drop.uAmountDroppedMin = 1;
@@ -751,16 +752,16 @@ void __stdcall HkCb_ShipDestroyed(DamageList* dmg, DWORD* ecx, uint iKill)
 			Matrix mRot;
 			pub::SpaceObj::GetLocation(iVictimShipId, vLoc, mRot);
 			vLoc.x += 30.0;
-			uint finalAmount;
+			uint amountDropped;
 			if (dropData.uAmountDroppedMax)
 			{
-				finalAmount = dropData.uAmountDroppedMin + (rand() % (dropData.uAmountDroppedMax - dropData.uAmountDroppedMin + 1));
+				amountDropped = dropData.uAmountDroppedMin + (rand() % (dropData.uAmountDroppedMax - dropData.uAmountDroppedMin + 1));
 			}
 			else
 			{
-				finalAmount = dropData.uAmountDroppedMin;
+				amountDropped = dropData.uAmountDroppedMin;
 			}
-			Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, dropData.uGoodID, finalAmount, iKillerClientId);
+			Server.MineAsteroid(uKillerSystem, vLoc, set_uLootCrateID, dropData.uGoodID, dropData.uAmountDroppedMin, iKillerClientId);
 		}
 		iter++;
 	}

@@ -438,8 +438,8 @@ public:
 
 	uint lastVulnerabilityWindowChange = 0;
 
-	BASE_VULNERABILITY_WINDOW vulnerabilityWindow1 = { 0, 0 };
-	BASE_VULNERABILITY_WINDOW vulnerabilityWindow2 = { 0, 0 };
+	BASE_VULNERABILITY_WINDOW vulnerabilityWindow1 = { -1, -1 };
+	BASE_VULNERABILITY_WINDOW vulnerabilityWindow2 = { -1, -1 };
 
 	bool vulnerableWindowStatus = false;
 

@@ -1071,6 +1071,8 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"/build <moduleList> resume <moduleName/Nr> - resumes selected module construction");
 			PrintUserCmdText(client, L"/build <moduleList> pause <moduleName/Nr> - pauses selected module construction");
 			PrintUserCmdText(client, L"/build <moduleList> info <moduleName/Nr> - provides construction material info for selected module");
+			PrintUserCmdText(client, L"For example, to build a Core Upgrade module, which is on the 'basic' build list");
+			PrintUserCmdText(client, L"type: '/build basic start 1' or '/build basic start Core Upgrade'");
 		}
 		if (cmd == L"list")
 		{
@@ -1346,7 +1348,7 @@ namespace PlayerCommands
 
 	void PrintCraftHelpMenu(uint client)
 	{
-		PrintUserCmdText(client, L"/craft list - show available lists of craftble items");
+		PrintUserCmdText(client, L"/craft list - show all available craft lists");
 		PrintUserCmdText(client, L"/craft stopall - stops all production on the base");
 		PrintUserCmdText(client, L"/craft <craftList/Nr> list - list item recipes available for this crafting list");
 		PrintUserCmdText(client, L"/craft <craftList/Nr> start <name/itemNr> - adds selected item into the crafting queue");
@@ -1354,6 +1356,8 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"/craft <craftList/Nr> pause <name/itemNr> - pauses crafting of selected item");
 		PrintUserCmdText(client, L"/craft <craftList/Nr> resume <name/itemNr> - resumes crafting of selected item");
 		PrintUserCmdText(client, L"/craft <craftList/Nr> info <name/itemNr> - list materials necessary for selected item");
+		PrintUserCmdText(client, L"For example, to craft a Docking Module, which is on a 'dockmodule' craft list");
+		PrintUserCmdText(client, L"type: '/craft dockmodule start 1' or '/craft dockmodule start Docking Module'");
 	}
 
 	void BaseFacMod(uint client, const wstring& args)

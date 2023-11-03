@@ -47,6 +47,7 @@ struct pinfo
 	uint playerid;
 	float maxholdsize;
 	uint shipclass;
+	uint shiparch;
 };
 
 map <uint, pinfo> clientplayerid;
@@ -56,8 +57,9 @@ struct iddockinfo
 {
 	int type;
 	uint cargo;
-	list<uint> systems;
-	list<uint> shipclasses;
+	vector<uint> systems;
+	vector<uint> shipclasses;
+	vector<uint> exempt;
 };
 
 //first uint will be the ID hash
@@ -144,6 +146,10 @@ void SCI::LoadSettings()
 					else if (ini.is_value("system"))
 					{
 						info.systems.push_back(CreateID(ini.get_value_string(0)));
+					}
+					else if (ini.is_value("exempt"))
+					{
+						info.exempt.push_back(CreateID(ini.get_value_string(0)));
 					}
 				}
 				iddock[id] = info;
@@ -382,8 +388,9 @@ void SCI::UpdatePlayerID(unsigned int iClientID)
 					pinfo info;
 					//PrintUserCmdText(iClientID, L"DEBUG: zonerzonerzonerzoner");
 					info.playerid = i->iArchID;
+					info.shiparch = Players[iClientID].iShipArchetype;
 
-					Archetype::Ship *ship = Archetype::GetShip(Players[iClientID].iShipArchetype);
+					Archetype::Ship *ship = Archetype::GetShip(info.shiparch);
 					info.maxholdsize = ship->fHoldSize;
 					info.shipclass = ship->iShipClass;
 
@@ -408,10 +415,19 @@ bool SCI::CanDock(uint iDockTarget, uint iClientID)
 		//temporarily copy the id so we don't mapception
 		uint id = clientplayerid[iClientID].playerid;
 		uint currsystem = Players[iClientID].iSystemID;
+		uint currship = clientplayerid[iClientID].shiparch;
 		bool arewe = false;
 
+		for (vector<uint>::iterator iter = iddock[id].exempt.begin(); iter != iddock[id].exempt.end(); iter++)
+		{
+			if (*iter == currship)
+			{
+				return true;
+			}
+		}
+
 		//Are we in a system we care about
-		for (list<uint>::iterator iter = iddock[id].systems.begin(); iter != iddock[id].systems.end(); iter++)
+		for (vector<uint>::iterator iter = iddock[id].systems.begin(); iter != iddock[id].systems.end(); iter++)
 		{
 			if (*iter == currsystem)
 			{
@@ -436,7 +452,7 @@ bool SCI::CanDock(uint iDockTarget, uint iClientID)
 				}
 
 				uint currshipclass = clientplayerid[iClientID].shipclass;
-				for (list<uint>::iterator iter = iddock[id].shipclasses.begin(); iter != iddock[id].shipclasses.end(); iter++)
+				for (vector<uint>::iterator iter = iddock[id].shipclasses.begin(); iter != iddock[id].shipclasses.end(); iter++)
 				{
 					if (*iter == currshipclass)
 					{

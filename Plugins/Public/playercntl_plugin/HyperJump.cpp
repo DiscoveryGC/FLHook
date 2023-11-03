@@ -1032,7 +1032,7 @@ namespace HyperJump
 			auto canJump = IsSystemJumpable(iPlayerSystem, iTargetSystemID, mapJumpDrives[iClientID].arch->jump_range);
 			if (!canJump.first)
 			{
-				PrintUserCmdText(iClientID, L"System out of range, use /jumplist for a list of valid destinations");
+				PrintUserCmdText(iClientID, L"System out of range, use '/jump list' for a list of valid destinations");
 				return false;
 			}
 			if (mapSystemJumps.count(iTargetSystemID) == 0)

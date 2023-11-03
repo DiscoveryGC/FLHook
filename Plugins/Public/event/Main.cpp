@@ -69,7 +69,7 @@ struct TRADE_EVENT {
 	uint uEndBase;
 	bool bFLHookBase = false;
 	string sFLHookBaseName;
-	int iObjectiveMax;
+	int iObjectiveMax = INT32_MAX;
 	int iObjectiveCurrent = 0; // Always 0 to prevent having no data
 	uint uCommodityID;
 	bool bLimited = false; //Whether or not this is limited to a specific set of IDs
@@ -80,7 +80,7 @@ struct COMBAT_EVENT {
 	//Basic event settings
 	string sEventName;
 	string sURL;
-	int iObjectiveMax;
+	int iObjectiveMax = INT32_MAX;
 	int iObjectiveCurrent = 0; // Always 0 to prevent having no data	
 	//Combat event data
 	bool bPlayersOnly = false; // assume false
@@ -103,7 +103,7 @@ struct MINING_EVENT {
 	//Basic event settings
 	string sEventName;
 	string sURL;
-	int iObjectiveMax;
+	int iObjectiveMax = INT32_MAX;
 	int iObjectiveCurrent = 0; // Always 0 to prevent having no data
 	int iBonusCash;
 	//Mining settings
@@ -1338,7 +1338,7 @@ void HkTimerCheckKick()
 
 
 /// Hook for ship distruction. It's easier to hook this than the PlayerDeath one.
-void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller)
+void SendDeathMsg(const wstring &wscMsg, uint& iSystem, uint& iClientIDVictim, uint& iClientIDKiller)
 {
 	returncode = DEFAULT_RETURNCODE;
 

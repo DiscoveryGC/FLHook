@@ -1113,6 +1113,11 @@ namespace PlayerCommands
 
 			if (buildRecipe->shortcut_number == Module::TYPE_CORE)
 			{
+				if (!base->affiliation)
+				{
+					PrintUserCmdText(client, L"ERR Base needs to have a defined affiliation to upgrade its core!");
+					return;
+				}
 				if (base->base_level >= 4)
 				{
 					PrintUserCmdText(client, L"ERR Upgrade not available");

@@ -2484,10 +2484,10 @@ namespace PlayerCommands
 			return;
 		}
 
-		base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+		base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd % (60 * 24)};
 		if (!single_vulnerability_window)
 		{
-			base->vulnerabilityWindow2 = { vulnerabilityWindowTwoStart, vulnerabilityWindowTwoEnd };
+			base->vulnerabilityWindow2 = { vulnerabilityWindowTwoStart, vulnerabilityWindowTwoEnd % (60 * 24) };
 		}
 		base->lastVulnerabilityWindowChange = currTime;
 

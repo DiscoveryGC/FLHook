@@ -57,9 +57,9 @@ struct iddockinfo
 {
 	int type;
 	uint cargo;
-	list<uint> systems;
-	list<uint> shipclasses;
-	list<uint> exempt;
+	vector<uint> systems;
+	vector<uint> shipclasses;
+	vector<uint> exempt;
 };
 
 //first uint will be the ID hash
@@ -418,7 +418,7 @@ bool SCI::CanDock(uint iDockTarget, uint iClientID)
 		uint currship = clientplayerid[iClientID].shiparch;
 		bool arewe = false;
 
-		for (list<uint>::iterator iter = iddock[id].exempt.begin(); iter != iddock[id].exempt.end(); iter++)
+		for (vector<uint>::iterator iter = iddock[id].exempt.begin(); iter != iddock[id].exempt.end(); iter++)
 		{
 			if (*iter == currship)
 			{
@@ -427,7 +427,7 @@ bool SCI::CanDock(uint iDockTarget, uint iClientID)
 		}
 
 		//Are we in a system we care about
-		for (list<uint>::iterator iter = iddock[id].systems.begin(); iter != iddock[id].systems.end(); iter++)
+		for (vector<uint>::iterator iter = iddock[id].systems.begin(); iter != iddock[id].systems.end(); iter++)
 		{
 			if (*iter == currsystem)
 			{
@@ -452,7 +452,7 @@ bool SCI::CanDock(uint iDockTarget, uint iClientID)
 				}
 
 				uint currshipclass = clientplayerid[iClientID].shipclass;
-				for (list<uint>::iterator iter = iddock[id].shipclasses.begin(); iter != iddock[id].shipclasses.end(); iter++)
+				for (vector<uint>::iterator iter = iddock[id].shipclasses.begin(); iter != iddock[id].shipclasses.end(); iter++)
 				{
 					if (*iter == currshipclass)
 					{

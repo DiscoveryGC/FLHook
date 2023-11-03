@@ -19,7 +19,19 @@ void DefenseModule::LoadSettings(const string& path)
 			pub::AI::Personality::GunUseStruct gunUse;
 			pub::AI::Personality::MissileUseStruct missileUse;
 			pub::AI::Personality::JobStruct job;
+			uint attackPrefCounter = 0;
 			uint attack_subtarget_counter = 0;
+
+			for (int i = 0; i < 13; i++)
+			{
+				job.attack_order[i].distance = 0.0f;
+				job.attack_order[i].type = 0;
+				job.attack_order[i].flag = 0;
+			}
+			for (int i = 0; i < 8; i++)
+			{
+				job.attack_subtarget_order[i] = 0;
+			}
 
 			uint platformType;
 
@@ -53,7 +65,7 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("gun_fire_accuracy_cone_angle"))
 				{
-					gunUse.gun_fire_accuracy_cone_angle = ini.get_value_float(0);
+					gunUse.gun_fire_accuracy_cone_angle = ini.get_value_float(0) * 0.017453292f; //game also does this, convert to radians
 				}
 				else if (ini.is_value("gun_fire_accuracy_power"))
 				{
@@ -111,7 +123,7 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("missile_launch_cone_angle"))
 				{
-					missileUse.missile_launch_cone_angle = ini.get_value_float(0);
+					missileUse.missile_launch_cone_angle = ini.get_value_float(0) * 0.017453292f; //game also does this, convert to radians
 				}
 				else if (ini.is_value("missile_launch_interval_time"))
 				{
@@ -334,13 +346,15 @@ void DefenseModule::LoadSettings(const string& path)
 						flag += 8;
 					}
 
-					pub::AI::Personality::JobStruct::Tattack_order& atkOrder = job.attack_order[shipIndex];
+					pub::AI::Personality::JobStruct::Tattack_order& atkOrder = job.attack_order[attackPrefCounter];
 					atkOrder.distance = ini.get_value_float(1);
 					atkOrder.flag = flag;
 					atkOrder.type = shipIndex;
+					attackPrefCounter++;
 				}
 			}
-
+			job.attack_subtarget_order[attack_subtarget_counter] = 7; // Set the element after the last populated one to the delimiter value: 7
+			job.attack_order[attackPrefCounter].type = 12; // Set the element after the last populated one to the delimiter value: 12
 			configAI.gunUse = gunUse;
 			configAI.missileUse = missileUse;
 			configAI.job = job;
@@ -543,6 +557,7 @@ static uint CreateWPlatformSolar(PlayerBase* base, uint iSystem, Vector position
 	SpawnSolar(space_obj, si);
 
 	pub::AI::SetPersonalityParams pers = CreateSolar::MakePersonality();
+	InsertConfigIntoPersonality(pers, type);
 	pub::AI::SubmitState(space_obj, &pers);
 
 	return space_obj;

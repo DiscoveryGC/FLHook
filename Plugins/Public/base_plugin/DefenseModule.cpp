@@ -372,9 +372,9 @@ static void InsertConfigIntoPersonality(pub::AI::SetPersonalityParams& pers, uin
 		return;
 	}
 
+	pers.personality.Job = aiConf->second.job;
 	pers.personality.GunUse = aiConf->second.gunUse;
 	pers.personality.MissileUse = aiConf->second.missileUse;
-	pers.personality.Job = aiConf->second.job;
 }
 
 static uint CreateWPlatformNPC(uint iSystem, Vector position, Matrix rotation, uint solar_ids, uint type)

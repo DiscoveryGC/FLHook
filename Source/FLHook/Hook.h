@@ -284,7 +284,6 @@ struct PLUGIN_SORTCRIT {
 
 #define CALL_PLUGINS(callback_id,ret_type,calling_convention,arg_types,args) \
 { \
-	auto timeStart = std::chrono::high_resolution_clock::now();\
 	ret_type vPluginRet; \
 	bool bPluginReturn = false; \
 	g_bPlugin_nofunctioncall = false; \
@@ -317,7 +316,6 @@ struct PLUGIN_SORTCRIT {
 { \
 	bool bPluginReturn = false; \
 	g_bPlugin_nofunctioncall = false; \
-	auto timeStart = std::chrono::high_resolution_clock::now();\
 	TRY_HOOK { \
 		foreach(pPluginHooks[(int)callback_id],PLUGIN_HOOKDATA, itplugin) { \
 			if(itplugin->bPaused) \
@@ -346,7 +344,6 @@ struct PLUGIN_SORTCRIT {
 #define CALL_PLUGINS_NORET(callback_id,calling_convention,arg_types,args) \
 { \
 	g_bPlugin_nofunctioncall = false; \
-	auto timeStart = std::chrono::high_resolution_clock::now();\
 	TRY_HOOK { \
 		foreach(pPluginHooks[(int)callback_id],PLUGIN_HOOKDATA, itplugin) { \
 			if(itplugin->bPaused) \

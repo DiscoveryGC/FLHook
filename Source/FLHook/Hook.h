@@ -13,6 +13,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // defines
 
+//#define HOOK_TIMER_LOGGING
+
 #define HKHKSUCCESS(a) ((a) == HKE_OK)
 #define HKSUCCESS(a) ((hkLastErr = (a)) == HKE_OK)
 
@@ -171,6 +173,7 @@ struct PLUGIN_SORTCRIT {
 
 
 
+#ifdef HOOK_TIMER_LOGGING
 #define CALL_PLUGINS(callback_id,ret_type,calling_convention,arg_types,args) \
 { \
 	auto timeStart = std::chrono::high_resolution_clock::now();\
@@ -182,8 +185,6 @@ struct PLUGIN_SORTCRIT {
 			if(itplugin->bPaused) \
 				continue; \
 			if(itplugin->pFunc) { \
-				CTimer timer(itplugin->sPluginFunction,set_iTimerThreshold); \
-				timer.start(); \
 				auto timeHookStart = std::chrono::high_resolution_clock::now();\
 				TRY_HOOK { \
 					vPluginRet = ((ret_type (calling_convention*) arg_types )itplugin->pFunc) args; \
@@ -191,7 +192,6 @@ struct PLUGIN_SORTCRIT {
 				if(set_hookPerfTimerLength && set_perfTimedHookName == __FUNCTION__) \
 					{auto timeHookEnd = std::chrono::high_resolution_clock::now(); \
 					AddPerfTimer("%s %s %u", __FUNCTION__, itplugin->sName.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(timeHookEnd - timeHookStart).count());}\
-				timer.stop(); \
 			} else  \
 				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
 			if(*itplugin->ePluginReturnCode == SKIPPLUGINS_NOFUNCTIONCALL) { \
@@ -221,8 +221,6 @@ struct PLUGIN_SORTCRIT {
 			if(itplugin->bPaused) \
 				continue; \
 			if(itplugin->pFunc) { \
-				CTimer timer(itplugin->sPluginFunction,set_iTimerThreshold); \
-				timer.start(); \
 				auto timeHookStart = std::chrono::high_resolution_clock::now();\
 				TRY_HOOK { \
 					((void (calling_convention*) arg_types )itplugin->pFunc) args; \
@@ -230,7 +228,6 @@ struct PLUGIN_SORTCRIT {
 				if(set_hookPerfTimerLength && set_perfTimedHookName == __FUNCTION__) \
 					{auto timeHookEnd = std::chrono::high_resolution_clock::now(); \
 					AddPerfTimer("%s %s %u", __FUNCTION__, itplugin->sName.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(timeHookEnd - timeHookStart).count());}\
-				timer.stop(); \
 			} else  \
 				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
 			if(*itplugin->ePluginReturnCode == SKIPPLUGINS_NOFUNCTIONCALL) { \
@@ -259,8 +256,6 @@ struct PLUGIN_SORTCRIT {
 			if(itplugin->bPaused) \
 				continue; \
 			if(itplugin->pFunc) { \
-				CTimer timer(itplugin->sPluginFunction,set_iTimerThreshold); \
-				timer.start(); \
 				auto timeHookStart = std::chrono::high_resolution_clock::now();\
 				TRY_HOOK { \
 					((void (calling_convention*) arg_types )itplugin->pFunc) args; \
@@ -268,7 +263,6 @@ struct PLUGIN_SORTCRIT {
 				if(set_hookPerfTimerLength && set_perfTimedHookName == __FUNCTION__) \
 					{auto timeHookEnd = std::chrono::high_resolution_clock::now(); \
 					AddPerfTimer("%s %s %u", __FUNCTION__, itplugin->sName.c_str(), std::chrono::duration_cast<std::chrono::microseconds>(timeHookEnd - timeHookStart).count());}\
-				timer.stop(); \
 			} else  \
 				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
 			if(*itplugin->ePluginReturnCode == SKIPPLUGINS_NOFUNCTIONCALL) { \
@@ -284,6 +278,98 @@ struct PLUGIN_SORTCRIT {
 		if(set_logPerfTimers) AddPerfTimer("%s %u", __FUNCTION__, std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeStart).count()); \
 	} CATCH_HOOK ({ AddLog("ERROR: Exception %s", __FUNCTION__); } ) \
 } \
+
+#else
+// ------------------------------------------------------------------------------------------------------------
+
+#define CALL_PLUGINS(callback_id,ret_type,calling_convention,arg_types,args) \
+{ \
+	auto timeStart = std::chrono::high_resolution_clock::now();\
+	ret_type vPluginRet; \
+	bool bPluginReturn = false; \
+	g_bPlugin_nofunctioncall = false; \
+	TRY_HOOK { \
+		foreach(pPluginHooks[(int)callback_id],PLUGIN_HOOKDATA, itplugin) { \
+			if(itplugin->bPaused) \
+				continue; \
+			if(itplugin->pFunc) { \
+				TRY_HOOK { \
+					vPluginRet = ((ret_type (calling_convention*) arg_types )itplugin->pFunc) args; \
+				} CATCH_HOOK({ AddLog("ERROR: Exception in plugin '%s' in %s", itplugin->sName.c_str(), __FUNCTION__);}) \
+			} else  \
+				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
+			if(*itplugin->ePluginReturnCode == SKIPPLUGINS_NOFUNCTIONCALL) { \
+				bPluginReturn = true; \
+				break; \
+			} else if(*itplugin->ePluginReturnCode == NOFUNCTIONCALL) { \
+				bPluginReturn = true; \
+				g_bPlugin_nofunctioncall = true; \
+			} else if(*itplugin->ePluginReturnCode == SKIPPLUGINS) \
+				break; \
+		} \
+	} CATCH_HOOK({ AddLog("ERROR: Exception %s", __FUNCTION__);}) \
+	if(bPluginReturn) \
+		return vPluginRet; \
+} \
+
+// same for void types, not really seeing a way to integrate it in 1st macro :(
+#define CALL_PLUGINS_V(callback_id,calling_convention,arg_types,args) \
+{ \
+	bool bPluginReturn = false; \
+	g_bPlugin_nofunctioncall = false; \
+	auto timeStart = std::chrono::high_resolution_clock::now();\
+	TRY_HOOK { \
+		foreach(pPluginHooks[(int)callback_id],PLUGIN_HOOKDATA, itplugin) { \
+			if(itplugin->bPaused) \
+				continue; \
+			if(itplugin->pFunc) { \
+				TRY_HOOK { \
+					((void (calling_convention*) arg_types )itplugin->pFunc) args; \
+				} CATCH_HOOK ({ AddLog("ERROR: Exception in plugin '%s' in %s", itplugin->sName.c_str(), __FUNCTION__); } ) \
+			} else  \
+				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
+			if(*itplugin->ePluginReturnCode == SKIPPLUGINS_NOFUNCTIONCALL) { \
+				bPluginReturn = true; \
+				break; \
+			} else if(*itplugin->ePluginReturnCode == NOFUNCTIONCALL) { \
+				bPluginReturn = true; \
+				g_bPlugin_nofunctioncall = true; \
+			} else if(*itplugin->ePluginReturnCode == SKIPPLUGINS) \
+				break; \
+		} \
+	} CATCH_HOOK({ AddLog("ERROR: Exception %s", __FUNCTION__); } ) \
+	if(bPluginReturn) \
+		return; \
+} \
+
+// extra macro for plugin calls where we dont care about or dont allow returning
+#define CALL_PLUGINS_NORET(callback_id,calling_convention,arg_types,args) \
+{ \
+	g_bPlugin_nofunctioncall = false; \
+	auto timeStart = std::chrono::high_resolution_clock::now();\
+	TRY_HOOK { \
+		foreach(pPluginHooks[(int)callback_id],PLUGIN_HOOKDATA, itplugin) { \
+			if(itplugin->bPaused) \
+				continue; \
+			if(itplugin->pFunc) { \
+				TRY_HOOK { \
+					((void (calling_convention*) arg_types )itplugin->pFunc) args; \
+				} CATCH_HOOK({ AddLog("ERROR: Exception in plugin '%s' in %s", itplugin->sName.c_str(), __FUNCTION__); } ) \
+			} else  \
+				AddLog("ERROR: Plugin '%s' does not export %s [%s]", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
+			if(*itplugin->ePluginReturnCode == SKIPPLUGINS_NOFUNCTIONCALL) { \
+				AddLog("ERROR: Plugin '%s' wants to suppress function call in %s [%s] - denied!", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
+				break; \
+			} else if(*itplugin->ePluginReturnCode == NOFUNCTIONCALL) { \
+				AddLog("ERROR: Plugin '%s' wants to suppress function call in %s [%s] - denied!", itplugin->sName.c_str(), __FUNCTION__, __FUNCDNAME__); \
+				g_bPlugin_nofunctioncall = true; \
+			} else if(*itplugin->ePluginReturnCode == SKIPPLUGINS) \
+				break; \
+		} \
+	} CATCH_HOOK ({ AddLog("ERROR: Exception %s", __FUNCTION__); } ) \
+} \
+
+#endif
 
 typedef PLUGIN_RETURNCODE(*PLUGIN_Get_PluginReturnCode)();
 typedef PLUGIN_INFO* (*PLUGIN_Get_PluginInfo)();

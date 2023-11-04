@@ -199,6 +199,8 @@ void PlayerBase::SetupDefaults()
 		vulnerabilityWindow2 = { 20 * 60, ((20 * 60) + vulnerability_window_length) % (60 * 24) };
 	}
 	CheckVulnerabilityWindow(time(nullptr));
+
+	modules.resize((base_level * 3) + 1);
 }
 
 void PlayerBase::Load()

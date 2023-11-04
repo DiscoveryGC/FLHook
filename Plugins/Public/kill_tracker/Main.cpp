@@ -179,7 +179,7 @@ void UserCmd_SetDeathMsg(const uint client, const wstring& wscParam)
 void __stdcall AddDamageEntry(DamageList* damageList, ushort subObjId, float& newHitPoints, enum DamageEntry::SubObjFate fate)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (iDmgTo && subObjId == 1 && g_LastHitPts > newHitPoints) //ignore negative hp events such as repair ship
+	if (iDmgTo && subObjId == 1 && g_LastHitPts < 100'000'000.0f && g_LastHitPts > newHitPoints) //ignore impossible HP values (cause unknown) and negative hp events such as repair ship
 	{
 		const auto& inflictor = damageList->iInflictorPlayerID;
 		if (inflictor && inflictor != iDmgTo)

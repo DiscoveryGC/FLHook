@@ -144,9 +144,9 @@ struct XSetManeuver
 struct XSetTarget
 {
 	uint iShip;
-	uint iSlot;
+	ushort iSlot;
 	uint iSpaceID;
-	uint iSubObjID;
+	ushort iSubObjID;
 };
 
 struct SSPObjUpdateInfo
@@ -155,7 +155,6 @@ struct SSPObjUpdateInfo
 	Quaternion vDir;
 	Vector vPos;
 	double fTimestamp;
-	float fDunno;
 	float throttle;
 	char cState;
 };

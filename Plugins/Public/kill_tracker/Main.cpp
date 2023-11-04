@@ -367,7 +367,7 @@ inline float GetDamageDone(const DamageDoneStruct& damageDone)
 	return 0.0f;
 }
 
-void __stdcall SendDeathMessage(const wstring& message, uint system, uint clientVictim, uint clientKiller)
+void __stdcall SendDeathMessage(const wstring& message, uint& system, uint& clientVictim, uint& clientKiller)
 {
 	returncode = DEFAULT_RETURNCODE;
 	if (!clientVictim)
@@ -434,6 +434,7 @@ void __stdcall SendDeathMessage(const wstring& message, uint system, uint client
 		wstring inflictorName = reinterpret_cast<const wchar_t*>(Players.GetActiveCharacterName(i->second));
 		if (killerCounter == 0)
 		{
+			clientKiller = i->second; // override the killer ID to the top damage contributor for other plugins.
 			deathMessage = ReplaceStr(deathMessage, L"%killer", inflictorName);
 			deathMessage += L" (" + stows(itos(contributionPercentage)) + L"%)";
 		}
@@ -514,7 +515,7 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&UserCmd_Process, PLUGIN_UserCmd_Process, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&AddDamageEntry, PLUGIN_HkCb_AddDmgEntry_AFTER, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SendDeathMessage, PLUGIN_SendDeathMsg, 5));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DelayedDisconnect, PLUGIN_DelayedDisconnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&Disconnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));

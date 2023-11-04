@@ -18,7 +18,7 @@ Send "Death: ..." chat-message
 
 void SendDeathMsg(const wstring &wscMsg, uint iSystemID, uint iClientIDVictim, uint iClientIDKiller)
 {
-	CALL_PLUGINS_V(PLUGIN_SendDeathMsg, , (const wstring&, uint, uint, uint), (wscMsg, iSystemID, iClientIDVictim, iClientIDKiller));
+	CALL_PLUGINS_V(PLUGIN_SendDeathMsg, , (const wstring&, uint&, uint&, uint&), (wscMsg, iSystemID, iClientIDVictim, iClientIDKiller));
 
 	// encode xml string(default and small)
 	// non-sys

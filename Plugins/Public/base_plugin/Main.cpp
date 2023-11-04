@@ -3240,11 +3240,15 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 		DESPAWN_SOLAR_STRUCT* info = reinterpret_cast<DESPAWN_SOLAR_STRUCT*>(data);
 		CreateSolar::DespawnSolarCallout(info);
 	}
-	else if (msg == CUSTOM_SPAWN_SOLAR)
+	else if (msg == CUSTOM_POB_DOCK_ALERT)
 	{
 		returncode = SKIPPLUGINS;
-		SPAWN_SOLAR_STRUCT* info = reinterpret_cast<SPAWN_SOLAR_STRUCT*>(data);
-		CreateSolar::CreateSolarCallout(info);
+		CUSTOM_POB_DOCK_ALERT_STRUCT* info = reinterpret_cast<CUSTOM_POB_DOCK_ALERT_STRUCT*>(data);
+		PlayerBase* pb = GetPlayerBaseForClient(info->client);
+		if (pb)
+		{
+			PrintLocalMsgAroundObject(CreateID(pb->nickname.c_str()), *info->msg, info->range);
+		}
 	}
 	return;
 }

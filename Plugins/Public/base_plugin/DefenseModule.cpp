@@ -19,7 +19,19 @@ void DefenseModule::LoadSettings(const string& path)
 			pub::AI::Personality::GunUseStruct gunUse;
 			pub::AI::Personality::MissileUseStruct missileUse;
 			pub::AI::Personality::JobStruct job;
+			uint attackPrefCounter = 0;
 			uint attack_subtarget_counter = 0;
+
+			for (int i = 0; i < 13; i++)
+			{
+				job.attack_order[i].distance = 0.0f;
+				job.attack_order[i].type = 0;
+				job.attack_order[i].flag = 0;
+			}
+			for (int i = 0; i < 8; i++)
+			{
+				job.attack_subtarget_order[i] = 0;
+			}
 
 			uint platformType;
 
@@ -53,7 +65,7 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("gun_fire_accuracy_cone_angle"))
 				{
-					gunUse.gun_fire_accuracy_cone_angle = ini.get_value_float(0);
+					gunUse.gun_fire_accuracy_cone_angle = ini.get_value_float(0) * 0.017453292f; //game also does this, convert to radians
 				}
 				else if (ini.is_value("gun_fire_accuracy_power"))
 				{
@@ -111,7 +123,7 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("missile_launch_cone_angle"))
 				{
-					missileUse.missile_launch_cone_angle = ini.get_value_float(0);
+					missileUse.missile_launch_cone_angle = ini.get_value_float(0) * 0.017453292f; //game also does this, convert to radians
 				}
 				else if (ini.is_value("missile_launch_interval_time"))
 				{
@@ -133,11 +145,59 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("scene_toughness_threshold"))
 				{
-					job.scene_toughness_threshold = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					if (val == "easiest")
+					{
+						job.scene_toughness_threshold = 0;
+					}
+					else if (val == "easy")
+					{
+						job.scene_toughness_threshold = 1;
+					}
+					else if (val == "equal")
+					{
+						job.scene_toughness_threshold = 2;
+					}
+					else if (val == "hard")
+					{
+						job.scene_toughness_threshold = 3;
+					}
+					else if (val == "hardest")
+					{
+						job.scene_toughness_threshold = 4;
+					}
+					else
+					{
+						job.scene_toughness_threshold = 2;
+					}
 				}
 				else if (ini.is_value("flee_scene_threat_style"))
 				{
-					job.flee_scene_threat_style = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					if (val == "easiest")
+					{
+						job.flee_scene_threat_style = 0;
+					}
+					else if (val == "easy")
+					{
+						job.flee_scene_threat_style = 1;
+					}
+					else if (val == "equal")
+					{
+						job.flee_scene_threat_style = 2;
+					}
+					else if (val == "hard")
+					{
+						job.flee_scene_threat_style = 3;
+					}
+					else if (val == "hardest")
+					{
+						job.flee_scene_threat_style = 4;
+					}
+					else
+					{
+						job.flee_scene_threat_style = 2;
+					}
 				}
 				else if (ini.is_value("flee_when_hull_damaged_percent"))
 				{
@@ -149,11 +209,56 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("loot_flee_threshold"))
 				{
-					job.loot_flee_threshold = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					if (val == "easiest")
+					{
+						job.loot_flee_threshold = 0;
+					}
+					else if (val == "easy")
+					{
+						job.loot_flee_threshold = 1;
+					}
+					else if (val == "equal")
+					{
+						job.loot_flee_threshold = 2;
+					}
+					else if (val == "hard")
+					{
+						job.loot_flee_threshold = 3;
+					}
+					else if (val == "hardest")
+					{
+						job.loot_flee_threshold = 4;
+					}
+					else
+					{
+						job.loot_flee_threshold = 2;
+					}
 				}
 				else if (ini.is_value("field_targeting"))
 				{
-					job.field_targeting = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string());
+					if (val == "never")
+					{
+						job.field_targeting = 0;
+					}
+					else if (val == "low_density")
+					{
+						job.field_targeting = 1;
+					}
+					else if (val == "high_density")
+					{
+						job.field_targeting = 2;
+					}
+					else if (val == "always")
+					{
+						job.field_targeting = 3;
+					}
+					else
+					{
+						job.field_targeting = 1;
+					}
+
 				}
 				else if (ini.is_value("loot_preference"))
 				{
@@ -165,7 +270,38 @@ void DefenseModule::LoadSettings(const string& path)
 				}
 				else if (ini.is_value("attack_subtarget_order"))
 				{
-					job.attack_subtarget_order[attack_subtarget_counter] = ini.get_value_int(0);
+					string val = ToLower(ini.get_value_string(0));
+					int flag;
+					if (val == "anything")
+					{
+						flag = 6;
+					}
+					else if (val == "guns")
+					{
+						flag = 0;
+					}
+					else if (val == "turrets")
+					{
+						flag = 1;
+					}
+					else if (val == "launchers")
+					{
+						flag = 2;
+					}
+					else if (val == "towers")
+					{
+						flag = 3;
+					}
+					else if (val == "engines")
+					{
+						flag = 4;
+					}
+					else if (val == "hull")
+					{
+						flag = 5;
+					}
+
+					job.attack_subtarget_order[attack_subtarget_counter] = flag;
 					attack_subtarget_counter++;
 				}
 				else if (ini.is_value("attack_preference"))
@@ -192,37 +328,33 @@ void DefenseModule::LoadSettings(const string& path)
 						shipIndex = 11;
 
 					int flag = 0;
-					int index = 2;
-					string flagText = ToLower(ini.get_value_string(index));
-					while (!flagText.empty())
+					string flagText = ToLower(ini.get_value_string(2));
+					if (flagText.find("guns") != string::npos)
 					{
-						if (flagText.find("guns") != string::npos)
-						{
-							flag += 1;
-						}
-						if (flagText.find("guided") != string::npos)
-						{
-							flag += 2;
-						}
-						if (flagText.find("unguided") != string::npos)
-						{
-							flag += 4;
-						}
-						if (flagText.find("torpedo") != string::npos)
-						{
-							flag += 8;
-						}
-						index++;
-						flagText = ToLower(ini.get_value_string(index));
+						flag += 1;
+					}
+					if (flagText.find("guided") != string::npos)
+					{
+						flag += 2;
+					}
+					if (flagText.find("unguided") != string::npos)
+					{
+						flag += 4;
+					}
+					if (flagText.find("torpedo") != string::npos)
+					{
+						flag += 8;
 					}
 
-					pub::AI::Personality::JobStruct::Tattack_order& atkOrder = job.attack_order[shipIndex];
+					pub::AI::Personality::JobStruct::Tattack_order& atkOrder = job.attack_order[attackPrefCounter];
 					atkOrder.distance = ini.get_value_float(1);
 					atkOrder.flag = flag;
 					atkOrder.type = shipIndex;
+					attackPrefCounter++;
 				}
 			}
-
+			job.attack_subtarget_order[attack_subtarget_counter] = 7; // Set the element after the last populated one to the delimiter value: 7
+			job.attack_order[attackPrefCounter].type = 12; // Set the element after the last populated one to the delimiter value: 12
 			configAI.gunUse = gunUse;
 			configAI.missileUse = missileUse;
 			configAI.job = job;
@@ -425,6 +557,7 @@ static uint CreateWPlatformSolar(PlayerBase* base, uint iSystem, Vector position
 	SpawnSolar(space_obj, si);
 
 	pub::AI::SetPersonalityParams pers = CreateSolar::MakePersonality();
+	InsertConfigIntoPersonality(pers, type);
 	pub::AI::SubmitState(space_obj, &pers);
 
 	return space_obj;

@@ -198,7 +198,7 @@ void HkTimer()
 
 /// Hook for ship distruction. It's easier to hook this than the PlayerDeath one.
 /// Drop a percentage of cargo + some loot representing ship bits.
-void SendDeathMsg(const wstring &wscMsg, uint iSystem, uint iClientIDVictim, uint iClientIDKiller)
+void SendDeathMsg(const wstring &wscMsg, uint& iSystem, uint& iClientIDVictim, uint& iClientIDKiller)
 {
 	returncode = NOFUNCTIONCALL;
 
@@ -566,11 +566,23 @@ namespace HkIServerImpl
 		uint landingClientId = HkGetClientIDByShip(pLand.iShip);
 		if (landingClientId && landingClientId == iClientID)
 		{
-			// Print out a message when a player ship docks.
+			// If docking on a base, print out a message when a player ship docks.
 			wstring wscMsg = L"%time Traffic control alert: %player has docked";
 			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
 			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(landingClientId));
-			PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
+			const auto base = Universe::get_base(pLand.iTargetBase);
+			if (((string)base->cNickname).find("_proxy_base") != string::npos)
+			{
+				CUSTOM_POB_DOCK_ALERT_STRUCT info;
+				info.client = iClientID;
+				info.msg = &wscMsg;
+				info.range = set_iDockBroadcastRange;
+				Plugin_Communication(CUSTOM_POB_DOCK_ALERT, &info);
+			}
+			else
+			{
+				PrintLocalMsgAroundObject(base->lSpaceObjID, wscMsg, set_iDockBroadcastRange);
+			}
 		}
 		return true;
 	}
@@ -613,6 +625,7 @@ namespace HkIServerImpl
 
 	void DelayedDisconnect(uint client, uint ship)
 	{
+		returncode = DEFAULT_RETURNCODE;
 		Message::DelayedDisconnect(client);
 	}
 

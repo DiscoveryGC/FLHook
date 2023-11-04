@@ -193,10 +193,10 @@ void PlayerBase::SetupDefaults()
 		}
 	}
 
-	if (vulnerabilityWindow1.start == 0 && vulnerabilityWindow2.start == 0)
+	if (vulnerabilityWindow1.start == -1 || vulnerabilityWindow2.start == -1)
 	{
-		vulnerabilityWindow1 = { 10 * 60, (10 * 60) + vulnerability_window_length };
-		vulnerabilityWindow2 = { 20 * 60, (20 * 60) + vulnerability_window_length };
+		vulnerabilityWindow1 = { 10 * 60, ((10 * 60) + vulnerability_window_length) % (60 * 24) };
+		vulnerabilityWindow2 = { 20 * 60, ((20 * 60) + vulnerability_window_length) % (60 * 24) };
 	}
 	CheckVulnerabilityWindow(time(nullptr));
 }
@@ -321,11 +321,8 @@ void PlayerBase::Load()
 					}
 					else if (ini.is_value("vulnerability_windows"))
 					{
-						vulnerabilityWindow1 = { ini.get_value_int(0) * 60, (ini.get_value_int(0) * 60) + vulnerability_window_length };
-						if (!single_vulnerability_window)
-						{
-							vulnerabilityWindow2 = { ini.get_value_int(1) * 60, (ini.get_value_int(1) * 60) + vulnerability_window_length };
-						}
+						vulnerabilityWindow1 = { ini.get_value_int(0) * 60, ((ini.get_value_int(0) * 60) + vulnerability_window_length) % (60 * 24) };
+						vulnerabilityWindow2 = { ini.get_value_int(1) * 60, ((ini.get_value_int(1) * 60) + vulnerability_window_length) % (60 * 24) };
 					}
 					else if (ini.is_value("infoname"))
 					{

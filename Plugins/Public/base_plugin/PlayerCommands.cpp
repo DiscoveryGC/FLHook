@@ -18,7 +18,7 @@
 #define POPUPDIALOG_BUTTONS_RIGHT_LATER 4
 #define POPUPDIALOG_BUTTONS_CENTER_OK 8
 
-constexpr uint ITEMS_PER_PAGE = 40;
+constexpr uint ITEMS_PER_PAGE = 35;
 
 // Separate base help out into pages. FL seems to have a limit of something like 4k per infocard.
 const uint numPages = 4;
@@ -47,12 +47,14 @@ L"<TEXT>Set or clear the faction that this base is affiliated with. When setting
 L"<TRA bold=\"true\"/><TEXT>/bank withdraw [credits], /bank deposit [credits], /bank status</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Withdraw, deposit or check the status of the credits held by the base's bank.</TEXT><PARA/><PARA/>"
 
-L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
-L"<TEXT>Set the [price] of [item]. If the current stock is less than [min stock]"
-L" then the item cannot be bought by docked ships. If the current stock is more or equal"
-L" to [max stock] then the item cannot be sold to the base by docked ships.</TEXT><PARA/><PARA/>"
-L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0."
-L"To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
+L"<TRA bold=\"true\"/><TEXT>/shop price [item] [price]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>Set the [price] of [item].</TEXT><PARA/><PARA/>"
+
+L"<TRA bold=\"true\"/><TEXT>/shop stock [item] [min stock] [max stock]</TEXT><TRA bold=\"false\"/><PARA/>"
+L"<TEXT>If the current stock is less than [min stock] then the item cannot be bought by docked ships.</TEXT><PARA/>"
+L"<TEXT>If the current stock is more or equal to [max stock] then the item cannot be sold to the base by docked ships</TEXT><PARA/>"
+L"<TEXT>To prohibit selling to the base of an item by docked ships under all conditions, set [max stock] to 0.</TEXT><PARA/>"
+L"<TEXT>To prohibit buying from the base of an item by docked ships under all conditions, set [min stock] to 0.</TEXT><PARA/><PARA/>"
 
 L"<TRA bold=\"true\"/><TEXT>/shop remove [item]</TEXT><TRA bold=\"false\"/><PARA/>"
 L"<TEXT>Remove the item from the stock list. It cannot be sold to the base by docked ships unless they are base administrators.</TEXT><PARA/><PARA/>"
@@ -1069,6 +1071,8 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"/build <moduleList> resume <moduleName/Nr> - resumes selected module construction");
 			PrintUserCmdText(client, L"/build <moduleList> pause <moduleName/Nr> - pauses selected module construction");
 			PrintUserCmdText(client, L"/build <moduleList> info <moduleName/Nr> - provides construction material info for selected module");
+			PrintUserCmdText(client, L"For example, to build a Core Upgrade module, which is on the 'basic' build list");
+			PrintUserCmdText(client, L"type: '/build basic start 1' or '/build basic start Core Upgrade'");
 		}
 		if (cmd == L"list")
 		{
@@ -1344,16 +1348,16 @@ namespace PlayerCommands
 
 	void PrintCraftHelpMenu(uint client)
 	{
-		PrintUserCmdText(client, L"ERR Invalid parameters");
-		PrintUserCmdText(client, L"/craft [list|stopall|<CraftingList>]");
-		PrintUserCmdText(client, L"|  list - show available lists of craftble items");
-		PrintUserCmdText(client, L"|  stopall - stops all production on the base");
-		PrintUserCmdText(client, L"|  <craftList> start <name/itemNr> - adds selected item into the crafting queue");
-		PrintUserCmdText(client, L"|  <craftList> stop <name/itemNr> - stops crafting of selected item");
-		PrintUserCmdText(client, L"|  <craftList> pause <name/itemNr> - pauses crafting of selected item");
-		PrintUserCmdText(client, L"|  <craftList> resume <name/itemNr> - resumes crafting of selected item");
-		PrintUserCmdText(client, L"|  <craftList> list - list item recipes available for this crafting list");
-		PrintUserCmdText(client, L"|  <craftList> list <name/itemNr> - list materials necessary for selected item");
+		PrintUserCmdText(client, L"/craft list - show all available craft lists");
+		PrintUserCmdText(client, L"/craft stopall - stops all production on the base");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> list - list item recipes available for this crafting list");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> start <name/itemNr> - adds selected item into the crafting queue");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> stop <name/itemNr> - stops crafting of selected item");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> pause <name/itemNr> - pauses crafting of selected item");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> resume <name/itemNr> - resumes crafting of selected item");
+		PrintUserCmdText(client, L"/craft <craftList/Nr> info <name/itemNr> - list materials necessary for selected item");
+		PrintUserCmdText(client, L"For example, to craft a Docking Module, which is on a 'dockmodule' craft list");
+		PrintUserCmdText(client, L"type: '/craft dockmodule start 1' or '/craft dockmodule start Docking Module'");
 	}
 
 	void BaseFacMod(uint client, const wstring& args)
@@ -1372,8 +1376,13 @@ namespace PlayerCommands
 		}
 
 		wstring& craftType = GetParam(args, ' ', 1);
-		int craftTypeNumber = ToInt(craftType);
-		if (craftTypeNumber && base->availableCraftList.size() <= craftTypeNumber)
+		if (craftType.empty() || craftType == L"help")
+		{
+			PrintCraftHelpMenu(client);
+			return;
+		}
+		uint craftTypeNumber = ToUInt(craftType);
+		if (craftTypeNumber && base->availableCraftList.size() >= craftTypeNumber)
 		{
 			craftType = *next(base->availableCraftList.begin(), craftTypeNumber - 1);
 		}
@@ -1446,47 +1455,15 @@ namespace PlayerCommands
 					const GoodInfo* gi = GoodList::find_by_id(catalyst.first);
 					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), catalyst.second);
 				}
-				return;
 			}
-			else if (recipe)
+			if (!recipe->catalyst_workforce.empty())
 			{
-				PrintUserCmdText(client, L"Construction materials for %ls:", recipe->infotext.c_str());
-				for (const auto& item : recipe->consumed_items)
+				PrintUserCmdText(client, L"Workers:");
+				for (const auto& workforce : recipe->catalyst_workforce)
 				{
-					const GoodInfo* gi = GoodList::find_by_id(item.first);
-					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), item.second);
+					const GoodInfo* gi = GoodList::find_by_id(workforce.first);
+					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), workforce.second);
 				}
-				PrintUserCmdText(client, L"Produced goods:");
-				for (const auto& product : recipe->produced_items)
-				{
-					const GoodInfo* gi = GoodList::find_by_id(product.first);
-					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), product.second);
-				}
-				if (!recipe->catalyst_items.empty())
-				{
-					PrintUserCmdText(client, L"Production catalysts:");
-					for (const auto& catalyst : recipe->catalyst_items)
-					{
-						const GoodInfo* gi = GoodList::find_by_id(catalyst.first);
-						PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), catalyst.second);
-					}
-				}
-				if (!recipe->catalyst_workforce.empty())
-				{
-					PrintUserCmdText(client, L"Workers:");
-					for (const auto& workforce : recipe->catalyst_workforce)
-					{
-						const GoodInfo* gi = GoodList::find_by_id(workforce.first);
-						PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), workforce.second);
-					}
-				}
-				PrintUserCmdText(client, L"IFF bonuses:");
-				for (const auto& rep : recipe->affiliationBonus)
-				{
-					PrintUserCmdText(client, L"|   %ls - +%u%% efficiency bonus",
-						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), static_cast<uint>(((1.0f / rep.second) - 1.0f) * 100));
-				}
-				return;
 			}
 			if (!recipe->affiliationBonus.empty())
 			{
@@ -1882,7 +1859,7 @@ namespace PlayerCommands
 			}
 			PrintUserCmdText(client, L"ERR Commodity does not exist");
 		}
-		if (cmd == L"stock")
+		else if (cmd == L"stock")
 		{
 			int item = ToInt(GetParam(args, ' ', 2));
 			uint min_stock = ToUInt(GetParam(args, ' ', 3));
@@ -2468,9 +2445,17 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR Can only change vulnerability windows once every %u days, %u days left", vulnerability_window_change_cooldown / (3600 * 24), 1 + ((base->lastVulnerabilityWindowChange + vulnerability_window_change_cooldown - currTime) / (3600 * 24)));
 			return;
 		}
+		wstring param1Str = GetParam(cmd, ' ', 2);
+		wstring param2Str = GetParam(cmd, ' ', 3);
 
-		int param1 = ToInt(GetParam(cmd, ' ', 2));
-		int param2 = ToInt(GetParam(cmd, ' ', 3));
+		if (param1Str.empty() || (!single_vulnerability_window && param2Str.empty()))
+		{
+			PrintUserCmdText(client, L"ERR No parameter(s) set");
+			return;
+		}
+
+		int param1 = ToInt(param1Str);
+		int param2 = ToInt(param2Str);
 		if (param1 < 0 || param1 > 23
 			|| (!single_vulnerability_window && (param2 < 0 || param2 > 23)))
 		{
@@ -2499,10 +2484,10 @@ namespace PlayerCommands
 			return;
 		}
 
-		base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd };
+		base->vulnerabilityWindow1 = { vulnerabilityWindowOneStart, vulnerabilityWindowOneEnd % (60 * 24)};
 		if (!single_vulnerability_window)
 		{
-			base->vulnerabilityWindow2 = { vulnerabilityWindowTwoStart, vulnerabilityWindowTwoEnd };
+			base->vulnerabilityWindow2 = { vulnerabilityWindowTwoStart, vulnerabilityWindowTwoEnd % (60 * 24) };
 		}
 		base->lastVulnerabilityWindowChange = currTime;
 

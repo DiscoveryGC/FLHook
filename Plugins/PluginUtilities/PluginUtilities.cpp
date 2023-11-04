@@ -1122,17 +1122,14 @@ void ini_write_wstring(FILE *file, const string &parmname, wstring &in)
 }
 
 // Print message to all ships within the specific number of meters of the player.
-void PrintLocalUserCmdText(uint iClientID, const wstring &wscMsg, float fDistance)
+void PrintLocalMsgAroundObject(uint spaceObjId, const wstring &wscMsg, float fDistance)
 {
-	uint iShip;
-	pub::Player::GetShip(iClientID, iShip);
-
 	Vector pos;
 	Matrix rot;
-	pub::SpaceObj::GetLocation(iShip, pos, rot);
+	pub::SpaceObj::GetLocation(spaceObjId, pos, rot);
 
 	uint iSystem;
-	pub::Player::GetSystem(iClientID, iSystem);
+	pub::SpaceObj::GetSystem(spaceObjId, iSystem);
 
 	// For all players in system...
 	struct PlayerData *pPD = 0;
@@ -1158,6 +1155,14 @@ void PrintLocalUserCmdText(uint iClientID, const wstring &wscMsg, float fDistanc
 
 		PrintUserCmdText(iClientID2, L"%s", wscMsg.c_str());
 	}
+}
+
+void PrintLocalUserCmdText(uint iClientID, const wstring& wscMsg, float fDistance)
+{
+	uint iShip;
+	pub::Player::GetShip(iClientID, iShip);
+
+	PrintLocalMsgAroundObject(iShip, wscMsg, fDistance);
 }
 
 // Send a player to group message

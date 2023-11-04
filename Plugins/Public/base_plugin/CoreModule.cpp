@@ -117,7 +117,7 @@ void CoreModule::Spawn()
 		{
 			if (base->isFreshlyBuilt)
 			{
-				base->base_health = base->max_base_health * 0.05f;
+				base->base_health = base->max_base_health * 0.5f;
 			}
 			else
 			{

@@ -170,7 +170,6 @@ bool FactoryModule::Timer(uint time)
 			sufficientCatalysts = false;
 			return false;
 		}
-		base->reservedCatalystMap[good] += quantityNeeded;
 	}
 	for (const auto& workers : active_recipe.catalyst_workforce)
 	{
@@ -183,10 +182,10 @@ bool FactoryModule::Timer(uint time)
 			sufficientCatalysts = false;
 			return false;
 		}
-		base->reservedCatalystMap[good] += quantityNeeded;
 	}
 
 	sufficientCatalysts = true;
+	bool consumedAnything = false;
 	
 	if (active_recipe.credit_cost)
 	{
@@ -195,6 +194,7 @@ bool FactoryModule::Timer(uint time)
 		{
 			base->money -= moneyToRemove;
 			active_recipe.credit_cost -= moneyToRemove;
+			consumedAnything = true;
 		}
 		if (active_recipe.credit_cost)
 		{
@@ -215,6 +215,7 @@ bool FactoryModule::Timer(uint time)
 		}
 		i->second -= quantity;
 		base->RemoveMarketGood(good, quantity);
+		consumedAnything = true;
 		if (!i->second)
 		{
 			active_recipe.consumed_items.erase(i);
@@ -228,6 +229,18 @@ bool FactoryModule::Timer(uint time)
 			cooked = false;
 		}
 		break;
+	}
+
+	if (consumedAnything)
+	{
+		for (const auto& catalyst : active_recipe.catalyst_items)
+		{
+			base->reservedCatalystMap[catalyst.first] += catalyst.second;
+		}
+		for (const auto& catalyst : active_recipe.catalyst_workforce)
+		{
+			base->reservedCatalystMap[catalyst.first] += catalyst.second;
+		}
 	}
 
 	// Do nothing if cooking is not finished

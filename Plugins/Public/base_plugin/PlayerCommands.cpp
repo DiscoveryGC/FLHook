@@ -1063,54 +1063,61 @@ namespace PlayerCommands
 		}
 
 		wstring& cmd = GetParam(args, ' ', 1);
+		wstring& moduleListArg = GetParam(args, ' ', 2);
+		wstring& moduleNameNr = GetParamToEnd(args, ' ', 3);
 		if (cmd.empty() || cmd == L"help")
 		{
 			PrintUserCmdText(client, L"/build list - lists available module lists");
-			PrintUserCmdText(client, L"/build <moduleList> list - lists modules available on the selected module list");
-			PrintUserCmdText(client, L"/build <moduleList> start <moduleName/Nr> - starts constructon of selected module");
-			PrintUserCmdText(client, L"/build <moduleList> resume <moduleName/Nr> - resumes selected module construction");
-			PrintUserCmdText(client, L"/build <moduleList> pause <moduleName/Nr> - pauses selected module construction");
-			PrintUserCmdText(client, L"/build <moduleList> info <moduleName/Nr> - provides construction material info for selected module");
+			PrintUserCmdText(client, L"/build list <moduleList> - lists modules available on the selected module list");
+			PrintUserCmdText(client, L"/build start <moduleList> <moduleName/Nr> - starts constructon of selected module");
+			PrintUserCmdText(client, L"/build resume <moduleList> <moduleName/Nr> - resumes selected module construction");
+			PrintUserCmdText(client, L"/build pause <moduleList> <moduleName/Nr> - pauses selected module construction");
+			PrintUserCmdText(client, L"/build info <moduleList> <moduleName/Nr> - provides construction material info for selected module");
 			PrintUserCmdText(client, L"For example, to build a Core Upgrade module, which is on the 'basic' build list");
-			PrintUserCmdText(client, L"type: '/build basic start 1' or '/build basic start Core Upgrade'");
+			PrintUserCmdText(client, L"type: '/build start basic 1' or '/build start basic Core Upgrade'");
 		}
+
+		auto moduleList = buildingCraftLists.find(moduleListArg);
+
 		if (cmd == L"list")
 		{
-			PrintUserCmdText(client, L"Available building lists:");
-			for (const auto& buildType : buildingCraftLists)
+			if (moduleList == buildingCraftLists.end())
 			{
-				PrintUserCmdText(client, L"|   %ls", buildType.c_str());
+				if (!moduleListArg.empty())
+				{
+					PrintUserCmdText(client, L"ERR invalid module list selected, try one of the ones below.");
+				}
+				PrintUserCmdText(client, L"Available building lists:");
+				for (const auto& buildType : buildingCraftLists)
+				{
+					PrintUserCmdText(client, L"|   %ls", buildType.c_str());
+				}
 			}
-		}
-		else if (buildingCraftLists.find(cmd) != buildingCraftLists.end())
-		{
-			wstring& cmd2 = GetParam(args, ' ', 2);
-			wstring& recipeName = GetParamToEnd(args, ' ', 3);
-
-			if (cmd2.empty())
-			{
-				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
-				return;
-			}
-
-			if (cmd2 == L"list")
+			else
 			{
 				PrintUserCmdText(client, L"Modules available in %ls category:", cmd.c_str());
-				for (const auto& infoString : modules_recipe_map[cmd])
+				for (const auto& infoString : modules_recipe_map[*moduleList])
 				{
 					PrintUserCmdText(client, infoString);
 				}
-				return;
 			}
+			return;
+		}
+		else if (moduleList == buildingCraftLists.end())
+		{
+			PrintUserCmdText(client, L"ERR Invalid module list name, to get available module lists type '/build list', or for general help, '/build help'");
+			return;
+		}
 
-			const RECIPE* buildRecipe = BuildModule::GetModuleRecipe(recipeName, cmd);
-			if (!buildRecipe)
-			{
-				PrintUserCmdText(client, L"ERR Invalid module name/number, for more information use /build help");
-				return;
-			}
+		const RECIPE* buildRecipe = BuildModule::GetModuleRecipe(moduleNameNr, moduleListArg);
+		if (!buildRecipe)
+		{
+			PrintUserCmdText(client, L"ERR Invalid module name or number, to get available modules in this list type /build list %ls", moduleListArg.c_str());
+			return;
+		}
 
-
+		if (cmd == L"start")
+		{
 			if (buildRecipe->shortcut_number == Module::TYPE_CORE)
 			{
 				if (!base->affiliation)
@@ -1126,116 +1133,108 @@ namespace PlayerCommands
 
 				buildRecipe = &recipeMap[core_upgrade_recipes[base->base_level]];
 			}
-
-			if (cmd2 == L"info")
+			for (const auto& module : base->modules)
 			{
-				PrintUserCmdText(client, L"Construction materials for %ls", buildRecipe->infotext.c_str());
-				for (const auto& material : buildRecipe->consumed_items)
+				BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
+				if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname && factoryNicknameToCraftTypeMap.count(buildmod->active_recipe.nickname))
 				{
-					const GoodInfo* gi = GoodList::find_by_id(material.first);
-					PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), material.second);
-				}
-				if (buildRecipe->credit_cost)
-				{
-					PrintUserCmdText(client, L"|   $%u credits", buildRecipe->credit_cost);
-				}
-			}
-			else if (cmd2 == L"start")
-			{
-				for (const auto& module : base->modules)
-				{
-					BuildModule* buildmod = dynamic_cast<BuildModule*>(module);
-					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname && factoryNicknameToCraftTypeMap.count(buildmod->active_recipe.nickname))
-					{
-						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
-						return;
-					}
-
-					FactoryModule* facmod = dynamic_cast<FactoryModule*>(module);
-					if (facmod && facmod->factoryNickname == buildRecipe->nickname)
-					{
-						PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
-						return;
-					}
-				}
-
-				if (buildRecipe->shortcut_number == Module::TYPE_CORE)
-				{
-					if(base->base_level >= 4)
-					{
-						PrintUserCmdText(client, L"ERR Upgrade not available");
-						return;
-					}
-					if (base->modules.size() > (base->base_level * 3 + 1))
-					{
-						PrintUserCmdText(client, L"ERR Core upgrade already ongoing!");
-						return;
-					}
-					PrintUserCmdText(client, L"Core upgrade started");
-					base->modules.emplace_back(new BuildModule(base, buildRecipe));
-					base->Save();
+					PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
 					return;
 				}
 
-				for (auto& modSlot : base->modules)
+				FactoryModule* facmod = dynamic_cast<FactoryModule*>(module);
+				if (facmod && facmod->factoryNickname == buildRecipe->nickname)
 				{
-					if (modSlot == nullptr)
+					PrintUserCmdText(client, L"ERR Only one factory of a given type per station allowed");
+					return;
+				}
+			}
+
+			if (buildRecipe->shortcut_number == Module::TYPE_CORE)
+			{
+				if (base->base_level >= 4)
+				{
+					PrintUserCmdText(client, L"ERR Upgrade not available");
+					return;
+				}
+				if (base->modules.size() > (base->base_level * 3 + 1))
+				{
+					PrintUserCmdText(client, L"ERR Core upgrade already ongoing!");
+					return;
+				}
+				PrintUserCmdText(client, L"Core upgrade started");
+				base->modules.emplace_back(new BuildModule(base, buildRecipe));
+				base->Save();
+				return;
+			}
+
+			for (auto& modSlot : base->modules)
+			{
+				if (modSlot == nullptr)
+				{
+					modSlot = new BuildModule(base, buildRecipe);
+					base->Save();
+					PrintUserCmdText(client, L"Construction started");
+					return;
+				}
+			}
+			PrintUserCmdText(client, L"ERR No free module slots!");
+		}
+		else if (cmd == L"pause")
+		{
+			for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
+			{
+				BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
+				if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+				{
+					if (!buildmod->Paused)
 					{
-						modSlot = new BuildModule(base, buildRecipe);
+						buildmod->Paused = true;
+						PrintUserCmdText(client, L"Module construction paused");
 						base->Save();
-						PrintUserCmdText(client, L"Construction started");
-						return;
 					}
-				}
-				PrintUserCmdText(client, L"ERR No free module slots!");
-			}
-			else if (cmd2 == L"resume")
-			{
-				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
-				{
-					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
-					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					else
 					{
-						if (buildmod->Paused)
-						{
-							buildmod->Paused = false;
-							PrintUserCmdText(client, L"Module construction resumed");
-							base->Save();
-						}
-						else
-						{
-							PrintUserCmdText(client, L"ERR Module construction already ongoing");
-						}
-						return;
+						PrintUserCmdText(client, L"ERR Module construction already paused");
 					}
+					return;
 				}
-				PrintUserCmdText(client, L"ERR Selected module is not being built");
 			}
-			else if (cmd2 == L"pause")
+			PrintUserCmdText(client, L"ERR Selected module is not being built");
+		}
+		else if (cmd == L"resume")
+		{
+			for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
 			{
-				for (auto& iter = base->modules.begin(); iter != base->modules.end(); iter++)
+				BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
+				if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
 				{
-					BuildModule* buildmod = dynamic_cast<BuildModule*>(*iter);
-					if (buildmod && buildmod->active_recipe.nickname == buildRecipe->nickname)
+					if (buildmod->Paused)
 					{
-						if (!buildmod->Paused)
-						{
-							buildmod->Paused = true;
-							PrintUserCmdText(client, L"Module construction paused");
-							base->Save();
-						}
-						else
-						{
-							PrintUserCmdText(client, L"ERR Module construction already paused");
-						}
-						return;
+						buildmod->Paused = false;
+						PrintUserCmdText(client, L"Module construction resumed");
+						base->Save();
 					}
+					else
+					{
+						PrintUserCmdText(client, L"ERR Module construction already ongoing");
+					}
+					return;
 				}
-				PrintUserCmdText(client, L"ERR Selected module is not being built");
 			}
-			else
+			PrintUserCmdText(client, L"ERR Selected module is not being built");
+		}
+		else if (cmd == L"info")
+		{
+			PrintUserCmdText(client, L"Construction materials for %ls", buildRecipe->infotext.c_str());
+			for (const auto& material : buildRecipe->consumed_items)
 			{
-				PrintUserCmdText(client, L"ERR Invalid command, for more information use /build help");
+				const GoodInfo* gi = GoodList::find_by_id(material.first);
+				PrintUserCmdText(client, L"|   %ls x%u", HkGetWStringFromIDS(gi->iIDSName).c_str(), material.second);
+			}
+			if (buildRecipe->credit_cost)
+			{
+				PrintUserCmdText(client, L"|   $%u credits", buildRecipe->credit_cost);
 			}
 		}
 		else
@@ -1334,7 +1333,7 @@ namespace PlayerCommands
 			{
 				delete base->modules[index];
 				base->modules[index] = nullptr;
-				base->modules.resize(base->modules.size() - 1);
+				base->modules.resize(base->base_level * 3 + 1);
 			}
 			else
 			{
@@ -1353,16 +1352,16 @@ namespace PlayerCommands
 
 	void PrintCraftHelpMenu(uint client)
 	{
-		PrintUserCmdText(client, L"/craft list - show all available craft lists");
 		PrintUserCmdText(client, L"/craft stopall - stops all production on the base");
-		PrintUserCmdText(client, L"/craft <craftList/Nr> list - list item recipes available for this crafting list");
-		PrintUserCmdText(client, L"/craft <craftList/Nr> start <name/itemNr> - adds selected item into the crafting queue");
-		PrintUserCmdText(client, L"/craft <craftList/Nr> stop <name/itemNr> - stops crafting of selected item");
-		PrintUserCmdText(client, L"/craft <craftList/Nr> pause <name/itemNr> - pauses crafting of selected item");
-		PrintUserCmdText(client, L"/craft <craftList/Nr> resume <name/itemNr> - resumes crafting of selected item");
-		PrintUserCmdText(client, L"/craft <craftList/Nr> info <name/itemNr> - list materials necessary for selected item");
-		PrintUserCmdText(client, L"For example, to craft a Docking Module, which is on a 'dockmodule' craft list");
-		PrintUserCmdText(client, L"type: '/craft dockmodule start 1' or '/craft dockmodule start Docking Module'");
+		PrintUserCmdText(client, L"/craft list - show all available craft lists");
+		PrintUserCmdText(client, L"/craft list <craftList/Nr> - list item recipes available for this crafting list");
+		PrintUserCmdText(client, L"/craft start <craftList/Nr> <name/itemNr> - adds selected item into the crafting queue");
+		PrintUserCmdText(client, L"/craft stop <craftList/Nr> <name/itemNr> - stops crafting of selected item");
+		PrintUserCmdText(client, L"/craft pause <craftList/Nr> <name/itemNr> - pauses crafting of selected item");
+		PrintUserCmdText(client, L"/craft resume <craftList/Nr> <name/itemNr> - resumes crafting of selected item");
+		PrintUserCmdText(client, L"/craft info <craftList/Nr> <name/itemNr> - list materials necessary for selected item");
+		PrintUserCmdText(client, L"For example, to craft a Docking Module, which is the first item on a 'dockmodule' craft list");
+		PrintUserCmdText(client, L"type: '/craft start dockmodule 1' or '/craft start dockmodule Docking Module'");
 	}
 
 	void BaseFacMod(uint client, const wstring& args)
@@ -1380,61 +1379,73 @@ namespace PlayerCommands
 			return;
 		}
 
-		wstring& craftType = GetParam(args, ' ', 1);
-		if (craftType.empty() || craftType == L"help")
+		wstring& cmd = GetParam(args, ' ', 1);
+		wstring& craftList = GetParam(args, ' ', 2);
+		wstring& craftNameNr = GetParamToEnd(args, ' ', 3);
+
+		if (cmd.empty() || cmd == L"help")
 		{
 			PrintCraftHelpMenu(client);
 			return;
 		}
-		uint craftTypeNumber = ToUInt(craftType);
-		if (craftTypeNumber && base->availableCraftList.size() >= craftTypeNumber)
-		{
-			craftType = *next(base->availableCraftList.begin(), craftTypeNumber - 1);
-		}
-		if (craftType == L"list")
-		{
-			PrintUserCmdText(client, L"Available crafting lists:");
-			uint counter = 1;
-			for (const wstring& craftTypeName : base->availableCraftList)
-			{
-				PrintUserCmdText(client, L"%u. %ls", counter, craftTypeName.c_str());
-				counter++;
-			}
-			return;
-		}
-		else if (craftType == L"stopall")
+		if (cmd == L"stopall")
 		{
 			FactoryModule::StopAllProduction(base);
 			PrintUserCmdText(client, L"OK Factories stopped");
 			return;
 		}
-		else if (!base->availableCraftList.count(craftType))
-		{
-			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
-			return;
-		}
 
-		wstring cmd = GetParam(args, ' ', 2);
-		wstring param = GetParamToEnd(args, ' ', 3);
-		if (cmd.empty())
+		uint craftTypeNumber = ToUInt(craftList);
+		if (craftTypeNumber && base->availableCraftList.size() >= craftTypeNumber)
 		{
-			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
-			return;
+			craftList = *next(base->availableCraftList.begin(), craftTypeNumber - 1);
 		}
-
-		const RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftType, param);
 
 		if (cmd == L"list")
 		{
-			PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftType.c_str());
-			for (wstring& infoLine : factory_recipe_map[craftType])
+			if (!base->availableCraftList.count(craftList))
 			{
-				PrintUserCmdText(client, infoLine);
+				if (!craftList.empty())
+				{
+					PrintUserCmdText(client, L"ERR Invalid craft list selected, use one of the below:");
+				}
+				PrintUserCmdText(client, L"Available crafting lists:");
+				uint counter = 1;
+				for (const wstring& craftTypeName : base->availableCraftList)
+				{
+					PrintUserCmdText(client, L"%u. %ls", counter, craftTypeName.c_str());
+					counter++;
+				}
+			}
+			else
+			{
+				PrintUserCmdText(client, L"Available recipes for %ls crafting list:", craftList.c_str());
+				for (wstring& infoLine : factory_recipe_map[craftList])
+				{
+					PrintUserCmdText(client, infoLine);
+				}
 			}
 			return;
 		}
 		
-		if (cmd == L"info" && recipe)
+		bool selectedValidCraftList = base->availableCraftList.count(craftList);
+		const RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftList, craftNameNr);
+		
+		if (cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume" || cmd == L"info")
+		{
+			if (!selectedValidCraftList)
+			{
+				PrintUserCmdText(client, L"ERR Invalid or unavailable craft list, for a list of valid craft lists use '/craft list'");
+				return;
+			}
+			else if (!recipe)
+			{
+				PrintUserCmdText(client, L"ERR Invalid recipe selected, for a list of valid recipes in selected craft list, use '/craft list %ls'", craftList.c_str());
+				return;
+			}
+		}
+
+		if (cmd == L"info")
 		{
 			PrintUserCmdText(client, L"Construction materials for %ls:", recipe->infotext.c_str());
 			for (const auto& item : recipe->consumed_items)
@@ -1479,12 +1490,6 @@ namespace PlayerCommands
 						HkGetWStringFromIDS(Reputation::get_short_name(rep.first)).c_str(), static_cast<uint>(((1.0f / rep.second) - 1.0f) * 100));
 				}
 			}
-			return;
-		}
-
-		if (recipe == nullptr || !(cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume"))
-		{
-			PrintUserCmdText(client, L"ERR Invalid parameters, for more information use /craft help");
 			return;
 		}
 
@@ -2529,12 +2534,12 @@ namespace PlayerCommands
 
 		if (single_vulnerability_window)
 		{
-			PrintUserCmdText(client, L"This base has its vulnerability window between %u:00-%u:%u", 
+			PrintUserCmdText(client, L"This base has its vulnerability window between %u:00-%u:%02u", 
 				pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow1.end / 60, pb->vulnerabilityWindow1.end % 60);
 		}
 		else
 		{
-			PrintUserCmdText(client, L"This base has its vulnerability windows between %u:00-%u:%u and %u:00-%u:%u", 
+			PrintUserCmdText(client, L"This base has its vulnerability windows between %u:00-%02u:%u and %u:00-%u:%02u", 
 				pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow1.end / 60, pb->vulnerabilityWindow1.end % 60,
 				pb->vulnerabilityWindow2.start / 60, pb->vulnerabilityWindow2.end / 60, pb->vulnerabilityWindow2.end % 60);
 		}

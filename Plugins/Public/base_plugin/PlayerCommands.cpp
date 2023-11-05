@@ -1434,18 +1434,21 @@ namespace PlayerCommands
 		bool selectedValidCraftList = base->availableCraftList.count(craftList);
 		const RECIPE* recipe = FactoryModule::GetFactoryProductRecipe(craftList, craftNameNr);
 		
-		if (cmd == L"stop" || cmd == L"start" || cmd == L"pause" || cmd == L"resume" || cmd == L"info")
+		if (cmd != L"stop" && cmd != L"start" && cmd != L"pause" && cmd != L"resume" && cmd != L"info")
 		{
-			if (!selectedValidCraftList)
-			{
-				PrintUserCmdText(client, L"ERR Invalid or unavailable craft list, for a list of valid craft lists use '/craft list'");
-				return;
-			}
-			else if (!recipe)
-			{
-				PrintUserCmdText(client, L"ERR Invalid recipe selected, for a list of valid recipes in selected craft list, use '/craft list %ls'", craftList.c_str());
-				return;
-			}
+			PrintUserCmdText(client, L"ERR Incorrect command, use '/craft help' for more information.");
+			return;
+		}
+
+		if (!selectedValidCraftList)
+		{
+			PrintUserCmdText(client, L"ERR Invalid or unavailable craft list, for a list of valid craft lists use '/craft list'");
+			return;
+		}
+		else if (!recipe)
+		{
+			PrintUserCmdText(client, L"ERR Invalid recipe selected, for a list of valid recipes in selected craft list, use '/craft list %ls'", craftList.c_str());
+			return;
 		}
 
 		if (cmd == L"info")

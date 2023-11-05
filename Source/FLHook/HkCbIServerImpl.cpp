@@ -361,9 +361,6 @@ namespace HkIServerImpl
 		CHECK_FOR_DISCONNECT;
 
 		// NAN check
-		//Commented out because it's conflicting with Anti-F1
-		// OR DOES IT?!
-
 		if (!(ui.vPos.x == ui.vPos.x) || !(ui.vPos.y == ui.vPos.y) || !(ui.vPos.z == ui.vPos.z)
 			|| !(ui.vDir.x == ui.vDir.x) || !(ui.vDir.y == ui.vDir.y) || !(ui.vDir.z == ui.vDir.z)
 			|| !(ui.throttle == ui.throttle))

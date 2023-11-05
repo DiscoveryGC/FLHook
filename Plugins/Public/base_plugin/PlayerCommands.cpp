@@ -2539,7 +2539,7 @@ namespace PlayerCommands
 		}
 		else
 		{
-			PrintUserCmdText(client, L"This base has its vulnerability windows between %u:00-%02u:%u and %u:00-%u:%02u", 
+			PrintUserCmdText(client, L"This base has its vulnerability windows between %u:00-%u:%02u and %u:00-%u:%02u", 
 				pb->vulnerabilityWindow1.start / 60, pb->vulnerabilityWindow1.end / 60, pb->vulnerabilityWindow1.end % 60,
 				pb->vulnerabilityWindow2.start / 60, pb->vulnerabilityWindow2.end / 60, pb->vulnerabilityWindow2.end % 60);
 		}

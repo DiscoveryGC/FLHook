@@ -200,7 +200,10 @@ void PlayerBase::SetupDefaults()
 	}
 	CheckVulnerabilityWindow(time(nullptr));
 
-	modules.resize((base_level * 3) + 1);
+	if (modules.size() < (base_level * 3) + 1)
+	{
+		modules.resize((base_level * 3) + 1);
+	}
 }
 
 void PlayerBase::Load()

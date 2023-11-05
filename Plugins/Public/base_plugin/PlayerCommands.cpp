@@ -244,13 +244,16 @@ namespace PlayerCommands
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
 
-		//prevent too often login attempts
-		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		if (RateLimitLogins(client, base, charname)) return;
-
 		if (!base)
 		{
 			PrintUserCmdText(client, L"ERR Not in player base");
+			return;
+		}
+
+		//prevent too often login attempts
+		wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		if (RateLimitLogins(client, base, charname))
+		{
 			return;
 		}
 

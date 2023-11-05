@@ -387,7 +387,7 @@ namespace Message
 
 		if (wscMsg.find(L"#r") != -1)
 		{
-			if (wscParam.length() == 0)
+			if (wscParam.empty())
 			{
 				PrintUserCmdText(iClientID, L"ERR Missing replacement text");
 				return false;
@@ -1016,7 +1016,7 @@ namespace Message
 		else
 		{
 			wscMsg = GetParamToEnd(wscParam, ' ', 0);
-			if (wscMsg.size() == 0)
+			if (wscMsg.empty())
 			{
 				PrintUserCmdText(iClientID, L"ERR Invalid parameters");
 				PrintUserCmdText(iClientID, usage);

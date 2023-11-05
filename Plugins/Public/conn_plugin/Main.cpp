@@ -203,9 +203,6 @@ void StoreReturnPointForClient(unsigned int client)
 	{
 		HookExt::IniSetI(client, "conn.retsystembackup", connInfo[client].retSystemBackup);
 	}
-	connInfo[client].clientState = NONE;
-	connInfo[client].retBase = 0;
-	connInfo[client].retSystemBackup = 0;
 }
 
 void SimulateF1(uint client, uint baseId)

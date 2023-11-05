@@ -335,18 +335,47 @@ namespace Message
 	}
 
 	/** Replace #t and #c tags with current target name and current ship location.
+	Replace #r with all text after the preset invocation.
 	Return false if tags cannot be replaced. */
-	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, wstring &wscMsg)
+	static bool ReplaceMessageTags(uint iClientID, INFO &clientData, const wstring &wscParam, wstring &wscMsg)
 	{
 		if (wscMsg.find(L"#t") != -1)
 		{
-			if (clientData.uTargetClientID == -1)
+			wstring wscTargetName;
+
+			// Get the player's current target SpaceObj
+			uint iPlayerShip, iTargetID;
+			pub::Player::GetShip(iClientID, iPlayerShip);
+			pub::SpaceObj::GetTarget(iPlayerShip, iTargetID);
+
+			// If the player is targeting another player,
+			// use the character name of the targeted ship
+			uint iTargetClientID = HkGetClientIDByShip(iTargetID);
+			if (iTargetClientID)
 			{
-				PrintUserCmdText(iClientID, L"ERR Target not available");
-				return false;
+				wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
+			}
+			// If the player is targeting some other space object, use the name of
+			// the associated dockable, if possible
+			else
+			{
+				uint iBaseID;
+				pub::SpaceObj::GetDockingTarget(iTargetID, iBaseID);
+				if (iBaseID)
+				{
+					// Player is targeting a dockable space object
+					Universe::IBase* base = Universe::get_base(iBaseID);
+					wscTargetName = HkGetWStringFromIDS(base->iBaseIDS);
+				}
+				else
+				{
+					// Player is targeting a space object without a dockable
+					// (NPC ship, uninhabited planet, storage depot, etc.)
+					PrintUserCmdText(iClientID, L"ERR Invalid target for #t");
+					return false;
+				}
 			}
 
-			wstring wscTargetName = (const wchar_t*)Players.GetActiveCharacterName(clientData.uTargetClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#t", wscTargetName);
 		}
 
@@ -354,6 +383,17 @@ namespace Message
 		{
 			wstring wscCurrLocation = GetLocation(iClientID);
 			wscMsg = ReplaceStr(wscMsg, L"#c", wscCurrLocation.c_str());
+		}
+
+		if (wscMsg.find(L"#r") != -1)
+		{
+			if (wscParam.empty())
+			{
+				PrintUserCmdText(iClientID, L"ERR Missing replacement text");
+				return false;
+			}
+
+			wscMsg = ReplaceStr(wscMsg, L"#r", wscParam);
 		}
 
 		return true;
@@ -746,7 +786,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendSystemChat(iClientID, wscMsg);
@@ -778,7 +818,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
@@ -828,7 +868,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendLocalSystemChat(iClientID, wscMsg);
@@ -878,7 +918,7 @@ namespace Message
 
 		// Replace the tag #t with name of the targeted player.
 		wstring wscMsg = iter->second.slot[iMsgSlot];
-		if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+		if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 			return true;
 
 		SendGroupChat(iClientID, wscMsg);
@@ -916,7 +956,7 @@ namespace Message
 			}
 			// Replace the tag #t with name of the targeted player.
 			wscMsg = iter->second.slot[iMsgSlot];
-			if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+			if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 				return true;
 		}
 		else if (wscMsg.size() == 0)
@@ -949,10 +989,11 @@ namespace Message
 			return true;
 		}
 
-		wstring wscMsg = GetParamToEnd(wscParam, ' ', 0);
+		wstring wscMsg;
 
 		// If this is a /tN command then setup the preset message
-		if (set_bSetMsg && wscCmd.size() == 3 && wscMsg.size() == 0)
+		// looks a little weird to make it O(1)
+		if (set_bSetMsg && ((wscCmd.length() == 3 && wscCmd[2] != ' ') || (wscCmd.length() > 3 && wscCmd[3] == ' ')))
 		{
 			int iMsgSlot = ToInt(wscCmd.substr(2, 1));
 			if (iMsgSlot < 0 || iMsgSlot>9)
@@ -968,14 +1009,19 @@ namespace Message
 			}
 			// Replace the tag #t with name of the targeted player.
 			wscMsg = iter->second.slot[iMsgSlot];
-			if (!ReplaceMessageTags(iClientID, iter->second, wscMsg))
+			if (!ReplaceMessageTags(iClientID, iter->second, wscParam, wscMsg))
 				return true;
 		}
-		else if (wscMsg.size() == 0)
+		// If this is a /t or /target command then send message text directly
+		else
 		{
-			PrintUserCmdText(iClientID, L"ERR Invalid parameters");
-			PrintUserCmdText(iClientID, usage);
-			return true;
+			wscMsg = GetParamToEnd(wscParam, ' ', 0);
+			if (wscMsg.empty())
+			{
+				PrintUserCmdText(iClientID, L"ERR Invalid parameters");
+				PrintUserCmdText(iClientID, usage);
+				return true;
+			}
 		}
 
 		if (iter->second.uTargetClientID == -1)

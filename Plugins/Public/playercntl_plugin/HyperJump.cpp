@@ -1166,6 +1166,26 @@ namespace HyperJump
 					// Execute the jump and do the pop sound
 					else if (jd.jump_timer == 0)
 					{
+
+						CUSTOM_IN_WARP_CHECK_STRUCT info = { iClientID, false };
+						Plugin_Communication(CUSTOM_IN_WARP_CHECK, &info);
+						if (info.inWarp)
+						{
+							//bump up timer to execute the jump as soon as the player exits the jump tunnel.
+							jd.jump_timer++;
+							continue;
+						}
+
+						uint playerSystem;
+						pub::Player::GetSystem(iClientID, playerSystem);
+						auto canJump = IsSystemJumpable(playerSystem, jd.iTargetSystem, jd.jumpDistance);
+						if (!canJump.first || canJump.second > jd.jumpDistance)
+						{
+							PrintUserCmdText(iClientID, L"ERR You moved out of jump range during the charging period.");
+							ShutdownJumpDrive(iClientID);
+							continue;
+						}
+
 						// Stop the charging fuses
 						StopChargeFuses(iClientID);
 						SetFuse(iClientID, 0);

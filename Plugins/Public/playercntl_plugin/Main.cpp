@@ -209,8 +209,9 @@ void SendDeathMsg(const wstring &wscMsg, uint& iSystem, uint& iClientIDVictim, u
 	const wchar_t *killer = (const wchar_t*)Players.GetActiveCharacterName(iClientIDKiller);
 	if (victim && killer)
 	{
-		AddLog("NOTICE: Death charname=%s killername=%s system=%08x",
-			wstos(victim).c_str(), wstos(killer).c_str(), iSystem);
+		auto systemInfo = Universe::get_system(iSystem);
+		AddLog("NOTICE: Death charname=%s killername=%s system=%s",
+			wstos(victim).c_str(), wstos(killer).c_str(), systemInfo->nickname);
 	}
 }
 
@@ -327,7 +328,7 @@ namespace HkIEngine
 			// NPC call, let the game handle it
 			return 0;
 		}
-		else if ((response == PROCEED_DOCK || response == DOCK) && dockPort != -1)
+		if ((response == PROCEED_DOCK || response == DOCK) && dockPort != -1)
 		{
 			if (Players[iClientID].fRelativeHealth == 0.0f) {
 				dockPort = -1;
@@ -355,7 +356,13 @@ namespace HkIEngine
 				return 0;
 			}
 
-
+			if (response == DOCK)
+			{
+				wstring wscMsg = L"%time Traffic control alert: %player has docked";
+				wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
+				wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
+				PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
+			}
 			SystemSensor::Dock_Call(iTypeID, iClientID);
 
 			return 0;
@@ -559,33 +566,6 @@ namespace HkIServerImpl
 		returncode = DEFAULT_RETURNCODE;
 	}
 
-	bool __stdcall Base_Land(uint iClientID, FLPACKET_LAND& pLand)
-	{
-		returncode = DEFAULT_RETURNCODE;
-
-		uint landingClientId = HkGetClientIDByShip(pLand.iShip);
-		if (landingClientId && landingClientId == iClientID)
-		{
-			// If docking on a base, print out a message when a player ship docks.
-			wstring wscMsg = L"%time Traffic control alert: %player has docked";
-			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
-			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(landingClientId));
-			const auto base = Universe::get_base(pLand.iTargetBase);
-			if (((string)base->cNickname).find("_proxy_base") != string::npos)
-			{
-				CUSTOM_POB_DOCK_ALERT_STRUCT info;
-				info.client = iClientID;
-				info.msg = &wscMsg;
-				info.range = set_iDockBroadcastRange;
-				Plugin_Communication(CUSTOM_POB_DOCK_ALERT, &info);
-			}
-			else
-			{
-				PrintLocalMsgAroundObject(base->lSpaceObjID, wscMsg, set_iDockBroadcastRange);
-			}
-		}
-		return true;
-	}
 	void __stdcall BaseEnter(unsigned int iBaseID, unsigned int iClientID)
 	{
 		returncode = DEFAULT_RETURNCODE;
@@ -1830,7 +1810,6 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::RequestEvent_AFTER, PLUGIN_HkIServerImpl_RequestEvent_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::Base_Land, PLUGIN_HkIClientImpl_Send_FLPACKET_SERVER_LAND, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::BaseEnter, PLUGIN_HkIServerImpl_BaseEnter, 0));
 	// check causes lag: p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::BaseEnter_AFTER, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&HkIServerImpl::LocationEnter, PLUGIN_HkIServerImpl_LocationEnter, 0));

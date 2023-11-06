@@ -604,11 +604,11 @@ wstring DefenseModule::GetInfo(bool xml)
 	switch (type)
 	{
 	case Module::TYPE_DEFENSE_1:
-		return L"Defense Platform Array Type 1";
+		return L"Defense Module - Anti-Light Capital";
 	case Module::TYPE_DEFENSE_2:
-		return L"Defense Platform Array Type 2";
+		return L"Defense Module - Anti-Heavy Capital";
 	case Module::TYPE_DEFENSE_3:
-		return L"Defense Platform Array Type 3";
+		return L"Defense Module - Anti-Light Craft";
 	default:
 		return L"Wibble";
 	}

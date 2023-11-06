@@ -289,6 +289,8 @@ bool CoreModule::Timer(uint time)
 		base->base_health = 0;
 	}
 
+	pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
+
 	// Humans use commodity_oxygen, commodity_water. Consume these for
 	// the crew or kill 10 crew off and repeat this every 12 hours.
 	if (!dont_eat && time % set_crew_check_frequency == 0)

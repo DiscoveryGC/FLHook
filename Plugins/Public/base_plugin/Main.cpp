@@ -1142,17 +1142,6 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 			if (clients[client].player_base)
 				return true;
 
-			// Check if ships is currently docked on a docking module
-			CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
-			mobileCheck.iClientID = client;
-			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
-			
-			// If player is mobile docking, do nothing.
-			if (mobileCheck.isMobileDocked)
-			{
-				clients[client].player_base = 0;
-				return true;
-			}
 			// If we're not docking at a player base then clear 
 			// the last base flag
 			clients[client].last_player_base = 0;

@@ -1576,11 +1576,9 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"Defense Modules:");
 			for (uint index = 0; index < base->modules.size(); index++)
 			{
-				if (base->modules[index]->type == Module::TYPE_DEFENSE_1
-					|| base->modules[index]->type == Module::TYPE_DEFENSE_2
-					|| base->modules[index]->type == Module::TYPE_DEFENSE_3)
+				DefenseModule* mod = dynamic_cast<DefenseModule*>(base->modules[index]);
+				if (mod)
 				{
-					DefenseModule* mod = (DefenseModule*)base->modules[index];
 					PrintUserCmdText(client, L"Module %u: Position %0.0f %0.0f %0.0f Orient %0.0f %0.0f %0.0f",
 						index, mod->pos.x, mod->pos.y, mod->pos.z,
 						mod->rot.z, mod->rot.y, mod->rot.z);
@@ -1599,12 +1597,9 @@ namespace PlayerCommands
 			float rz = (float)ToInt(GetParam(args, ' ', 9));
 			if (index < base->modules.size() && base->modules[index])
 			{
-				if (base->modules[index]->type == Module::TYPE_DEFENSE_1
-					|| base->modules[index]->type == Module::TYPE_DEFENSE_2
-					|| base->modules[index]->type == Module::TYPE_DEFENSE_3)
+				DefenseModule* mod = dynamic_cast<DefenseModule*>(base->modules[index]);
+				if (mod)
 				{
-					DefenseModule* mod = (DefenseModule*)base->modules[index];
-
 					// Distance from base is limited to 5km
 					Vector new_pos = { x, y, z };
 					if (HkDistance3D(new_pos, base->position) > 5000)

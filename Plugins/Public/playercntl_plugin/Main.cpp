@@ -354,11 +354,16 @@ namespace HkIEngine
 				response = DOCK_DENIED;
 				return 0;
 			}
-
-
 			SystemSensor::Dock_Call(iTypeID, iClientID);
 
 			return 0;
+		}
+		if (response == DOCK && dockPort == -1)
+		{
+			wstring wscMsg = L"%time Traffic control alert: %player has docked";
+			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
+			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));
+			PrintLocalUserCmdText(iClientID, wscMsg, set_iDockBroadcastRange);
 		}
 		return 0;
 	}

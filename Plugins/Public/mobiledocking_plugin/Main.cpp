@@ -808,9 +808,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 	uint client = HkGetClientIDByShip(iShip);
 	if (client && response == DOCK && dockPort == -1)
 	{
-		// If target not a player in FREIGHTER class ship, ignore request
-		returncode = SKIPPLUGINS;
-
 		uint iTargetType;
 		pub::SpaceObj::GetType(iTargetID, iTargetType);
 		if (!(iTargetType & (OBJ_CRUISER | OBJ_CAPITAL)))
@@ -859,6 +856,8 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 			response = DOCK_DENIED;
 			return 0;
 		}
+
+		returncode = SKIPPLUGINS;
 
 		CUSTOM_CLOAK_CHECK_STRUCT cloakCheck;
 		cloakCheck.clientId = client;

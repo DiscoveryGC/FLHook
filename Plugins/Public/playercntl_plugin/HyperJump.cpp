@@ -1178,8 +1178,7 @@ namespace HyperJump
 						uint playerSystem;
 						pub::Player::GetSystem(iClientID, playerSystem);
 						auto canJump = IsSystemJumpable(playerSystem, jd.iTargetSystem, jd.jumpDistance);
-						ConPrint(L"%u\n", jd.iTargetSystem);
-						if (jd.iTargetSystem != set_blindJumpOverrideSystem && (!canJump.first || canJump.second > jd.jumpDistance))
+						if (!jd.targetClient && jd.iTargetSystem != set_blindJumpOverrideSystem && (!canJump.first || canJump.second > jd.jumpDistance))
 						{
 							PrintUserCmdText(iClientID, L"ERR You moved out of jump range during the charging period.");
 							ShutdownJumpDrive(iClientID);

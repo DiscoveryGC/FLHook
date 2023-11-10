@@ -640,11 +640,6 @@ namespace HyperJump
 			return make_pair(false, 0);
 		}
 
-		if (mapSystemJumps.count(systemTo) == 0)
-		{
-			return make_pair(false, 0);
-		}
-
 		if (systemFrom == systemTo)
 		{
 			return make_pair(true, 0);

@@ -1356,6 +1356,7 @@ namespace PlayerCommands
 	void PrintCraftHelpMenu(uint client)
 	{
 		PrintUserCmdText(client, L"/craft stopall - stops all production on the base");
+		PrintUserCmdText(client, L"/craft clearall - clears all production queues on the base");
 		PrintUserCmdText(client, L"/craft list - show all available craft lists");
 		PrintUserCmdText(client, L"/craft list <craftList/Nr> - list item recipes available for this crafting list");
 		PrintUserCmdText(client, L"/craft start <craftList/Nr> <name/itemNr> - adds selected item into the crafting queue");
@@ -1395,6 +1396,12 @@ namespace PlayerCommands
 		{
 			FactoryModule::StopAllProduction(base);
 			PrintUserCmdText(client, L"OK Factories stopped");
+			return;
+		}
+		if (cmd == L"clearall")
+		{
+			FactoryModule::ClearAllProductionQueues(base);
+			PrintUserCmdText(client, L"OK Craft queues cleared");
 			return;
 		}
 

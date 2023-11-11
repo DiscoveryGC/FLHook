@@ -366,6 +366,13 @@ namespace HkIEngine
 				supressDockMsg[iClientID] = false;
 				return 0;
 			}
+			uint type;
+			pub::SpaceObj::GetType(iDockTarget, type);
+			if (!(type & (OBJ_STATION | OBJ_DOCKING_RING)))
+			{
+				return 0;
+			}
+
 			wstring wscMsg = L"%time Traffic control alert: %player has docked";
 			wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
 			wscMsg = ReplaceStr(wscMsg, L"%player", (const wchar_t*)Players.GetActiveCharacterName(iClientID));

@@ -1142,17 +1142,6 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 			if (clients[client].player_base)
 				return true;
 
-			// Check if ships is currently docked on a docking module
-			CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
-			mobileCheck.iClientID = client;
-			Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
-			
-			// If player is mobile docking, do nothing.
-			if (mobileCheck.isMobileDocked)
-			{
-				clients[client].player_base = 0;
-				return true;
-			}
 			// If we're not docking at a player base then clear 
 			// the last base flag
 			clients[client].last_player_base = 0;
@@ -1801,6 +1790,7 @@ void __stdcall BaseExit(uint base, uint client)
 			clients[client].last_player_base = clients[client].player_base;
 			clients[client].player_base = 0;
 			SaveDockState(client);
+			clients[client].player_base = clients[client].last_player_base;
 		}
 	}
 	else
@@ -1846,15 +1836,14 @@ void __stdcall RequestEvent(int iIsFormationRequest, unsigned int iShip, unsigne
 }
 
 /// The base the player is launching from.
-PlayerBase* player_launch_base = 0;
-bool system_match = true;
+PlayerBase* player_launch_base = nullptr;
 
 /// If the ship is launching from a player base record this so that
 /// override the launch location.
 bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Matrix &rot, int dock_mode)
 {
 	returncode = DEFAULT_RETURNCODE;
-	if (player_launch_base && system_match)
+	if (player_launch_base)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		pos = player_launch_base->position;
@@ -1863,7 +1852,7 @@ bool __stdcall LaunchPosHook(uint space_obj, struct CEqObj &p1, Vector &pos, Mat
 		if (set_plugin_debug)
 			ConPrint(L"LaunchPosHook[1] space_obj=%u pos=%0.0f %0.0f %0.0f dock_mode=%u\n",
 				space_obj, pos.x, pos.y, pos.z, dock_mode);
-		player_launch_base = 0;
+		player_launch_base = nullptr;
 	}
 	return true;
 }
@@ -1874,29 +1863,14 @@ void __stdcall PlayerLaunch(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	system_match = true;
-	player_launch_base = 0;
-
 	if (set_plugin_debug > 1)
 		ConPrint(L"PlayerLaunch ship=%u client=%u\n", ship, client);
 
-	if (!clients[client].last_player_base)
+	if (!clients[client].player_base)
 		return;
 
-
-	CUSTOM_MOBILE_DOCK_CHECK_STRUCT mobileCheck;
-	mobileCheck.iClientID = client;
-	Plugin_Communication(PLUGIN_MESSAGE::CUSTOM_MOBILE_DOCK_CHECK, &mobileCheck);
-	if (!mobileCheck.isMobileDocked)
-		player_launch_base = GetPlayerBase(clients[client].last_player_base);
-
-	if (player_launch_base)
-	{
-		uint systemID;
-		pub::Player::GetSystem(client, systemID);
-		// in case of system mismatch, skip LaunchPos hook and instead perform a jump callout in PlayerLaunch_AFTER
-		system_match = (systemID == player_launch_base->system);
-	}
+	player_launch_base = GetPlayerBase(clients[client].player_base);
+	clients[client].player_base = 0;
 }
 
 
@@ -1904,11 +1878,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 {
 	returncode = DEFAULT_RETURNCODE;
 	SyncReputationForClientShip(ship, client);
-
-	if (player_launch_base && !system_match)
-	{
-		ForcePlayerBaseDock(client, player_launch_base);
-	}
 }
 
 void __stdcall JumpInComplete(unsigned int system, unsigned int ship)

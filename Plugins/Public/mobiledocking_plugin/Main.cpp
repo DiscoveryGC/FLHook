@@ -805,9 +805,23 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 	returncode = DEFAULT_RETURNCODE;
 
 	//if not a player dock, skip
-	uint client = HkGetClientIDByShip(iShip);
-	if (client && response == DOCK && dockPort == -1)
+	if (response == DOCK && dockPort == -1)
 	{
+		uint client = HkGetClientIDByShip(iShip);
+
+		if (!client)
+		{
+			return 0;
+		}
+
+		uint iTargetClientID = HkGetClientIDByShip(iTargetID);
+
+		// Check that the target ship has an empty docking module.
+		if (!iTargetClientID)
+		{
+			return 0;
+		}
+
 		uint iTargetType;
 		pub::SpaceObj::GetType(iTargetID, iTargetType);
 		if (!(iTargetType & (OBJ_CRUISER | OBJ_CAPITAL)))
@@ -845,19 +859,6 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iTargetID, 
 			response = DOCK_DENIED;
 			return 0;
 		}
-
-		uint iTargetClientID = HkGetClientIDByShip(iTargetID);
-
-		// Check that the target ship has an empty docking module.
-		if (!iTargetClientID)
-		{
-			PrintUserCmdText(client, L"Not a player ship!");
-			dockPort = -1;
-			response = DOCK_DENIED;
-			return 0;
-		}
-
-		returncode = SKIPPLUGINS;
 
 		CUSTOM_CLOAK_CHECK_STRUCT cloakCheck;
 		cloakCheck.clientId = client;

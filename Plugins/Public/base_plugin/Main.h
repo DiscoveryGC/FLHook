@@ -258,6 +258,7 @@ public:
 	static FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, uint searchedProduct);
 	static const RECIPE* FactoryModule::GetFactoryProductRecipe(wstring& craftType, wstring& product);
 	static void FactoryModule::StopAllProduction(PlayerBase* pb);
+	static void FactoryModule::ClearAllProductionQueues(PlayerBase* pb);
 	static bool FactoryModule::IsFactoryModule(Module* module);
 
 	bool Paused = false;

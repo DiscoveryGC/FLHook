@@ -640,11 +640,6 @@ namespace HyperJump
 			return make_pair(false, 0);
 		}
 
-		if (mapSystemJumps.count(systemTo) == 0)
-		{
-			return make_pair(false, 0);
-		}
-
 		if (systemFrom == systemTo)
 		{
 			return make_pair(true, 0);
@@ -994,7 +989,6 @@ namespace HyperJump
 				for (uint i = 1; i <= jd.arch->jump_range ; i++)
 				{
 					auto& systems = mapAvailableJumpSystems[entrySystem][i];
-					viableTargets.reserve(viableTargets.size() + systems.size());
 					viableTargets.insert(viableTargets.end(), systems.begin(), systems.end());
 				}
 				if (viableTargets.empty())
@@ -1008,7 +1002,7 @@ namespace HyperJump
 					auto& coords = jumpCoordList.at(rand() % jumpCoordList.size());
 
 					jd.iTargetSystem = system;
-					jd.jumpDistance = 1;
+					jd.jumpDistance = IsSystemJumpable(entrySystem, system, set_maxJumpRange).second;
 					jd.vTargetPosition = coords.pos;
 					jd.matTargetOrient = coords.ornt;
 
@@ -1166,6 +1160,26 @@ namespace HyperJump
 					// Execute the jump and do the pop sound
 					else if (jd.jump_timer == 0)
 					{
+
+						CUSTOM_IN_WARP_CHECK_STRUCT info = { iClientID, false };
+						Plugin_Communication(CUSTOM_IN_WARP_CHECK, &info);
+						if (info.inWarp)
+						{
+							//bump up timer to execute the jump as soon as the player exits the jump tunnel.
+							jd.jump_timer++;
+							continue;
+						}
+
+						uint playerSystem;
+						pub::Player::GetSystem(iClientID, playerSystem);
+						auto canJump = IsSystemJumpable(playerSystem, jd.iTargetSystem, jd.jumpDistance);
+						if (!jd.targetClient && jd.iTargetSystem != set_blindJumpOverrideSystem && (!canJump.first || canJump.second > jd.jumpDistance))
+						{
+							PrintUserCmdText(iClientID, L"ERR You moved out of jump range during the charging period.");
+							ShutdownJumpDrive(iClientID);
+							continue;
+						}
+
 						// Stop the charging fuses
 						StopChargeFuses(iClientID);
 						SetFuse(iClientID, 0);

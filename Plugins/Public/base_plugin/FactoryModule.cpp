@@ -426,6 +426,18 @@ FactoryModule* FactoryModule::FindModuleByProductInProduction(PlayerBase* pb, ui
 	return nullptr;
 }
 
+void FactoryModule::ClearAllProductionQueues(PlayerBase* pb)
+{
+	for (auto& i : pb->modules)
+	{
+		FactoryModule* facModPtr = dynamic_cast<FactoryModule*>(i);
+		if (facModPtr)
+		{
+			facModPtr->ClearQueue();
+		}
+	}
+}
+
 void FactoryModule::StopAllProduction(PlayerBase* pb)
 {
 	for (auto& i : pb->modules)

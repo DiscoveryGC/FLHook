@@ -361,9 +361,9 @@ namespace HkIServerImpl
 		CHECK_FOR_DISCONNECT;
 
 		// NAN check
-		if (!(ui.vPos.x == ui.vPos.x) || !(ui.vPos.y == ui.vPos.y) || !(ui.vPos.z == ui.vPos.z)
-			|| !(ui.vDir.x == ui.vDir.x) || !(ui.vDir.y == ui.vDir.y) || !(ui.vDir.z == ui.vDir.z)
-			|| !(ui.throttle == ui.throttle))
+		if (isnan(ui.vPos.x) || isnan(ui.vPos.y) || isnan(ui.vPos.z)
+			|| isnan(ui.vDir.x) || isnan(ui.vDir.y) || isnan(ui.vDir.z) || isnan(ui.vDir.w)
+			|| isnan(ui.throttle))
 		{
 			AddLog("ERROR: NAN found in " __FUNCTION__ " for id=%u", iClientID);
 			HkKick(Players[iClientID].Account);
@@ -371,9 +371,9 @@ namespace HkIServerImpl
 		}
 
 		float n = ui.vDir.w * ui.vDir.w + ui.vDir.x * ui.vDir.x + ui.vDir.y * ui.vDir.y + ui.vDir.z * ui.vDir.z;
-		if (n > 1.21f || n < 0.81f)
+		if (n > 1.03f || n < 0.97f)
 		{
-			AddLog("ERROR: Non-normalized quaternion found in " __FUNCTION__ " for id=%u", iClientID);
+			AddLog("ERROR: Non-normalized quaternion found in " __FUNCTION__ " for id=%u, value: %0.4f", iClientID, n);
 			HkKick(Players[iClientID].Account);
 			return;
 		}

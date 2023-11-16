@@ -547,11 +547,7 @@ void PlayerBase::Save()
 		}
 		for (auto i : available_blueprints)
 		{
-			auto blueprint = blueprintMap.find(i);
-			if (blueprint != blueprintMap.end())
-			{
-				fprintf(file, "blueprint = %s\n", blueprint->second.c_str());
-			}
+			fprintf(file, "blueprint = %s\n", blueprintMap.at(i).c_str());
 		}
 
 		fprintf(file, "defensemode = %u\n", defense_mode);

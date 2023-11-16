@@ -949,7 +949,7 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	if (wscCmd.find(L"/listdocked") == 0)
+	if (wscCmd.find(L"/listdocked") == 0 || wscCmd.find(L"/ld") == 0)
 	{
 		if (!idToCarrierInfoMap.count(client) || idToCarrierInfoMap[client]->dockedShipList.empty())
 		{
@@ -989,7 +989,7 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 		}
 		return true;
 	}
-	else if (wscCmd.find(L"/jettisonship") == 0)
+	else if (wscCmd.find(L"/jettisonship") == 0 || wscCmd.find(L"/js") == 0)
 	{
 		if (!idToCarrierInfoMap.count(client) || idToCarrierInfoMap[client]->dockedShipList.empty())
 		{
@@ -1031,7 +1031,7 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 		return true;
 
 	}
-	else if (wscCmd.find(L"/allowdock") == 0)
+	else if (wscCmd.find(L"/allowdock") == 0 || wscCmd.find(L"/ad") == 0)
 	{
 		//If we're not in space, then ignore the request
 		uint iShip;
@@ -1071,7 +1071,7 @@ bool UserCmd_Process(uint client, const wstring& wscCmd)
 		StartDockingProcedure(iTargetClientID, client);
 		return true;
 	}
-	else if (wscCmd.find(L"/dockmode") == 0)
+	else if (wscCmd.find(L"/dockmode") == 0 || wscCmd.find(L"/dm") == 0)
 	{
 		if (mobiledockClients[client].iDockingModulesInstalled == 0)
 		{

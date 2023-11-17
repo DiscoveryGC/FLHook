@@ -21,6 +21,7 @@
 #include <plugin.h>
 #include <list>
 #include <set>
+#include <unordered_set>
 #include <sstream>
 #include <iostream>
 
@@ -39,7 +40,7 @@ static map<uint, wstring> MapActiveSirens;
 static int duration = 60;
 static map<uint, int> mapActiveNoDock;
 
-static list<uint> baseblacklist;
+static unordered_set<uint> baseblacklist;
 
 static list<wstring> superNoDockedShips;
 
@@ -99,7 +100,7 @@ void ADOCK::LoadSettings()
 				{
 					if (ini.is_value("no"))
 					{
-						baseblacklist.push_back(CreateID(ini.get_value_string(0)));
+						baseblacklist.insert(CreateID(ini.get_value_string(0)));
 					}
 				}
 			}
@@ -281,67 +282,50 @@ bool ADOCK::NoDockCommand(uint iClientID, const wstring &wscCmd, const wstring &
 
 bool ADOCK::IsDockAllowed(uint iShip, uint iDockTarget, uint iClientID)
 {
-	boolean supernodocked = false;
-	wstring curCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
-	list<wstring>::iterator sndIter = superNoDockedShips.begin();
-	while (sndIter != superNoDockedShips.end())
+	if (!superNoDockedShips.empty())
 	{
-		if (*sndIter == curCharName)
+		boolean supernodocked = false;
+		wstring curCharName = (const wchar_t*)Players.GetActiveCharacterName(iClientID);
+		list<wstring>::iterator sndIter = superNoDockedShips.begin();
+		while (sndIter != superNoDockedShips.end())
 		{
-			supernodocked = true;
-			break;
+			if (*sndIter == curCharName)
+			{
+				supernodocked = true;
+				break;
+			}
+			sndIter++;
 		}
-		sndIter++;
-	}
 
-	if (supernodocked)
-	{
-		uint iID;
-		pub::SpaceObj::GetDockingTarget(iDockTarget, iID);
-		Universe::IBase *base = Universe::get_base(iID);
-		if (base)
+		if (supernodocked)
 		{
-			PrintUserCmdText(iClientID, L"You are not allowed to dock on any base.");
-			return false;
-		}
-	}
-
-	bool aminice = true;
-
-	// is he under nodock effect
-	for (map<uint, int>::iterator i = mapActiveNoDock.begin(); i != mapActiveNoDock.end(); ++i)
-	{
-		if (i->first == iClientID)
-		{
-			//malcompliant found
-			aminice = false;
-			//PrintUserCmdText(iClientID, L"You are under nodock effect. 1");
+			uint iID;
+			pub::SpaceObj::GetDockingTarget(iDockTarget, iID);
+			Universe::IBase* base = Universe::get_base(iID);
+			if (base)
+			{
+				PrintUserCmdText(iClientID, L"You are not allowed to dock on any base.");
+				return false;
+			}
 		}
 	}
 
 	// instead of complicated code, we just check if he's nice. If so, we ignore the rest of the code.
-	if (aminice == true)
+	if (!mapActiveNoDock.count(iClientID))
 	{
-		//PrintUserCmdText(iClientID, L"He is nice, we dont have to carry on");
 		return true;
 	}
 
-	uint iName;
-	pub::SpaceObj::GetDockingTarget(iDockTarget, iName);
+	uint base;
+	pub::SpaceObj::GetDockingTarget(iDockTarget, base);
 
 	// if he's not nice, we check if the base is subject to nodock effect.
-	list<uint>::iterator iter = baseblacklist.begin();
-	while (iter != baseblacklist.end())
+	if (baseblacklist.count(base))
 	{
-		if (*iter == iName)
-		{
-			//we have found this base in the blacklist. nodock will therefore work. don't let him dock.
-			pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
-			PrintUserCmdText(iClientID, L"You are currently not allowed to dock on this base.");
-			return false;
-			break;
-		}
-		iter++;
+		//we have found this base in the blacklist. nodock will therefore work. don't let him dock.
+		pub::Player::SendNNMessage(iClientID, pub::GetNicknameId("info_access_denied"));
+		PrintUserCmdText(iClientID, L"You are currently not allowed to dock on this base.");
+		return false;
 	}
 
 	//otherwise this is probably not meant to work	

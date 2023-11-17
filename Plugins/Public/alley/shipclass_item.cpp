@@ -409,7 +409,7 @@ void SCI::UpdatePlayerID(unsigned int iClientID)
 bool SCI::CanDock(uint iDockTarget, uint iClientID)
 {
 	//First we check if the player is on our watchlist.
-	if (clientplayerid.find(iClientID) != clientplayerid.end())
+	if (clientplayerid.count(iClientID))
 	{
 		//PrintUserCmdText(iClientID, L"DEBUG: Found you");
 		//temporarily copy the id so we don't mapception
@@ -442,7 +442,7 @@ bool SCI::CanDock(uint iDockTarget, uint iClientID)
 			uint iTypeID;
 			pub::SpaceObj::GetType(iDockTarget, iTypeID);
 
-			if (iTypeID == OBJ_DOCKING_RING || iTypeID == OBJ_STATION)
+			if (iTypeID & (OBJ_DOCKING_RING | OBJ_STATION))
 			{
 				//we check the cargo restriction first as that should iron out a good chunk of them
 				if (clientplayerid[iClientID].maxholdsize > iddock[id].cargo)

@@ -1273,10 +1273,13 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	uint iClientID = HkGetClientIDByShip(iShip);
-
-	if (iClientID && (response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
+	if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
 	{
+		uint iClientID = HkGetClientIDByShip(iShip);
+		if (!iClientID)
+		{
+			return 0;
+		}
 		if (!ADOCK::IsDockAllowed(iShip, iDockTarget, iClientID))
 		{
 			iCancel = -1;

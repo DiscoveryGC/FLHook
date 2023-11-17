@@ -885,18 +885,12 @@ void PlayerAutobuy(uint iClientID, uint iBaseID)
 	}
 
 	// search base in base-info list
-	BASE_INFO *bi = 0;
-	foreach(lstBases, BASE_INFO, it3)
+	const auto& baseIter = lstBases.find(iBaseID);
+	if (baseIter == lstBases.end())
 	{
-		if (it3->iBaseID == iBaseID)
-		{
-			bi = &(*it3);
-			break;
-		}
+		return;
 	}
-
-	if (!bi)
-		return; // base not found
+	BASE_INFO* bi = &baseIter->second;
 
 	int iCash;
 	HkGetCash(ARG_CLIENTID(iClientID), iCash);
@@ -1013,7 +1007,6 @@ void __stdcall CharacterSelect_AFTER(struct CHARACTER_ID const &charId, unsigned
 void __stdcall BaseEnter_AFTER(unsigned int iBaseID, unsigned int iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-	pub::Player::GetBase(iClientID, iBaseID);
 	PlayerAutobuy(iClientID, iBaseID);
 
 	if (mapAutobuyPlayerInfo[iClientID].bAutoRepair)

@@ -916,27 +916,28 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &iDockTarget
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	uint client = HkGetClientIDByShip(iShip);
-	if (client)
+	if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
 	{
-		if ((response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
+		uint client = HkGetClientIDByShip(iShip);
+		if (!client)
 		{
-			// If the last jump happened within 60 seconds then prohibit the docking
-			// on a jump hole or gate.
-			uint iTypeID;
-			pub::SpaceObj::GetType(iDockTarget, iTypeID);
-			if (iTypeID == OBJ_JUMP_GATE || iTypeID == OBJ_JUMP_HOLE)
+			return 0;
+		}
+		// If the last jump happened within 60 seconds then prohibit the docking
+		// on a jump hole or gate.
+		uint iTypeID;
+		pub::SpaceObj::GetType(iDockTarget, iTypeID);
+		if (iTypeID & (OBJ_JUMP_GATE | OBJ_JUMP_HOLE))
+		{
+			if (mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
 			{
-				if (client && mapClientsCloak[client].iState == STATE_CLOAK_CHARGING)
-				{
-					SetState(client, iShip, STATE_CLOAK_OFF);
-					pub::Audio::PlaySoundEffect(client, CreateID("cloak_osiris"));
-					PrintUserCmdText(client, L"Alert: Cloaking device overheat detected. Shutting down.");
+				SetState(client, iShip, STATE_CLOAK_OFF);
+				pub::Audio::PlaySoundEffect(client, CreateID("cloak_osiris"));
+				PrintUserCmdText(client, L"Alert: Cloaking device overheat detected. Shutting down.");
 
-					wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
-					HkAddCheaterLog(wscCharname, L"About to enter a JG/JH while under cloak charging mode");
-					return 0;
-				}
+				wstring wscCharname = (const wchar_t*)Players.GetActiveCharacterName(client);
+				HkAddCheaterLog(wscCharname, L"About to enter a JG/JH while under cloak charging mode");
+				return 0;
 			}
 		}
 	}

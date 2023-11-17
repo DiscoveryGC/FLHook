@@ -138,9 +138,11 @@ namespace HkIEngine
 
 		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call, int, , (unsigned int const &, unsigned int const &, int&, DOCK_HOST_RESPONSE&), (uShipID, uSpaceID, iDockPort, dockResponse));
 
+		LOG_CORE_TIMER_START
 		TRY_HOOK {
 			returnValue = pub::SpaceObj::Dock(uShipID, uSpaceID, iDockPort, dockResponse);
 		} CATCH_HOOK({})
+		LOG_CORE_TIMER_END
 
 		CALL_PLUGINS(PLUGIN_HkCb_Dock_Call_AFTER, int, , (unsigned int const &, unsigned int const &, int&, DOCK_HOST_RESPONSE&), (uShipID, uSpaceID, iDockPort, dockResponse));
 

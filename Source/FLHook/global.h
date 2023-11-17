@@ -18,6 +18,7 @@
 #include <list>
 #include <functional>
 #include <chrono>
+#include <unordered_map>
 using namespace std;
 
 // defines
@@ -112,6 +113,7 @@ EXPORT int ToInt(const wstring &wscStr);
 EXPORT uint ToUInt(const wstring &wscStr);
 EXPORT void ConPrint(wstring wscText, ...);
 EXPORT void AddPerfTimer(const char* szString, ...);
+EXPORT void PrintCorePerf();
 EXPORT wstring XMLText(const wstring &wscText);
 EXPORT wstring GetParam(const wstring &wscLine, wchar_t wcSplitChar, uint iPos);
 EXPORT wstring ReplaceStr(const wstring &wscSource, const wstring &wscSearchFor, const wstring &wscReplaceWith);
@@ -151,6 +153,7 @@ extern EXPORT FARPROC fpOldUpdate;
 extern EXPORT string sDebugLog;
 
 // setting variables
+extern EXPORT unordered_map<string, vector<uint64_t>> coreExecutionMap;
 extern EXPORT bool set_bLoadedSettings;
 extern EXPORT string set_scCfgFile;
 extern EXPORT uint set_iAntiDockKill;
@@ -205,6 +208,7 @@ extern EXPORT bool set_logPerfTimers;
 extern EXPORT int set_perfTimerLength;
 extern EXPORT int set_hookPerfTimerLength;
 extern EXPORT string set_perfTimedHookName;
+extern EXPORT int set_corePerfTimerLength;
 extern EXPORT uint set_iDebugMaxSize;
 extern EXPORT bool	set_bLogAdminCmds;
 extern EXPORT bool	set_bLogSocketCmds;

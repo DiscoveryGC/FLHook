@@ -46,6 +46,7 @@ void HkTimerCheckKick()
 	CALL_PLUGINS_V(PLUGIN_HkTimerCheckKick, , (), ());
 
 
+	LOG_CORE_TIMER_START
 	TRY_HOOK {
 		// for all players
 		struct PlayerData *pPD = 0;
@@ -98,6 +99,7 @@ void HkTimerCheckKick()
 
 		}
 	} CATCH_HOOK({})
+		LOG_CORE_TIMER_END
 }
 
 /**************************************************************************************************************
@@ -108,6 +110,7 @@ void HkTimerNPCAndF1Check()
 {
 	//CALL_PLUGINS_V(PLUGIN_HkTimerNPCAndF1Check, , (), ());
 
+	LOG_CORE_TIMER_START
 	TRY_HOOK {
 		struct PlayerData *pPD = 0;
 		while (pPD = Players.traverse_active(pPD))
@@ -144,4 +147,5 @@ void HkTimerNPCAndF1Check()
 		else
 			HkChangeNPCSpawn(false);
 	} CATCH_HOOK({})
+		LOG_CORE_TIMER_END
 }

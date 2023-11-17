@@ -4,6 +4,7 @@
 
 int __stdcall DisconnectPacketSent(uint iClientID)
 {
+	LOG_CORE_TIMER_START
 	TRY_HOOK {
 		uint iShip = 0;
 		pub::Player::GetShip(iClientID, iShip);
@@ -14,6 +15,7 @@ int __stdcall DisconnectPacketSent(uint iClientID)
 			return 0; // don't pass on
 		}
 	} CATCH_HOOK({})
+	LOG_CORE_TIMER_END
 	return 1; // pass on
 }
 

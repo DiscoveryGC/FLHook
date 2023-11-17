@@ -15,6 +15,55 @@ struct SOCKET_CONNECTION
 	CSocket	csock;
 };
 
+
+void PrintCorePerf()
+{
+	ConPrint(L"Dumping...\n");
+	struct perfData {
+		string name;
+		uint64_t min = UINT64_MAX;
+		uint64_t max = 0;
+		uint64_t average = 0;
+		uint64_t count = 0;
+		uint64_t sum = 0;
+	};
+
+	for (auto& coreCall : coreExecutionMap)
+	{
+		fprintf(perfMonitorLog, "%s\n", coreCall.first.c_str());
+		fflush(perfMonitorLog);
+		for (uint64_t call : coreCall.second)
+		{
+			fprintf(perfMonitorLog, "\t%llu\n", call);
+			fflush(perfMonitorLog);
+		}
+	}
+
+	for (auto& coreCall : coreExecutionMap)
+	{
+		perfData data;
+		data.name = coreCall.first;
+		data.count = coreCall.second.size();
+		for (uint64_t call : coreCall.second)
+		{
+			if (data.min > call)
+			{
+				data.min = call;
+			}
+			if (data.max < call)
+			{
+				data.max = call;
+			}
+			data.sum += call;
+		}
+		data.average = data.sum / data.count;
+		fprintf(perfMonitorLog, "%s\nmin: %llu\nmax: %llu\navg: %llu\ncount: %llu\nsum: %llu\n\n", coreCall.first.c_str(), data.min, data.max, data.average, data.count, data.sum);
+		fflush(perfMonitorLog);
+	}
+	ConPrint(L"Dumping Complete...\n");
+	coreExecutionMap.clear();
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 HANDLE hProcFL = 0;
@@ -738,7 +787,8 @@ struct timeval tv = { 0, 0 };
 
 void ProcessPendingCommands()
 {
-	TRY_HOOK {
+	LOG_CORE_TIMER_START
+	TRY_HOOK { 
 		// check for new console commands
 		EnterCriticalSection(&cs);
 		while (lstConsoleCmds.size())
@@ -950,4 +1000,5 @@ void ProcessPendingCommands()
 
 		lstDelete.clear();
 	} CATCH_HOOK({})
+	LOG_CORE_TIMER_END
 }

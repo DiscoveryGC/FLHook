@@ -106,6 +106,7 @@ public:
 	void CmdRehash();
 	void CmdSetPerfTimer(int time);
 	void CmdSetHookPerfTimer(string hookName, int time);
+	void CmdDumpCorePerfTimers(int time);
 
 	void CmdLoadPlugins();
 	void CmdLoadPlugin(const wstring &wscPlugin);

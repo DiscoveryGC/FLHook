@@ -283,12 +283,7 @@ HK_ERROR HkSaveChar(const wstring &wscCharname)
 	if (iClientID == -1)
 		return HKE_PLAYER_NOT_LOGGED_IN;
 
-	void *pJmp = (char*)hModServer + 0x7EFA8;
-	char szNop[2] = { '\x90', '\x90' };
-	char szTestAlAl[2] = { '\x74', '\x44' };
-	WriteProcMem(pJmp, szNop, sizeof(szNop)); // nop the SinglePlayer() check
 	pub::Save(iClientID, 1);
-	WriteProcMem(pJmp, szTestAlAl, sizeof(szTestAlAl)); // restore
 
 	return HKE_OK;
 }

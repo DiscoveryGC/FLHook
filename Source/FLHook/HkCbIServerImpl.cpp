@@ -1105,6 +1105,7 @@ namespace HkIServerImpl
 				acc->ForceLogout();
 			}
 		})
+		LOG_CORE_TIMER_END
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_Login_AFTER, __stdcall, (struct SLoginInfo const &li, unsigned int iClientID), (li, iClientID));
 	}
@@ -1155,7 +1156,7 @@ namespace HkIServerImpl
 			AddLog("ERROR: Exception in HkIServerImpl::GoTradelane charname=%s sys=%08x arch=%08x arch2=%08x",
 				wstos((const wchar_t*)Players.GetActiveCharacterName(iClientID)).c_str(), iSystem, gtl.iTradelaneSpaceObj1, gtl.iTradelaneSpaceObj2);
 		})
-			LOG_CORE_TIMER_END
+		LOG_CORE_TIMER_END
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_GoTradelane_AFTER, __stdcall, (unsigned int iClientID, struct XGoTradelane const &gtl), (iClientID, gtl));
 	}

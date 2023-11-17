@@ -26,6 +26,7 @@
 #include <string>
 #include <list>
 #include <time.h>
+#include <unordered_map>
 using namespace std;
 
 
@@ -819,7 +820,7 @@ extern IMPORT bool	set_bLogUserCmds;
 extern IMPORT bool	set_bPerfTimer;
 
 
-extern IMPORT list<BASE_INFO> lstBases;
+extern IMPORT unordered_map<uint, BASE_INFO> lstBases;
 
 extern IMPORT CDPClientProxy **g_cClientProxyArray;
 extern IMPORT void *pClient;

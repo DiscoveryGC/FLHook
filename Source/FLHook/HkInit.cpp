@@ -155,7 +155,7 @@ char *g_FLServerDataPtr;
 
 _GetShipInspect GetShipInspect;
 
-list<BASE_INFO> lstBases;
+unordered_map<uint, BASE_INFO> lstBases;
 
 char szRepFreeFixOld[5];
 

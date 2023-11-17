@@ -54,6 +54,30 @@
 #define OBJ_ASTEROID			(1 << 29)
 
 
+enum EquipmentClass : uint
+{
+	None = 0,
+	LightEquip = 1 << 0,
+	AttachedFx = 1 << 1, // contrails
+	Mine = 1 << 5,
+	CM = 1 << 6,
+	Gun = 1 << 7,
+	Shield = 1 << 8,
+	ShieldGenerator = 1 << 9,
+	Thruster = 1 << 10,
+	CargoPod = 1 << 11,
+	CloakingDevice = 1 << 12,
+	Cargo = 1 << 16, // commodities, ammo
+	Engine = 1 << 17,
+	Power = 1 << 18,
+	Scanner = 1 << 19,
+	TractorBeam = 1 << 20,
+	RepairDroid = 1 << 21,
+	InternalFX = 1 << 22,
+	TradeLaneEquip = 1 << 23,
+	Armor = 1 << 24,
+};
+
 struct IMPORT CacheString
 {
 	void clear(void);

@@ -18,7 +18,7 @@ uint HkGetClientIdFromAccount(CAccount *acc)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint HkGetClientIdFromPD(struct PlayerData *pPD)
+inline uint HkGetClientIdFromPD(struct PlayerData *pPD)
 {
 	return pPD->iOnlineID;
 }
@@ -300,7 +300,7 @@ wstring HkGetPlayerSystem(uint iClientID)
 {
 	uint iSystemID;
 	pub::Player::GetSystem(iClientID, iSystemID);
-	char szSystemname[1024] = "";
+	char szSystemname[64] = "";
 	pub::GetSystemNickname(szSystemname, sizeof(szSystemname), iSystemID);
 	return stows(szSystemname);
 }

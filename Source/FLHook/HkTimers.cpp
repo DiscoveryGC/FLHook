@@ -65,35 +65,25 @@ void HkTimerCheckKick()
 				continue; // player will be kicked anyway
 			}
 
-			if (set_iAntiBaseIdle)
+			if (set_iAntiBaseIdle && ClientInfo[iClientID].iBaseEnterTime)
 			{ // anti base-idle check
-				uint iBaseID;
-				pub::Player::GetBase(iClientID, iBaseID);
-				if (iBaseID && ClientInfo[iClientID].iBaseEnterTime)
+				if ((time(0) - ClientInfo[iClientID].iBaseEnterTime) >= set_iAntiBaseIdle)
 				{
-					if ((time(0) - ClientInfo[iClientID].iBaseEnterTime) >= set_iAntiBaseIdle)
-					{
-						HkAddKickLog(iClientID, L"Base idling");
-						HkMsgAndKick(iClientID, L"Base idling", set_iKickMsgPeriod);
-						ClientInfo[iClientID].iBaseEnterTime = 0;
-					}
+					HkAddKickLog(iClientID, L"Base idling");
+					HkMsgAndKick(iClientID, L"Base idling", set_iKickMsgPeriod);
+					ClientInfo[iClientID].iBaseEnterTime = 0;
 				}
+				continue;
 			}
 
 			if (set_iAntiCharMenuIdle)
 			{ // anti charmenu-idle check
-				if (HkIsInCharSelectMenu(iClientID)) {
-					if (!ClientInfo[iClientID].iCharMenuEnterTime)
-						ClientInfo[iClientID].iCharMenuEnterTime = (uint)time(0);
-					else if ((time(0) - ClientInfo[iClientID].iCharMenuEnterTime) >= set_iAntiCharMenuIdle) {
-						HkAddKickLog(iClientID, L"Charmenu idling");
-						HkKick(ARG_CLIENTID(iClientID));
-						ClientInfo[iClientID].iCharMenuEnterTime = 0;
-						continue;
-					}
-				}
-				else
+				if (ClientInfo[iClientID].iCharMenuEnterTime 
+					&& (time(0) - ClientInfo[iClientID].iCharMenuEnterTime) >= set_iAntiCharMenuIdle) {
+					HkAddKickLog(iClientID, L"Charmenu idling");
+					HkKick(ARG_CLIENTID(iClientID));
 					ClientInfo[iClientID].iCharMenuEnterTime = 0;
+				}
 			}
 
 		}

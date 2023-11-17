@@ -630,8 +630,6 @@ void HkRelocateClient(uint iClientID, Vector vDestination, Matrix mOrientation)
 
 void HkSaveChar(uint iClientID)
 {
-	BYTE patch[] = { (BYTE)'\x90', (BYTE)'\x90' };
-	WriteProcMem((char*)hModServer + 0x7EFA8, patch, sizeof(patch));
 	pub::Save(iClientID, 1);
 }
 

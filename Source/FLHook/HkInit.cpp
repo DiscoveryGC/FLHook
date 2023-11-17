@@ -305,6 +305,11 @@ bool InitHookExports()
 	ReadProcMem(pAddress, szRepFreeFixOld, 5);
 	WriteProcMem(pAddress, szNOPs, 5);
 
+	// patch pub::Save method
+	pAddress = SRV_ADDR(0x7EFA8);
+	char szNop[2] = { '\x90', '\x90' };
+	WriteProcMem(pAddress, szNop, sizeof(szNop)); // nop the SinglePlayer() check
+
 	// patch flserver so it can better handle faulty house entries in char files
 
 	// divert call to house load/save func

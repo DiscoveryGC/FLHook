@@ -99,7 +99,7 @@ void HkTimerCheckKick()
 
 		}
 	} CATCH_HOOK({})
-		LOG_CORE_TIMER_END
+	LOG_CORE_TIMER_END
 }
 
 /**************************************************************************************************************
@@ -147,5 +147,5 @@ void HkTimerNPCAndF1Check()
 		else
 			HkChangeNPCSpawn(false);
 	} CATCH_HOOK({})
-		LOG_CORE_TIMER_END
+	LOG_CORE_TIMER_END
 }

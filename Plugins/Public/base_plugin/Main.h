@@ -145,11 +145,7 @@ public:
 	// If true, do not take damage
 	bool dont_rust;
 
-	// The list of goods and usage of goods per minute for the autosys effect
-	map<uint, uint> mapAutosysGood;
-
-	// The list of goods and usage of goods per minute for the autosys effect
-	map<uint, uint> mapHumansysGood;
+	bool wasDamagedSinceLastUpdate;
 
 	CoreModule(PlayerBase* the_base);
 	~CoreModule();
@@ -163,7 +159,6 @@ public:
 	float SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
 	bool SpaceObjDestroyed(uint space_obj, bool moveFile = true, bool broadcastDeath = true);
 	void SetReputation(int player_rep, float attitude);
-	float FindWearNTearModifier(float currHpPercentage);
 	void EnableShieldFuse(bool shieldState);
 
 	void RepairDamage(float max_base_health);
@@ -319,6 +314,8 @@ public:
 
 	// The base nickname
 	string nickname;
+
+	CSolar* baseCSolar;
 
 	// The base affiliation
 	uint affiliation;

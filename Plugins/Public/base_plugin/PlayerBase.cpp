@@ -2,7 +2,7 @@
 
 PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_basename)
 	: basename(the_basename),
-	base(0), money(0), base_health(0),
+	base(0), money(0), base_health(0), baseCSolar(nullptr),
 	base_level(1), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
 	shield_timeout(0), isShieldOn(false), isFreshlyBuilt(true),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
@@ -36,7 +36,7 @@ PlayerBase::PlayerBase(uint client, const wstring &password, const wstring &the_
 }
 
 PlayerBase::PlayerBase(const string &the_path)
-	: path(the_path), base(0), money(0),
+	: path(the_path), base(0), money(0), baseCSolar(nullptr),
 	base_health(0), base_level(0), defense_mode(0), proxy_base(0), affiliation(0), siege_mode(false),
 	shield_timeout(0), isShieldOn(false), isFreshlyBuilt(false),
 	shield_strength_multiplier(base_shield_strength), damage_taken_since_last_threshold(0)
@@ -102,12 +102,20 @@ void PlayerBase::CheckVulnerabilityWindow(uint currTime)
 				base_shield_reinforcement_threshold = FLT_MAX;
 			}
 		}
+		if (baseCSolar && base_health <= max_base_health)
+		{
+			baseCSolar->set_hit_pts(base_health);
+		}
 		vulnerableWindowStatus = true;
 	}
 	else if (!single_vulnerability_window && IsVulnerabilityWindowActive(vulnerabilityWindow2, timeOfDay))
 	{
 		if (!vulnerableWindowStatus)
 		{
+			if (baseCSolar && base_health <= max_base_health)
+			{
+				baseCSolar->set_hit_pts(base_health);
+			}
 			vulnerableWindowStatus = true;
 			siege_mode = true;
 			SyncReputationForBase();
@@ -115,6 +123,10 @@ void PlayerBase::CheckVulnerabilityWindow(uint currTime)
 	}
 	else if (vulnerableWindowStatus)
 	{
+		if (baseCSolar && base_health <= max_base_health)
+		{
+			baseCSolar->set_hit_pts(base_health);
+		}
 		vulnerableWindowStatus = false;
 		siege_mode = false;
 		SyncReputationForBase();

@@ -132,6 +132,8 @@ void CoreModule::Spawn()
 		
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
+		base->baseCSolar = (CSolar*)CObject::Find(space_obj, CObject::CSOLAR_OBJECT);
+
 		if (shield_reinforcement_threshold_map.count(base->base_level))
 			base->base_shield_reinforcement_threshold = shield_reinforcement_threshold_map[base->base_level];
 		else
@@ -262,8 +264,11 @@ bool CoreModule::Timer(uint time)
 
 	uint number_of_crew = base->HasMarketItem(set_base_crew_type);
 	bool isCrewSufficient = number_of_crew >= (base->base_level * 200);
-	pub::SpaceObj::GetHealth(space_obj, base->base_health, base->max_base_health);
 
+	if (wasDamagedSinceLastUpdate)
+	{
+		base->base_health = base->baseCSolar->get_hit_pts();
+	}
 	if (!dont_rust && ((time % set_damage_tick_time) == 0))
 	{
 		float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
@@ -289,7 +294,11 @@ bool CoreModule::Timer(uint time)
 		base->base_health = 0;
 	}
 
-	pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
+	if (wasDamagedSinceLastUpdate)
+	{
+		wasDamagedSinceLastUpdate = false;
+		base->baseCSolar->set_hit_pts(base->base_health);
+	}
 
 	// Humans use commodity_oxygen, commodity_water. Consume these for
 	// the crew or kill 10 crew off and repeat this every 12 hours.
@@ -384,6 +393,12 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 	{
 		base->damage_taken_since_last_threshold -= base->base_shield_reinforcement_threshold;
 		base->shield_strength_multiplier += shield_reinforcement_increment;
+	}
+
+	if (!wasDamagedSinceLastUpdate)
+	{
+		base->baseCSolar->set_hit_pts(base->base_health);
+		wasDamagedSinceLastUpdate = true;
 	}
 
 	base->base_health -= damageTaken;

@@ -1586,79 +1586,89 @@ int __cdecl Dock_Call(unsigned int const &iShip, unsigned int const &base, int& 
 {
 	returncode = DEFAULT_RETURNCODE;
 
-	uint client = HkGetClientIDByShip(iShip);
 	//AP::ClearClientInfo(client);
 
-	if (client && (response == PROCEED_DOCK || response == DOCK) && iCancel != -1)
+	if (!((response == PROCEED_DOCK || response == DOCK) && iCancel != -1))
 	{
-		PlayerBase* pbase = GetPlayerBase(base);
-		if (pbase)
-		{
-			if (mapArchs[pbase->basetype].isjump == 1)
-			{
-				//check if we have an ID restriction
-				if (mapArchs[pbase->basetype].idrestriction == 1)
-				{
-					bool foundid = false;
-					for (list<EquipDesc>::iterator item = Players[client].equipDescList.equip.begin(); item != Players[client].equipDescList.equip.end(); item++)
-					{
-						if (item->bMounted && mapArchs[pbase->basetype].allowedids.count(item->iArchID))
-						{
-							foundid = true;
-							break;
-						}
-					}
-					if (foundid == false)
-					{
-						PrintUserCmdText(client, L"ERR Unable to dock with this ID.");
-						iCancel = -1;
-						response = ACCESS_DENIED;
-						return 0;
-					}
-				}
-
-				//check if we have a shipclass restriction
-				if (mapArchs[pbase->basetype].shipclassrestriction == 1)
-				{
-					bool foundclass = false;
-					// get the player ship class
-					Archetype::Ship* TheShipArch = Archetype::GetShip(Players[client].iShipArchetype);
-					uint shipclass = TheShipArch->iShipClass;
-
-					if(!mapArchs[pbase->basetype].allowedshipclasses.count(shipclass))
-					{
-						PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
-						iCancel = -1;
-						response = ACCESS_DENIED;
-						return 0;
-					}
-				}
-
-				SendJumpObjOverride(client, base, pbase->destSystem);
-
-				return 0;
-			}
-
-			// Shield is up, docking is not possible.
-			if (pbase->shield_timeout)
-			{
-				PrintUserCmdText(client, L"Docking failed because base shield is active");
-				iCancel = -1;
-				response = ACCESS_DENIED;
-				return 0;
-			}
-
-			if (!IsDockingAllowed(pbase, client))
-			{
-				PrintUserCmdText(client, L"Docking at this base is restricted");
-				iCancel = -1;
-				response = ACCESS_DENIED;
-				return 0;
-			}
-
-			SendBaseStatus(client, pbase);
-		}
+		return 0;
 	}
+	PlayerBase* pbase = GetPlayerBase(base);
+	if (!pbase)
+	{
+		return 0;
+	}
+
+	uint client = HkGetClientIDByShip(iShip);
+
+	if (!client)
+	{
+		return 0;
+	}
+
+	if (mapArchs[pbase->basetype].isjump == 1)
+	{
+		//check if we have an ID restriction
+		if (mapArchs[pbase->basetype].idrestriction == 1)
+		{
+			bool foundid = false;
+			for (list<EquipDesc>::iterator item = Players[client].equipDescList.equip.begin(); item != Players[client].equipDescList.equip.end(); item++)
+			{
+				if (item->bMounted && mapArchs[pbase->basetype].allowedids.count(item->iArchID))
+				{
+					foundid = true;
+					break;
+				}
+			}
+			if (foundid == false)
+			{
+				PrintUserCmdText(client, L"ERR Unable to dock with this ID.");
+				iCancel = -1;
+				response = ACCESS_DENIED;
+				return 0;
+			}
+		}
+
+		//check if we have a shipclass restriction
+		if (mapArchs[pbase->basetype].shipclassrestriction == 1)
+		{
+			bool foundclass = false;
+			// get the player ship class
+			Archetype::Ship* TheShipArch = Archetype::GetShip(Players[client].iShipArchetype);
+			uint shipclass = TheShipArch->iShipClass;
+
+			if(!mapArchs[pbase->basetype].allowedshipclasses.count(shipclass))
+			{
+				PrintUserCmdText(client, L"ERR Unable to dock with a vessel of this type.");
+				iCancel = -1;
+				response = ACCESS_DENIED;
+				return 0;
+			}
+		}
+
+		SendJumpObjOverride(client, base, pbase->destSystem);
+
+		return 0;
+	}
+
+	// Shield is up, docking is not possible.
+	if (pbase->shield_timeout)
+	{
+		PrintUserCmdText(client, L"Docking failed because base shield is active");
+		iCancel = -1;
+		response = ACCESS_DENIED;
+		return 0;
+	}
+
+	if (!IsDockingAllowed(pbase, client))
+	{
+		PrintUserCmdText(client, L"Docking at this base is restricted");
+		iCancel = -1;
+		response = ACCESS_DENIED;
+		return 0;
+	}
+
+	SendBaseStatus(client, pbase);
+	
 	return 0;
 }
 
@@ -2363,7 +2373,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 		}
 	}
 	// This call is for us, skip all plugins.
-	iDmgToSpaceID = 0;
 	newHealth = damagedModule->SpaceObjDamaged(iDmgToSpaceID, dmg->get_inflictor_id(), curr, newHealth);
 	if (newHealth == curr)
 	{
@@ -2372,17 +2381,6 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 	}
 
 	returncode = SKIPPLUGINS;
-
-	if (newHealth <= 0 && sID == 1)
-	{
-		uint iType;
-		pub::SpaceObj::GetType(iDmgToSpaceID, iType);
-		uint iClientIDKiller = HkGetClientIDByShip(dmg->get_inflictor_id());
-		if (set_plugin_debug)
-			ConPrint(L"HkCb_AddDmgEntry[2]: iType is %u, iClientIDKiller is %u\n", iType, iClientIDKiller);
-		if (iClientIDKiller && iType & (OBJ_DOCKING_RING | OBJ_STATION | OBJ_WEAPONS_PLATFORM))
-			BaseDestroyed(iDmgToSpaceID, iClientIDKiller);
-	}
 }
 
 #define IS_CMD(a) !args.compare(L##a)

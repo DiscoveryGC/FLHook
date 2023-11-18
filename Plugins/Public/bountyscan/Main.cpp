@@ -19,6 +19,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
 		HkLoadStringDLLs();
 	}
+	else if (fdwReason == DLL_PROCESS_DETACH)
+	{
+		HkUnloadStringDLLs();
+	}
 	return true;
 }
 
@@ -33,12 +37,19 @@ bool bPluginEnabled = true;
 bool UserCmd_BountyScan(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
 	// get target player
-	uint iShip, iTargetShip;
+	uint iShip;
 	pub::Player::GetShip(iClientID, iShip);
+	if (!iShip)
+	{
+		PrintUserCmdText(iClientID, L"ERR: You are not in space.");
+		return true;
+	}
+
+	uint iTargetShip;
 	pub::SpaceObj::GetTarget(iShip, iTargetShip);
 	if (!iTargetShip)
 	{
-		PrintUserCmdText(iClientID, L"ERR: This is not a ship.");
+		PrintUserCmdText(iClientID, L"ERR: No selected target.");
 		return true;
 	}
 

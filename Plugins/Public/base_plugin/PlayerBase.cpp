@@ -388,7 +388,7 @@ void PlayerBase::Load()
 					{
 						wstring tag;
 						ini_get_wstring(ini, tag);
-						perma_hostile_tags.emplace_back(tag);
+						perma_hostile_tags.insert(tag);
 					}
 					else if (ini.is_value("faction_ally_tag"))
 					{
@@ -555,11 +555,7 @@ void PlayerBase::Save()
 		{
 			fprintf(file, "faction_hostile_tag = %d\n", i);
 		}
-		for (auto& i : hostile_tags)
-		{
-			ini_write_wstring(file, "hostile_tag", const_cast<wstring&>(i.first));
-		}
-		for(auto& i : perma_hostile_tags)
+		for(auto i : perma_hostile_tags)
 		{
 			ini_write_wstring(file, "perma_hostile_tag", i);
 		}
@@ -816,30 +812,6 @@ void ReportAttack(wstring basename, wstring charname, uint system, wstring alert
 	return;
 }
 
-// For all players in the base's system, resync their reps towards all objects
-// of this base.
-void PlayerBase::SiegeModChainReaction(uint client)
-{
-	for (auto& it : player_bases)
-	{
-		if (it.second->system != this->system || it.second->siege_mode || 
-			HkDistance3D(it.second->position, this->position) >= siege_mode_chain_reaction_trigger_distance)
-		{
-			continue;
-		}
-		float attitude = it.second->GetAttitudeTowardsClient(client, true);
-		if (attitude < -0.55f)
-		{
-			it.second->siege_mode = true;
-
-			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			ReportAttack(it.second->basename, charname, it.second->system, L"has detected hostile activity at a nearby base by");
-
-			it.second->SyncReputationForBase();
-		}
-	}
-}
-
 // Return true if 
 void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
@@ -847,7 +819,6 @@ void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float
 	{
 		return;
 	}
-	float incoming_damage = curr_hitpoints - new_hitpoints;
 
 	// Make sure that the attacking player is hostile.
 	uint client = HkGetClientIDByShip(attacking_space_obj);
@@ -856,68 +827,10 @@ void PlayerBase::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float
 		return;
 	}
 	const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-	last_attacker = charname;
 
-	if (hostile_tags_damage.find(charname) == hostile_tags_damage.end())
-		hostile_tags_damage[charname] = 0;
-
-	hostile_tags_damage[charname] += incoming_damage;
-
-	// Allies are allowed to shoot at the base without the base becoming hostile. We do the ally search
-	// after checking to see if this player is on the hostile list because allies don't normally
-	// shoot at bases and so this is more efficient than searching the ally list first.
-	if (hostile_tags.find(charname) == hostile_tags.end())
+	if (!hostile_tags.count(charname))
 	{
-		bool is_ally = false;
-		for (list<wstring>::iterator i = ally_tags.begin(); i != ally_tags.end(); ++i)
-		{
-			if (charname.find(*i) == 0)
-			{
-				is_ally = true;
-				break;
-			}
-		}
-
-		if (!is_ally && (hostile_tags_damage[charname]) > damage_threshold)
-		{
-			hostile_tags[charname] = charname;
-
-			const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-			ReportAttack(this->basename, charname, this->system, L"has activated self-defense against");
-
-			SyncReputationForBase();
-
-			if (siege_mode)
-				SiegeModChainReaction(client);
-		}
-	}
-
-	if (!siege_mode && (hostile_tags_damage[charname]) > siege_mode_damage_trigger_level)
-	{
-		const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
-		ReportAttack(this->basename, charname, this->system, L"siege mode triggered by");
-
-		siege_mode = true;
-		SiegeModChainReaction(client);
-	}
-
-	// If the shield is not active but could be set a time 
-	// to request that it is activated.
-	if (!this->shield_timeout && this->isShieldOn == false
-		&& this->vulnerableWindowStatus)
-	{
-		const wstring& charname = (const wchar_t*)Players.GetActiveCharacterName(client);
+		hostile_tags.insert(charname);
 		ReportAttack(this->basename, charname, this->system);
-		if (set_plugin_debug > 1)
-		{
-			ConPrint(L"PlayerBase::damaged shield active=%u\n", this->shield_timeout);
-		}
-	}
-
-	this->shield_timeout = time(nullptr) + 60;
-	if (!this->isShieldOn)
-	{
-		this->isShieldOn = true;
-		((CoreModule*)this->modules[0])->EnableShieldFuse(true);
 	}
 }

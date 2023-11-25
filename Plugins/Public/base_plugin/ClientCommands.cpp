@@ -191,7 +191,13 @@ void SendBaseStatus(uint client, PlayerBase* base)
 	{
 		base_status += L"<TEXT>Hit Points: Indestructible</TEXT><PARA/>";
 	}
-	base_status += L"<TEXT>Population: " + Int64ToPrettyStr((INT64)base->HasMarketItem(set_base_crew_type)) + L"</TEXT><PARA/>";
+	uint population = 0;
+	for (uint hash : humanCargoList)
+	{
+		population += base->HasMarketItem(hash);
+	}
+	base_status += L"<TEXT>Crew: " + Int64ToPrettyStr((INT64)base->HasMarketItem(set_base_crew_type)) + L"</TEXT><PARA/>";
+	base_status += L"<TEXT>Total population: " + Int64ToPrettyStr((INT64)population) + L"</TEXT><PARA/>";
 
 	if (single_vulnerability_window)
 	{

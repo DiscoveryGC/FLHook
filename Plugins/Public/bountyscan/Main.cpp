@@ -126,7 +126,8 @@ struct USERCMD
 
 USERCMD UserCmds[] =
 {
-	{ L"/bountyscan", UserCmd_BountyScan, L"Usage: /bountyscan" },
+	{ L"/bountyscan", UserCmd_BountyScan, L"Usage: /bountyscan or /bs" },
+	{ L"/bs", UserCmd_BountyScan, L"Usage: /bountyscan or /bs" },
 };
 
 bool UserCmd_Process(uint iClientID, const wstring &wscCmd)

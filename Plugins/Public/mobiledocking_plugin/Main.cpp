@@ -356,7 +356,6 @@ JettisonResult RemoveShipFromLists(const wstring& dockedShipName, bool forcedLau
 		PrintUserCmdText(dockedClientID, L"You've been forcefully jettisoned by the carrier.");
 		PrintUserCmdText(dockedClientID, L"Current home base: %ls", newBaseInfo.c_str());
 	}
-	Players[dockedClientID].iLastBaseID = idToDockedInfoMap[dockedClientID]->lastDockedSolar;
 	idToDockedInfoMap.erase(dockedClientID);
 
 	wstring& carrierName = nameToDockedInfoMap[dockedShipName].carrierName;
@@ -737,7 +736,14 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 
 	if (jettisonedShipsQueue.count(client))
 	{
-		HkBeamById(client, jettisonedShipsQueue.at(client));
+		CUSTOM_BASE_BEAM_STRUCT info;
+		info.iClientID = client;
+		info.iTargetBaseID = jettisonedShipsQueue.at(client);
+		Plugin_Communication(CUSTOM_BASE_BEAM, &info);
+		if (!info.bBeamed)
+		{
+			HkBeamById(client, jettisonedShipsQueue.at(client));
+		}
 		jettisonedShipsQueue.erase(client);
 		return;
 	}
@@ -1221,7 +1227,7 @@ void Plugin_Communication_CallBack(PLUGIN_MESSAGE msg, void* data)
 	if (msg == CUSTOM_MOBILE_DOCK_CHECK)
 	{
 		CUSTOM_MOBILE_DOCK_CHECK_STRUCT* mobileDockCheck = reinterpret_cast<CUSTOM_MOBILE_DOCK_CHECK_STRUCT*>(data);
-		if (idToDockedInfoMap.count(mobileDockCheck->iClientID))
+		if (idToDockedInfoMap.count(mobileDockCheck->iClientID) || jettisonedShipsQueue.count(mobileDockCheck->iClientID))
 		{
 			mobileDockCheck->isMobileDocked = true;
 		}

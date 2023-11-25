@@ -171,7 +171,8 @@ void ProcessGuided(FLPACKET_CREATEGUIDED& createGuidedPacket)
 	{
 		case NOTRACK_NOALERT:
 		{
-			const auto& projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
+			CGuided* projectile = reinterpret_cast<CGuided*>(CObject::Find(createGuidedPacket.iProjectileId, CObject::CGUIDED_OBJECT));
+			projectile->Release();
 			projectile->set_target(nullptr); //disable tracking, switch fallthrough to also disable alert
 		}
 		case TRACK_NOALERT:

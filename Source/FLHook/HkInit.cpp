@@ -305,6 +305,11 @@ bool InitHookExports()
 	ReadProcMem(pAddress, szRepFreeFixOld, 5);
 	WriteProcMem(pAddress, szNOPs, 5);
 
+	// jump past a redundant XOR statement
+	pAddress = SRV_ADDR(0x61D6);
+	char szJumpXor[1] = { '\x0D' };
+	WriteProcMem(pAddress, szJumpXor, sizeof(szJumpXor));
+
 	// patch pub::Save method
 	pAddress = SRV_ADDR(0x7EFA8);
 	char szNop[2] = { '\x90', '\x90' };
@@ -317,6 +322,11 @@ bool InitHookExports()
 	char szDivertJump[] = { '\x6F' };
 
 	WriteProcMem(pAddress, szDivertJump, 1);
+
+	// jump out of the crash trap in TradeLane/SPObjUpdate related code
+	pAddress = (char*)hModCommon + 0xF24A0;
+	char szSkipCrash[2] = { '\xEB', '\x28' };
+	WriteProcMem(pAddress, szSkipCrash, 2);
 
 	// install hook at new address
 	pAddress = SRV_ADDR(0x78B39);

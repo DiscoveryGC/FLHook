@@ -309,13 +309,8 @@ void HkTimerJSON()
 	Condata::HkTimerCheckKick();
 
 	//update activity once per minute
-	if (jsontimer == 0)
+	if (!jsontimer)
 	{
-
-	}
-	else if (jsontimer == 1)
-	{
-		jsontimer = 0;;
 		//ConPrint(L"JSONBuddy: Attempting to send data\n");
 		stringstream stream;
 		minijson::object_writer writer(stream);
@@ -394,7 +389,7 @@ void HkTimerJSON()
 		FILE *file = fopen("c:/stats/player_status.json", "w");
 		if (file)
 		{
-			fprintf(file, stream.str().c_str());
+			fprintf(file, "%s", stream.str().c_str());
 			fclose(file);
 		}
 

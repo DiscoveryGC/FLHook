@@ -113,7 +113,9 @@ struct CLIENT_DATA
 {
 	CLIENT_DATA() = default;
 
+	bool initialized = false;
 	uint equippedID = 0;
+	float equippedVolume = 0.0f;
 	uint lootID = 0;
 	uint itemCount = 0;
 	uint miningEvents = 0;
@@ -133,7 +135,7 @@ unordered_map<uint, CONTAINER_DATA> mapMiningContainers;
 /** A return code to indicate to FLHook if we want the hook processing to continue. */
 PLUGIN_RETURNCODE returncode;
 
-static float GetMiningYieldBonus(const uint id, const uint lootId)
+float GetMiningYieldBonus(const uint id, const uint lootId)
 {
 	const auto& bonusForId = idBonusMap.find(id);
 	if (bonusForId != idBonusMap.end())
@@ -150,20 +152,23 @@ static float GetMiningYieldBonus(const uint id, const uint lootId)
 void CheckClientSetup(const uint iClientID)
 {
 	const auto& equipDesc = Players[iClientID].equipDescList.equip;
+	bool processedID = false;
+	float mountedEquipmentVolume = 0.0f;
 	for (auto& equip : equipDesc)
 	{
-		if (!equip.bMounted)
+		if (!equip.bMounted && equip.is_internal())
 		{
 			continue;
 		}
-		const Archetype::Tractor* itemPtr = dynamic_cast<Archetype::Tractor*>(Archetype::GetEquipment(equip.iArchID));
-		if (itemPtr)
+		const Archetype::Equipment* itemPtr = Archetype::GetEquipment(equip.iArchID);
+		mountedEquipmentVolume += itemPtr->fVolume;
+		if (!processedID && itemPtr->get_class_type() == Archetype::TRACTOR)
 		{
+			processedID = true;
 			mapClients[iClientID].equippedID = equip.iArchID;
-			return;
 		}
 	}
-	mapClients[iClientID].equippedID = 0;
+	mapClients[iClientID].equippedVolume = mountedEquipmentVolume;
 }
 
 void DestroyContainer(const uint clientID)
@@ -465,12 +470,6 @@ bool UserCmd_Process(uint client, const wstring& args)
 	return true;
 }
 
-void __stdcall PlayerLaunch(unsigned int iShip, unsigned int iClientID)
-{
-	returncode = DEFAULT_RETURNCODE;
-	CheckClientSetup(iClientID);
-}
-
 /// Called when a gun hits something
 void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, unsigned int iClientID)
 {
@@ -651,6 +650,7 @@ void __stdcall SPMunitionCollision(struct SSPMunitionCollisionInfo const & ci, u
 
 		float fHoldRemaining;
 		pub::Player::GetRemainingHoldSize(iSendToClientID, fHoldRemaining);
+		fHoldRemaining -= cd.equippedVolume;
 		if (fHoldRemaining < static_cast<float>(miningYieldInt) * lootInfo->fVolume)
 		{
 			miningYieldInt = static_cast<uint>(fHoldRemaining / lootInfo->fVolume);
@@ -682,6 +682,11 @@ void __stdcall MineAsteroid(uint iClientSystemID, class Vector const& vPos, uint
 {
 	returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 	CLIENT_DATA& data = mapClients[iClientID];
+	if (!data.initialized)
+	{
+		data.initialized = true;
+		CheckClientSetup(iClientID);
+	}
 	data.itemCount = iCount;
 	data.lootID = iLootID;
 }
@@ -889,6 +894,11 @@ void BaseDestroyed(uint space_obj, uint client)
 	}
 }
 
+void PlayerLaunch_AFTER(uint shipID, uint clientID)
+{
+	mapClients.erase(clientID);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Functions to hook */
@@ -903,9 +913,9 @@ EXPORT PLUGIN_INFO* Get_PluginInfo()
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&LoadSettings, PLUGIN_LoadSettings, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&ClearClientInfo, PLUGIN_ClearClientInfo, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&CharacterSelect, PLUGIN_HkIServerImpl_CharacterSelect, 0));
+	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch_AFTER, PLUGIN_HkIServerImpl_PlayerLaunch_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&DisConnect, PLUGIN_HkIServerImpl_DisConnect, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&SystemSwitchOut, PLUGIN_HkIServerImpl_SystemSwitchOutComplete, 0));
-	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&PlayerLaunch, PLUGIN_HkIServerImpl_PlayerLaunch, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseEnter, PLUGIN_HkIServerImpl_BaseEnter_AFTER, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&BaseDestroyed, PLUGIN_BaseDestroyed, 0));
 	p_PI->lstHooks.push_back(PLUGIN_HOOKINFO((FARPROC*)&MineAsteroid, PLUGIN_HkIServerImpl_MineAsteroid, 0));

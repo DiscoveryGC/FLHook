@@ -1513,18 +1513,7 @@ namespace HyperJump
 			wstring basename = HkGetWStringFromIDS(baseinfo->iBaseIDS);
 			if (ToLower(basename).find(ToLower(wscTargetBaseName)) == 0)
 			{
-				pub::Player::ForceLand(info.iClientID, baseinfo->iBaseID);
-				if (info.iSystem != baseinfo->iSystemID)
-				{
-					Server.BaseEnter(baseinfo->iBaseID, info.iClientID);
-					Server.BaseExit(baseinfo->iBaseID, info.iClientID);
-					wstring wscCharFileName;
-					HkGetCharFileName(info.wscCharname, wscCharFileName);
-					wscCharFileName += L".fl";
-					CHARACTER_ID cID;
-					strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-					Server.CharacterSelect(cID, info.iClientID);
-				}
+				HkBeamById(info.iClientID, baseinfo->iBaseID);
 				return true;
 			}
 			baseinfo = Universe::GetNextBase();
@@ -1537,18 +1526,7 @@ namespace HyperJump
 			wstring basename = HkGetWStringFromIDS(baseinfo->iBaseIDS);
 			if (ToLower(basename).find(ToLower(wscTargetBaseName)) != -1)
 			{
-				pub::Player::ForceLand(info.iClientID, baseinfo->iBaseID);
-				if (info.iSystem != baseinfo->iSystemID)
-				{
-					Server.BaseEnter(baseinfo->iBaseID, info.iClientID);
-					Server.BaseExit(baseinfo->iBaseID, info.iClientID);
-					wstring wscCharFileName;
-					HkGetCharFileName(info.wscCharname, wscCharFileName);
-					wscCharFileName += L".fl";
-					CHARACTER_ID cID;
-					strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-					Server.CharacterSelect(cID, info.iClientID); \
-				}
+				HkBeamById(info.iClientID, baseinfo->iBaseID);
 				return true;
 			}
 			baseinfo = Universe::GetNextBase();

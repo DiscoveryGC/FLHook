@@ -117,6 +117,7 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 
 	CALL_PLUGINS_V(PLUGIN_ShipDestroyed, __stdcall, (DamageList *_dmg, DWORD *ecx, uint iKill), (_dmg, ecx, iKill));
 
+	LOG_CORE_TIMER_START
 	TRY_HOOK {
 		if (iKill == 1)
 		{
@@ -260,6 +261,8 @@ void __stdcall ShipDestroyed(DamageList *_dmg, DWORD *ecx, uint iKill)
 			ClientInfo[iClientID].iShip = 0;
 		}
 	} CATCH_HOOK({})
+	LOG_CORE_TIMER_END
+
 }
 
 FARPROC fpOldShipDestroyed;

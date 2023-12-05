@@ -808,6 +808,15 @@ void CCmds::CmdSetHookPerfTimer(string hookName, int loggingTime)
 	Print(L"OK\n");
 }
 
+void CCmds::CmdDumpCorePerfTimers(int loggingTime)
+{
+	RIGHT_CHECK(RIGHT_SUPERADMIN);
+
+	set_corePerfTimerLength = time(0) + loggingTime;
+
+	Print(L"OK\n");
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void CCmds::CmdHelp()
@@ -1265,6 +1274,10 @@ void CCmds::ExecuteCommandString(const wstring &wscCmdStr)
 			else if (IS_CMD("hookperftimercheck"))
 			{
 				CmdSetHookPerfTimer(wstos(ArgStr(1)), ArgInt(2));
+			}
+			else if (IS_CMD("dumpcoretimers"))
+			{
+				CmdDumpCorePerfTimers(ArgInt(1));
 			}
 			else {
 				Print(L"ERR unknown command\n");

@@ -9,11 +9,26 @@
 #include "flcodec.h"
 
 #include <plugin.h>
+#include <unordered_map>
+#include <chrono>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // defines
 
-//#define HOOK_TIMER_LOGGING
+#define CORE_TIMER_LOGGING
+
+#ifdef CORE_TIMER_LOGGING
+#define LOG_CORE_TIMER_START \
+auto& timeStart = std::chrono::high_resolution_clock::now();
+#define LOG_CORE_TIMER_END \
+if(set_corePerfTimerLength) {auto& timeEnd = std::chrono::high_resolution_clock::now(); \
+coreExecutionMap[__FUNCTION__].emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(timeEnd-timeStart).count());}
+#else
+#define LOG_CORE_TIMER_START
+#define LOG_CORE_TIMER_END
+#endif
+
+#define HOOK_TIMER_LOGGING
 
 #define HKHKSUCCESS(a) ((a) == HKE_OK)
 #define HKSUCCESS(a) ((hkLastErr = (a)) == HKE_OK)

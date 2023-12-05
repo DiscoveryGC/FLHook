@@ -21,6 +21,7 @@ int __stdcall HkCB_MissileTorpHit(char *ECX, char *p1, DamageList *dmg)
 
 	CALL_PLUGINS(PLUGIN_HkCB_MissileTorpHit, int, __stdcall, (char*, char*, DamageList*), (ECX, p1, dmg));
 
+	LOG_CORE_TIMER_START
 	TRY_HOOK {
 		// get client id
 		char *szP;
@@ -50,6 +51,7 @@ int __stdcall HkCB_MissileTorpHit(char *ECX, char *p1, DamageList *dmg)
 			}
 		}
 	} CATCH_HOOK({})
+	LOG_CORE_TIMER_END
 	return 0;
 }
 
@@ -120,6 +122,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 	else
 		dmgList->add_damage_entry(p1, p2, p3);
 
+	LOG_CORE_TIMER_START
 	TRY_HOOK {
 		LastDmgList = *dmgList; // save
 
@@ -143,6 +146,7 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmgList, unsigned short p1, float p2
 
 
 	} CATCH_HOOK({})
+	LOG_CORE_TIMER_END
 
 	CALL_PLUGINS_V(PLUGIN_HkCb_AddDmgEntry_AFTER, __stdcall, (DamageList *, unsigned short, float&, DamageEntry::SubObjFate), (dmgList, p1, p2, p3));
 
@@ -177,6 +181,7 @@ void __stdcall HkCb_GeneralDmg(char *szECX)
 
 	CALL_PLUGINS_V(PLUGIN_HkCb_GeneralDmg, __stdcall, (char*), (szECX));
 
+	LOG_CORE_TIMER_START
 	TRY_HOOK {
 		CSimple* simple;
 		memcpy(&simple, szECX + 0x10, 4);
@@ -185,6 +190,7 @@ void __stdcall HkCb_GeneralDmg(char *szECX)
 		iDmgToSpaceID = simple->get_id();
 		g_LastHitPts = simple->get_hit_pts();
 	} CATCH_HOOK({})
+	LOG_CORE_TIMER_END
 }
 
 __declspec(naked) void _HkCb_GeneralDmg()

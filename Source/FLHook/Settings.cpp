@@ -6,6 +6,7 @@
 // setting variables
 
 string			set_scCfgFile;
+unordered_map<string, vector<uint64_t>> coreExecutionMap;
 
 // General
 bool			set_bLoadedSettings = false;
@@ -35,6 +36,7 @@ bool			set_logPerfTimers;
 int			set_perfTimerLength;
 int			set_hookPerfTimerLength;
 string			set_perfTimedHookName;
+int			set_corePerfTimerLength;
 
 // Kick
 uint			set_iAntiBaseIdle;

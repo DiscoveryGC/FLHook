@@ -216,9 +216,10 @@ HK_ERROR HkResolveShortCut(const wstring &wscShortcut, uint &_iClientID)
 
 uint HkGetClientIDByShip(uint iShip)
 {
-	const CShip* cobj = reinterpret_cast<CShip*>(CObject::Find(iShip, CObject::CSHIP_OBJECT));
+	CShip* cobj = reinterpret_cast<CShip*>(CObject::Find(iShip, CObject::CSHIP_OBJECT));
 	if (cobj)
 	{
+		cobj->Release();
 		return cobj->GetOwnerPlayer();
 	}
 	return 0;

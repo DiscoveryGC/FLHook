@@ -335,33 +335,33 @@ struct CUSTOM_BASE_BEAM_STRUCT
 {
 	uint iClientID;
 	uint iTargetBaseID;
-	bool bBeamed;
+	bool bBeamed = false;
 };
 
 struct CUSTOM_BASE_IS_DOCKED_STRUCT
 {
 	uint iClientID;
-	uint iDockedBaseID;
+	uint iDockedBaseID = 0;
 };
 
 struct CUSTOM_BASE_IS_IT_POB_STRUCT
 {
 	uint iBase;
-	bool bAnswer;
+	bool bAnswer = false;
 };
 
 struct CLIENT_CLOAK_STRUCT
 {
 	uint iClientID;
-	bool isChargingCloak;
-	bool isCloaked;
+	bool isChargingCloak = false;
+	bool isCloaked = false;
 };
 
 struct COMBAT_DAMAGE_OVERRIDE_STRUCT
 {
 	uint iMunitionID;
 	uint iTargetTypeID;
-	float fDamageMultiplier;
+	float fDamageMultiplier = 1.0;
 };
 
 const enum JUMP_TYPE {

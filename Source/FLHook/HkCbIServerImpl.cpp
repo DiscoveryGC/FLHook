@@ -66,7 +66,7 @@ namespace HkIServerImpl
 	{
 		{ProcessPendingCommands,		500,					0},
 		{HkTimerCheckKick,			1000,					0},
-		{HkTimerNPCAndF1Check,			50,					0},
+		{HkTimerNPCAndF1Check,			100,					0},
 	};
 
 	int __stdcall Update(void)
@@ -82,11 +82,12 @@ namespace HkIServerImpl
 		}
 
 		// call timers
+		mstime currTime = timeInMS();
 		for (uint i = 0; (i < sizeof(Timers) / sizeof(TIMER)); i++)
 		{
-			if ((timeInMS() - Timers[i].tmLastCall) >= Timers[i].tmIntervallMS)
+			if ((currTime - Timers[i].tmLastCall) >= Timers[i].tmIntervallMS)
 			{
-				Timers[i].tmLastCall = timeInMS();
+				Timers[i].tmLastCall = currTime;
 				Timers[i].proc();
 			}
 		}

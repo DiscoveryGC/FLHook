@@ -155,7 +155,7 @@ static char cmp[256], part[256];
 
 const BYTE* __stdcall EngBase124BD_Log(const BYTE* data)
 {
-	__try
+	try
 	{
 		DWORD addr = *(DWORD*)(data + 12);
 		if (addr)
@@ -183,7 +183,7 @@ const BYTE* __stdcall EngBase124BD_Log(const BYTE* data)
 		}
 		data = *(PBYTE*)(data + 16);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	catch (...)
 	{
 		AddLog("ERROR: Exception/Crash suppression engbase.dll:0x124BD");
 		AddLog("Cmp=%s Part=%s", cmp, part);
@@ -205,13 +205,13 @@ __declspec(naked) void HkCb_EngBase124BDNaked()
 }
 
 
-const DWORD __stdcall HkCb_EngBase11a6dNaked_Log(const BYTE* data)
+DWORD __stdcall HkCb_EngBase11a6dNaked_Log(const BYTE* data)
 {
-	__try
+	try
 	{
 		return *(DWORD*)(data + 0x28);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	catch(...)
 	{
 		AddLog("ERROR: Exception/Crash suppression engbase.dll:0x11A6D");
 		return 0;

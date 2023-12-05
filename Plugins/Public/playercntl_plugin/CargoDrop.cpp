@@ -59,7 +59,7 @@ namespace CargoDrop
 		Vector vLastPosition;
 		Quaternion vLastDir;
 	};
-	static map<uint, INFO> mapInfo;
+	static unordered_map<uint, INFO> mapInfo;
 
 	void CargoDrop::LoadSettings(const string &scPluginCfgFile)
 	{
@@ -88,14 +88,16 @@ namespace CargoDrop
 	void CargoDrop::Timer()
 	{
 		// Disconnecting while interacting checks.
-		for (map<uint, INFO>::iterator iter = mapInfo.begin(); iter != mapInfo.end(); iter++)
+		for (auto& iter = mapInfo.begin(); iter != mapInfo.end(); iter++)
 		{
 			int iClientID = iter->first;
 
 			// If selecting a character or invalid, do nothing.
 			if (!HkIsValidClientID(iClientID) || HkIsInCharSelectMenu(iClientID))
+			{
+				mapInfo.erase(iClientID);
 				continue;
-
+			}
 			// If not in space, do nothing
 			uint iShip;
 			pub::Player::GetShip(iClientID, iShip);
@@ -119,54 +121,57 @@ namespace CargoDrop
 				ui.vDir = iter->second.vLastDir;
 				Server.SPObjUpdate(ui, iClientID);
 
-				if (!iter->second.bF1DisconnectProcessed)
+				if (iter->second.bF1DisconnectProcessed)
 				{
-					iter->second.bF1DisconnectProcessed = true;
+					continue;
+				}
 
-					// Send disconnect report to all ships in scanner range.
-					if (set_bReportDisconnectingPlayers)
+				iter->second.bF1DisconnectProcessed = true;
+
+				// Send disconnect report to all ships in scanner range.
+				if (set_bReportDisconnectingPlayers)
+				{
+					wstring wscMsg = set_wscDisconnectInSpaceMsg;
+					wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
+					wscMsg = ReplaceStr(wscMsg, L"%player", wscCharname);
+					PrintLocalUserCmdText(iClientID, wscMsg, set_fDisconnectingPlayersRange);
+					AddLog(wstos(wscMsg).c_str());
+				}
+
+				// Drop the player's cargo.
+				if (set_bLootDisconnectingPlayers && IsInRange(iClientID, set_fDisconnectingPlayersRange))
+				{
+					uint iSystem = 0;
+					pub::Player::GetSystem(iClientID, iSystem);
+					uint iShip = 0;
+					pub::Player::GetShip(iClientID, iShip);
+					Vector vLoc = { 0.0f, 0.0f, 0.0f };
+					Matrix mRot = { 0.0f, 0.0f, 0.0f };
+					pub::SpaceObj::GetLocation(iShip, vLoc, mRot);
+					vLoc.x += 30.0;
+
+					list<CARGO_INFO> lstCargo;
+					int iRemainingHoldSize = 0;
+					if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize) == HKE_OK)
 					{
-						wstring wscMsg = set_wscDisconnectInSpaceMsg;
-						wscMsg = ReplaceStr(wscMsg, L"%time", GetTimeString(set_bLocalTime));
-						wscMsg = ReplaceStr(wscMsg, L"%player", wscCharname);
-						PrintLocalUserCmdText(iClientID, wscMsg, set_fDisconnectingPlayersRange);
-					}
-
-					// Drop the player's cargo.
-					if (set_bLootDisconnectingPlayers && IsInRange(iClientID, set_fDisconnectingPlayersRange))
-					{
-						uint iSystem = 0;
-						pub::Player::GetSystem(iClientID, iSystem);
-						uint iShip = 0;
-						pub::Player::GetShip(iClientID, iShip);
-						Vector vLoc = { 0.0f, 0.0f, 0.0f };
-						Matrix mRot = { 0.0f, 0.0f, 0.0f };
-						pub::SpaceObj::GetLocation(iShip, vLoc, mRot);
-						vLoc.x += 30.0;
-
-						list<CARGO_INFO> lstCargo;
-						int iRemainingHoldSize = 0;
-						if (HkEnumCargo(wscCharname, lstCargo, iRemainingHoldSize) == HKE_OK)
+						foreach(lstCargo, CARGO_INFO, item)
 						{
-							foreach(lstCargo, CARGO_INFO, item)
+							if (!item->bMounted && set_mapNoLootItems.find(item->iArchID) == set_mapNoLootItems.end())
 							{
-								if (!item->bMounted && set_mapNoLootItems.find(item->iArchID) == set_mapNoLootItems.end())
-								{
-									HkRemoveCargo(wscCharname, item->iID, item->iCount);
-									Server.MineAsteroid(iSystem, vLoc, set_iLootCrateID, item->iArchID, item->iCount, iClientID);
-								}
+								HkRemoveCargo(wscCharname, item->iID, item->iCount);
+								Server.MineAsteroid(iSystem, vLoc, set_iLootCrateID, item->iArchID, item->iCount, iClientID);
 							}
 						}
-						HkSaveChar(wscCharname);
 					}
+					HkSaveChar(wscCharname);
+				}
 
-					// Kill if other ships are in scanner range.
-					if (set_bKillDisconnectingPlayers && IsInRange(iClientID, set_fDisconnectingPlayersRange))
-					{
-						uint iShip = 0;
-						pub::Player::GetShip(iClientID, iShip);
-						pub::SpaceObj::SetRelativeHealth(iShip, 0.0f);
-					}
+				// Kill if other ships are in scanner range.
+				if (set_bKillDisconnectingPlayers && IsInRange(iClientID, set_fDisconnectingPlayersRange))
+				{
+					uint iShip = 0;
+					pub::Player::GetShip(iClientID, iShip);
+					pub::SpaceObj::SetRelativeHealth(iShip, 0.0f);
 				}
 			}
 		}
@@ -220,8 +225,9 @@ namespace CargoDrop
 
 	void CargoDrop::SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
 	{
-		mapInfo[iClientID].dLastTimestamp = ui.fTimestamp;
-		mapInfo[iClientID].vLastPosition = ui.vPos;
-		mapInfo[iClientID].vLastDir = ui.vDir;
+		auto& info = mapInfo[iClientID];
+		info.dLastTimestamp = ui.fTimestamp;
+		info.vLastPosition = ui.vPos;
+		info.vLastDir = ui.vDir;
 	}
 }

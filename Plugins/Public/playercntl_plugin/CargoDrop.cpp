@@ -95,7 +95,7 @@ namespace CargoDrop
 			// If selecting a character or invalid, do nothing.
 			if (!HkIsValidClientID(iClientID) || HkIsInCharSelectMenu(iClientID))
 			{
-				mapInfo.erase(iter->first);
+				mapInfo.erase(iClientID);
 				continue;
 			}
 			// If not in space, do nothing

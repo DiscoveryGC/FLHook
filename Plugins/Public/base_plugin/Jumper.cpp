@@ -390,5 +390,5 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 		}
 	}
 
-	WritePrivateProfileString("Timer", "lastRandomization", itos((int)currTime).c_str(), cfg_filehyperspaceHubTimer.c_str());
+	WritePrivateProfileString("Timer", "lastRandomization", itos((int)(currTime - (currTime % randomizationCooldown))).c_str(), cfg_filehyperspaceHubTimer.c_str());
 }

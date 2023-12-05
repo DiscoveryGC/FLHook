@@ -2474,6 +2474,22 @@ namespace PlayerCommands
 
 		int param1 = ToInt(param1Str);
 		int param2 = ToInt(param2Str);
+
+		if (stows(itos(param1)) != param1Str
+			|| (!single_vulnerability_window && stows(itos(param2)) != param2Str))
+		{
+			PrintUserCmdText(client, L"ERR Provided parameter is not a number!");
+			if (single_vulnerability_window)
+			{
+				PrintUserCmdText(client, L"Example input: /base setshield 15");
+			}
+			else
+			{
+				PrintUserCmdText(client, L"Example input: /base setshield 15 23");
+			}
+			return;
+		}
+
 		if (param1 < 0 || param1 > 23
 			|| (!single_vulnerability_window && (param2 < 0 || param2 > 23)))
 		{
@@ -2482,8 +2498,7 @@ namespace PlayerCommands
 		}
 
 		int vulnerabilityWindowOneStart = param1 * 60; // minutes
-		int vulnerabilityWindowOneEnd = (vulnerabilityWindowOneStart + vulnerability_window_length) % (60 * 24); // 
-
+		int vulnerabilityWindowOneEnd = (vulnerabilityWindowOneStart + vulnerability_window_length) % (60 * 24);
 		int vulnerabilityWindowTwoStart = param2 * 60;
 		int vulnerabilityWindowTwoEnd = (vulnerabilityWindowTwoStart + vulnerability_window_length) % (60 * 24);
 

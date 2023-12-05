@@ -670,8 +670,6 @@ void ProcessEvent(wstring wscText, ...)
 
 	wscText = wszBuf;
 
-	CALL_PLUGINS_V(PLUGIN_ProcessEvent_BEFORE, , (wstring &wscText), (wscText));
-
 	foreach(lstSockets, SOCKET_CONNECTION*, i)
 	{
 		if ((*i)->csock.bEventMode)

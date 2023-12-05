@@ -458,6 +458,8 @@ namespace HkIServerImpl
 
 		CHECK_FOR_DISCONNECT
 
+		ClientInfo[iClientID].iCharMenuEnterTime = 0;
+
 			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_CharacterSelect, __stdcall, (struct CHARACTER_ID const & cId, unsigned int iClientID), (cId, iClientID));
 
 		wstring wscCharBefore;
@@ -482,36 +484,17 @@ namespace HkIServerImpl
 				if (set_bUserCmdHelp)
 					PrintUserCmdText(iClientID, L"To get a list of available commands, type \"/help\" in chat.");
 
-				// anti-cheat check
-				list <CARGO_INFO> lstCargo;
-				int iHold;
-				HkEnumCargo(ARG_CLIENTID(iClientID), lstCargo, iHold);
-				foreach(lstCargo, CARGO_INFO, it)
-				{
-					if ((*it).iCount < 0)
-					{
-						HkAddCheaterLog(wscCharname, L"Negative good-count, likely to have cheated in the past");
-
-						wchar_t wszBuf[256];
-						swprintf(wszBuf, L"Possible cheating detected (%s)", wscCharname.c_str());
-						HkMsgU(wszBuf);
-						HkBan(ARG_CLIENTID(iClientID), true);
-						HkKick(ARG_CLIENTID(iClientID));
-						return;
-					}
-				}
-
 				// event
 				CAccount *acc = Players.FindAccountFromClientID(iClientID);
 				wstring wscDir;
 				HkGetAccountDirName(acc, wscDir);
-				HKPLAYERINFO pi;
-				HkGetPlayerInfo(ARG_CLIENTID(iClientID), pi, false);
+				wstring playerIP;
+				HkGetPlayerIP(iClientID, playerIP);
 				ProcessEvent(L"login char=%s accountdirname=%s id=%d ip=%s",
 					wscCharname.c_str(),
 					wscDir.c_str(),
 					iClientID,
-					pi.wscIP.c_str());
+					playerIP.c_str());
 			}
 		} CATCH_HOOK({})
 
@@ -704,19 +687,12 @@ namespace HkIServerImpl
 
 		EXECUTE_SERVER_CALL(Server.TerminateTrade(iClientID, iAccepted));
 
-		TRY_HOOK {
-			if (iAccepted)
-			{ // save both chars to prevent cheating in case of server crash
-				HkSaveChar(ARG_CLIENTID(iClientID));
-				if (ClientInfo[iClientID].iTradePartner)
-					HkSaveChar(ARG_CLIENTID(ClientInfo[iClientID].iTradePartner));
-			}
 
 			if (ClientInfo[iClientID].iTradePartner)
 				ClientInfo[ClientInfo[iClientID].iTradePartner].iTradePartner = 0;
 			ClientInfo[iClientID].iTradePartner = 0;
 
-		} CATCH_HOOK({})
+		
 
 		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_TerminateTrade_AFTER, __stdcall, (unsigned int iClientID, int iAccepted), (iClientID, iAccepted));
 	}
@@ -1017,50 +993,8 @@ namespace HkIServerImpl
 				return;
 			}
 
-			CALL_PLUGINS_V(PLUGIN_HkIServerImpl_Login, __stdcall, (struct SLoginInfo const &li, unsigned int iClientID), (li, iClientID));
-
-
-			// check for ip ban
-			wstring wscIP;
-			HkGetPlayerIP(iClientID, wscIP);
-
-			foreach(set_lstBans, wstring, itb)
-			{
-				if (Wildcard::wildcardfit(wstos(*itb).c_str(), wstos(wscIP).c_str()))
-				{
-					HkAddKickLog(iClientID, L"IP ban(%s matches %s)", wscIP.c_str(), (*itb).c_str());
-					if (set_bBanAccountOnMatch)
-						HkBan(ARG_CLIENTID(iClientID), true);
-					HkKick(ARG_CLIENTID(iClientID));
-				}
-			}
-
-			// count players
-			struct PlayerData *pPD = 0;
-			uint iPlayers = 0;
-			while (pPD = Players.traverse_active(pPD))
-				iPlayers++;
-
-			if (iPlayers > (Players.GetMaxPlayerCount() - set_iReservedSlots))
-			{ // check if player has a reserved slot
-				CAccount *acc = Players.FindAccountFromClientID(iClientID);
-				wstring wscDir;
-				HkGetAccountDirName(acc, wscDir);
-				string scUserFile = scAcctPath + wstos(wscDir) + "\\flhookuser.ini";
-
-				bool bReserved = IniGetB(scUserFile, "Settings", "ReservedSlot", false);
-				if (!bReserved)
-				{
-					HkKick(acc);
-					return;
-				}
-			}
-
 			LoadUserSettings(iClientID);
 
-			// log
-			if (set_bLogConnects)
-				HkAddConnectLog(iClientID, wscIP);
 
 		} CATCH_HOOK({
 			CAccount *acc = Players.FindAccountFromClientID(iClientID);
@@ -1070,7 +1004,7 @@ namespace HkIServerImpl
 			}
 		})
 
-		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_Login_AFTER, __stdcall, (struct SLoginInfo const &li, unsigned int iClientID), (li, iClientID));
+		CALL_PLUGINS_V(PLUGIN_HkIServerImpl_Login, __stdcall, (struct SLoginInfo const& li, unsigned int iClientID), (li, iClientID));
 	}
 
 	/**************************************************************************************************************

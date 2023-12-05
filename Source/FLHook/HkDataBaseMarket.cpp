@@ -19,19 +19,13 @@ bool HkLoadBaseMarket()
 			continue;
 
 		const char *szBaseName = ini.get_value_string();
-		BASE_INFO *biBase = 0;
-		foreach(lstBases, BASE_INFO, it)
+		const auto& baseIter = lstBases.find(CreateID(szBaseName));
+		if (baseIter == lstBases.end())
 		{
-			const char *szBN = it->scBasename.c_str();
-			if (!ToLower(it->scBasename).compare(ToLower(szBaseName)))
-			{
-				biBase = &(*it);
-				break;
-			}
+			continue;
 		}
 
-		if (!biBase)
-			continue; // base not found
+		BASE_INFO* biBase = &baseIter->second;
 
 		ini.read_value();
 

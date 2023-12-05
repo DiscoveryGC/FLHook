@@ -9,6 +9,7 @@
 #include "flcodec.h"
 
 #include <plugin.h>
+#include <unordered_map>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // defines
@@ -848,7 +849,7 @@ namespace HkIEngine
 void HkTimerCheckKick();
 void HkTimerNPCAndF1Check();
 
-extern EXPORT list<BASE_INFO> lstBases;
+extern EXPORT unordered_map<uint, BASE_INFO> lstBases;
 
 // namespaces
 namespace HkIServerImpl

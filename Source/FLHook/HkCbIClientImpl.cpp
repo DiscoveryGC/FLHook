@@ -330,6 +330,8 @@ bool HkIClientImpl::Send_FLPACKET_SERVER_CHARACTERINFO(uint iClientID, FLPACKET_
 	ISERVER_LOG();
 	ISERVER_LOGARG_UI(iClientID);
 
+	ClientInfo[iClientID].iCharMenuEnterTime = time(0);
+
 	CALL_CLIENT_METHOD(Send_FLPACKET_SERVER_CHARACTERINFO(iClientID, pDunno));
 	return reinterpret_cast<bool>(vRet);
 }
@@ -1111,7 +1113,7 @@ bool HkIClientImpl::Startup(uint iDunno, uint iDunno2)
 
 		bi.scBasename = szBaseName;
 		bi.iBaseID = CreateID(szBaseName);
-		lstBases.push_back(bi);
+		lstBases[bi.iBaseID] = bi;
 		pub::System::LoadSystem(base->iSystemID);
 
 		base = Universe::GetNextBase();

@@ -174,23 +174,12 @@ bool ValidateCargo(unsigned int client)
 
 void StoreCurrentBase(uint client)
 {
-	CUSTOM_BASE_IS_DOCKED_STRUCT info;
-	info.iClientID = client;
-	info.iDockedBaseID = 0;
-	Plugin_Communication(CUSTOM_BASE_IS_DOCKED, &info);
-	// It's not docked at a custom base, check for a regular base
-	if (info.iDockedBaseID)
-	{
-		connInfo[client].retBase = info.iDockedBaseID;
-		connInfo[client].retSystemBackup = Players[client].iSystemID;
-	}
-	else
-	{
-		uint currBase;
-		pub::Player::GetBase(client, currBase);
-		connInfo[client].retBase = currBase;
-		connInfo[client].retSystemBackup = 0;
-	}
+
+	uint currBase;
+	pub::Player::GetBase(client, currBase);
+	connInfo[client].retBase = currBase;
+	connInfo[client].retSystemBackup = 0;
+
 }
 
 void StoreReturnPointForClient(unsigned int client)
@@ -203,18 +192,6 @@ void StoreReturnPointForClient(unsigned int client)
 	{
 		HookExt::IniSetI(client, "conn.retsystembackup", connInfo[client].retSystemBackup);
 	}
-}
-
-void SimulateF1(uint client, uint baseId)
-{
-	Server.BaseEnter(baseId, client);
-	Server.BaseExit(baseId, client);
-	wstring wscCharFileName;
-	HkGetCharFileName(ARG_CLIENTID(client), wscCharFileName);
-	wscCharFileName += L".fl";
-	CHARACTER_ID cID;
-	strcpy(cID.szCharFilename, wstos(wscCharFileName.substr(0, 14)).c_str());
-	Server.CharacterSelect(cID, client);
 }
 
 void MoveClient(unsigned int client, unsigned int targetBase)
@@ -235,11 +212,7 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 	Universe::IBase* base = Universe::get_base(targetBase);
 	if (base)
 	{
-		pub::Player::ForceLand(client, targetBase); // beam	// if not in the same system, emulate F1 charload
-		if (base->iSystemID != system)
-		{
-			SimulateF1(client, targetBase);
-		}
+		HkBeamById(client, targetBase);
 	}
 	else
 	{
@@ -254,11 +227,7 @@ void MoveClient(unsigned int client, unsigned int targetBase)
 			return;
 		}
 		PrintUserCmdText(client, L"Player base renamed/destroyed, ship redirected to a proxy base");
-		pub::Player::ForceLand(client, proxyBaseID); // beam
-		if (returnSys != system)
-		{
-			SimulateF1(client, proxyBaseID);
-		}
+		HkBeamById(client, targetBase);
 	}
 
 }
@@ -312,11 +281,21 @@ bool UserCmd_Process(uint client, const wstring &cmd)
 			return true;
 		}
 
+		CUSTOM_BASE_IS_DOCKED_STRUCT info2;
+		info2.iClientID = client;
+		Plugin_Communication(CUSTOM_BASE_IS_DOCKED, &info2);
+		if (info2.iDockedBaseID)
+		{
+			PrintUserCmdText(client, L"ERR Cannot go to connecticut from a Player Base");
+			return true;
+		}
+
 		if (!ValidateCargo(client))
 		{
 			return true;
 		}
 		StoreCurrentBase(client);
+		StoreReturnPointForClient(client);
 		PrintUserCmdText(client, L"Redirecting undock to Connecticut.");
 		connInfo[client].clientState = TRANSFER;
 
@@ -379,7 +358,6 @@ void __stdcall PlayerLaunch_AFTER(unsigned int ship, unsigned int client)
 
 		connInfo[client].clientState = NONE;
 		MoveClient(client, set_iTargetBaseID);
-		StoreReturnPointForClient(client);
 		return;
 	}
 

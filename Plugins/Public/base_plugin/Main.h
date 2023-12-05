@@ -44,6 +44,8 @@ struct RECIPE
 	vector<pair<uint, uint>> catalyst_workforce;
 	uint credit_cost = 0;
 	uint reqlevel = 0;
+	uint unlocked_by = 0;
+	string unlocked_by_nickname = "";
 	unordered_map<uint, float> affiliationBonus;
 };
 
@@ -424,6 +426,9 @@ public:
 	bool isCrewSupplied;
 
 	map<uint, int> reservedCatalystMap;
+	
+	// List of blueprints that have been used to unlock recipes on this base
+	unordered_set<uint> available_blueprints;
 
 	// The state of the shield
 	bool isShieldOn;
@@ -565,6 +570,7 @@ namespace PlayerCommands
 	void BaseBuildMod(uint client, const wstring& args);
 	void BaseBuildModDestroy(uint client, const wstring& args);
 	void BaseFacMod(uint client, const wstring& args);
+	void UnlockRecipe(uint client, const wstring& args);
 	void PopulateHelpMenus();
 	void BaseShieldMod(uint client, const wstring& args);
 	void Bank(uint client, const wstring& args);
@@ -623,6 +629,7 @@ extern int set_plugin_debug;
 
 /// Global recipe map
 extern unordered_map<uint, RECIPE> recipeMap;
+extern unordered_map<uint, string> blueprintMap;
 /// Maps of shortcut numbers to recipes to construct item.
 extern unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
 extern unordered_map<wstring, map<wstring, RECIPE>> recipeCraftTypeNameMap;
@@ -630,6 +637,7 @@ extern unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 extern unordered_map<wstring, RECIPE> moduleNameRecipeMap;
 extern unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 extern unordered_set<wstring> buildingCraftLists;
+extern unordered_map<uint, RECIPE> blueprintRecipeMap;
 
 struct REPAIR_ITEM
 {

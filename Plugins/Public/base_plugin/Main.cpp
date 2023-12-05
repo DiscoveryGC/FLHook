@@ -75,6 +75,7 @@ PLUGIN_RETURNCODE returncode;
 
 /// Global recipe map
 unordered_map<uint, RECIPE> recipeMap;
+unordered_map<uint, string> blueprintMap;
 
 /// Maps of shortcut numbers to recipes to construct item.
 unordered_map<wstring, map<uint, RECIPE>> recipeCraftTypeNumberMap;
@@ -83,6 +84,7 @@ unordered_map<uint, vector<wstring>> factoryNicknameToCraftTypeMap;
 unordered_map<wstring, RECIPE> moduleNameRecipeMap;
 unordered_map<wstring, map<uint, RECIPE>> craftListNumberModuleMap;
 unordered_set<wstring> buildingCraftLists;
+unordered_map<uint, RECIPE> blueprintRecipeMap;
 
 void AddFactoryRecipeToMaps(const RECIPE& recipe);
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number);
@@ -838,6 +840,11 @@ void LoadSettingsActual()
 					{
 						recipe.reqlevel = ini.get_value_int(0);
 					}
+					else if (ini.is_value("unlocked_by"))
+					{
+						recipe.unlocked_by = CreateID(ini.get_value_string(0));
+						blueprintMap.insert(make_pair(recipe.unlocked_by, ini.get_value_string(0)));
+					}
 					else if (ini.is_value("affiliation_bonus"))
 					{
 						recipe.affiliationBonus[MakeId(ini.get_value_string(0))] = ini.get_value_float(1);
@@ -1460,6 +1467,12 @@ bool UserCmd_Process(uint client, const wstring &args)
 	{
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		PlayerCommands::BaseFacMod(client, args);
+		return true;
+	}
+	else if (args.find(L"/unlock") == 0)
+	{
+		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
+		PlayerCommands::UnlockRecipe(client, args);
 		return true;
 	}
 	else if (args.find(L"/base defmod") == 0)
@@ -3227,7 +3240,11 @@ void AddFactoryRecipeToMaps(const RECIPE& recipe)
 	wstring recipeNameKey = ToLower(recipe.infotext);
 	recipeMap[recipe.nickname] = recipe;
 	recipeCraftTypeNumberMap[recipe.craft_type][recipe.shortcut_number] = recipe;
-	recipeCraftTypeNameMap[recipe.craft_type][recipeNameKey] = recipe;
+	recipeCraftTypeNameMap[recipe.craft_type][recipeNameKey] = recipe;	
+	if (recipe.unlocked_by)
+	{
+		blueprintRecipeMap[recipe.unlocked_by] = recipe;
+	}
 }
 
 void AddModuleRecipeToMaps(const RECIPE& recipe, const vector<wstring> craft_types, const wstring& build_type, uint recipe_number)

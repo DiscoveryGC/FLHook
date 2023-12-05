@@ -129,6 +129,10 @@ namespace PlayerCommands
 			currentString += stows(itos(recipe.second.shortcut_number));
 			currentString += L" = ";
 			currentString += recipe.second.infotext.c_str();
+			if (recipe.second.unlocked_by)
+			{
+				currentString += L" (req. blueprint)";
+			}
 			generatedHelpStringList.emplace_back(currentString.c_str());
 		}
 		return generatedHelpStringList;
@@ -1368,6 +1372,111 @@ namespace PlayerCommands
 		PrintUserCmdText(client, L"type: '/craft start dockmodule 1' or '/craft start dockmodule Docking Module'");
 	}
 
+	void UnlockRecipe(uint client, const wstring& args)
+	{
+		PlayerBase* base = GetPlayerBaseForClient(client);
+
+		if (!checkBaseAdminAccess(base, client))
+		{
+			return;
+		}
+
+		wstring& cmd = GetParam(args, ' ', 1);
+		int bp = ToInt(cmd);
+		bool foundRecipe = false;
+
+		if (bp)
+		{
+			uint counter = 1;
+			for (auto& i : base->market_items)
+			{
+				if (!blueprintRecipeMap.count(i.first))
+				{
+					continue;
+				}
+
+				if (base->available_blueprints.count(i.first))
+				{
+					continue;
+				}
+
+				const GoodInfo* gi = GoodList::find_by_id(i.first);
+				if (!gi)
+				{
+					continue;
+				}
+
+				if (counter != bp)
+				{
+					counter++;
+					continue;
+				}
+
+				if (base->HasMarketItem(i.first))
+				{
+					foundRecipe = true;
+					base->RemoveMarketGood(i.first, 1);
+					base->available_blueprints.insert(i.first);
+					PrintUserCmdText(client, L"Blueprint %ls applied.", HkGetWStringFromIDS(gi->iIDSName).c_str());
+					break;
+				}
+			}
+			if (!foundRecipe)
+			{
+				PrintUserCmdText(client, L"Selection invalid, item ID not found.");
+			}
+		}
+		else if (cmd == L"list")
+		{
+			uint counter = 1;
+			PrintUserCmdText(client, L"Available blueprints:");
+			for (auto& i : base->market_items)
+			{
+				if (!blueprintRecipeMap.count(i.first))
+				{
+					continue;
+				}
+
+				if (base->available_blueprints.count(i.first))
+				{
+					continue;
+				}
+
+				const GoodInfo* gi = GoodList::find_by_id(i.first);
+				if (!gi)
+				{
+					continue;
+				}
+
+				if (!base->HasMarketItem(i.first))
+				{
+					continue;
+				}
+
+				PrintUserCmdText(client, L"%|  %u. %ls", counter, HkGetWStringFromIDS(gi->iIDSName).c_str());
+				counter++;
+			}
+		}
+		else if (cmd == L"known")
+		{
+			PrintUserCmdText(client, L"Researched blueprints:");
+			for (auto& i : base->available_blueprints)
+			{
+				const GoodInfo* gi = GoodList::find_by_id(i);
+				PrintUserCmdText(client, L"|  %ls", HkGetWStringFromIDS(gi->iIDSName).c_str());
+			}
+		}
+		else
+		{
+			PrintUserCmdText(client, L"ERR Invalid parameters");
+			PrintUserCmdText(client, L"/unlock [list|known|<blueprint number>]");
+			PrintUserCmdText(client, L"|  list - show available blueprints to consume");
+			PrintUserCmdText(client, L"|  known - show blueprints already researched");
+			PrintUserCmdText(client, L"|  <blueprint number> - consume a blueprint and unlock the related recipe");
+		}
+
+	}
+
 	void BaseFacMod(uint client, const wstring& args)
 	{
 		PlayerBase* base = GetPlayerBaseForClient(client);
@@ -1455,6 +1564,12 @@ namespace PlayerCommands
 		else if (!recipe)
 		{
 			PrintUserCmdText(client, L"ERR Invalid recipe selected, for a list of valid recipes in selected craft list, use '/craft list %ls'", craftList.c_str());
+			return;
+		} 
+		else if (recipe && recipe->unlocked_by && !base->available_blueprints.count(recipe->unlocked_by))
+		{
+			PrintUserCmdText(client, L"ERR Recipe not discovered, for a list of valid recipes in selected craft list, use '/craft list %ls'", craftList.c_str());
+			PrintUserCmdText(client, L"For a list of unlocked blueprints, use '/unlock known'");
 			return;
 		}
 

@@ -877,7 +877,7 @@ namespace PlayerCommands
 		}
 
 
-		base->perma_hostile_tags.emplace_back(tag);
+		base->perma_hostile_tags.insert(tag);
 
 		// Logging
 		wstring thecharname = (const wchar_t*)Players.GetActiveCharacterName(client);
@@ -909,13 +909,13 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"ERR No tag");
 		}
 
-		if (find(base->perma_hostile_tags.begin(), base->perma_hostile_tags.end(), tag) == base->perma_hostile_tags.end())
+		if (!base->perma_hostile_tags.count(tag))
 		{
 			PrintUserCmdText(client, L"ERR Tag does not exist");
 			return;
 		}
 
-		base->perma_hostile_tags.remove(tag);
+		base->perma_hostile_tags.erase(tag);
 
 		// Logging
 		wstring thecharname = (const wchar_t*)Players.GetActiveCharacterName(client);
@@ -941,8 +941,8 @@ namespace PlayerCommands
 			return;
 		}
 
-		foreach(base->perma_hostile_tags, wstring, i)
-			PrintUserCmdText(client, L"%s", i->c_str());
+		for(auto& hostileTag : base->perma_hostile_tags)
+			PrintUserCmdText(client, L"%s", hostileTag.c_str());
 		PrintUserCmdText(client, L"OK");
 	}
 
@@ -1871,7 +1871,7 @@ namespace PlayerCommands
 
 					wstring charname = (const wchar_t*)Players.GetActiveCharacterName(client);
 					const GoodInfo* gi = GoodList::find_by_id(i.first);
-					BaseLogging("Base %s: player %s changed price of %s to %f", wstos(base->basename).c_str(), wstos(charname).c_str(), wstos(HkGetWStringFromIDS(gi->iIDSName)).c_str(), money);
+					BaseLogging("Base %s: player %s changed price of %s to %d", wstos(base->basename).c_str(), wstos(charname).c_str(), wstos(HkGetWStringFromIDS(gi->iIDSName)).c_str(), money);
 					return;
 				}
 			}
@@ -1995,6 +1995,13 @@ namespace PlayerCommands
 			PrintUserCmdText(client, L"WARNING, CREW COUNT TOO LOW");
 		}
 		PrintUserCmdText(client, L"Crew: %u onboard", crewItemCount);
+
+		uint populationCount = 0;
+		for (uint hash : humanCargoList)
+		{
+			populationCount += base->HasMarketItem(hash);
+		}
+		PrintUserCmdText(client, L"Total population: %u onboard", populationCount);
 
 		PrintUserCmdText(client, L"Crew supplies:");
 		for (uint item : set_base_crew_consumption_items)

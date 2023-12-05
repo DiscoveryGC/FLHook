@@ -100,7 +100,7 @@ string set_status_path_html;
 string set_status_path_json;
 
 /// Damage to the base every tick
-uint set_damage_per_tick = 600;
+float set_damage_per_tick = 600;
 
 /// Additional damage penalty for stations without proper crew
 float no_crew_damage_multiplier = 1;
@@ -524,7 +524,7 @@ void LoadSettingsActual()
 					}
 					else if (ini.is_value("damage_per_tick"))
 					{
-						set_damage_per_tick = ini.get_value_int(0);
+						set_damage_per_tick = ini.get_value_float(0);
 					}
 					else if (ini.is_value("no_crew_damage_multiplier"))
 					{
@@ -1142,9 +1142,17 @@ bool __stdcall HkCb_Land(IObjInspectImpl *obj, uint base_dock_id, uint base)
 			if (clients[client].player_base)
 				return true;
 
+			CUSTOM_MOBILE_DOCK_CHECK_STRUCT info;
+			info.iClientID = client;
+			info.isMobileDocked = false;
+			Plugin_Communication(CUSTOM_MOBILE_DOCK_CHECK, &info);
+			if (!info.isMobileDocked)
+			{
+				clients[client].last_player_base = 0;
+			}
+
 			// If we're not docking at a player base then clear 
 			// the last base flag
-			clients[client].last_player_base = 0;
 			clients[client].player_base = 0;
 
 			if (base == 0)
@@ -1532,9 +1540,9 @@ static bool IsDockingAllowed(PlayerBase *base, uint client)
 	}
 
 	//Hostile listed can't dock even if they are friendly faction listed
-	for (list<wstring>::iterator i = base->perma_hostile_tags.begin(); i != base->perma_hostile_tags.end(); ++i)
+	for (auto& i : base->perma_hostile_tags)
 	{
-		if (charname.find(*i) == 0)
+		if (charname.find(i) == 0)
 		{
 			return false;
 		}
@@ -2370,6 +2378,10 @@ void __stdcall HkCb_AddDmgEntry(DamageList *dmg, unsigned short sID, float& newH
 		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
 		return;
 	}
+	if (newHealth == 0.0f)
+	{
+		damagedModule->SpaceObjDestroyed(iDmgToSpaceID);
+	}
 
 	returncode = SKIPPLUGINS;
 
@@ -2566,7 +2578,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			}
 		}
 
-
 		if (!base)
 		{
 			cmd->Print(L"ERR Base doesn't exist");
@@ -2623,39 +2634,6 @@ bool ExecuteCommandString_Callback(CCmds* cmd, const wstring &args)
 			cmd->Print(L"ERROR POB file corrupted: %ls\n", stows(path).c_str());
 		}
 
-
-		return true;
-	}
-	else if (args.find(L"basedespawn") == 0)
-	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL;
-
-		RIGHT_CHECK(RIGHT_BASES)
-
-		uint client = HkGetClientIdFromCharname(cmd->GetAdminName());
-
-		PlayerBase* base;
-		for (auto& i : player_bases)
-		{
-			if (i.second->basename == cmd->ArgStrToEnd(1))
-			{
-				base = i.second;
-				break;
-			}
-		}
-
-		if (!base)
-		{
-			cmd->Print(L"ERR Base doesn't exist\n");
-			return true;
-		}
-
-		base->base_health = 0;
-		if (base->base_health < 1)
-		{
-			cmd->Print(L"Base despawned\n");
-			CoreModule(base).SpaceObjDestroyed(CoreModule(base).space_obj, false, false);
-		}
 
 		return true;
 	}

@@ -145,8 +145,8 @@ public:
 	// If true, do not take damage
 	bool dont_rust;
 
-	// The list of goods and usage of goods per minute for the autosys effect
-	map<uint, uint> mapAutosysGood;
+	bool wasDamagedSinceLastUpdate;
+	bool undergoingDestruction;
 
 	// The list of goods and usage of goods per minute for the autosys effect
 	map<uint, uint> mapHumansysGood;
@@ -309,7 +309,6 @@ public:
 
 	float GetAttitudeTowardsClient(uint client, bool emulated_siege_mode = false);
 	void SyncReputationForBase();
-	void SiegeModChainReaction(uint client);
 	void SyncReputationForBaseObject(uint space_obj);
 
 	void SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints);
@@ -319,6 +318,9 @@ public:
 
 	// The base nickname
 	string nickname;
+
+	// Reference to the base's CSolar object
+	CSolar* baseCSolar;
 
 	// The base affiliation
 	uint affiliation;
@@ -401,11 +403,10 @@ public:
 	unordered_set<uint> hostile_factions;
 
 	// List of ships that are hostile to this base
-	unordered_map<wstring, wstring> hostile_tags;
-	unordered_map<wstring, float> hostile_tags_damage;
+	unordered_set<wstring> hostile_tags;
 
 	// List of ships that are permanently hostile to this base
-	list<wstring> perma_hostile_tags;
+	unordered_set<wstring> perma_hostile_tags;
 
 	// Modules for base
 	vector<Module*> modules;
@@ -433,9 +434,6 @@ public:
 
 	int logic;
 	int invulnerable;
-
-	//last player attacker
-	wstring last_attacker;
 
 	uint lastVulnerabilityWindowChange = 0;
 
@@ -679,7 +677,7 @@ extern int construction_credit_cost;
 extern uint set_damage_per_10sec;
 
 /// Damage to the base every tick
-extern uint set_damage_per_tick;
+extern float set_damage_per_tick;
 
 /// Additional damage penalty for stations without proper crew
 extern float no_crew_damage_multiplier;

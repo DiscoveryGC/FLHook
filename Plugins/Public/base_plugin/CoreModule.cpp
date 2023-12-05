@@ -13,7 +13,7 @@
 #include <hookext_exports.h>
 
 CoreModule::CoreModule(PlayerBase* the_base) : Module(TYPE_CORE), base(the_base), space_obj(0), dont_eat(false),
-dont_rust(false)
+dont_rust(false), wasDamagedSinceLastUpdate(false), undergoingDestruction(false)
 {
 }
 
@@ -132,6 +132,9 @@ void CoreModule::Spawn()
 		
 		pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
 
+		base->baseCSolar = (CSolar*)CObject::Find(space_obj, CObject::CSOLAR_OBJECT);
+		base->baseCSolar->Release();
+
 		if (shield_reinforcement_threshold_map.count(base->base_level))
 			base->base_shield_reinforcement_threshold = shield_reinforcement_threshold_map[base->base_level];
 		else
@@ -248,13 +251,6 @@ bool CoreModule::Timer(uint time)
 		return false;
 	}
 
-	// if health is 0 then the object will be destroyed but we won't
-	// receive a notification of this so emulate it.
-	if (base->base_health < 1)
-	{
-		return SpaceObjDestroyed(space_obj);
-	}
-
 	if ((base->logic == 0) && (base->invulnerable == 1))
 	{
 		return false;
@@ -269,7 +265,7 @@ bool CoreModule::Timer(uint time)
 		float no_crew_penalty = isCrewSufficient ? 1.0f : no_crew_damage_multiplier;
 		// Reduce hitpoints to reflect wear and tear. This will eventually
 		// destroy the base unless it is able to repair itself.
-		float damage_taken = (set_damage_per_tick * base->base_level) * no_crew_penalty;
+		float damage_taken = set_damage_per_tick * no_crew_penalty;
 		base->base_health -= damage_taken;
 	}
 
@@ -287,6 +283,7 @@ bool CoreModule::Timer(uint time)
 	else if (base->base_health <= 0)
 	{
 		base->base_health = 0;
+		return SpaceObjDestroyed(space_obj);
 	}
 
 	pub::SpaceObj::SetRelativeHealth(space_obj, base->base_health / base->max_base_health);
@@ -351,7 +348,12 @@ bool CoreModule::Timer(uint time)
 float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, float curr_hitpoints, float new_hitpoints)
 {
 
-	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, new_hitpoints);
+	base->shield_timeout = time(nullptr) + 60;
+	if (!base->isShieldOn)
+	{
+		base->isShieldOn = true;
+		EnableShieldFuse(true);
+	}
 
 	if (!base->vulnerableWindowStatus || base->invulnerable == 1 || base->shield_strength_multiplier >= 1.0f)
 	{
@@ -386,14 +388,25 @@ float CoreModule::SpaceObjDamaged(uint space_obj, uint attacking_space_obj, floa
 		base->shield_strength_multiplier += shield_reinforcement_increment;
 	}
 
-	base->base_health -= damageTaken;
-	return curr_hitpoints - damageTaken;
+	if (!wasDamagedSinceLastUpdate)
+	{
+		base->baseCSolar->set_hit_pts(base->base_health);
+		wasDamagedSinceLastUpdate = true;
+	}
+
+	float newHealth = max(0, curr_hitpoints - damageTaken);
+
+	base->SpaceObjDamaged(space_obj, attacking_space_obj, curr_hitpoints, newHealth);
+
+	base->base_health = newHealth;
+	return newHealth;
 }
 
 bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile, bool broadcastDeath)
 {
-	if (this->space_obj == space_obj)
+	if (this->space_obj == space_obj && !undergoingDestruction)
 	{
+		undergoingDestruction = true;
 		if (set_plugin_debug > 1)
 			ConPrint(L"CoreModule::destroyed space_obj=%u\n", space_obj);
 		pub::SpaceObj::LightFuse(space_obj, "player_base_explode_fuse", 0);
@@ -434,14 +447,7 @@ bool CoreModule::SpaceObjDestroyed(uint space_obj, bool moveFile, bool broadcast
 		}
 		Log::LogBaseAction(wstos(base->basename), msg.c_str());
 
-		if (!base->last_attacker.empty())
-		{
-			ConPrint(L"BASE: Base %s destroyed. Last attacker: %s\n", base->basename.c_str(), base->last_attacker.c_str());
-		}
-		else
-		{
-			ConPrint(L"BASE: Base %s destroyed\n", base->basename.c_str());
-		}
+		ConPrint(L"BASE: Base %s destroyed\n", base->basename.c_str());
 
 		// Unspawn, delete base and save file.
 		DeleteBase(base, moveFile);

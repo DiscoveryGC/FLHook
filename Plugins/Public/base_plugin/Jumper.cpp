@@ -169,6 +169,7 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 	static map<uint, vector<SYSTEMJUMPCOORDS>> mapSystemJumps;
 	uint lastJumpholeRandomization = 0;
 	uint randomizationCooldown = 3600 * 23;
+	uint randomizationCooldownOffset = 3600 * 9;
 	INI_Reader ini;
 
 	if (ini.open(cfg_filehyperspaceHubTimer.c_str(), false))
@@ -185,6 +186,10 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 					if (ini.is_value("randomizationCooldown"))
 					{
 						randomizationCooldown = ini.get_value_int(0);
+					}
+					if (ini.is_value("randomizationCooldownOffset"))
+					{
+						randomizationCooldownOffset = ini.get_value_int(0);
 					}
 					if (ini.is_value("systemToExclude"))
 					{
@@ -390,5 +395,5 @@ void HyperJump::LoadHyperspaceHubConfig(const string& configPath)
 		}
 	}
 
-	WritePrivateProfileString("Timer", "lastRandomization", itos((int)currTime).c_str(), cfg_filehyperspaceHubTimer.c_str());
+	WritePrivateProfileString("Timer", "lastRandomization", itos((int)(currTime - (currTime % randomizationCooldown) + randomizationCooldownOffset)).c_str(), cfg_filehyperspaceHubTimer.c_str());
 }
